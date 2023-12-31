@@ -1,6 +1,6 @@
 {
   "name": "@hathora/delta-pack",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "files": [
     "dist"
