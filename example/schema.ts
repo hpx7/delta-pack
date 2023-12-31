@@ -2,6 +2,7 @@ import {
   ChildType,
   EnumType,
   IntType,
+  Modifier,
   ObjectType,
   ReferenceType,
   StringType,
@@ -24,11 +25,11 @@ const Player = ObjectType({
 });
 
 const PlayerState = ObjectType({
-  hand: ChildType(ReferenceType("Card"), "array"),
-  players: ChildType(ReferenceType("Player"), "array"),
-  turn: ChildType(ReferenceType("UserId"), "optional"),
-  pile: ChildType(ReferenceType("Card"), "optional"),
-  winner: ChildType(ReferenceType("UserId"), "optional"),
+  hand: ChildType(ReferenceType("Card"), Modifier.ARRAY),
+  players: ChildType(ReferenceType("Player"), Modifier.ARRAY),
+  turn: ChildType(ReferenceType("UserId"), Modifier.OPTIONAL),
+  pile: ChildType(ReferenceType("Card"), Modifier.OPTIONAL),
+  winner: ChildType(ReferenceType("UserId"), Modifier.OPTIONAL),
 });
 
 const UnionTest = UnionType([ReferenceType("UserId"), ReferenceType("Color"), ReferenceType("Card")]);

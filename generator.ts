@@ -3,7 +3,10 @@ import { readFileSync } from "node:fs";
 import Handlebars from "handlebars";
 
 type Type = ObjectType | UnionType | EnumType | StringType | IntType | FloatType | BooleanType;
-type Modifier = "optional" | "array";
+export enum Modifier {
+  OPTIONAL = "optional",
+  ARRAY = "array",
+}
 type ChildType = (StringType | IntType | FloatType | BooleanType | ReferenceType) & {
   modifier?: Modifier;
 };
