@@ -2,9 +2,8 @@
   "name": "@hathora/delta-pack",
   "version": "0.0.4",
   "license": "MIT",
-  "files": [
-    "dist"
-  ],
+  "main": "dist/generator.js",
+  "types": "dist/generator.d.ts",
   "scripts": {
     "build": "tsc && cp template.hbs dist",
     "typecheck": "tsc --noEmit"

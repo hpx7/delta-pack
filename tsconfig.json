@@ -2,6 +2,7 @@
   "include": ["generator.ts"],
   "compilerOptions": {
     "strict": true,
+    "declaration": true,
     "esModuleInterop": true,
     "module": "esnext",
     "target": "esnext",
