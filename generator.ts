@@ -21,7 +21,7 @@ interface UnionType {
 }
 interface EnumType {
   type: "enum";
-  options: { label: string; value: number }[];
+  options: string[];
 }
 interface StringType {
   type: "string";
@@ -55,7 +55,7 @@ export function UnionType(options: ReferenceType[]): UnionType {
   return { type: "union", options };
 }
 
-export function EnumType(options: { label: string; value: number }[]): EnumType {
+export function EnumType(options: string[]): EnumType {
   return { type: "enum", options };
 }
 

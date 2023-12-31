@@ -31,7 +31,7 @@ class _Tracker {
 {{#if (eq type "enum")}}
 export enum {{@key}} {
   {{#each options}}
-  {{label}},
+  {{this}},
   {{/each}}
 }
 {{else}}

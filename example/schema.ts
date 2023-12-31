@@ -11,12 +11,7 @@ import {
 
 const UserId = StringType();
 
-const Color = EnumType([
-  { label: "RED", value: 0 },
-  { label: "BLUE", value: 1 },
-  { label: "GREEN", value: 2 },
-  { label: "YELLOW", value: 3 },
-]);
+const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
 const Card = ObjectType({
   value: IntType(),
