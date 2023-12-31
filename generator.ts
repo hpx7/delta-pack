@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import Handlebars from "handlebars";
 
-type Type = ObjectType | UnionType | EnumType | StringType | IntType | FloatType | BooleanType;
+export type Type = ObjectType | UnionType | EnumType | StringType | IntType | FloatType | BooleanType;
 export enum Modifier {
   OPTIONAL = "optional",
   ARRAY = "array",
