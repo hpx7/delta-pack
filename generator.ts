@@ -81,6 +81,7 @@ export function BooleanType(): BooleanType {
 Handlebars.registerHelper("eq", (a, b) => a === b);
 
 export function codegenTypescript(doc: Record<string, Type>) {
-  const template = Handlebars.compile(readFileSync("template.hbs", "utf8"));
+  const templateFile = new URL("template.hbs", import.meta.url);
+  const template = Handlebars.compile(readFileSync(templateFile, "utf8"));
   return template(doc);
 }
