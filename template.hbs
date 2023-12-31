@@ -197,7 +197,7 @@ export const {{@key}} = {
 {{~else if (eq modifier "optional")}}
 undefined
 {{~else}}
-{{> renderDefault (lookup @root reference)}}
+{{> renderDefault (lookup @root reference) typeString=reference}}
 {{/if}}
 {{~else if (eq type "string")}}
 ""
@@ -209,6 +209,8 @@ undefined
 false
 {{~else if (eq type "enum")}}
 0
+{{~else}}
+{{typeString}}.default()
 {{/if}}
 {{/inline}}
 {{#*inline "renderValidate"}}
