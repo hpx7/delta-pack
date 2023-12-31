@@ -1,6 +1,6 @@
 {
   "name": "@hathora/delta-pack",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "main": "dist/generator.js",
   "types": "dist/generator.d.ts",
