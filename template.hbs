@@ -73,7 +73,7 @@ export const {{@key}} = {
     if (typeof obj !== "object") {
       return [`Invalid {{@key}} object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
     {{#each properties}}
     validationErrors = {{> renderValidate arg=@key}};
