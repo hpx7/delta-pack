@@ -1,4 +1,3 @@
-import { Writer } from "bin-serde";
 import { Color, PlayerState } from "./output";
 
 const state1: PlayerState = {
@@ -7,7 +6,7 @@ const state1: PlayerState = {
   intArray: [],
 };
 
-console.log(PlayerState.encode(state1, new Writer()).toBuffer());
+console.log(PlayerState.encode(state1).toBuffer());
 // Uint8Array(7) [
 //   0, 0, 0, 0,
 //   0, 0, 0
@@ -27,7 +26,7 @@ const state2: PlayerState = {
   intOptional: -1,
 };
 
-console.log(PlayerState.encode(state2, new Writer()).toBuffer());
+console.log(PlayerState.encode(state2).toBuffer());
 // Uint8Array(26) [
 //   2,  2, 1,   4,  0, 2, 2, 112,
 //  49,  4, 2, 112, 50, 6, 1,   2,

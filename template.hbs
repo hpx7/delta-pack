@@ -71,7 +71,7 @@ export const {{@key}} = {
   },
   validate(obj: {{@key}}) {
     if (typeof obj !== "object") {
-      return [`Invalid {{@key}} object: ${obj}`]
+      return [`Invalid {{@key}} object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -84,13 +84,13 @@ export const {{@key}} = {
 
     return validationErrors;
   },
-  encode(obj: {{@key}}, buf: _Writer) {
+  encode(obj: {{@key}}, buf: _Writer = new _Writer()) {
     {{#each properties}}
     {{> renderEncodeArg arg=@key}};
     {{/each}}
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<{{@key}}>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<{{@key}}>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     {{#each properties}}
     tracker.push(obj.{{@key}} !== _NO_DIFF);
     if (obj.{{@key}} !== _NO_DIFF) {
@@ -145,8 +145,7 @@ export const {{@key}} = {
       return [`Invalid {{@key}} union: ${obj}`];
     }
   },
-  encode(obj: {{@key}}, writer?: _Writer) {
-    const buf = writer ?? new _Writer();
+  encode(obj: {{@key}}, buf: _Writer = new _Writer()) {
     {{#each options}}
     {{#unless @first}}else {{/unless}}if (obj.type === "{{reference}}") {
       writeUInt8(buf, {{@index}});
@@ -156,7 +155,7 @@ export const {{@key}} = {
     {{/each}}
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<{{@key}}>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<{{@key}}>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     {{#each options}}
     {{#unless @first}}else {{/unless}}if (obj.type === "{{reference}}") {
       writeUInt8(buf, {{@index}});

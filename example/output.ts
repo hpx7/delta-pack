@@ -54,7 +54,7 @@ export const Card = {
   },
   validate(obj: Card) {
     if (typeof obj !== "object") {
-      return [`Invalid Card object: ${obj}`]
+      return [`Invalid Card object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -69,12 +69,12 @@ export const Card = {
 
     return validationErrors;
   },
-  encode(obj: Card, buf: _Writer) {
+  encode(obj: Card, buf: _Writer = new _Writer()) {
     writeInt(buf, obj.value);
     writeUInt8(buf, obj.color);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Card>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<Card>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.value !== _NO_DIFF);
     if (obj.value !== _NO_DIFF) {
       writeInt(buf, obj.value);
@@ -109,7 +109,7 @@ export const Player = {
   },
   validate(obj: Player) {
     if (typeof obj !== "object") {
-      return [`Invalid Player object: ${obj}`]
+      return [`Invalid Player object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -124,12 +124,12 @@ export const Player = {
 
     return validationErrors;
   },
-  encode(obj: Player, buf: _Writer) {
+  encode(obj: Player, buf: _Writer = new _Writer()) {
     writeString(buf, obj.id);
     writeInt(buf, obj.numCards);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Player>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<Player>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.id !== _NO_DIFF);
     if (obj.id !== _NO_DIFF) {
       writeString(buf, obj.id);
@@ -169,7 +169,7 @@ export const PlayerState = {
   },
   validate(obj: PlayerState) {
     if (typeof obj !== "object") {
-      return [`Invalid PlayerState object: ${obj}`]
+      return [`Invalid PlayerState object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -204,7 +204,7 @@ export const PlayerState = {
 
     return validationErrors;
   },
-  encode(obj: PlayerState, buf: _Writer) {
+  encode(obj: PlayerState, buf: _Writer = new _Writer()) {
     writeArray(buf, obj.hand, (x) => Card.encode(x, buf));
     writeArray(buf, obj.players, (x) => Player.encode(x, buf));
     writeOptional(buf, obj.turn, (x) => writeString(buf, x));
@@ -214,7 +214,7 @@ export const PlayerState = {
     writeOptional(buf, obj.intOptional, (x) => writeInt(buf, x));
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<PlayerState>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<PlayerState>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.hand !== _NO_DIFF);
     if (obj.hand !== _NO_DIFF) {
       writeArrayDiff(buf, tracker, obj.hand, (x) => Card.encodeDiff(x, tracker, buf));
@@ -306,8 +306,7 @@ export const UnionTest = {
       return [`Invalid UnionTest union: ${obj}`];
     }
   },
-  encode(obj: UnionTest, writer?: _Writer) {
-    const buf = writer ?? new _Writer();
+  encode(obj: UnionTest, buf: _Writer = new _Writer()) {
     if (obj.type === "UserId") {
       writeUInt8(buf, 0);
       const x = obj.val;
@@ -325,7 +324,7 @@ export const UnionTest = {
     }
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<UnionTest>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<UnionTest>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     if (obj.type === "UserId") {
       writeUInt8(buf, 0);
       writeBoolean(buf, obj.val !== _NO_DIFF);

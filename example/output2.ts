@@ -61,7 +61,7 @@ export const Position = {
   },
   validate(obj: Position) {
     if (typeof obj !== "object") {
-      return [`Invalid Position object: ${obj}`]
+      return [`Invalid Position object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -76,12 +76,12 @@ export const Position = {
 
     return validationErrors;
   },
-  encode(obj: Position, buf: _Writer) {
+  encode(obj: Position, buf: _Writer = new _Writer()) {
     writeInt(buf, obj.x);
     writeInt(buf, obj.y);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Position>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<Position>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.x !== _NO_DIFF);
     if (obj.x !== _NO_DIFF) {
       writeInt(buf, obj.x);
@@ -116,7 +116,7 @@ export const Velocity = {
   },
   validate(obj: Velocity) {
     if (typeof obj !== "object") {
-      return [`Invalid Velocity object: ${obj}`]
+      return [`Invalid Velocity object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -131,12 +131,12 @@ export const Velocity = {
 
     return validationErrors;
   },
-  encode(obj: Velocity, buf: _Writer) {
+  encode(obj: Velocity, buf: _Writer = new _Writer()) {
     writeInt(buf, obj.x);
     writeInt(buf, obj.y);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Velocity>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<Velocity>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.x !== _NO_DIFF);
     if (obj.x !== _NO_DIFF) {
       writeInt(buf, obj.x);
@@ -187,7 +187,7 @@ export const Player = {
   },
   validate(obj: Player) {
     if (typeof obj !== "object") {
-      return [`Invalid Player object: ${obj}`]
+      return [`Invalid Player object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -266,7 +266,7 @@ export const Player = {
 
     return validationErrors;
   },
-  encode(obj: Player, buf: _Writer) {
+  encode(obj: Player, buf: _Writer = new _Writer()) {
     writeInt(buf, obj.id);
     writeString(buf, obj.name);
     writeString(buf, obj.type);
@@ -287,7 +287,7 @@ export const Player = {
     writeInt(buf, obj.maxSpeed);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Player>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<Player>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.id !== _NO_DIFF);
     if (obj.id !== _NO_DIFF) {
       writeInt(buf, obj.id);
@@ -418,7 +418,7 @@ export const State = {
   },
   validate(obj: State) {
     if (typeof obj !== "object") {
-      return [`Invalid State object: ${obj}`]
+      return [`Invalid State object: ${obj}`];
     }
     let validationErrors: string[] = [];
 
@@ -433,12 +433,12 @@ export const State = {
 
     return validationErrors;
   },
-  encode(obj: State, buf: _Writer) {
+  encode(obj: State, buf: _Writer = new _Writer()) {
     writeInt(buf, obj.id);
     writeArray(buf, obj.state, (x) => Player.encode(x, buf));
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<State>, tracker: _Tracker, buf: _Writer) {
+  encodeDiff(obj: _DeepPartial<State>, tracker: _Tracker, buf: _Writer = new _Writer()) {
     tracker.push(obj.id !== _NO_DIFF);
     if (obj.id !== _NO_DIFF) {
       writeInt(buf, obj.id);

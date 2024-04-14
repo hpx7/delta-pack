@@ -1,6 +1,6 @@
-import fs, { readFileSync } from "fs";
+import fs from "fs";
 import { State } from "./output2";
-import { Reader, Writer } from "bin-serde";
+import { Reader } from "bin-serde";
 
 function runBenchmark() {
   // Read test data from disk
@@ -12,7 +12,7 @@ function runBenchmark() {
 
   testData.forEach((snapshot) => {
     let startEncode = performance.now();
-    let encoded = State.encode(snapshot, new Writer()).toBuffer();
+    let encoded = State.encode(snapshot).toBuffer();
     totalEncodeTime += performance.now() - startEncode;
     totalSize += encoded.length;
 
