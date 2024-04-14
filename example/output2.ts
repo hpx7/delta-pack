@@ -63,13 +63,13 @@ export const Position = {
     if (typeof obj !== "object") {
       return [`Invalid Position object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.x), `Invalid : ${ obj.x }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${ obj.x }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.x");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.y), `Invalid : ${ obj.y }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${ obj.y }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.y");
     }
@@ -118,13 +118,13 @@ export const Velocity = {
     if (typeof obj !== "object") {
       return [`Invalid Velocity object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.x), `Invalid : ${ obj.x }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${ obj.x }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Velocity.x");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.y), `Invalid : ${ obj.y }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${ obj.y }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Velocity.y");
     }
@@ -189,17 +189,17 @@ export const Player = {
     if (typeof obj !== "object") {
       return [`Invalid Player object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid : ${ obj.id }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${ obj.id }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.id");
     }
-    validationErrors = validatePrimitive(typeof obj.name === "string", `Invalid : ${ obj.name }`);
+    validationErrors = validatePrimitive(typeof obj.name === "string", `Invalid string: ${ obj.name }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.name");
     }
-    validationErrors = validatePrimitive(typeof obj.type === "string", `Invalid : ${ obj.type }`);
+    validationErrors = validatePrimitive(typeof obj.type === "string", `Invalid string: ${ obj.type }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.type");
     }
@@ -211,55 +211,55 @@ export const Player = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.velocity");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.width), `Invalid : ${ obj.width }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.width), `Invalid int: ${ obj.width }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.width");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.height), `Invalid : ${ obj.height }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.height), `Invalid int: ${ obj.height }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.height");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.rotation), `Invalid : ${ obj.rotation }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.rotation), `Invalid int: ${ obj.rotation }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.rotation");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.mass), `Invalid : ${ obj.mass }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.mass), `Invalid int: ${ obj.mass }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.mass");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.health), `Invalid : ${ obj.health }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${ obj.health }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.health");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.depth), `Invalid : ${ obj.depth }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.depth), `Invalid int: ${ obj.depth }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.depth");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.lifetime), `Invalid : ${ obj.lifetime }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.lifetime), `Invalid int: ${ obj.lifetime }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.lifetime");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.radius), `Invalid : ${ obj.radius }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.radius), `Invalid int: ${ obj.radius }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.radius");
     }
-    validationErrors = validatePrimitive(typeof obj.isSensor === "boolean", `Invalid : ${ obj.isSensor }`);
+    validationErrors = validatePrimitive(typeof obj.isSensor === "boolean", `Invalid boolean: ${ obj.isSensor }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.isSensor");
     }
-    validationErrors = validatePrimitive(typeof obj.isStatic === "boolean", `Invalid : ${ obj.isStatic }`);
+    validationErrors = validatePrimitive(typeof obj.isStatic === "boolean", `Invalid boolean: ${ obj.isStatic }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.isStatic");
     }
-    validationErrors = validatePrimitive(typeof obj.destroyed === "boolean", `Invalid : ${ obj.destroyed }`);
+    validationErrors = validatePrimitive(typeof obj.destroyed === "boolean", `Invalid boolean: ${ obj.destroyed }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.destroyed");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.owner), `Invalid : ${ obj.owner }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.owner), `Invalid int: ${ obj.owner }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.owner");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.maxSpeed), `Invalid : ${ obj.maxSpeed }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.maxSpeed), `Invalid int: ${ obj.maxSpeed }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.maxSpeed");
     }
@@ -420,9 +420,9 @@ export const State = {
     if (typeof obj !== "object") {
       return [`Invalid State object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid : ${ obj.id }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${ obj.id }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: State.id");
     }

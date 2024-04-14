@@ -30,6 +30,8 @@ const PlayerState = ObjectType({
   turn: ChildType(ReferenceType("UserId"), Modifier.OPTIONAL),
   pile: ChildType(ReferenceType("Card"), Modifier.OPTIONAL),
   winner: ChildType(ReferenceType("UserId"), Modifier.OPTIONAL),
+  intArray: ChildType(IntType(), Modifier.ARRAY),
+  intOptional: ChildType(IntType(), Modifier.OPTIONAL),
 });
 
 const UnionTest = UnionType([ReferenceType("UserId"), ReferenceType("Color"), ReferenceType("Card")]);
@@ -42,5 +44,5 @@ console.log(
     Player,
     PlayerState,
     UnionTest,
-  })
+  }),
 );

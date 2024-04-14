@@ -40,6 +40,8 @@ export type PlayerState = {
   turn?: UserId;
   pile?: Card;
   winner?: UserId;
+  intArray: number[];
+  intOptional?: number;
 };
 export type UnionTest = { type: "UserId"; val: UserId } | { type: "Color"; val: Color } | { type: "Card"; val: Card };
 
@@ -54,9 +56,9 @@ export const Card = {
     if (typeof obj !== "object") {
       return [`Invalid Card object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.value), `Invalid : ${ obj.value }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.value), `Invalid int: ${ obj.value }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Card.value");
     }
@@ -109,13 +111,13 @@ export const Player = {
     if (typeof obj !== "object") {
       return [`Invalid Player object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.id === "string", `Invalid UserId: ${ obj.id }`);
+    validationErrors = validatePrimitive(typeof obj.id === "string", `Invalid string: ${ obj.id }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.id");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.numCards), `Invalid : ${ obj.numCards }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.numCards), `Invalid int: ${ obj.numCards }`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.numCards");
     }
@@ -161,13 +163,15 @@ export const PlayerState = {
       turn: undefined,
       pile: undefined,
       winner: undefined,
+      intArray: [],
+      intOptional: undefined,
     };
   },
   validate(obj: PlayerState) {
     if (typeof obj !== "object") {
       return [`Invalid PlayerState object: ${obj}`]
     }
-    let validationErrors: string[];
+    let validationErrors: string[] = [];
 
     validationErrors = validateArray(obj.hand, (x) => Card.validate(x));
     if (validationErrors.length > 0) {
@@ -177,7 +181,7 @@ export const PlayerState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.players");
     }
-    validationErrors = validateOptional(obj.turn, (x) => validatePrimitive(typeof x === "string", `Invalid UserId: ${ x }`));
+    validationErrors = validateOptional(obj.turn, (x) => validatePrimitive(typeof x === "string", `Invalid string: ${ x }`));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.turn");
     }
@@ -185,9 +189,17 @@ export const PlayerState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.pile");
     }
-    validationErrors = validateOptional(obj.winner, (x) => validatePrimitive(typeof x === "string", `Invalid UserId: ${ x }`));
+    validationErrors = validateOptional(obj.winner, (x) => validatePrimitive(typeof x === "string", `Invalid string: ${ x }`));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.winner");
+    }
+    validationErrors = validateArray(obj.intArray, (x) => validatePrimitive(Number.isInteger(x), `Invalid int: ${ x }`));
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid key: PlayerState.intArray");
+    }
+    validationErrors = validateOptional(obj.intOptional, (x) => validatePrimitive(Number.isInteger(x), `Invalid int: ${ x }`));
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid key: PlayerState.intOptional");
     }
 
     return validationErrors;
@@ -198,6 +210,8 @@ export const PlayerState = {
     writeOptional(buf, obj.turn, (x) => writeString(buf, x));
     writeOptional(buf, obj.pile, (x) => Card.encode(x, buf));
     writeOptional(buf, obj.winner, (x) => writeString(buf, x));
+    writeArray(buf, obj.intArray, (x) => writeInt(buf, x));
+    writeOptional(buf, obj.intOptional, (x) => writeInt(buf, x));
     return buf;
   },
   encodeDiff(obj: _DeepPartial<PlayerState>, tracker: _Tracker, buf: _Writer) {
@@ -221,6 +235,14 @@ export const PlayerState = {
     if (obj.winner !== _NO_DIFF) {
       writeOptional(buf, obj.winner, (x) => writeString(buf, x));
     }
+    tracker.push(obj.intArray !== _NO_DIFF);
+    if (obj.intArray !== _NO_DIFF) {
+      writeArrayDiff(buf, tracker, obj.intArray, (x) => writeInt(buf, x));
+    }
+    tracker.push(obj.intOptional !== _NO_DIFF);
+    if (obj.intOptional !== _NO_DIFF) {
+      writeOptional(buf, obj.intOptional, (x) => writeInt(buf, x));
+    }
     return buf;
   },
   decode(buf: _Reader): PlayerState {
@@ -231,6 +253,8 @@ export const PlayerState = {
       turn: parseOptional(sb, () => parseString(sb)),
       pile: parseOptional(sb, () => Card.decode(sb)),
       winner: parseOptional(sb, () => parseString(sb)),
+      intArray: parseArray(sb, () => parseInt(sb)),
+      intOptional: parseOptional(sb, () => parseInt(sb)),
     };
   },
   decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<PlayerState> {
@@ -241,6 +265,8 @@ export const PlayerState = {
       turn: tracker.next() ? parseOptional(sb, () => parseString(sb)) : _NO_DIFF,
       pile: tracker.next() ? parseOptional(sb, () => Card.decodeDiff(sb, tracker)) : _NO_DIFF,
       winner: tracker.next() ? parseOptional(sb, () => parseString(sb)) : _NO_DIFF,
+      intArray: tracker.next() ? parseArrayDiff(sb, tracker, () => parseInt(sb)) : _NO_DIFF,
+      intOptional: tracker.next() ? parseOptional(sb, () => parseInt(sb)) : _NO_DIFF,
     };
   },
 };
@@ -256,7 +282,7 @@ export const UnionTest = {
   },
   validate(obj: UnionTest) {
     if (obj.type === "UserId") {
-      const validationErrors = validatePrimitive(typeof obj.val === "string", `Invalid UserId: ${ obj.val }`);
+      const validationErrors = validatePrimitive(typeof obj.val === "string", `Invalid string: ${ obj.val }`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: UnionTest");
       }

@@ -191,14 +191,12 @@ export const {{@key}} = {
 {{/if}}
 {{/inline}}
 {{#*inline "renderDefault"}}
-{{#if (eq type "reference")}}
 {{#if (eq modifier "array")}}
 []
 {{~else if (eq modifier "optional")}}
 undefined
-{{~else}}
+{{~else if (eq type "reference")}}
 {{> renderDefault (lookup @root reference) typeString=reference}}
-{{/if}}
 {{~else if (eq type "string")}}
 ""
 {{~else if (eq type "int")}}
@@ -214,39 +212,35 @@ false
 {{/if}}
 {{/inline}}
 {{#*inline "renderValidate"}}
-{{#if (eq type "reference")}}
 {{#if (eq modifier "array")}}
-validateArray({{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderValidate (lookup @root reference) typeString=reference}})
+validateArray({{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderValidate modifier=null arg=null}})
 {{~else if (eq modifier "optional")}}
-validateOptional({{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderValidate (lookup @root reference) typeString=reference}})
-{{~else}}
-{{> renderValidate (lookup @root reference) arg=arg typeString=reference typeString=reference}}
-{{/if}}
+validateOptional({{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderValidate modifier=null arg=null}})
+{{~else if (eq type "reference")}}
+{{> renderValidate (lookup @root reference) arg=arg typeString=reference}}
 {{~else if (eq type "int")}}
-validatePrimitive(Number.isInteger({{#if arg}}obj.{{arg}}{{else}}x{{/if}}), `Invalid {{typeString}}: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
+validatePrimitive(Number.isInteger({{#if arg}}obj.{{arg}}{{else}}x{{/if}}), `Invalid int: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
 {{~else if (eq type "float")}}
-validatePrimitive(typeof {{#if arg}}obj.{{arg}}{{else}}x{{/if}} === "number", `Invalid {{typeString}}: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
+validatePrimitive(typeof {{#if arg}}obj.{{arg}}{{else}}x{{/if}} === "number", `Invalid float: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
 {{~else if (eq type "string")}}
-validatePrimitive(typeof {{#if arg}}obj.{{arg}}{{else}}x{{/if}} === "string", `Invalid {{typeString}}: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
+validatePrimitive(typeof {{#if arg}}obj.{{arg}}{{else}}x{{/if}} === "string", `Invalid string: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
+{{~else if (eq type "boolean")}}
+validatePrimitive(typeof {{#if arg}}obj.{{arg}}{{else}}x{{/if}} === "boolean", `Invalid boolean: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
 {{~else if (eq type "enum")}}
 validatePrimitive({{#if arg}}obj.{{arg}}{{else}}x{{/if}} in {{typeString}}, `Invalid {{typeString}}: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
-{{~else if (eq type "boolean")}}
-validatePrimitive(typeof {{#if arg}}obj.{{arg}}{{else}}x{{/if}} === "boolean", `Invalid {{typeString}}: ${ {{#if arg}}obj.{{arg}}{{else}}x{{/if}} }`)
 {{~else if (eq type "object")}}
 {{typeString}}.validate({{#if arg}}obj.{{arg}}{{else}}x{{/if}})
 {{~else if (eq type "union")}}
 {{typeString}}.validate({{#if arg}}obj.{{arg}}{{else}}x{{/if}})
-{{~/if}}
+{{/if}}
 {{/inline}}
 {{#*inline "renderEncodeArg"}}
-{{#if (eq type "reference")}}
 {{#if (eq modifier "array")}}
-writeArray(buf, {{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderEncodeArg (lookup @root reference) typeString=reference}})
+writeArray(buf, {{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderEncodeArg modifier=null arg=null}})
 {{~else if (eq modifier "optional")}}
-writeOptional(buf, obj.{{arg}}, (x) => {{> renderEncodeArg (lookup @root reference) typeString=reference}})
-{{~else}}
+writeOptional(buf, obj.{{arg}}, (x) => {{> renderEncodeArg modifier=null arg=null}})
+{{~else if (eq type "reference")}}
 {{> renderEncodeArg (lookup @root reference) arg=arg typeString=reference}}
-{{/if}}
 {{~else if (eq type "enum")}}
 writeUInt8(buf, {{#if arg}}obj.{{arg}}{{else}}x{{/if}})
 {{~else if (eq type "int")}}
@@ -262,14 +256,12 @@ writeBoolean(buf, {{#if arg}}obj.{{arg}}{{else}}x{{/if}})
 {{~/if}}
 {{/inline}}
 {{#*inline "renderEncodeDiffArg"}}
-{{#if (eq type "reference")}}
 {{#if (eq modifier "array")}}
-writeArrayDiff(buf, tracker, {{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderEncodeDiffArg (lookup @root reference) typeString=reference}})
+writeArrayDiff(buf, tracker, {{#if arg}}obj.{{arg}}{{else}}x{{/if}}, (x) => {{> renderEncodeDiffArg modifier=null arg=null}})
 {{~else if (eq modifier "optional")}}
-writeOptional(buf, obj.{{arg}}, (x) => {{> renderEncodeDiffArg (lookup @root reference) typeString=reference}})
-{{~else}}
+writeOptional(buf, obj.{{arg}}, (x) => {{> renderEncodeDiffArg modifier=null arg=null}})
+{{~else if (eq type "reference")}}
 {{> renderEncodeDiffArg (lookup @root reference) arg=arg typeString=reference}}
-{{/if}}
 {{~else if (eq type "enum")}}
 writeUInt8(buf, {{#if arg}}obj.{{arg}}{{else}}x{{/if}})
 {{~else if (eq type "int")}}
@@ -285,14 +277,12 @@ writeBoolean(buf, {{#if arg}}obj.{{arg}}{{else}}x{{/if}})
 {{~/if}}
 {{/inline}}
 {{#*inline "renderDecodeArg"}}
-{{#if (eq type "reference")}}
 {{#if (eq modifier "array")}}
-parseArray(sb, () => {{> renderDecodeArg (lookup @root reference) typeString=reference}})
+parseArray(sb, () => {{> renderDecodeArg modifier=null arg=null}})
 {{~else if (eq modifier "optional")}}
-parseOptional(sb, () => {{> renderDecodeArg (lookup @root reference) typeString=reference}})
-{{~else}}
+parseOptional(sb, () => {{> renderDecodeArg modifier=null arg=null}})
+{{~else if (eq type "reference")}}
 {{> renderDecodeArg (lookup @root reference) arg=arg typeString=reference}}
-{{/if}}
 {{~else if (eq type "enum")}}
 parseUInt8(sb)
 {{~else if (eq type "int")}}
@@ -308,14 +298,12 @@ parseBoolean(sb)
 {{~/if}}
 {{/inline}}
 {{#*inline "renderDecodeDiffArg"}}
-{{#if (eq type "reference")}}
 {{#if (eq modifier "array")}}
-parseArrayDiff(sb, tracker, () => {{> renderDecodeDiffArg (lookup @root reference) typeString=reference}})
+parseArrayDiff(sb, tracker, () => {{> renderDecodeDiffArg modifier=null arg=null}})
 {{~else if (eq modifier "optional")}}
-parseOptional(sb, () => {{> renderDecodeDiffArg (lookup @root reference) typeString=reference}})
-{{~else}}
+parseOptional(sb, () => {{> renderDecodeDiffArg modifier=null arg=null}})
+{{~else if (eq type "reference")}}
 {{> renderDecodeDiffArg (lookup @root reference) arg=arg typeString=reference}}
-{{/if}}
 {{~else if (eq type "enum")}}
 parseUInt8(sb)
 {{~else if (eq type "int")}}
