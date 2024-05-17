@@ -38,6 +38,15 @@ export type Rotation = {
   z: number;
   w: number;
 };
+export type Size3D = {
+  width: number;
+  height: number;
+  depth: number;
+};
+export type Size1D = number;
+export enum EntityEvent {
+  DESTROYED,
+}
 export enum EntityState {
   IDLE,
   WALK,
@@ -47,7 +56,7 @@ export enum EntityState {
   FALL,
   DEATH,
 }
-export type Component = { type: "Color"; val: Color } | { type: "Position"; val: Position } | { type: "Rotation"; val: Rotation } | { type: "EntityState"; val: EntityState } | { type: "ChatList"; val: ChatList };
+export type Component = { type: "Color"; val: Color } | { type: "Position"; val: Position } | { type: "Rotation"; val: Rotation } | { type: "Size3D"; val: Size3D } | { type: "Size1D"; val: Size1D } | { type: "EntityEvent"; val: EntityEvent } | { type: "EntityState"; val: EntityState } | { type: "ChatList"; val: ChatList };
 export type Entity = {
   entityId: number;
   components: Component[];
@@ -300,6 +309,73 @@ export const Rotation = {
     };
   },
 };
+export const Size3D = {
+  default(): Size3D {
+    return {
+      width: 0.0,
+      height: 0.0,
+      depth: 0.0,
+    };
+  },
+  validate(obj: Size3D) {
+    if (typeof obj !== "object") {
+      return [`Invalid Size3D object: ${obj}`];
+    }
+    let validationErrors: string[] = [];
+
+    validationErrors = validatePrimitive(typeof obj.width === "number", `Invalid float: ${ obj.width }`);
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid key: Size3D.width");
+    }
+    validationErrors = validatePrimitive(typeof obj.height === "number", `Invalid float: ${ obj.height }`);
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid key: Size3D.height");
+    }
+    validationErrors = validatePrimitive(typeof obj.depth === "number", `Invalid float: ${ obj.depth }`);
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid key: Size3D.depth");
+    }
+
+    return validationErrors;
+  },
+  encode(obj: Size3D, buf: _Writer = new _Writer()) {
+    writeFloat(buf, obj.width);
+    writeFloat(buf, obj.height);
+    writeFloat(buf, obj.depth);
+    return buf;
+  },
+  encodeDiff(obj: _DeepPartial<Size3D>, tracker: _Tracker, buf: _Writer = new _Writer()) {
+    tracker.push(obj.width !== _NO_DIFF);
+    if (obj.width !== _NO_DIFF) {
+      writeFloat(buf, obj.width);
+    }
+    tracker.push(obj.height !== _NO_DIFF);
+    if (obj.height !== _NO_DIFF) {
+      writeFloat(buf, obj.height);
+    }
+    tracker.push(obj.depth !== _NO_DIFF);
+    if (obj.depth !== _NO_DIFF) {
+      writeFloat(buf, obj.depth);
+    }
+    return buf;
+  },
+  decode(buf: _Reader): Size3D {
+    const sb = buf;
+    return {
+      width: parseFloat(sb),
+      height: parseFloat(sb),
+      depth: parseFloat(sb),
+    };
+  },
+  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<Size3D> {
+    const sb = buf;
+    return {
+      width: tracker.next() ? parseFloat(sb) : _NO_DIFF,
+      height: tracker.next() ? parseFloat(sb) : _NO_DIFF,
+      depth: tracker.next() ? parseFloat(sb) : _NO_DIFF,
+    };
+  },
+};
 export const Component = {
   default(): Component {
     return {
@@ -308,7 +384,7 @@ export const Component = {
     };
   },
   values() {
-    return ["Color", "Position", "Rotation", "EntityState", "ChatList"];
+    return ["Color", "Position", "Rotation", "Size3D", "Size1D", "EntityEvent", "EntityState", "ChatList"];
   },
   validate(obj: Component) {
     if (obj.type === "Color") {
@@ -327,6 +403,27 @@ export const Component = {
     }
     else if (obj.type === "Rotation") {
       const validationErrors = Rotation.validate(obj.val);
+      if (validationErrors.length > 0) {
+        return validationErrors.concat("Invalid union: Component");
+      }
+      return validationErrors;
+    }
+    else if (obj.type === "Size3D") {
+      const validationErrors = Size3D.validate(obj.val);
+      if (validationErrors.length > 0) {
+        return validationErrors.concat("Invalid union: Component");
+      }
+      return validationErrors;
+    }
+    else if (obj.type === "Size1D") {
+      const validationErrors = validatePrimitive(typeof obj.val === "number", `Invalid float: ${ obj.val }`);
+      if (validationErrors.length > 0) {
+        return validationErrors.concat("Invalid union: Component");
+      }
+      return validationErrors;
+    }
+    else if (obj.type === "EntityEvent") {
+      const validationErrors = validatePrimitive(obj.val in EntityEvent, `Invalid EntityEvent: ${ obj.val }`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: Component");
       }
@@ -366,13 +463,28 @@ export const Component = {
       const x = obj.val;
       Rotation.encode(x, buf);
     }
-    else if (obj.type === "EntityState") {
+    else if (obj.type === "Size3D") {
       writeUInt8(buf, 3);
+      const x = obj.val;
+      Size3D.encode(x, buf);
+    }
+    else if (obj.type === "Size1D") {
+      writeUInt8(buf, 4);
+      const x = obj.val;
+      writeFloat(buf, x);
+    }
+    else if (obj.type === "EntityEvent") {
+      writeUInt8(buf, 5);
+      const x = obj.val;
+      writeUInt8(buf, x);
+    }
+    else if (obj.type === "EntityState") {
+      writeUInt8(buf, 6);
       const x = obj.val;
       writeUInt8(buf, x);
     }
     else if (obj.type === "ChatList") {
-      writeUInt8(buf, 4);
+      writeUInt8(buf, 7);
       const x = obj.val;
       ChatList.encode(x, buf);
     }
@@ -403,8 +515,32 @@ export const Component = {
         Rotation.encodeDiff(x, tracker, buf);
       }
     }
-    else if (obj.type === "EntityState") {
+    else if (obj.type === "Size3D") {
       writeUInt8(buf, 3);
+      writeBoolean(buf, obj.val !== _NO_DIFF);
+      if (obj.val !== _NO_DIFF) {
+        const x = obj.val;
+        Size3D.encodeDiff(x, tracker, buf);
+      }
+    }
+    else if (obj.type === "Size1D") {
+      writeUInt8(buf, 4);
+      writeBoolean(buf, obj.val !== _NO_DIFF);
+      if (obj.val !== _NO_DIFF) {
+        const x = obj.val;
+        writeFloat(buf, x);
+      }
+    }
+    else if (obj.type === "EntityEvent") {
+      writeUInt8(buf, 5);
+      writeBoolean(buf, obj.val !== _NO_DIFF);
+      if (obj.val !== _NO_DIFF) {
+        const x = obj.val;
+        writeUInt8(buf, x);
+      }
+    }
+    else if (obj.type === "EntityState") {
+      writeUInt8(buf, 6);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
         const x = obj.val;
@@ -412,7 +548,7 @@ export const Component = {
       }
     }
     else if (obj.type === "ChatList") {
-      writeUInt8(buf, 4);
+      writeUInt8(buf, 7);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
         const x = obj.val;
@@ -433,9 +569,18 @@ export const Component = {
       return { type: "Rotation", val: Rotation.decode(sb) };
     }
     else if (type === 3) {
-      return { type: "EntityState", val: parseUInt8(sb) };
+      return { type: "Size3D", val: Size3D.decode(sb) };
     }
     else if (type === 4) {
+      return { type: "Size1D", val: parseFloat(sb) };
+    }
+    else if (type === 5) {
+      return { type: "EntityEvent", val: parseUInt8(sb) };
+    }
+    else if (type === 6) {
+      return { type: "EntityState", val: parseUInt8(sb) };
+    }
+    else if (type === 7) {
       return { type: "ChatList", val: ChatList.decode(sb) };
     }
     throw new Error("Invalid union");
@@ -452,9 +597,18 @@ export const Component = {
       return { type: "Rotation", val: parseBoolean(sb) ? Rotation.decodeDiff(sb, tracker) : _NO_DIFF };
     }
     else if (type === 3) {
-      return { type: "EntityState", val: parseBoolean(sb) ? parseUInt8(sb) : _NO_DIFF };
+      return { type: "Size3D", val: parseBoolean(sb) ? Size3D.decodeDiff(sb, tracker) : _NO_DIFF };
     }
     else if (type === 4) {
+      return { type: "Size1D", val: parseBoolean(sb) ? parseFloat(sb) : _NO_DIFF };
+    }
+    else if (type === 5) {
+      return { type: "EntityEvent", val: parseBoolean(sb) ? parseUInt8(sb) : _NO_DIFF };
+    }
+    else if (type === 6) {
+      return { type: "EntityState", val: parseBoolean(sb) ? parseUInt8(sb) : _NO_DIFF };
+    }
+    else if (type === 7) {
       return { type: "ChatList", val: parseBoolean(sb) ? ChatList.decodeDiff(sb, tracker) : _NO_DIFF };
     }
     throw new Error("Invalid union");

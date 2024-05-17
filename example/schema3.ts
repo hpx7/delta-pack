@@ -35,12 +35,25 @@ const Rotation = ObjectType({
   w: FloatType(),
 });
 
+const Size3D = ObjectType({
+  width: FloatType(),
+  height: FloatType(),
+  depth: FloatType(),
+});
+
+const Size1D = FloatType();
+
+const EntityEvent = EnumType(["DESTROYED"]);
+
 const EntityState = EnumType(["IDLE", "WALK", "RUN", "JUMP", "ATTACK", "FALL", "DEATH"]);
 
 const Component = UnionType([
   ReferenceType("Color"),
   ReferenceType("Position"),
   ReferenceType("Rotation"),
+  ReferenceType("Size3D"),
+  ReferenceType("Size1D"),
+  ReferenceType("EntityEvent"),
   ReferenceType("EntityState"),
   ReferenceType("ChatList"),
 ]);
@@ -61,6 +74,9 @@ console.log(
     Color,
     Position,
     Rotation,
+    Size3D,
+    Size1D,
+    EntityEvent,
     EntityState,
     Component,
     Entity,
