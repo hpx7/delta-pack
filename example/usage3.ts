@@ -1,3 +1,5 @@
+import util from "util";
+import { Reader } from "bin-serde";
 import { EntityState, Snapshot } from "./output3";
 
 const snashot: Snapshot = {
@@ -20,7 +22,8 @@ const snashot: Snapshot = {
   ],
 };
 
-console.log(Snapshot.encode(snashot).toBuffer());
+const encoded = Snapshot.encode(snashot).toBuffer();
+console.log(encoded);
 // Uint8Array(61) [
 //   1,   0,   4,   0,   3, 114, 101, 100,   1,   0,   0,   0,
 //   0,   0,   0,   0,   0,   0,   0,   0,   0,   2,   0,   0,
@@ -29,3 +32,6 @@ console.log(Snapshot.encode(snashot).toBuffer());
 // 104, 101, 108, 108, 111,  44,  32, 119, 111, 114, 108, 100,
 //  33
 // ]
+
+const decoded = Snapshot.decode(new Reader(encoded));
+console.log(util.inspect(decoded, { depth: null, colors: true }));
