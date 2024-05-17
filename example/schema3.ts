@@ -16,6 +16,10 @@ const ChatMessage = ObjectType({
   content: StringType(),
 });
 
+const ChatList = ObjectType({
+  messages: ChildType(ReferenceType("ChatMessage"), Modifier.ARRAY),
+});
+
 const Color = StringType();
 
 const Position = ObjectType({
@@ -38,6 +42,7 @@ const Component = UnionType([
   ReferenceType("Position"),
   ReferenceType("Rotation"),
   ReferenceType("EntityState"),
+  ReferenceType("ChatList"),
 ]);
 
 const Entity = ObjectType({
@@ -47,12 +52,12 @@ const Entity = ObjectType({
 
 const Snapshot = ObjectType({
   entities: ChildType(ReferenceType("Entity"), Modifier.ARRAY),
-  chatList: ChildType(ReferenceType("ChatMessage"), Modifier.ARRAY),
 });
 
 console.log(
   codegenTypescript({
     ChatMessage,
+    ChatList,
     Color,
     Position,
     Rotation,

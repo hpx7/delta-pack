@@ -23,6 +23,9 @@ export type ChatMessage = {
   author: string;
   content: string;
 };
+export type ChatList = {
+  messages: ChatMessage[];
+};
 export type Color = string;
 export type Position = {
   x: number;
@@ -44,14 +47,13 @@ export enum EntityState {
   FALL,
   DEATH,
 }
-export type Component = { type: "Color"; val: Color } | { type: "Position"; val: Position } | { type: "Rotation"; val: Rotation } | { type: "EntityState"; val: EntityState };
+export type Component = { type: "Color"; val: Color } | { type: "Position"; val: Position } | { type: "Rotation"; val: Rotation } | { type: "EntityState"; val: EntityState } | { type: "ChatList"; val: ChatList };
 export type Entity = {
   entityId: number;
   components: Component[];
 };
 export type Snapshot = {
   entities: Entity[];
-  chatList: ChatMessage[];
 };
 
 export const ChatMessage = {
@@ -106,6 +108,49 @@ export const ChatMessage = {
     return {
       author: tracker.next() ? parseString(sb) : _NO_DIFF,
       content: tracker.next() ? parseString(sb) : _NO_DIFF,
+    };
+  },
+};
+export const ChatList = {
+  default(): ChatList {
+    return {
+      messages: [],
+    };
+  },
+  validate(obj: ChatList) {
+    if (typeof obj !== "object") {
+      return [`Invalid ChatList object: ${obj}`];
+    }
+    let validationErrors: string[] = [];
+
+    validationErrors = validateArray(obj.messages, (x) => ChatMessage.validate(x));
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid key: ChatList.messages");
+    }
+
+    return validationErrors;
+  },
+  encode(obj: ChatList, buf: _Writer = new _Writer()) {
+    writeArray(buf, obj.messages, (x) => ChatMessage.encode(x, buf));
+    return buf;
+  },
+  encodeDiff(obj: _DeepPartial<ChatList>, tracker: _Tracker, buf: _Writer = new _Writer()) {
+    tracker.push(obj.messages !== _NO_DIFF);
+    if (obj.messages !== _NO_DIFF) {
+      writeArrayDiff(buf, tracker, obj.messages, (x) => ChatMessage.encodeDiff(x, tracker, buf));
+    }
+    return buf;
+  },
+  decode(buf: _Reader): ChatList {
+    const sb = buf;
+    return {
+      messages: parseArray(sb, () => ChatMessage.decode(sb)),
+    };
+  },
+  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<ChatList> {
+    const sb = buf;
+    return {
+      messages: tracker.next() ? parseArrayDiff(sb, tracker, () => ChatMessage.decodeDiff(sb, tracker)) : _NO_DIFF,
     };
   },
 };
@@ -263,7 +308,7 @@ export const Component = {
     };
   },
   values() {
-    return ["Color", "Position", "Rotation", "EntityState"];
+    return ["Color", "Position", "Rotation", "EntityState", "ChatList"];
   },
   validate(obj: Component) {
     if (obj.type === "Color") {
@@ -294,6 +339,13 @@ export const Component = {
       }
       return validationErrors;
     }
+    else if (obj.type === "ChatList") {
+      const validationErrors = ChatList.validate(obj.val);
+      if (validationErrors.length > 0) {
+        return validationErrors.concat("Invalid union: Component");
+      }
+      return validationErrors;
+    }
     else {
       return [`Invalid Component union: ${obj}`];
     }
@@ -318,6 +370,11 @@ export const Component = {
       writeUInt8(buf, 3);
       const x = obj.val;
       writeUInt8(buf, x);
+    }
+    else if (obj.type === "ChatList") {
+      writeUInt8(buf, 4);
+      const x = obj.val;
+      ChatList.encode(x, buf);
     }
     return buf;
   },
@@ -354,6 +411,14 @@ export const Component = {
         writeUInt8(buf, x);
       }
     }
+    else if (obj.type === "ChatList") {
+      writeUInt8(buf, 4);
+      writeBoolean(buf, obj.val !== _NO_DIFF);
+      if (obj.val !== _NO_DIFF) {
+        const x = obj.val;
+        ChatList.encodeDiff(x, tracker, buf);
+      }
+    }
     return buf;
   },
   decode(sb: _Reader): Component {
@@ -370,6 +435,9 @@ export const Component = {
     else if (type === 3) {
       return { type: "EntityState", val: parseUInt8(sb) };
     }
+    else if (type === 4) {
+      return { type: "ChatList", val: ChatList.decode(sb) };
+    }
     throw new Error("Invalid union");
   },
   decodeDiff(sb: _Reader, tracker: _Tracker): _DeepPartial<Component> {
@@ -385,6 +453,9 @@ export const Component = {
     }
     else if (type === 3) {
       return { type: "EntityState", val: parseBoolean(sb) ? parseUInt8(sb) : _NO_DIFF };
+    }
+    else if (type === 4) {
+      return { type: "ChatList", val: parseBoolean(sb) ? ChatList.decodeDiff(sb, tracker) : _NO_DIFF };
     }
     throw new Error("Invalid union");
   },
@@ -448,7 +519,6 @@ export const Snapshot = {
   default(): Snapshot {
     return {
       entities: [],
-      chatList: [],
     };
   },
   validate(obj: Snapshot) {
@@ -461,16 +531,11 @@ export const Snapshot = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Snapshot.entities");
     }
-    validationErrors = validateArray(obj.chatList, (x) => ChatMessage.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Snapshot.chatList");
-    }
 
     return validationErrors;
   },
   encode(obj: Snapshot, buf: _Writer = new _Writer()) {
     writeArray(buf, obj.entities, (x) => Entity.encode(x, buf));
-    writeArray(buf, obj.chatList, (x) => ChatMessage.encode(x, buf));
     return buf;
   },
   encodeDiff(obj: _DeepPartial<Snapshot>, tracker: _Tracker, buf: _Writer = new _Writer()) {
@@ -478,24 +543,18 @@ export const Snapshot = {
     if (obj.entities !== _NO_DIFF) {
       writeArrayDiff(buf, tracker, obj.entities, (x) => Entity.encodeDiff(x, tracker, buf));
     }
-    tracker.push(obj.chatList !== _NO_DIFF);
-    if (obj.chatList !== _NO_DIFF) {
-      writeArrayDiff(buf, tracker, obj.chatList, (x) => ChatMessage.encodeDiff(x, tracker, buf));
-    }
     return buf;
   },
   decode(buf: _Reader): Snapshot {
     const sb = buf;
     return {
       entities: parseArray(sb, () => Entity.decode(sb)),
-      chatList: parseArray(sb, () => ChatMessage.decode(sb)),
     };
   },
   decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<Snapshot> {
     const sb = buf;
     return {
       entities: tracker.next() ? parseArrayDiff(sb, tracker, () => Entity.decodeDiff(sb, tracker)) : _NO_DIFF,
-      chatList: tracker.next() ? parseArrayDiff(sb, tracker, () => ChatMessage.decodeDiff(sb, tracker)) : _NO_DIFF,
     };
   },
 };

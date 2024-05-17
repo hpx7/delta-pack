@@ -13,25 +13,25 @@ const snashot: Snapshot = {
         { type: "EntityState", val: EntityState.IDLE },
       ],
     },
-  ],
-  chatList: [
     {
-      author: "user1",
-      content: "hello, world!",
+      entityId: 1,
+      components: [
+        {
+          type: "ChatList",
+          val: {
+            messages: [
+              { author: "user1", content: "hello, world!" },
+              { author: "user2", content: "hi there" },
+            ],
+          },
+        },
+      ],
     },
   ],
 };
 
 const encoded = Snapshot.encode(snashot).toBuffer();
 console.log("encoded", encoded);
-// Uint8Array(61) [
-//   1,   0,   4,   0,   3, 114, 101, 100,   1,   0,   0,   0,
-//   0,   0,   0,   0,   0,   0,   0,   0,   0,   2,   0,   0,
-//   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-//   0,   0,   3,   0,   1,   5, 117, 115, 101, 114,  49,  13,
-// 104, 101, 108, 108, 111,  44,  32, 119, 111, 114, 108, 100,
-//  33
-// ]
 
 const decoded = Snapshot.decode(new Reader(encoded));
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
