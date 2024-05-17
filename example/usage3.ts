@@ -23,7 +23,7 @@ const snashot: Snapshot = {
 };
 
 const encoded = Snapshot.encode(snashot).toBuffer();
-console.log(encoded);
+console.log("encoded", encoded);
 // Uint8Array(61) [
 //   1,   0,   4,   0,   3, 114, 101, 100,   1,   0,   0,   0,
 //   0,   0,   0,   0,   0,   0,   0,   0,   0,   2,   0,   0,
@@ -34,4 +34,4 @@ console.log(encoded);
 // ]
 
 const decoded = Snapshot.decode(new Reader(encoded));
-console.log(util.inspect(decoded, { depth: null, colors: true }));
+console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
