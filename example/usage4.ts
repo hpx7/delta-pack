@@ -1,6 +1,6 @@
 import util from "util";
 import { Reader } from "bin-serde";
-import { _Tracker, GameState } from "./output4";
+import { GameState } from "./output4";
 
 const state1: GameState = {
   timeRemaining: 120,
@@ -40,13 +40,14 @@ const state2: GameState = {
   timeRemaining: 60,
 };
 const diff = GameState.computeDiff(state1, state2);
-const tracker = new _Tracker();
-const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
+const encodedDiff = GameState.encodeDiff(diff).toBuffer();
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(5) [ 129, 112, 2, 1, 1 ]
 
-const decodedDiff = GameState.decodeDiff(new Reader(encodedDiff), tracker);
+const decodedDiff = GameState.decodeDiff(new Reader(encodedDiff));
 console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));
+console.log("decodedDiff", decodedDiff);
 
 const applied = GameState.applyDiff(state1, decodedDiff);
 console.log("applied", util.inspect(applied, { depth: null, colors: true }));
+console.log("applied", applied);

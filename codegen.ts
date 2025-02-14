@@ -71,10 +71,10 @@ function writeArray<T>(buf: _Writer, x: T[], innerWrite: (x: T) => void) {
     innerWrite(val);
   }
 }
-function writeArrayDiff<T>(buf: _Writer, tracker: _Tracker, x: (T | typeof _NO_DIFF)[], innerWrite: (x: T) => void) {
+function writeArrayDiff<T>(buf: _Writer, x: (T | typeof _NO_DIFF)[], innerWrite: (x: T) => void) {
   buf.writeUVarint(x.length);
   x.forEach((val) => {
-    tracker.push(val !== _NO_DIFF);
+    writeBoolean(buf, val !== _NO_DIFF);
     if (val !== _NO_DIFF) {
       innerWrite(val);
     }
@@ -107,11 +107,11 @@ function parseArray<T>(buf: _Reader, innerParse: () => T): T[] {
   }
   return arr;
 }
-function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T): (T | typeof _NO_DIFF)[] {
+function parseArrayDiff<T>(buf: _Reader, innerParse: () => T): (T | typeof _NO_DIFF)[] {
   const len = buf.readUVarint();
   const arr: (T | typeof _NO_DIFF)[] = [];
   for (let i = 0; i < len; i++) {
-    arr.push(tracker.next() ? innerParse() : _NO_DIFF);
+    arr.push(parseBoolean(buf) ? innerParse() : _NO_DIFF);
   }
   return arr;
 }
@@ -217,15 +217,14 @@ export const ${name} = {
       .join("\n    ")}
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<${name}>, tracker: _Tracker, buf: _Writer = new _Writer()) {
+  encodeDiff(obj: _DeepPartial<${name}>, buf: _Writer = new _Writer()) {
     ${Object.entries(type.properties)
-      .map(([childName, childType]) => {
-        return `tracker.push(obj.${childName} !== _NO_DIFF);
-    if (obj.${childName} !== _NO_DIFF) {
-      ${renderEncodeDiff(childType, name, `obj.${childName}`)};
-    }`;
-      })
-      .join("\n    ")}
+      .map(([key, prop]) => `
+    writeBoolean(buf, obj.${key} !== _NO_DIFF);
+    if (obj.${key} !== _NO_DIFF) {
+      ${renderEncodeDiff(prop, prop.name, `obj.${key}`)};
+    }`)
+      .join("\n")}
     return buf;
   },
   decode(buf: _Reader): ${name} {
@@ -238,14 +237,12 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<${name}> {
+  decodeDiff(buf: _Reader): _DeepPartial<${name}> {
     const sb = buf;
     return {
       ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: tracker.next() ? ${renderDecodeDiff(childType, name, `obj.${childName}`)} : _NO_DIFF,`;
-        })
-        .join("\n      ")}
+        .map(([key, prop]) => `${key}: parseBoolean(sb) ? ${renderDecodeDiff(prop, prop.name, key)} : _NO_DIFF`)
+        .join(",\n      ")}
     };
   },
   computeDiff(a: ${name}, b: ${name}): _DeepPartial<${name}> {
@@ -311,7 +308,7 @@ export const ${name} = {
       .join("\n    ")}
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<${name}>, tracker: _Tracker, buf: _Writer = new _Writer()) {
+  encodeDiff(obj: _DeepPartial<${name}>, buf: _Writer = new _Writer()) {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
@@ -336,7 +333,7 @@ export const ${name} = {
       .join("\n    ")}
     throw new Error("Invalid union");
   },
-  decodeDiff(sb: _Reader, tracker: _Tracker): _DeepPartial<${name}> {
+  decodeDiff(sb: _Reader): _DeepPartial<${name}> {
     const type = parseUInt8(sb);
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
@@ -445,13 +442,17 @@ export const ${name} = {
 
   function renderEncodeDiff(type: Type | ChildType, name: string, key: string): string {
     if ("modifier" in type && type.modifier === "array") {
-      return `writeArrayDiff(buf, tracker, ${key}, (x) => ${renderEncodeDiff(
+      return `writeArrayDiff(buf, ${key}, (x) => ${renderEncodeDiff(
         { ...type, modifier: undefined },
         name,
-        "x",
+        "x"
       )})`;
     } else if ("modifier" in type && type.modifier === "optional") {
-      return `writeOptional(buf, ${key}, (x) => ${renderEncodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+      return `writeOptional(buf, ${key}, (x) => ${renderEncodeDiff(
+        { ...type, modifier: undefined },
+        name,
+        "x"
+      )})`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -465,7 +466,7 @@ export const ${name} = {
     } else if (type.type === "enum") {
       return `writeUInt8(buf, ${key})`;
     }
-    return `${name}.encodeDiff(${key}, tracker, buf)`;
+    return `${name}.encodeDiff(${key}, buf)`;
   }
 
   function renderDecode(type: Type | ChildType, name: string, key: string): string {
@@ -491,9 +492,17 @@ export const ${name} = {
 
   function renderDecodeDiff(type: Type | ChildType, name: string, key: string): string {
     if ("modifier" in type && type.modifier === "array") {
-      return `parseArrayDiff(sb, tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+      return `parseArrayDiff(sb, () => ${renderDecodeDiff(
+        { ...type, modifier: undefined },
+        name,
+        "x"
+      )})`;
     } else if ("modifier" in type && type.modifier === "optional") {
-      return `parseOptional(sb, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+      return `parseOptional(sb, () => ${renderDecodeDiff(
+        { ...type, modifier: undefined },
+        name,
+        "x"
+      )})`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -507,7 +516,7 @@ export const ${name} = {
     } else if (type.type === "enum") {
       return `parseUInt8(sb)`;
     }
-    return `${name}.decodeDiff(sb, tracker)`;
+    return `${name}.decodeDiff(sb)`;
   }
 
   function renderComputeDiff(type: Type | ChildType, name: string, keyA: string, keyB: string): string {
