@@ -1,13 +1,11 @@
-import { readFileSync } from "node:fs";
-
-import Handlebars from "handlebars";
+import { renderDoc } from "./codegen";
 
 export type Type = ObjectType | UnionType | EnumType | StringType | IntType | FloatType | BooleanType;
 export enum Modifier {
   OPTIONAL = "optional",
   ARRAY = "array",
 }
-type ChildType = (StringType | IntType | FloatType | BooleanType | ReferenceType) & {
+export type ChildType = (StringType | IntType | FloatType | BooleanType | ReferenceType) & {
   modifier?: Modifier;
 };
 interface ReferenceType {
@@ -49,7 +47,7 @@ export function ObjectType(properties: Record<string, ChildType>): ObjectType {
 
 export function ChildType(
   type: StringType | IntType | FloatType | BooleanType | ReferenceType,
-  modifier?: Modifier
+  modifier?: Modifier,
 ): ChildType {
   return { ...type, modifier };
 }
@@ -78,10 +76,6 @@ export function BooleanType(): BooleanType {
   return { type: "boolean" };
 }
 
-Handlebars.registerHelper("eq", (a, b) => a === b);
-
 export function codegenTypescript(doc: Record<string, Type>) {
-  const templateFile = new URL("template.hbs", import.meta.url);
-  const template = Handlebars.compile(readFileSync(templateFile, "utf8"));
-  return template(doc);
+  return renderDoc(doc);
 }
