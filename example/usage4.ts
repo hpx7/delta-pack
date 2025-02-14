@@ -47,3 +47,6 @@ console.log("encodedDiff", encodedDiff);
 
 const decodedDiff = GameState.decodeDiff(new Reader(encodedDiff), tracker);
 console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));
+
+const applied = GameState.applyDiff(state1, decodedDiff);
+console.log("applied", util.inspect(applied, { depth: null, colors: true }));

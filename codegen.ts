@@ -117,7 +117,7 @@ function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T)
 }
 
 function diffPrimitive<T>(a: T, b: T) {
-  return a === b ? _NO_DIFF : a;
+  return a === b ? _NO_DIFF : b;
 }
 function diffOptional<T>(
   a: T | undefined,
@@ -127,7 +127,7 @@ function diffOptional<T>(
   if (a !== undefined && b !== undefined) {
     return innerDiff(a, b);
   } else if (a !== undefined || b !== undefined) {
-    return a;
+    return b;
   }
   return _NO_DIFF;
 }
@@ -135,8 +135,33 @@ function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T>
   const arr = a.map((val, i) => (i < b.length ? innerDiff(val, b[i]) : val));
   return a.length === b.length && arr.every((v) => v === _NO_DIFF) ? _NO_DIFF : arr;
 }
-function diffObj<T extends object>(obj: T) {
-  return Object.values(obj).every((v) => v === _NO_DIFF) ? _NO_DIFF : obj;
+
+function patchArray<T>(arr: T[], patch: typeof _NO_DIFF | any[], innerPatch: (a: T, b: _DeepPartial<T>) => T) {
+  if (patch === _NO_DIFF) {
+    return arr;
+  }
+  patch.forEach((val, i) => {
+    if (val !== _NO_DIFF) {
+      if (i >= arr.length) {
+        arr.push(val as T);
+      } else {
+        arr[i] = innerPatch(arr[i], val);
+      }
+    }
+  });
+  if (patch.length < arr.length) {
+    arr.splice(patch.length);
+  }
+  return arr;
+}
+function patchOptional<T>(obj: T | undefined, patch: any, innerPatch: (a: T, b: _DeepPartial<T>) => T) {
+  if (patch === undefined) {
+    return undefined;
+  } else if (obj === undefined) {
+    return patch as T;
+  } else {
+    return innerPatch(obj, patch);
+  }
 }
 
 ${Object.entries(doc)
@@ -228,6 +253,20 @@ export const ${name} = {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
           return `${childName}: ${renderComputeDiff(childType, name, `a.${childName}`, `b.${childName}`)},`;
+        })
+        .join("\n      ")}
+    };
+  },
+  applyDiff(obj: ${name}, diff: _DeepPartial<${name}>): ${name} {
+    return {
+      ${Object.entries(type.properties)
+        .map(([childName, childType]) => {
+          return `${childName}: diff.${childName} === _NO_DIFF ? obj.${childName} : ${renderApplyDiff(
+            childType,
+            name,
+            `obj.${childName}`,
+            `diff.${childName}`,
+          )},`;
         })
         .join("\n      ")}
     };
@@ -498,5 +537,34 @@ export const ${name} = {
       return `diffPrimitive(${keyA}, ${keyB})`;
     }
     return `${name}.computeDiff(${keyA}, ${keyB})`;
+  }
+
+  function renderApplyDiff(type: Type | ChildType, name: string, key: string, diff: string): string {
+    if ("modifier" in type && type.modifier === "array") {
+      return `patchArray(${key}, ${diff}, (a, b) => ${renderApplyDiff(
+        { ...type, modifier: undefined },
+        name,
+        "a",
+        "b",
+      )})`;
+    } else if ("modifier" in type && type.modifier === "optional") {
+      return `patchOptional(${key}, ${diff}, (a, b) => ${renderApplyDiff(
+        { ...type, modifier: undefined },
+        name,
+        "a",
+        "b",
+      )})`;
+    } else if (type.type === "reference") {
+      return renderApplyDiff(doc[type.reference], type.reference, key, diff);
+    } else if (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    ) {
+      return diff;
+    }
+    return `${name}.applyDiff(${key}, ${diff})`;
   }
 }

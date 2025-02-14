@@ -114,7 +114,7 @@ function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T)
 }
 
 function diffPrimitive<T>(a: T, b: T) {
-  return a === b ? _NO_DIFF : a;
+  return a === b ? _NO_DIFF : b;
 }
 function diffOptional<T>(
   a: T | undefined,
@@ -124,7 +124,7 @@ function diffOptional<T>(
   if (a !== undefined && b !== undefined) {
     return innerDiff(a, b);
   } else if (a !== undefined || b !== undefined) {
-    return a;
+    return b;
   }
   return _NO_DIFF;
 }
@@ -132,8 +132,33 @@ function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T>
   const arr = a.map((val, i) => (i < b.length ? innerDiff(val, b[i]) : val));
   return a.length === b.length && arr.every((v) => v === _NO_DIFF) ? _NO_DIFF : arr;
 }
-function diffObj<T extends object>(obj: T) {
-  return Object.values(obj).every((v) => v === _NO_DIFF) ? _NO_DIFF : obj;
+
+function patchArray<T>(arr: T[], patch: typeof _NO_DIFF | any[], innerPatch: (a: T, b: _DeepPartial<T>) => T) {
+  if (patch === _NO_DIFF) {
+    return arr;
+  }
+  patch.forEach((val, i) => {
+    if (val !== _NO_DIFF) {
+      if (i >= arr.length) {
+        arr.push(val as T);
+      } else {
+        arr[i] = innerPatch(arr[i], val);
+      }
+    }
+  });
+  if (patch.length < arr.length) {
+    arr.splice(patch.length);
+  }
+  return arr;
+}
+function patchOptional<T>(obj: T | undefined, patch: any, innerPatch: (a: T, b: _DeepPartial<T>) => T) {
+  if (patch === undefined) {
+    return undefined;
+  } else if (obj === undefined) {
+    return patch as T;
+  } else {
+    return innerPatch(obj, patch);
+  }
 }
 
 export type Position = {
@@ -217,6 +242,12 @@ export const Position = {
       y: diffPrimitive(a.y, b.y),
     };
   },
+  applyDiff(obj: Position, diff: _DeepPartial<Position>): Position {
+    return {
+      x: diff.x === _NO_DIFF ? obj.x : diff.x,
+      y: diff.y === _NO_DIFF ? obj.y : diff.y,
+    };
+  },
 }
 
 export const Weapon = {
@@ -277,6 +308,12 @@ export const Weapon = {
     return {
       name: diffPrimitive(a.name, b.name),
       damage: diffPrimitive(a.damage, b.damage),
+    };
+  },
+  applyDiff(obj: Weapon, diff: _DeepPartial<Weapon>): Weapon {
+    return {
+      name: diff.name === _NO_DIFF ? obj.name : diff.name,
+      damage: diff.damage === _NO_DIFF ? obj.damage : diff.damage,
     };
   },
 }
@@ -380,6 +417,15 @@ export const Player = {
       stealth: diffPrimitive(a.stealth, b.stealth),
     };
   },
+  applyDiff(obj: Player, diff: _DeepPartial<Player>): Player {
+    return {
+      id: diff.id === _NO_DIFF ? obj.id : diff.id,
+      position: diff.position === _NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position),
+      health: diff.health === _NO_DIFF ? obj.health : diff.health,
+      weapon: diff.weapon === _NO_DIFF ? obj.weapon : patchOptional(obj.weapon, diff.weapon, (a, b) => Weapon.applyDiff(a, b)),
+      stealth: diff.stealth === _NO_DIFF ? obj.stealth : diff.stealth,
+    };
+  },
 }
 
 export const GameState = {
@@ -440,6 +486,12 @@ export const GameState = {
     return {
       timeRemaining: diffPrimitive(a.timeRemaining, b.timeRemaining),
       players: diffArray(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
+    };
+  },
+  applyDiff(obj: GameState, diff: _DeepPartial<GameState>): GameState {
+    return {
+      timeRemaining: diff.timeRemaining === _NO_DIFF ? obj.timeRemaining : diff.timeRemaining,
+      players: diff.players === _NO_DIFF ? obj.players : patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b)),
     };
   },
 }
