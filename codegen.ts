@@ -139,7 +139,7 @@ export const ${name} = {
     return {
       ${Object.entries(type.properties)
         .map(([name, childType]) => {
-          return `${name}: ${renderDefault(childType)},`;
+          return `${name}: ${renderDefault(childType, name)},`;
         })
         .join("\n      ")}
     };
@@ -206,7 +206,7 @@ export const ${name} = {
   default(): ${name} {
     return {
       type: "${type.options[0].reference}",
-      val: ${renderDefault(type.options[0])},
+      val: ${renderDefault(type.options[0], type.options[0].reference)},
     };
   },
   values() {
@@ -308,13 +308,13 @@ export const ${name} = {
     return type.type;
   }
 
-  function renderDefault(type: Type | ChildType): string {
+  function renderDefault(type: Type | ChildType, name: string): string {
     if ("modifier" in type && type.modifier === "array") {
       return "[]";
     } else if ("modifier" in type && type.modifier === "optional") {
       return "undefined";
     } else if (type.type === "reference") {
-      return renderDefault(doc[type.reference]);
+      return renderDefault(doc[type.reference], type.reference);
     } else if (type.type === "string") {
       return '""';
     } else if (type.type === "int") {
@@ -326,7 +326,7 @@ export const ${name} = {
     } else if (type.type === "enum") {
       return "0";
     }
-    return "null";
+    return `${name}.default()`;
   }
 
   function renderValidate(type: Type | ChildType, name: string, key: string): string {
