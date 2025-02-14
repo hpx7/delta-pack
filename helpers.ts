@@ -12,7 +12,7 @@ export type _DeepPartial<T> = T extends string | number | boolean | undefined
   : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
 
 export class _Tracker {
-  constructor(private bits: boolean[] = [], private idx = 0) {}
+  constructor(public bits: boolean[] = [], private idx = 0) {}
   push(val: boolean) {
     this.bits.push(val);
   }
