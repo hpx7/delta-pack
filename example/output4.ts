@@ -9,7 +9,7 @@ type _DeepPartial<T> = T extends string | number | boolean | undefined
   ? { type: T["type"]; val: _DeepPartial<T["val"] | typeof _NO_DIFF> }
   : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
 
-class _Tracker {
+export class _Tracker {
   constructor(private bits: boolean[] = [], private idx = 0) {}
   push(val: boolean) {
     this.bits.push(val);
@@ -113,6 +113,29 @@ function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T)
   return arr;
 }
 
+function diffPrimitive<T>(a: T, b: T) {
+  return a === b ? _NO_DIFF : a;
+}
+function diffOptional<T>(
+  a: T | undefined,
+  b: T | undefined,
+  innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF
+) {
+  if (a !== undefined && b !== undefined) {
+    return innerDiff(a, b);
+  } else if (a !== undefined || b !== undefined) {
+    return a;
+  }
+  return _NO_DIFF;
+}
+function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF) {
+  const arr = a.map((val, i) => (i < b.length ? innerDiff(val, b[i]) : val));
+  return a.length === b.length && arr.every((v) => v === _NO_DIFF) ? _NO_DIFF : arr;
+}
+function diffObj<T extends object>(obj: T) {
+  return Object.values(obj).every((v) => v === _NO_DIFF) ? _NO_DIFF : obj;
+}
+
 export type Position = {
   x: number;
   y: number;
@@ -172,6 +195,7 @@ export const Position = {
     if (obj.y !== _NO_DIFF) {
       writeFloat(buf, obj.y);
     }
+    return buf;
   },
   decode(buf: _Reader): Position {
     const sb = buf;
@@ -185,6 +209,12 @@ export const Position = {
     return {
       x: tracker.next() ? parseFloat(sb) : _NO_DIFF,
       y: tracker.next() ? parseFloat(sb) : _NO_DIFF,
+    };
+  },
+  computeDiff(a: Position, b: Position): _DeepPartial<Position> {
+    return {
+      x: diffPrimitive(a.x, b.x),
+      y: diffPrimitive(a.y, b.y),
     };
   },
 }
@@ -227,6 +257,7 @@ export const Weapon = {
     if (obj.damage !== _NO_DIFF) {
       writeInt(buf, obj.damage);
     }
+    return buf;
   },
   decode(buf: _Reader): Weapon {
     const sb = buf;
@@ -240,6 +271,12 @@ export const Weapon = {
     return {
       name: tracker.next() ? parseString(sb) : _NO_DIFF,
       damage: tracker.next() ? parseInt(sb) : _NO_DIFF,
+    };
+  },
+  computeDiff(a: Weapon, b: Weapon): _DeepPartial<Weapon> {
+    return {
+      name: diffPrimitive(a.name, b.name),
+      damage: diffPrimitive(a.damage, b.damage),
     };
   },
 }
@@ -312,6 +349,7 @@ export const Player = {
     if (obj.stealth !== _NO_DIFF) {
       writeBoolean(buf, obj.stealth);
     }
+    return buf;
   },
   decode(buf: _Reader): Player {
     const sb = buf;
@@ -331,6 +369,15 @@ export const Player = {
       health: tracker.next() ? parseInt(sb) : _NO_DIFF,
       weapon: tracker.next() ? parseOptional(sb, () => Weapon.decodeDiff(sb, tracker)) : _NO_DIFF,
       stealth: tracker.next() ? parseBoolean(sb) : _NO_DIFF,
+    };
+  },
+  computeDiff(a: Player, b: Player): _DeepPartial<Player> {
+    return {
+      id: diffPrimitive(a.id, b.id),
+      position: Position.computeDiff(a.position, b.position),
+      health: diffPrimitive(a.health, b.health),
+      weapon: diffOptional(a.weapon, b.weapon, (x, y) => Weapon.computeDiff(x, y)),
+      stealth: diffPrimitive(a.stealth, b.stealth),
     };
   },
 }
@@ -373,6 +420,7 @@ export const GameState = {
     if (obj.players !== _NO_DIFF) {
       writeArrayDiff(buf, tracker, obj.players, (x) => Player.encodeDiff(x, tracker, buf));
     }
+    return buf;
   },
   decode(buf: _Reader): GameState {
     const sb = buf;
@@ -386,6 +434,12 @@ export const GameState = {
     return {
       timeRemaining: tracker.next() ? parseInt(sb) : _NO_DIFF,
       players: tracker.next() ? parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _NO_DIFF,
+    };
+  },
+  computeDiff(a: GameState, b: GameState): _DeepPartial<GameState> {
+    return {
+      timeRemaining: diffPrimitive(a.timeRemaining, b.timeRemaining),
+      players: diffArray(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
     };
   },
 }

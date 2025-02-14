@@ -1,8 +1,8 @@
 import util from "util";
 import { Reader } from "bin-serde";
-import { GameState } from "./output4";
+import { _Tracker, GameState } from "./output4";
 
-const snapshot: GameState = {
+const state1: GameState = {
   timeRemaining: 120,
   players: [
     {
@@ -22,7 +22,7 @@ const snapshot: GameState = {
   ],
 };
 
-const encoded = GameState.encode(snapshot).toBuffer();
+const encoded = GameState.encode(state1).toBuffer();
 console.log("encoded", encoded);
 // Uint8Array(41) [
 //   129, 112,   2,  2,   0,   0, 189,  66, 154, 153,
@@ -34,3 +34,16 @@ console.log("encoded", encoded);
 
 const decoded = GameState.decode(new Reader(encoded));
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
+
+const state2: GameState = {
+  ...JSON.parse(JSON.stringify(state1)),
+  timeRemaining: 60,
+};
+const diff = GameState.computeDiff(state1, state2);
+const tracker = new _Tracker();
+const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
+console.log("encodedDiff", encodedDiff);
+// Uint8Array(5) [ 129, 112, 2, 1, 1 ]
+
+const decodedDiff = GameState.decodeDiff(new Reader(encodedDiff), tracker);
+console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));

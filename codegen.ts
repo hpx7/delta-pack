@@ -12,7 +12,7 @@ type _DeepPartial<T> = T extends string | number | boolean | undefined
   ? { type: T["type"]; val: _DeepPartial<T["val"] | typeof _NO_DIFF> }
   : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
 
-class _Tracker {
+export class _Tracker {
   constructor(private bits: boolean[] = [], private idx = 0) {}
   push(val: boolean) {
     this.bits.push(val);
@@ -116,6 +116,29 @@ function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T)
   return arr;
 }
 
+function diffPrimitive<T>(a: T, b: T) {
+  return a === b ? _NO_DIFF : a;
+}
+function diffOptional<T>(
+  a: T | undefined,
+  b: T | undefined,
+  innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF
+) {
+  if (a !== undefined && b !== undefined) {
+    return innerDiff(a, b);
+  } else if (a !== undefined || b !== undefined) {
+    return a;
+  }
+  return _NO_DIFF;
+}
+function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF) {
+  const arr = a.map((val, i) => (i < b.length ? innerDiff(val, b[i]) : val));
+  return a.length === b.length && arr.every((v) => v === _NO_DIFF) ? _NO_DIFF : arr;
+}
+function diffObj<T extends object>(obj: T) {
+  return Object.values(obj).every((v) => v === _NO_DIFF) ? _NO_DIFF : obj;
+}
+
 ${Object.entries(doc)
   .map(([name, type]) => {
     if (type.type === "enum") {
@@ -178,6 +201,7 @@ export const ${name} = {
     }`;
       })
       .join("\n    ")}
+    return buf;
   },
   decode(buf: _Reader): ${name} {
     const sb = buf;
@@ -195,6 +219,15 @@ export const ${name} = {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
           return `${childName}: tracker.next() ? ${renderDecodeDiff(childType, name, `obj.${childName}`)} : _NO_DIFF,`;
+        })
+        .join("\n      ")}
+    };
+  },
+  computeDiff(a: ${name}, b: ${name}): _DeepPartial<${name}> {
+    return {
+      ${Object.entries(type.properties)
+        .map(([childName, childType]) => {
+          return `${childName}: ${renderComputeDiff(childType, name, `a.${childName}`, `b.${childName}`)},`;
         })
         .join("\n      ")}
     };
@@ -436,5 +469,34 @@ export const ${name} = {
       return `parseUInt8(sb)`;
     }
     return `${name}.decodeDiff(sb, tracker)`;
+  }
+
+  function renderComputeDiff(type: Type | ChildType, name: string, keyA: string, keyB: string): string {
+    if ("modifier" in type && type.modifier === "array") {
+      return `diffArray(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(
+        { ...type, modifier: undefined },
+        name,
+        "x",
+        "y",
+      )})`;
+    } else if ("modifier" in type && type.modifier === "optional") {
+      return `diffOptional(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(
+        { ...type, modifier: undefined },
+        name,
+        "x",
+        "y",
+      )})`;
+    } else if (type.type === "reference") {
+      return renderComputeDiff(doc[type.reference], type.reference, keyA, keyB);
+    } else if (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    ) {
+      return `diffPrimitive(${keyA}, ${keyB})`;
+    }
+    return `${name}.computeDiff(${keyA}, ${keyB})`;
   }
 }
