@@ -43,7 +43,7 @@ const diff = GameState.computeDiff(state1, state2);
 const tracker = new _Tracker();
 const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(5) [ 129, 112, 2, 1, 1 ]
+// Uint8Array(4) [ 120, 2, 1, 1 ]
 
 const decodedDiff = GameState.decodeDiff(new Reader(encodedDiff), tracker);
 console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));
