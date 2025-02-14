@@ -1,6 +1,7 @@
 import util from "util";
 import { Reader } from "bin-serde";
-import { _Tracker, GameState } from "./output4";
+import { GameState } from "./output4";
+import { _Tracker } from "../helpers";
 
 const state1: GameState = {
   timeRemaining: 120,
