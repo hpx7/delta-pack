@@ -1,31 +1,44 @@
-import { Writer as _Writer, Reader as _Reader } from "bin-serde";
-
-const _NO_DIFF = Symbol("NODIFF");
-type _DeepPartial<T> = T extends string | number | boolean | undefined
-  ? T
-  : T extends Array<infer ArrayType>
-  ? Array<_DeepPartial<ArrayType> | typeof _NO_DIFF> | typeof _NO_DIFF
-  : T extends { type: string; val: any }
-  ? { type: T["type"]; val: _DeepPartial<T["val"] | typeof _NO_DIFF> }
-  : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
-
-class _Tracker {
-  constructor(private bits: boolean[] = [], private idx = 0) {}
-  push(val: boolean) {
-    this.bits.push(val);
-  }
-  next() {
-    return this.bits[this.idx++];
-  }
-}
+import {
+  _DeepPartial,
+  _NO_DIFF,
+  _Reader,
+  _Tracker,
+  _Writer,
+  diffArray,
+  diffOptional,
+  diffPrimitive,
+  parseArray,
+  parseArrayDiff,
+  parseBoolean,
+  parseFloat,
+  parseInt,
+  parseOptional,
+  parseString,
+  patchArray,
+  patchOptional,
+  parseUInt8,
+  validateArray,
+  validateOptional,
+  validatePrimitive,
+  writeArray,
+  writeArrayDiff,
+  writeBoolean,
+  writeFloat,
+  writeInt,
+  writeOptional,
+  writeString,
+  writeUInt8,
+} from "../helpers";
 
 export type UserId = string;
+
 export enum Color {
   RED,
   BLUE,
   GREEN,
   YELLOW,
 }
+    
 export type Card = {
   value: number;
   color: Color;
@@ -45,6 +58,9 @@ export type PlayerState = {
 };
 export type UnionTest = { type: "UserId"; val: UserId } | { type: "Color"; val: Color } | { type: "Card"; val: Card };
 
+
+
+
 export const Card = {
   default(): Card {
     return {
@@ -58,11 +74,11 @@ export const Card = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.value), `Invalid int: ${ obj.value }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.value), `Invalid int: ${obj.value}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Card.value");
     }
-    validationErrors = validatePrimitive(obj.color in Color, `Invalid Color: ${ obj.color }`);
+    validationErrors = validatePrimitive(obj.color in Color, `Invalid Color: ${obj.color}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Card.color");
     }
@@ -99,7 +115,24 @@ export const Card = {
       color: tracker.next() ? parseUInt8(sb) : _NO_DIFF,
     };
   },
+  computeDiff(a: Card, b: Card): _DeepPartial<Card> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Card> =  {
+      value: diffPrimitive(a.value, b.value),
+      color: diffPrimitive(a.color, b.color),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Card, diff: _DeepPartial<Card> | typeof _NO_DIFF): Card {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      value: diff.value === _NO_DIFF ? obj.value : diff.value,
+      color: diff.color === _NO_DIFF ? obj.color : diff.color,
+    };
+  },
 };
+
 export const Player = {
   default(): Player {
     return {
@@ -113,11 +146,11 @@ export const Player = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.id === "string", `Invalid string: ${ obj.id }`);
+    validationErrors = validatePrimitive(typeof obj.id === "string", `Invalid string: ${obj.id}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.id");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.numCards), `Invalid int: ${ obj.numCards }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.numCards), `Invalid int: ${obj.numCards}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.numCards");
     }
@@ -154,7 +187,24 @@ export const Player = {
       numCards: tracker.next() ? parseInt(sb) : _NO_DIFF,
     };
   },
+  computeDiff(a: Player, b: Player): _DeepPartial<Player> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Player> =  {
+      id: diffPrimitive(a.id, b.id),
+      numCards: diffPrimitive(a.numCards, b.numCards),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Player, diff: _DeepPartial<Player> | typeof _NO_DIFF): Player {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      id: diff.id === _NO_DIFF ? obj.id : diff.id,
+      numCards: diff.numCards === _NO_DIFF ? obj.numCards : diff.numCards,
+    };
+  },
 };
+
 export const PlayerState = {
   default(): PlayerState {
     return {
@@ -181,7 +231,7 @@ export const PlayerState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.players");
     }
-    validationErrors = validateOptional(obj.turn, (x) => validatePrimitive(typeof x === "string", `Invalid string: ${ x }`));
+    validationErrors = validateOptional(obj.turn, (x) => validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.turn");
     }
@@ -189,15 +239,15 @@ export const PlayerState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.pile");
     }
-    validationErrors = validateOptional(obj.winner, (x) => validatePrimitive(typeof x === "string", `Invalid string: ${ x }`));
+    validationErrors = validateOptional(obj.winner, (x) => validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.winner");
     }
-    validationErrors = validateArray(obj.intArray, (x) => validatePrimitive(Number.isInteger(x), `Invalid int: ${ x }`));
+    validationErrors = validateArray(obj.intArray, (x) => validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.intArray");
     }
-    validationErrors = validateOptional(obj.intOptional, (x) => validatePrimitive(Number.isInteger(x), `Invalid int: ${ x }`));
+    validationErrors = validateOptional(obj.intOptional, (x) => validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: PlayerState.intOptional");
     }
@@ -269,7 +319,34 @@ export const PlayerState = {
       intOptional: tracker.next() ? parseOptional(sb, () => parseInt(sb)) : _NO_DIFF,
     };
   },
+  computeDiff(a: PlayerState, b: PlayerState): _DeepPartial<PlayerState> | typeof _NO_DIFF {
+    const diff: _DeepPartial<PlayerState> =  {
+      hand: diffArray(a.hand, b.hand, (x, y) => Card.computeDiff(x, y)),
+      players: diffArray(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
+      turn: diffOptional(a.turn, b.turn, (x, y) => diffPrimitive(x, y)),
+      pile: diffOptional(a.pile, b.pile, (x, y) => Card.computeDiff(x, y)),
+      winner: diffOptional(a.winner, b.winner, (x, y) => diffPrimitive(x, y)),
+      intArray: diffArray(a.intArray, b.intArray, (x, y) => diffPrimitive(x, y)),
+      intOptional: diffOptional(a.intOptional, b.intOptional, (x, y) => diffPrimitive(x, y)),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: PlayerState, diff: _DeepPartial<PlayerState> | typeof _NO_DIFF): PlayerState {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      hand: diff.hand === _NO_DIFF ? obj.hand : patchArray(obj.hand, diff.hand, (a, b) => Card.applyDiff(a, b)),
+      players: diff.players === _NO_DIFF ? obj.players : patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b)),
+      turn: diff.turn === _NO_DIFF ? obj.turn : patchOptional(obj.turn, diff.turn, (a, b) => b),
+      pile: diff.pile === _NO_DIFF ? obj.pile : patchOptional(obj.pile, diff.pile, (a, b) => Card.applyDiff(a, b)),
+      winner: diff.winner === _NO_DIFF ? obj.winner : patchOptional(obj.winner, diff.winner, (a, b) => b),
+      intArray: diff.intArray === _NO_DIFF ? obj.intArray : patchArray(obj.intArray, diff.intArray, (a, b) => b),
+      intOptional: diff.intOptional === _NO_DIFF ? obj.intOptional : patchOptional(obj.intOptional, diff.intOptional, (a, b) => b),
+    };
+  },
 };
+
 export const UnionTest = {
   default(): UnionTest {
     return {
@@ -282,14 +359,14 @@ export const UnionTest = {
   },
   validate(obj: UnionTest) {
     if (obj.type === "UserId") {
-      const validationErrors = validatePrimitive(typeof obj.val === "string", `Invalid string: ${ obj.val }`);
+      const validationErrors = validatePrimitive(typeof obj.val === "string", `Invalid string: ${obj.val}`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: UnionTest");
       }
       return validationErrors;
     }
     else if (obj.type === "Color") {
-      const validationErrors = validatePrimitive(obj.val in Color, `Invalid Color: ${ obj.val }`);
+      const validationErrors = validatePrimitive(obj.val in Color, `Invalid Color: ${obj.val}`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: UnionTest");
       }
@@ -309,18 +386,15 @@ export const UnionTest = {
   encode(obj: UnionTest, buf: _Writer = new _Writer()) {
     if (obj.type === "UserId") {
       writeUInt8(buf, 0);
-      const x = obj.val;
-      writeString(buf, x);
+      writeString(buf, obj.val);
     }
     else if (obj.type === "Color") {
       writeUInt8(buf, 1);
-      const x = obj.val;
-      writeUInt8(buf, x);
+      writeUInt8(buf, obj.val);
     }
     else if (obj.type === "Card") {
       writeUInt8(buf, 2);
-      const x = obj.val;
-      Card.encode(x, buf);
+      Card.encode(obj.val, buf);
     }
     return buf;
   },
@@ -329,24 +403,21 @@ export const UnionTest = {
       writeUInt8(buf, 0);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        writeString(buf, x);
+       writeString(buf, obj.val);
       }
     }
     else if (obj.type === "Color") {
       writeUInt8(buf, 1);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        writeUInt8(buf, x);
+       writeUInt8(buf, obj.val);
       }
     }
     else if (obj.type === "Card") {
       writeUInt8(buf, 2);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        Card.encodeDiff(x, tracker, buf);
+       Card.encodeDiff(obj.val, tracker, buf);
       }
     }
     return buf;
@@ -377,99 +448,5 @@ export const UnionTest = {
     }
     throw new Error("Invalid union");
   },
-}
-
-function validatePrimitive(isValid: boolean, errorMessage: string) {
-  return isValid ? [] : [errorMessage];
-}
-function validateOptional<T>(val: T | undefined, innerValidate: (x: T) => string[]) {
-  if (val !== undefined) {
-    return innerValidate(val);
-  }
-  return [];
-}
-function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
-  if (!Array.isArray(arr)) {
-    return ["Invalid array: " + arr];
-  }
-  for (let i = 0; i < arr.length; i++) {
-    const validationErrors = innerValidate(arr[i]);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid array item at index " + i);
-    }
-  }
-  return [];
-}
-
-function writeUInt8(buf: _Writer, x: number) {
-  buf.writeUInt8(x);
-}
-function writeBoolean(buf: _Writer, x: boolean) {
-  buf.writeUInt8(x ? 1 : 0);
-}
-function writeInt(buf: _Writer, x: number) {
-  buf.writeVarint(x);
-}
-function writeFloat(buf: _Writer, x: number) {
-  buf.writeFloat(x);
-}
-function writeString(buf: _Writer, x: string) {
-  buf.writeString(x);
-}
-function writeOptional<T>(buf: _Writer, x: T | undefined, innerWrite: (x: T) => void) {
-  writeBoolean(buf, x !== undefined);
-  if (x !== undefined) {
-    innerWrite(x);
-  }
-}
-function writeArray<T>(buf: _Writer, x: T[], innerWrite: (x: T) => void) {
-  buf.writeUVarint(x.length);
-  for (const val of x) {
-    innerWrite(val);
-  }
-}
-function writeArrayDiff<T>(buf: _Writer, tracker: _Tracker, x: (T | typeof _NO_DIFF)[], innerWrite: (x: T) => void) {
-  buf.writeUVarint(x.length);
-  x.forEach((val) => {
-    tracker.push(val !== _NO_DIFF);
-    if (val !== _NO_DIFF) {
-      innerWrite(val);
-    }
-  });
-}
-
-function parseUInt8(buf: _Reader): number {
-  return buf.readUInt8();
-}
-function parseBoolean(buf: _Reader): boolean {
-  return buf.readUInt8() > 0;
-}
-function parseInt(buf: _Reader): number {
-  return buf.readVarint();
-}
-function parseFloat(buf: _Reader): number {
-  return buf.readFloat();
-}
-function parseString(buf: _Reader): string {
-  return buf.readString();
-}
-function parseOptional<T>(buf: _Reader, innerParse: (buf: _Reader) => T): T | undefined {
-  return parseBoolean(buf) ? innerParse(buf) : undefined;
-}
-function parseArray<T>(buf: _Reader, innerParse: () => T): T[] {
-  const len = buf.readUVarint();
-  const arr: T[] = [];
-  for (let i = 0; i < len; i++) {
-    arr.push(innerParse());
-  }
-  return arr;
-}
-function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T): (T | typeof _NO_DIFF)[] {
-  const len = buf.readUVarint();
-  const arr: (T | typeof _NO_DIFF)[] = [];
-  for (let i = 0; i < len; i++) {
-    arr.push(tracker.next() ? innerParse() : _NO_DIFF);
-  }
-  return arr;
 }
 
