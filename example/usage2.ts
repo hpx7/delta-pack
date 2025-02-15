@@ -21,9 +21,9 @@ function runBenchmark() {
     totalDecodeTime += performance.now() - startDecode;
   });
 
-  console.log(`Average Encoding Time: ${(totalEncodeTime / testData.length).toFixed(2)}ms`);
-  console.log(`Average Decoding Time: ${(totalDecodeTime / testData.length).toFixed(2)}ms`);
-  console.log(`Average Size per Encoded Message: ${(totalSize / testData.length).toFixed(2)} bytes`);
+  console.log(`Average Encoding Time: ${(totalEncodeTime / testData.length).toFixed(3)}ms`);
+  console.log(`Average Decoding Time: ${(totalDecodeTime / testData.length).toFixed(3)}ms`);
+  console.log(`Average Size per Encoded Message: ${(totalSize / testData.length).toFixed(3)} bytes`);
 }
 
 runBenchmark();

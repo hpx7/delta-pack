@@ -105,17 +105,17 @@ export function parseOptional<T>(buf: _Reader, innerParse: (buf: _Reader) => T):
 }
 export function parseArray<T>(buf: _Reader, innerParse: () => T): T[] {
   const len = buf.readUVarint();
-  const arr: T[] = [];
+  const arr = new Array<T>(len);
   for (let i = 0; i < len; i++) {
-    arr.push(innerParse());
+    arr[i] = innerParse();
   }
   return arr;
 }
 export function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T): (T | typeof _NO_DIFF)[] {
   const len = buf.readUVarint();
-  const arr: (T | typeof _NO_DIFF)[] = [];
+  const arr = new Array<T | typeof _NO_DIFF>(len);
   for (let i = 0; i < len; i++) {
-    arr.push(tracker.next() ? innerParse() : _NO_DIFF);
+    arr[i] = tracker.next() ? innerParse() : _NO_DIFF;
   }
   return arr;
 }
