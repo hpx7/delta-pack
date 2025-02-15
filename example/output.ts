@@ -96,10 +96,9 @@ export const Card = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      value: diff.value === _.NO_DIFF ? obj.value : diff.value,
-      color: diff.color === _.NO_DIFF ? obj.color : diff.color,
-    };
+    obj.value = diff.value === _.NO_DIFF ? obj.value : diff.value;
+    obj.color = diff.color === _.NO_DIFF ? obj.color : diff.color;
+    return obj;
   },
 };
 
@@ -168,10 +167,9 @@ export const Player = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      id: diff.id === _.NO_DIFF ? obj.id : diff.id,
-      numCards: diff.numCards === _.NO_DIFF ? obj.numCards : diff.numCards,
-    };
+    obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
+    obj.numCards = diff.numCards === _.NO_DIFF ? obj.numCards : diff.numCards;
+    return obj;
   },
 };
 
@@ -305,15 +303,14 @@ export const PlayerState = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      hand: diff.hand === _.NO_DIFF ? obj.hand : _.patchArray(obj.hand, diff.hand, (a, b) => Card.applyDiff(a, b)),
-      players: diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b)),
-      turn: diff.turn === _.NO_DIFF ? obj.turn : _.patchOptional(obj.turn, diff.turn, (a, b) => b),
-      pile: diff.pile === _.NO_DIFF ? obj.pile : _.patchOptional(obj.pile, diff.pile, (a, b) => Card.applyDiff(a, b)),
-      winner: diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional(obj.winner, diff.winner, (a, b) => b),
-      intArray: diff.intArray === _.NO_DIFF ? obj.intArray : _.patchArray(obj.intArray, diff.intArray, (a, b) => b),
-      intOptional: diff.intOptional === _.NO_DIFF ? obj.intOptional : _.patchOptional(obj.intOptional, diff.intOptional, (a, b) => b),
-    };
+    obj.hand = diff.hand === _.NO_DIFF ? obj.hand : _.patchArray(obj.hand, diff.hand, (a, b) => Card.applyDiff(a, b));
+    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
+    obj.turn = diff.turn === _.NO_DIFF ? obj.turn : _.patchOptional(obj.turn, diff.turn, (a, b) => b);
+    obj.pile = diff.pile === _.NO_DIFF ? obj.pile : _.patchOptional(obj.pile, diff.pile, (a, b) => Card.applyDiff(a, b));
+    obj.winner = diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional(obj.winner, diff.winner, (a, b) => b);
+    obj.intArray = diff.intArray === _.NO_DIFF ? obj.intArray : _.patchArray(obj.intArray, diff.intArray, (a, b) => b);
+    obj.intOptional = diff.intOptional === _.NO_DIFF ? obj.intOptional : _.patchOptional(obj.intOptional, diff.intOptional, (a, b) => b);
+    return obj;
   },
 };
 
@@ -419,4 +416,3 @@ export const UnionTest = {
     throw new Error("Invalid union");
   },
 }
-

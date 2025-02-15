@@ -103,18 +103,17 @@ export const ${name} = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: diff.${childName} === _.NO_DIFF ? obj.${childName} : ${renderApplyDiff(
-            childType,
-            name,
-            `obj.${childName}`,
-            `diff.${childName}`,
-          )},`;
-        })
-        .join("\n      ")}
-    };
+    ${Object.entries(type.properties)
+      .map(([childName, childType]) => {
+        return `obj.${childName} = diff.${childName} === _.NO_DIFF ? obj.${childName} : ${renderApplyDiff(
+          childType,
+          name,
+          `obj.${childName}`,
+          `diff.${childName}`,
+        )};`;
+      })
+      .join("\n    ")}
+    return obj;
   },
 };`;
     } else if (type.type === "union") {
@@ -199,8 +198,7 @@ export const ${name} = {
 }`;
     }
   })
-  .join("\n")}
-`;
+  .join("\n")}`;
 
   function renderTypeArg(type: Type | ChildType): string {
     if (type.type === "object") {

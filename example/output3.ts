@@ -116,10 +116,9 @@ export const ChatMessage = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      author: diff.author === _.NO_DIFF ? obj.author : diff.author,
-      content: diff.content === _.NO_DIFF ? obj.content : diff.content,
-    };
+    obj.author = diff.author === _.NO_DIFF ? obj.author : diff.author;
+    obj.content = diff.content === _.NO_DIFF ? obj.content : diff.content;
+    return obj;
   },
 };
 
@@ -175,9 +174,8 @@ export const ChatList = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      messages: diff.messages === _.NO_DIFF ? obj.messages : _.patchArray(obj.messages, diff.messages, (a, b) => ChatMessage.applyDiff(a, b)),
-    };
+    obj.messages = diff.messages === _.NO_DIFF ? obj.messages : _.patchArray(obj.messages, diff.messages, (a, b) => ChatMessage.applyDiff(a, b));
+    return obj;
   },
 };
 
@@ -260,11 +258,10 @@ export const Position = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
-      z: diff.z === _.NO_DIFF ? obj.z : diff.z,
-    };
+    obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
+    obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
+    obj.z = diff.z === _.NO_DIFF ? obj.z : diff.z;
+    return obj;
   },
 };
 
@@ -359,12 +356,11 @@ export const Rotation = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
-      z: diff.z === _.NO_DIFF ? obj.z : diff.z,
-      w: diff.w === _.NO_DIFF ? obj.w : diff.w,
-    };
+    obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
+    obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
+    obj.z = diff.z === _.NO_DIFF ? obj.z : diff.z;
+    obj.w = diff.w === _.NO_DIFF ? obj.w : diff.w;
+    return obj;
   },
 };
 
@@ -446,11 +442,10 @@ export const Size3D = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      width: diff.width === _.NO_DIFF ? obj.width : diff.width,
-      height: diff.height === _.NO_DIFF ? obj.height : diff.height,
-      depth: diff.depth === _.NO_DIFF ? obj.depth : diff.depth,
-    };
+    obj.width = diff.width === _.NO_DIFF ? obj.width : diff.width;
+    obj.height = diff.height === _.NO_DIFF ? obj.height : diff.height;
+    obj.depth = diff.depth === _.NO_DIFF ? obj.depth : diff.depth;
+    return obj;
   },
 };
 
@@ -745,10 +740,9 @@ export const Entity = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      entityId: diff.entityId === _.NO_DIFF ? obj.entityId : diff.entityId,
-      components: diff.components === _.NO_DIFF ? obj.components : _.patchArray(obj.components, diff.components, (a, b) => Component.applyDiff(a, b)),
-    };
+    obj.entityId = diff.entityId === _.NO_DIFF ? obj.entityId : diff.entityId;
+    obj.components = diff.components === _.NO_DIFF ? obj.components : _.patchArray(obj.components, diff.components, (a, b) => Component.applyDiff(a, b));
+    return obj;
   },
 };
 
@@ -804,9 +798,7 @@ export const Snapshot = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      entities: diff.entities === _.NO_DIFF ? obj.entities : _.patchArray(obj.entities, diff.entities, (a, b) => Entity.applyDiff(a, b)),
-    };
+    obj.entities = diff.entities === _.NO_DIFF ? obj.entities : _.patchArray(obj.entities, diff.entities, (a, b) => Entity.applyDiff(a, b));
+    return obj;
   },
 };
-

@@ -99,10 +99,9 @@ export const Position = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
-    };
+    obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
+    obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
+    return obj;
   },
 };
 
@@ -171,10 +170,9 @@ export const Velocity = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
-    };
+    obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
+    obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
+    return obj;
   },
 };
 
@@ -451,26 +449,25 @@ export const Player = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      id: diff.id === _.NO_DIFF ? obj.id : diff.id,
-      name: diff.name === _.NO_DIFF ? obj.name : diff.name,
-      type: diff.type === _.NO_DIFF ? obj.type : diff.type,
-      position: diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position),
-      velocity: diff.velocity === _.NO_DIFF ? obj.velocity : Velocity.applyDiff(obj.velocity, diff.velocity),
-      width: diff.width === _.NO_DIFF ? obj.width : diff.width,
-      height: diff.height === _.NO_DIFF ? obj.height : diff.height,
-      rotation: diff.rotation === _.NO_DIFF ? obj.rotation : diff.rotation,
-      mass: diff.mass === _.NO_DIFF ? obj.mass : diff.mass,
-      health: diff.health === _.NO_DIFF ? obj.health : diff.health,
-      depth: diff.depth === _.NO_DIFF ? obj.depth : diff.depth,
-      lifetime: diff.lifetime === _.NO_DIFF ? obj.lifetime : diff.lifetime,
-      radius: diff.radius === _.NO_DIFF ? obj.radius : diff.radius,
-      isSensor: diff.isSensor === _.NO_DIFF ? obj.isSensor : diff.isSensor,
-      isStatic: diff.isStatic === _.NO_DIFF ? obj.isStatic : diff.isStatic,
-      destroyed: diff.destroyed === _.NO_DIFF ? obj.destroyed : diff.destroyed,
-      owner: diff.owner === _.NO_DIFF ? obj.owner : diff.owner,
-      maxSpeed: diff.maxSpeed === _.NO_DIFF ? obj.maxSpeed : diff.maxSpeed,
-    };
+    obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
+    obj.name = diff.name === _.NO_DIFF ? obj.name : diff.name;
+    obj.type = diff.type === _.NO_DIFF ? obj.type : diff.type;
+    obj.position = diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position);
+    obj.velocity = diff.velocity === _.NO_DIFF ? obj.velocity : Velocity.applyDiff(obj.velocity, diff.velocity);
+    obj.width = diff.width === _.NO_DIFF ? obj.width : diff.width;
+    obj.height = diff.height === _.NO_DIFF ? obj.height : diff.height;
+    obj.rotation = diff.rotation === _.NO_DIFF ? obj.rotation : diff.rotation;
+    obj.mass = diff.mass === _.NO_DIFF ? obj.mass : diff.mass;
+    obj.health = diff.health === _.NO_DIFF ? obj.health : diff.health;
+    obj.depth = diff.depth === _.NO_DIFF ? obj.depth : diff.depth;
+    obj.lifetime = diff.lifetime === _.NO_DIFF ? obj.lifetime : diff.lifetime;
+    obj.radius = diff.radius === _.NO_DIFF ? obj.radius : diff.radius;
+    obj.isSensor = diff.isSensor === _.NO_DIFF ? obj.isSensor : diff.isSensor;
+    obj.isStatic = diff.isStatic === _.NO_DIFF ? obj.isStatic : diff.isStatic;
+    obj.destroyed = diff.destroyed === _.NO_DIFF ? obj.destroyed : diff.destroyed;
+    obj.owner = diff.owner === _.NO_DIFF ? obj.owner : diff.owner;
+    obj.maxSpeed = diff.maxSpeed === _.NO_DIFF ? obj.maxSpeed : diff.maxSpeed;
+    return obj;
   },
 };
 
@@ -539,10 +536,8 @@ export const State = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      id: diff.id === _.NO_DIFF ? obj.id : diff.id,
-      state: diff.state === _.NO_DIFF ? obj.state : _.patchArray(obj.state, diff.state, (a, b) => Player.applyDiff(a, b)),
-    };
+    obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
+    obj.state = diff.state === _.NO_DIFF ? obj.state : _.patchArray(obj.state, diff.state, (a, b) => Player.applyDiff(a, b));
+    return obj;
   },
 };
-

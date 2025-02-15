@@ -86,10 +86,9 @@ export const Position = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
-    };
+    obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
+    obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
+    return obj;
   },
 };
 
@@ -158,10 +157,9 @@ export const Weapon = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      name: diff.name === _.NO_DIFF ? obj.name : diff.name,
-      damage: diff.damage === _.NO_DIFF ? obj.damage : diff.damage,
-    };
+    obj.name = diff.name === _.NO_DIFF ? obj.name : diff.name;
+    obj.damage = diff.damage === _.NO_DIFF ? obj.damage : diff.damage;
+    return obj;
   },
 };
 
@@ -269,13 +267,12 @@ export const Player = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      id: diff.id === _.NO_DIFF ? obj.id : diff.id,
-      position: diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position),
-      health: diff.health === _.NO_DIFF ? obj.health : diff.health,
-      weapon: diff.weapon === _.NO_DIFF ? obj.weapon : _.patchOptional(obj.weapon, diff.weapon, (a, b) => Weapon.applyDiff(a, b)),
-      stealth: diff.stealth === _.NO_DIFF ? obj.stealth : diff.stealth,
-    };
+    obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
+    obj.position = diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position);
+    obj.health = diff.health === _.NO_DIFF ? obj.health : diff.health;
+    obj.weapon = diff.weapon === _.NO_DIFF ? obj.weapon : _.patchOptional(obj.weapon, diff.weapon, (a, b) => Weapon.applyDiff(a, b));
+    obj.stealth = diff.stealth === _.NO_DIFF ? obj.stealth : diff.stealth;
+    return obj;
   },
 };
 
@@ -344,10 +341,8 @@ export const GameState = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    return {
-      timeRemaining: diff.timeRemaining === _.NO_DIFF ? obj.timeRemaining : diff.timeRemaining,
-      players: diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b)),
-    };
+    obj.timeRemaining = diff.timeRemaining === _.NO_DIFF ? obj.timeRemaining : diff.timeRemaining;
+    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
+    return obj;
   },
 };
-
