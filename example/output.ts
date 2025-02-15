@@ -90,7 +90,7 @@ export const Card = {
       value: _.diffPrimitive(a.value, b.value),
       color: _.diffPrimitive(a.color, b.color),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.value === _.NO_DIFF && diff.color === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Card, diff: _.DeepPartial<Card> | typeof _.NO_DIFF): Card {
     if (diff === _.NO_DIFF) {
@@ -162,7 +162,7 @@ export const Player = {
       id: _.diffPrimitive(a.id, b.id),
       numCards: _.diffPrimitive(a.numCards, b.numCards),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.id === _.NO_DIFF && diff.numCards === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
     if (diff === _.NO_DIFF) {
@@ -299,7 +299,7 @@ export const PlayerState = {
       intArray: _.diffArray(a.intArray, b.intArray, (x, y) => _.diffPrimitive(x, y)),
       intOptional: _.diffOptional(a.intOptional, b.intOptional, (x, y) => _.diffPrimitive(x, y)),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.hand === _.NO_DIFF && diff.players === _.NO_DIFF && diff.turn === _.NO_DIFF && diff.pile === _.NO_DIFF && diff.winner === _.NO_DIFF && diff.intArray === _.NO_DIFF && diff.intOptional === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: PlayerState, diff: _.DeepPartial<PlayerState> | typeof _.NO_DIFF): PlayerState {
     if (diff === _.NO_DIFF) {

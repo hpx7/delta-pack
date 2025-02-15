@@ -95,7 +95,9 @@ export const ${name} = {
         })
         .join("\n      ")}
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return ${Object.keys(type.properties)
+      .map((childName) => `diff.${childName} === _.NO_DIFF`)
+      .join(" && ")} ? _.NO_DIFF : diff;
   },
   applyDiff(obj: ${name}, diff: _.DeepPartial<${name}> | typeof _.NO_DIFF): ${name} {
     if (diff === _.NO_DIFF) {

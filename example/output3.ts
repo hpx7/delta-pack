@@ -110,7 +110,7 @@ export const ChatMessage = {
       author: _.diffPrimitive(a.author, b.author),
       content: _.diffPrimitive(a.content, b.content),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.author === _.NO_DIFF && diff.content === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: ChatMessage, diff: _.DeepPartial<ChatMessage> | typeof _.NO_DIFF): ChatMessage {
     if (diff === _.NO_DIFF) {
@@ -169,7 +169,7 @@ export const ChatList = {
     const diff: _.DeepPartial<ChatList> =  {
       messages: _.diffArray(a.messages, b.messages, (x, y) => ChatMessage.computeDiff(x, y)),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.messages === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: ChatList, diff: _.DeepPartial<ChatList> | typeof _.NO_DIFF): ChatList {
     if (diff === _.NO_DIFF) {
@@ -254,7 +254,7 @@ export const Position = {
       y: _.diffPrimitive(a.y, b.y),
       z: _.diffPrimitive(a.z, b.z),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF && diff.z === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Position, diff: _.DeepPartial<Position> | typeof _.NO_DIFF): Position {
     if (diff === _.NO_DIFF) {
@@ -353,7 +353,7 @@ export const Rotation = {
       z: _.diffPrimitive(a.z, b.z),
       w: _.diffPrimitive(a.w, b.w),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF && diff.z === _.NO_DIFF && diff.w === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Rotation, diff: _.DeepPartial<Rotation> | typeof _.NO_DIFF): Rotation {
     if (diff === _.NO_DIFF) {
@@ -440,7 +440,7 @@ export const Size3D = {
       height: _.diffPrimitive(a.height, b.height),
       depth: _.diffPrimitive(a.depth, b.depth),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.width === _.NO_DIFF && diff.height === _.NO_DIFF && diff.depth === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Size3D, diff: _.DeepPartial<Size3D> | typeof _.NO_DIFF): Size3D {
     if (diff === _.NO_DIFF) {
@@ -739,7 +739,7 @@ export const Entity = {
       entityId: _.diffPrimitive(a.entityId, b.entityId),
       components: _.diffArray(a.components, b.components, (x, y) => Component.computeDiff(x, y)),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.entityId === _.NO_DIFF && diff.components === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Entity, diff: _.DeepPartial<Entity> | typeof _.NO_DIFF): Entity {
     if (diff === _.NO_DIFF) {
@@ -798,7 +798,7 @@ export const Snapshot = {
     const diff: _.DeepPartial<Snapshot> =  {
       entities: _.diffArray(a.entities, b.entities, (x, y) => Entity.computeDiff(x, y)),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.entities === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Snapshot, diff: _.DeepPartial<Snapshot> | typeof _.NO_DIFF): Snapshot {
     if (diff === _.NO_DIFF) {

@@ -93,7 +93,7 @@ export const Position = {
       x: _.diffPrimitive(a.x, b.x),
       y: _.diffPrimitive(a.y, b.y),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Position, diff: _.DeepPartial<Position> | typeof _.NO_DIFF): Position {
     if (diff === _.NO_DIFF) {
@@ -165,7 +165,7 @@ export const Velocity = {
       x: _.diffPrimitive(a.x, b.x),
       y: _.diffPrimitive(a.y, b.y),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Velocity, diff: _.DeepPartial<Velocity> | typeof _.NO_DIFF): Velocity {
     if (diff === _.NO_DIFF) {
@@ -445,7 +445,7 @@ export const Player = {
       owner: _.diffPrimitive(a.owner, b.owner),
       maxSpeed: _.diffPrimitive(a.maxSpeed, b.maxSpeed),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.id === _.NO_DIFF && diff.name === _.NO_DIFF && diff.type === _.NO_DIFF && diff.position === _.NO_DIFF && diff.velocity === _.NO_DIFF && diff.width === _.NO_DIFF && diff.height === _.NO_DIFF && diff.rotation === _.NO_DIFF && diff.mass === _.NO_DIFF && diff.health === _.NO_DIFF && diff.depth === _.NO_DIFF && diff.lifetime === _.NO_DIFF && diff.radius === _.NO_DIFF && diff.isSensor === _.NO_DIFF && diff.isStatic === _.NO_DIFF && diff.destroyed === _.NO_DIFF && diff.owner === _.NO_DIFF && diff.maxSpeed === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
     if (diff === _.NO_DIFF) {
@@ -533,7 +533,7 @@ export const State = {
       id: _.diffPrimitive(a.id, b.id),
       state: _.diffArray(a.state, b.state, (x, y) => Player.computeDiff(x, y)),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.id === _.NO_DIFF && diff.state === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: State, diff: _.DeepPartial<State> | typeof _.NO_DIFF): State {
     if (diff === _.NO_DIFF) {

@@ -80,7 +80,7 @@ export const Position = {
       x: _.diffPrimitive(a.x, b.x),
       y: _.diffPrimitive(a.y, b.y),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Position, diff: _.DeepPartial<Position> | typeof _.NO_DIFF): Position {
     if (diff === _.NO_DIFF) {
@@ -152,7 +152,7 @@ export const Weapon = {
       name: _.diffPrimitive(a.name, b.name),
       damage: _.diffPrimitive(a.damage, b.damage),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.name === _.NO_DIFF && diff.damage === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Weapon, diff: _.DeepPartial<Weapon> | typeof _.NO_DIFF): Weapon {
     if (diff === _.NO_DIFF) {
@@ -263,7 +263,7 @@ export const Player = {
       weapon: _.diffOptional(a.weapon, b.weapon, (x, y) => Weapon.computeDiff(x, y)),
       stealth: _.diffPrimitive(a.stealth, b.stealth),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.id === _.NO_DIFF && diff.position === _.NO_DIFF && diff.health === _.NO_DIFF && diff.weapon === _.NO_DIFF && diff.stealth === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
     if (diff === _.NO_DIFF) {
@@ -338,7 +338,7 @@ export const GameState = {
       timeRemaining: _.diffPrimitive(a.timeRemaining, b.timeRemaining),
       players: _.diffArray(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
     };
-    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
+    return diff.timeRemaining === _.NO_DIFF && diff.players === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: GameState, diff: _.DeepPartial<GameState> | typeof _.NO_DIFF): GameState {
     if (diff === _.NO_DIFF) {
