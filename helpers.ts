@@ -136,7 +136,9 @@ export function diffOptional<T>(
   return _NO_DIFF;
 }
 export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF) {
-  const arr = a.map((val, i) => (i < b.length ? innerDiff(val, b[i]) : val));
+  const arr = b.map((val, i) => {
+    return i < a.length ? innerDiff(val, a[i]) : val;
+  });
   return a.length === b.length && arr.every((v) => v === _NO_DIFF) ? _NO_DIFF : arr;
 }
 

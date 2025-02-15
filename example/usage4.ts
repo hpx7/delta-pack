@@ -1,7 +1,7 @@
 import util from "util";
 import { Reader, Writer } from "bin-serde";
 import { GameState } from "./output4";
-import { _Tracker } from "../helpers";
+import { _Tracker, _DeepPartial, _NO_DIFF } from "../helpers";
 
 const state1: GameState = {
   timeRemaining: 120,
@@ -41,24 +41,33 @@ const state2: GameState = {
   timeRemaining: 60,
 };
 const diff = GameState.computeDiff(state1, state2);
-const tracker = new _Tracker();
-const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
+const encodedDiff = encodeDiff(diff);
+console.log("encodedDiff", encodedDiff);
+// Uint8Array(3) [ 2, 1, 120 ]
 
-const writer = new Writer();
-writer.writeUVarint(tracker.bits.length);
-writer.writeBits(tracker.bits);
-writer.writeBuffer(encodedDiff);
-const encodedBuffer = writer.toBuffer();
-console.log("encodedDiff", encodedBuffer);
-// Uint8Array(8) [
-//   22, 23, 81, 4,
-//  120,  2,  1, 1
-// ]
-
-const reader = new Reader(encodedBuffer);
-const clientTracker = new _Tracker(reader.readBits(reader.readUVarint()));
-const decodedDiff = GameState.decodeDiff(reader, clientTracker);
+const decodedDiff = decodeDiff(new Reader(encodedDiff));
 console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));
 
 const applied = GameState.applyDiff(state1, decodedDiff);
 console.log("applied", util.inspect(applied, { depth: null, colors: true }));
+
+function encodeDiff(diff: _DeepPartial<GameState> | typeof _NO_DIFF) {
+  if (diff === _NO_DIFF) {
+    return new Uint8Array(0);
+  }
+  const tracker = new _Tracker();
+  const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
+  const writer = new Writer();
+  writer.writeUVarint(tracker.bits.length);
+  writer.writeBits(tracker.bits);
+  writer.writeBuffer(encodedDiff);
+  return writer.toBuffer();
+}
+
+function decodeDiff(reader: Reader) {
+  if (reader.remaining() === 0) {
+    return _NO_DIFF;
+  }
+  const clientTracker = new _Tracker(reader.readBits(reader.readUVarint()));
+  return GameState.decodeDiff(reader, clientTracker);
+}

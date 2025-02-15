@@ -115,16 +115,20 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  computeDiff(a: ${name}, b: ${name}): _DeepPartial<${name}> {
-    return {
+  computeDiff(a: ${name}, b: ${name}): _DeepPartial<${name}> | typeof _NO_DIFF {
+    const diff: _DeepPartial<${name}> =  {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
           return `${childName}: ${renderComputeDiff(childType, name, `a.${childName}`, `b.${childName}`)},`;
         })
         .join("\n      ")}
     };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
   },
-  applyDiff(obj: ${name}, diff: _DeepPartial<${name}>): ${name} {
+  applyDiff(obj: ${name}, diff: _DeepPartial<${name}> | typeof _NO_DIFF): ${name} {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
