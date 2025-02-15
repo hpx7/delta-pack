@@ -1,20 +1,20 @@
-import { Writer as _Writer, Reader as _Reader } from "bin-serde";
+import { Writer, Reader } from "bin-serde";
 
-export { _Writer, _Reader };
+export { Writer, Reader };
 
-export const _NO_DIFF = Symbol("NODIFF");
-export type _DeepPartial<T> = T extends string | number | boolean | undefined
+export const NO_DIFF = Symbol("NODIFF");
+export type DeepPartial<T> = T extends string | number | boolean | undefined
   ? T
   : T extends Array<infer ArrayType>
-  ? Array<_DeepPartial<ArrayType> | typeof _NO_DIFF> | typeof _NO_DIFF
+  ? Array<DeepPartial<ArrayType> | typeof NO_DIFF> | typeof NO_DIFF
   : T extends { type: string; val: any }
-  ? { type: T["type"]; val: _DeepPartial<T["val"] | typeof _NO_DIFF> }
-  : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
+  ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
+  : { [K in keyof T]: DeepPartial<T[K]> | typeof NO_DIFF };
 
-export class _Tracker {
+export class Tracker {
   private bits: boolean[] = [];
   private idx = 0;
-  constructor(reader?: _Reader) {
+  constructor(reader?: Reader) {
     if (reader !== undefined) {
       this.bits = reader.readBits(reader.readUVarint());
     }
@@ -25,7 +25,7 @@ export class _Tracker {
   next() {
     return this.bits[this.idx++];
   }
-  encode(buf: _Writer) {
+  encode(buf: Writer) {
     buf.writeUVarint(this.bits.length);
     buf.writeBits(this.bits);
   }
@@ -53,67 +53,67 @@ export function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
   return [];
 }
 
-export function writeUInt8(buf: _Writer, x: number) {
+export function writeUInt8(buf: Writer, x: number) {
   buf.writeUInt8(x);
 }
-export function writeBoolean(buf: _Writer, x: boolean) {
+export function writeBoolean(buf: Writer, x: boolean) {
   buf.writeUInt8(x ? 1 : 0);
 }
-export function writeInt(buf: _Writer, x: number) {
+export function writeInt(buf: Writer, x: number) {
   buf.writeVarint(x);
 }
-export function writeFloat(buf: _Writer, x: number) {
+export function writeFloat(buf: Writer, x: number) {
   buf.writeFloat(x);
 }
-export function writeString(buf: _Writer, x: string) {
+export function writeString(buf: Writer, x: string) {
   buf.writeString(x);
 }
-export function writeOptional<T>(buf: _Writer, x: T | undefined, innerWrite: (x: T) => void) {
+export function writeOptional<T>(buf: Writer, x: T | undefined, innerWrite: (x: T) => void) {
   writeBoolean(buf, x !== undefined);
   if (x !== undefined) {
     innerWrite(x);
   }
 }
-export function writeArray<T>(buf: _Writer, x: T[], innerWrite: (x: T) => void) {
+export function writeArray<T>(buf: Writer, x: T[], innerWrite: (x: T) => void) {
   buf.writeUVarint(x.length);
   for (const val of x) {
     innerWrite(val);
   }
 }
 export function writeArrayDiff<T>(
-  buf: _Writer,
-  tracker: _Tracker,
-  x: (T | typeof _NO_DIFF)[],
+  buf: Writer,
+  tracker: Tracker,
+  x: (T | typeof NO_DIFF)[],
   innerWrite: (x: T) => void,
 ) {
   buf.writeUVarint(x.length);
   x.forEach((val) => {
-    tracker.push(val !== _NO_DIFF);
-    if (val !== _NO_DIFF) {
+    tracker.push(val !== NO_DIFF);
+    if (val !== NO_DIFF) {
       innerWrite(val);
     }
   });
 }
 
-export function parseUInt8(buf: _Reader): number {
+export function parseUInt8(buf: Reader): number {
   return buf.readUInt8();
 }
-export function parseBoolean(buf: _Reader): boolean {
+export function parseBoolean(buf: Reader): boolean {
   return buf.readUInt8() > 0;
 }
-export function parseInt(buf: _Reader): number {
+export function parseInt(buf: Reader): number {
   return buf.readVarint();
 }
-export function parseFloat(buf: _Reader): number {
+export function parseFloat(buf: Reader): number {
   return buf.readFloat();
 }
-export function parseString(buf: _Reader): string {
+export function parseString(buf: Reader): string {
   return buf.readString();
 }
-export function parseOptional<T>(buf: _Reader, innerParse: (buf: _Reader) => T): T | undefined {
+export function parseOptional<T>(buf: Reader, innerParse: (buf: Reader) => T): T | undefined {
   return parseBoolean(buf) ? innerParse(buf) : undefined;
 }
-export function parseArray<T>(buf: _Reader, innerParse: () => T): T[] {
+export function parseArray<T>(buf: Reader, innerParse: () => T): T[] {
   const len = buf.readUVarint();
   const arr = new Array<T>(len);
   for (let i = 0; i < len; i++) {
@@ -121,41 +121,41 @@ export function parseArray<T>(buf: _Reader, innerParse: () => T): T[] {
   }
   return arr;
 }
-export function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T): (T | typeof _NO_DIFF)[] {
+export function parseArrayDiff<T>(buf: Reader, tracker: Tracker, innerParse: () => T): (T | typeof NO_DIFF)[] {
   const len = buf.readUVarint();
-  const arr = new Array<T | typeof _NO_DIFF>(len);
+  const arr = new Array<T | typeof NO_DIFF>(len);
   for (let i = 0; i < len; i++) {
-    arr[i] = tracker.next() ? innerParse() : _NO_DIFF;
+    arr[i] = tracker.next() ? innerParse() : NO_DIFF;
   }
   return arr;
 }
 
 export function diffPrimitive<T>(a: T, b: T) {
-  return a === b ? _NO_DIFF : b;
+  return a === b ? NO_DIFF : b;
 }
 export function diffOptional<T>(
   a: T | undefined,
   b: T | undefined,
-  innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF,
+  innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
 ) {
   if (a !== undefined && b !== undefined) {
     return innerDiff(a, b);
   }
-  return a === b ? _NO_DIFF : b;
+  return a === b ? NO_DIFF : b;
 }
-export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF) {
+export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF) {
   const arr = b.map((val, i) => {
     return i < a.length ? innerDiff(val, a[i]) : val;
   });
-  return a.length === b.length && arr.every((v) => v === _NO_DIFF) ? _NO_DIFF : arr;
+  return a.length === b.length && arr.every((v) => v === NO_DIFF) ? NO_DIFF : arr;
 }
 
-export function patchArray<T>(arr: T[], patch: typeof _NO_DIFF | any[], innerPatch: (a: T, b: _DeepPartial<T>) => T) {
-  if (patch === _NO_DIFF) {
+export function patchArray<T>(arr: T[], patch: typeof NO_DIFF | any[], innerPatch: (a: T, b: DeepPartial<T>) => T) {
+  if (patch === NO_DIFF) {
     return arr;
   }
   patch.forEach((val, i) => {
-    if (val !== _NO_DIFF) {
+    if (val !== NO_DIFF) {
       if (i >= arr.length) {
         arr.push(val as T);
       } else {
@@ -168,7 +168,7 @@ export function patchArray<T>(arr: T[], patch: typeof _NO_DIFF | any[], innerPat
   }
   return arr;
 }
-export function patchOptional<T>(obj: T | undefined, patch: any, innerPatch: (a: T, b: _DeepPartial<T>) => T) {
+export function patchOptional<T>(obj: T | undefined, patch: any, innerPatch: (a: T, b: DeepPartial<T>) => T) {
   if (patch === undefined) {
     return undefined;
   } else if (obj === undefined) {

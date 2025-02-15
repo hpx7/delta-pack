@@ -1,34 +1,4 @@
-import {
-  _DeepPartial,
-  _NO_DIFF,
-  _Reader,
-  _Tracker,
-  _Writer,
-  diffArray,
-  diffOptional,
-  diffPrimitive,
-  parseArray,
-  parseArrayDiff,
-  parseBoolean,
-  parseFloat,
-  parseInt,
-  parseOptional,
-  parseString,
-  patchArray,
-  patchOptional,
-  parseUInt8,
-  validateArray,
-  validateOptional,
-  validatePrimitive,
-  writeArray,
-  writeArrayDiff,
-  writeBoolean,
-  writeFloat,
-  writeInt,
-  writeOptional,
-  writeString,
-  writeUInt8,
-} from "../helpers";
+import * as _ from "../helpers";
 
 export type Position = {
   x: number;
@@ -77,61 +47,61 @@ export const Position = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.x");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.y");
     }
 
     return validationErrors;
   },
-  encode(obj: Position, buf: _Writer = new _Writer()) {
-    writeInt(buf, obj.x);
-    writeInt(buf, obj.y);
+  encode(obj: Position, buf: _.Writer = new _.Writer()) {
+    _.writeInt(buf, obj.x);
+    _.writeInt(buf, obj.y);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Position>, tracker: _Tracker, buf: _Writer = new _Writer()) {
-    tracker.push(obj.x !== _NO_DIFF);
-    if (obj.x !== _NO_DIFF) {
-      writeInt(buf, obj.x);
+  encodeDiff(obj: _.DeepPartial<Position>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    tracker.push(obj.x !== _.NO_DIFF);
+    if (obj.x !== _.NO_DIFF) {
+      _.writeInt(buf, obj.x);
     }
-    tracker.push(obj.y !== _NO_DIFF);
-    if (obj.y !== _NO_DIFF) {
-      writeInt(buf, obj.y);
+    tracker.push(obj.y !== _.NO_DIFF);
+    if (obj.y !== _.NO_DIFF) {
+      _.writeInt(buf, obj.y);
     }
     return buf;
   },
-  decode(buf: _Reader): Position {
+  decode(buf: _.Reader): Position {
     const sb = buf;
     return {
-      x: parseInt(sb),
-      y: parseInt(sb),
+      x: _.parseInt(sb),
+      y: _.parseInt(sb),
     };
   },
-  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<Position> {
+  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Position> {
     const sb = buf;
     return {
-      x: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      y: tracker.next() ? parseInt(sb) : _NO_DIFF,
+      x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
     };
   },
-  computeDiff(a: Position, b: Position): _DeepPartial<Position> | typeof _NO_DIFF {
-    const diff: _DeepPartial<Position> =  {
-      x: diffPrimitive(a.x, b.x),
-      y: diffPrimitive(a.y, b.y),
+  computeDiff(a: Position, b: Position): _.DeepPartial<Position> | typeof _.NO_DIFF {
+    const diff: _.DeepPartial<Position> =  {
+      x: _.diffPrimitive(a.x, b.x),
+      y: _.diffPrimitive(a.y, b.y),
     };
-    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
   },
-  applyDiff(obj: Position, diff: _DeepPartial<Position> | typeof _NO_DIFF): Position {
-    if (diff === _NO_DIFF) {
+  applyDiff(obj: Position, diff: _.DeepPartial<Position> | typeof _.NO_DIFF): Position {
+    if (diff === _.NO_DIFF) {
       return obj;
     }
     return {
-      x: diff.x === _NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _NO_DIFF ? obj.y : diff.y,
+      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
+      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
     };
   },
 };
@@ -149,61 +119,61 @@ export const Velocity = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Velocity.x");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Velocity.y");
     }
 
     return validationErrors;
   },
-  encode(obj: Velocity, buf: _Writer = new _Writer()) {
-    writeInt(buf, obj.x);
-    writeInt(buf, obj.y);
+  encode(obj: Velocity, buf: _.Writer = new _.Writer()) {
+    _.writeInt(buf, obj.x);
+    _.writeInt(buf, obj.y);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Velocity>, tracker: _Tracker, buf: _Writer = new _Writer()) {
-    tracker.push(obj.x !== _NO_DIFF);
-    if (obj.x !== _NO_DIFF) {
-      writeInt(buf, obj.x);
+  encodeDiff(obj: _.DeepPartial<Velocity>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    tracker.push(obj.x !== _.NO_DIFF);
+    if (obj.x !== _.NO_DIFF) {
+      _.writeInt(buf, obj.x);
     }
-    tracker.push(obj.y !== _NO_DIFF);
-    if (obj.y !== _NO_DIFF) {
-      writeInt(buf, obj.y);
+    tracker.push(obj.y !== _.NO_DIFF);
+    if (obj.y !== _.NO_DIFF) {
+      _.writeInt(buf, obj.y);
     }
     return buf;
   },
-  decode(buf: _Reader): Velocity {
+  decode(buf: _.Reader): Velocity {
     const sb = buf;
     return {
-      x: parseInt(sb),
-      y: parseInt(sb),
+      x: _.parseInt(sb),
+      y: _.parseInt(sb),
     };
   },
-  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<Velocity> {
+  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Velocity> {
     const sb = buf;
     return {
-      x: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      y: tracker.next() ? parseInt(sb) : _NO_DIFF,
+      x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
     };
   },
-  computeDiff(a: Velocity, b: Velocity): _DeepPartial<Velocity> | typeof _NO_DIFF {
-    const diff: _DeepPartial<Velocity> =  {
-      x: diffPrimitive(a.x, b.x),
-      y: diffPrimitive(a.y, b.y),
+  computeDiff(a: Velocity, b: Velocity): _.DeepPartial<Velocity> | typeof _.NO_DIFF {
+    const diff: _.DeepPartial<Velocity> =  {
+      x: _.diffPrimitive(a.x, b.x),
+      y: _.diffPrimitive(a.y, b.y),
     };
-    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
   },
-  applyDiff(obj: Velocity, diff: _DeepPartial<Velocity> | typeof _NO_DIFF): Velocity {
-    if (diff === _NO_DIFF) {
+  applyDiff(obj: Velocity, diff: _.DeepPartial<Velocity> | typeof _.NO_DIFF): Velocity {
+    if (diff === _.NO_DIFF) {
       return obj;
     }
     return {
-      x: diff.x === _NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _NO_DIFF ? obj.y : diff.y,
+      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
+      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
     };
   },
 };
@@ -237,15 +207,15 @@ export const Player = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.id");
     }
-    validationErrors = validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
+    validationErrors = _.validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.name");
     }
-    validationErrors = validatePrimitive(typeof obj.type === "string", `Invalid string: ${obj.type}`);
+    validationErrors = _.validatePrimitive(typeof obj.type === "string", `Invalid string: ${obj.type}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.type");
     }
@@ -257,249 +227,249 @@ export const Player = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.velocity");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.width), `Invalid int: ${obj.width}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.width), `Invalid int: ${obj.width}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.width");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.height), `Invalid int: ${obj.height}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.height), `Invalid int: ${obj.height}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.height");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.rotation), `Invalid int: ${obj.rotation}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.rotation), `Invalid int: ${obj.rotation}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.rotation");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.mass), `Invalid int: ${obj.mass}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.mass), `Invalid int: ${obj.mass}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.mass");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${obj.health}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${obj.health}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.health");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.depth), `Invalid int: ${obj.depth}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.depth), `Invalid int: ${obj.depth}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.depth");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.lifetime), `Invalid int: ${obj.lifetime}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.lifetime), `Invalid int: ${obj.lifetime}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.lifetime");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.radius), `Invalid int: ${obj.radius}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.radius), `Invalid int: ${obj.radius}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.radius");
     }
-    validationErrors = validatePrimitive(typeof obj.isSensor === "boolean", `Invalid boolean: ${obj.isSensor}`);
+    validationErrors = _.validatePrimitive(typeof obj.isSensor === "boolean", `Invalid boolean: ${obj.isSensor}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.isSensor");
     }
-    validationErrors = validatePrimitive(typeof obj.isStatic === "boolean", `Invalid boolean: ${obj.isStatic}`);
+    validationErrors = _.validatePrimitive(typeof obj.isStatic === "boolean", `Invalid boolean: ${obj.isStatic}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.isStatic");
     }
-    validationErrors = validatePrimitive(typeof obj.destroyed === "boolean", `Invalid boolean: ${obj.destroyed}`);
+    validationErrors = _.validatePrimitive(typeof obj.destroyed === "boolean", `Invalid boolean: ${obj.destroyed}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.destroyed");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.owner), `Invalid int: ${obj.owner}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.owner), `Invalid int: ${obj.owner}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.owner");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.maxSpeed), `Invalid int: ${obj.maxSpeed}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.maxSpeed), `Invalid int: ${obj.maxSpeed}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.maxSpeed");
     }
 
     return validationErrors;
   },
-  encode(obj: Player, buf: _Writer = new _Writer()) {
-    writeInt(buf, obj.id);
-    writeString(buf, obj.name);
-    writeString(buf, obj.type);
+  encode(obj: Player, buf: _.Writer = new _.Writer()) {
+    _.writeInt(buf, obj.id);
+    _.writeString(buf, obj.name);
+    _.writeString(buf, obj.type);
     Position.encode(obj.position, buf);
     Velocity.encode(obj.velocity, buf);
-    writeInt(buf, obj.width);
-    writeInt(buf, obj.height);
-    writeInt(buf, obj.rotation);
-    writeInt(buf, obj.mass);
-    writeInt(buf, obj.health);
-    writeInt(buf, obj.depth);
-    writeInt(buf, obj.lifetime);
-    writeInt(buf, obj.radius);
-    writeBoolean(buf, obj.isSensor);
-    writeBoolean(buf, obj.isStatic);
-    writeBoolean(buf, obj.destroyed);
-    writeInt(buf, obj.owner);
-    writeInt(buf, obj.maxSpeed);
+    _.writeInt(buf, obj.width);
+    _.writeInt(buf, obj.height);
+    _.writeInt(buf, obj.rotation);
+    _.writeInt(buf, obj.mass);
+    _.writeInt(buf, obj.health);
+    _.writeInt(buf, obj.depth);
+    _.writeInt(buf, obj.lifetime);
+    _.writeInt(buf, obj.radius);
+    _.writeBoolean(buf, obj.isSensor);
+    _.writeBoolean(buf, obj.isStatic);
+    _.writeBoolean(buf, obj.destroyed);
+    _.writeInt(buf, obj.owner);
+    _.writeInt(buf, obj.maxSpeed);
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<Player>, tracker: _Tracker, buf: _Writer = new _Writer()) {
-    tracker.push(obj.id !== _NO_DIFF);
-    if (obj.id !== _NO_DIFF) {
-      writeInt(buf, obj.id);
+  encodeDiff(obj: _.DeepPartial<Player>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    tracker.push(obj.id !== _.NO_DIFF);
+    if (obj.id !== _.NO_DIFF) {
+      _.writeInt(buf, obj.id);
     }
-    tracker.push(obj.name !== _NO_DIFF);
-    if (obj.name !== _NO_DIFF) {
-      writeString(buf, obj.name);
+    tracker.push(obj.name !== _.NO_DIFF);
+    if (obj.name !== _.NO_DIFF) {
+      _.writeString(buf, obj.name);
     }
-    tracker.push(obj.type !== _NO_DIFF);
-    if (obj.type !== _NO_DIFF) {
-      writeString(buf, obj.type);
+    tracker.push(obj.type !== _.NO_DIFF);
+    if (obj.type !== _.NO_DIFF) {
+      _.writeString(buf, obj.type);
     }
-    tracker.push(obj.position !== _NO_DIFF);
-    if (obj.position !== _NO_DIFF) {
+    tracker.push(obj.position !== _.NO_DIFF);
+    if (obj.position !== _.NO_DIFF) {
       Position.encodeDiff(obj.position, tracker, buf);
     }
-    tracker.push(obj.velocity !== _NO_DIFF);
-    if (obj.velocity !== _NO_DIFF) {
+    tracker.push(obj.velocity !== _.NO_DIFF);
+    if (obj.velocity !== _.NO_DIFF) {
       Velocity.encodeDiff(obj.velocity, tracker, buf);
     }
-    tracker.push(obj.width !== _NO_DIFF);
-    if (obj.width !== _NO_DIFF) {
-      writeInt(buf, obj.width);
+    tracker.push(obj.width !== _.NO_DIFF);
+    if (obj.width !== _.NO_DIFF) {
+      _.writeInt(buf, obj.width);
     }
-    tracker.push(obj.height !== _NO_DIFF);
-    if (obj.height !== _NO_DIFF) {
-      writeInt(buf, obj.height);
+    tracker.push(obj.height !== _.NO_DIFF);
+    if (obj.height !== _.NO_DIFF) {
+      _.writeInt(buf, obj.height);
     }
-    tracker.push(obj.rotation !== _NO_DIFF);
-    if (obj.rotation !== _NO_DIFF) {
-      writeInt(buf, obj.rotation);
+    tracker.push(obj.rotation !== _.NO_DIFF);
+    if (obj.rotation !== _.NO_DIFF) {
+      _.writeInt(buf, obj.rotation);
     }
-    tracker.push(obj.mass !== _NO_DIFF);
-    if (obj.mass !== _NO_DIFF) {
-      writeInt(buf, obj.mass);
+    tracker.push(obj.mass !== _.NO_DIFF);
+    if (obj.mass !== _.NO_DIFF) {
+      _.writeInt(buf, obj.mass);
     }
-    tracker.push(obj.health !== _NO_DIFF);
-    if (obj.health !== _NO_DIFF) {
-      writeInt(buf, obj.health);
+    tracker.push(obj.health !== _.NO_DIFF);
+    if (obj.health !== _.NO_DIFF) {
+      _.writeInt(buf, obj.health);
     }
-    tracker.push(obj.depth !== _NO_DIFF);
-    if (obj.depth !== _NO_DIFF) {
-      writeInt(buf, obj.depth);
+    tracker.push(obj.depth !== _.NO_DIFF);
+    if (obj.depth !== _.NO_DIFF) {
+      _.writeInt(buf, obj.depth);
     }
-    tracker.push(obj.lifetime !== _NO_DIFF);
-    if (obj.lifetime !== _NO_DIFF) {
-      writeInt(buf, obj.lifetime);
+    tracker.push(obj.lifetime !== _.NO_DIFF);
+    if (obj.lifetime !== _.NO_DIFF) {
+      _.writeInt(buf, obj.lifetime);
     }
-    tracker.push(obj.radius !== _NO_DIFF);
-    if (obj.radius !== _NO_DIFF) {
-      writeInt(buf, obj.radius);
+    tracker.push(obj.radius !== _.NO_DIFF);
+    if (obj.radius !== _.NO_DIFF) {
+      _.writeInt(buf, obj.radius);
     }
-    tracker.push(obj.isSensor !== _NO_DIFF);
-    if (obj.isSensor !== _NO_DIFF) {
-      writeBoolean(buf, obj.isSensor);
+    tracker.push(obj.isSensor !== _.NO_DIFF);
+    if (obj.isSensor !== _.NO_DIFF) {
+      _.writeBoolean(buf, obj.isSensor);
     }
-    tracker.push(obj.isStatic !== _NO_DIFF);
-    if (obj.isStatic !== _NO_DIFF) {
-      writeBoolean(buf, obj.isStatic);
+    tracker.push(obj.isStatic !== _.NO_DIFF);
+    if (obj.isStatic !== _.NO_DIFF) {
+      _.writeBoolean(buf, obj.isStatic);
     }
-    tracker.push(obj.destroyed !== _NO_DIFF);
-    if (obj.destroyed !== _NO_DIFF) {
-      writeBoolean(buf, obj.destroyed);
+    tracker.push(obj.destroyed !== _.NO_DIFF);
+    if (obj.destroyed !== _.NO_DIFF) {
+      _.writeBoolean(buf, obj.destroyed);
     }
-    tracker.push(obj.owner !== _NO_DIFF);
-    if (obj.owner !== _NO_DIFF) {
-      writeInt(buf, obj.owner);
+    tracker.push(obj.owner !== _.NO_DIFF);
+    if (obj.owner !== _.NO_DIFF) {
+      _.writeInt(buf, obj.owner);
     }
-    tracker.push(obj.maxSpeed !== _NO_DIFF);
-    if (obj.maxSpeed !== _NO_DIFF) {
-      writeInt(buf, obj.maxSpeed);
+    tracker.push(obj.maxSpeed !== _.NO_DIFF);
+    if (obj.maxSpeed !== _.NO_DIFF) {
+      _.writeInt(buf, obj.maxSpeed);
     }
     return buf;
   },
-  decode(buf: _Reader): Player {
+  decode(buf: _.Reader): Player {
     const sb = buf;
     return {
-      id: parseInt(sb),
-      name: parseString(sb),
-      type: parseString(sb),
+      id: _.parseInt(sb),
+      name: _.parseString(sb),
+      type: _.parseString(sb),
       position: Position.decode(sb),
       velocity: Velocity.decode(sb),
-      width: parseInt(sb),
-      height: parseInt(sb),
-      rotation: parseInt(sb),
-      mass: parseInt(sb),
-      health: parseInt(sb),
-      depth: parseInt(sb),
-      lifetime: parseInt(sb),
-      radius: parseInt(sb),
-      isSensor: parseBoolean(sb),
-      isStatic: parseBoolean(sb),
-      destroyed: parseBoolean(sb),
-      owner: parseInt(sb),
-      maxSpeed: parseInt(sb),
+      width: _.parseInt(sb),
+      height: _.parseInt(sb),
+      rotation: _.parseInt(sb),
+      mass: _.parseInt(sb),
+      health: _.parseInt(sb),
+      depth: _.parseInt(sb),
+      lifetime: _.parseInt(sb),
+      radius: _.parseInt(sb),
+      isSensor: _.parseBoolean(sb),
+      isStatic: _.parseBoolean(sb),
+      destroyed: _.parseBoolean(sb),
+      owner: _.parseInt(sb),
+      maxSpeed: _.parseInt(sb),
     };
   },
-  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<Player> {
+  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Player> {
     const sb = buf;
     return {
-      id: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      name: tracker.next() ? parseString(sb) : _NO_DIFF,
-      type: tracker.next() ? parseString(sb) : _NO_DIFF,
-      position: tracker.next() ? Position.decodeDiff(sb, tracker) : _NO_DIFF,
-      velocity: tracker.next() ? Velocity.decodeDiff(sb, tracker) : _NO_DIFF,
-      width: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      height: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      rotation: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      mass: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      health: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      depth: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      lifetime: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      radius: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      isSensor: tracker.next() ? parseBoolean(sb) : _NO_DIFF,
-      isStatic: tracker.next() ? parseBoolean(sb) : _NO_DIFF,
-      destroyed: tracker.next() ? parseBoolean(sb) : _NO_DIFF,
-      owner: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      maxSpeed: tracker.next() ? parseInt(sb) : _NO_DIFF,
+      id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      name: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
+      type: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
+      position: tracker.next() ? Position.decodeDiff(sb, tracker) : _.NO_DIFF,
+      velocity: tracker.next() ? Velocity.decodeDiff(sb, tracker) : _.NO_DIFF,
+      width: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      height: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      rotation: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      mass: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      depth: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      lifetime: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      radius: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      isSensor: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      isStatic: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      destroyed: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      owner: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      maxSpeed: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
     };
   },
-  computeDiff(a: Player, b: Player): _DeepPartial<Player> | typeof _NO_DIFF {
-    const diff: _DeepPartial<Player> =  {
-      id: diffPrimitive(a.id, b.id),
-      name: diffPrimitive(a.name, b.name),
-      type: diffPrimitive(a.type, b.type),
+  computeDiff(a: Player, b: Player): _.DeepPartial<Player> | typeof _.NO_DIFF {
+    const diff: _.DeepPartial<Player> =  {
+      id: _.diffPrimitive(a.id, b.id),
+      name: _.diffPrimitive(a.name, b.name),
+      type: _.diffPrimitive(a.type, b.type),
       position: Position.computeDiff(a.position, b.position),
       velocity: Velocity.computeDiff(a.velocity, b.velocity),
-      width: diffPrimitive(a.width, b.width),
-      height: diffPrimitive(a.height, b.height),
-      rotation: diffPrimitive(a.rotation, b.rotation),
-      mass: diffPrimitive(a.mass, b.mass),
-      health: diffPrimitive(a.health, b.health),
-      depth: diffPrimitive(a.depth, b.depth),
-      lifetime: diffPrimitive(a.lifetime, b.lifetime),
-      radius: diffPrimitive(a.radius, b.radius),
-      isSensor: diffPrimitive(a.isSensor, b.isSensor),
-      isStatic: diffPrimitive(a.isStatic, b.isStatic),
-      destroyed: diffPrimitive(a.destroyed, b.destroyed),
-      owner: diffPrimitive(a.owner, b.owner),
-      maxSpeed: diffPrimitive(a.maxSpeed, b.maxSpeed),
+      width: _.diffPrimitive(a.width, b.width),
+      height: _.diffPrimitive(a.height, b.height),
+      rotation: _.diffPrimitive(a.rotation, b.rotation),
+      mass: _.diffPrimitive(a.mass, b.mass),
+      health: _.diffPrimitive(a.health, b.health),
+      depth: _.diffPrimitive(a.depth, b.depth),
+      lifetime: _.diffPrimitive(a.lifetime, b.lifetime),
+      radius: _.diffPrimitive(a.radius, b.radius),
+      isSensor: _.diffPrimitive(a.isSensor, b.isSensor),
+      isStatic: _.diffPrimitive(a.isStatic, b.isStatic),
+      destroyed: _.diffPrimitive(a.destroyed, b.destroyed),
+      owner: _.diffPrimitive(a.owner, b.owner),
+      maxSpeed: _.diffPrimitive(a.maxSpeed, b.maxSpeed),
     };
-    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
   },
-  applyDiff(obj: Player, diff: _DeepPartial<Player> | typeof _NO_DIFF): Player {
-    if (diff === _NO_DIFF) {
+  applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
+    if (diff === _.NO_DIFF) {
       return obj;
     }
     return {
-      id: diff.id === _NO_DIFF ? obj.id : diff.id,
-      name: diff.name === _NO_DIFF ? obj.name : diff.name,
-      type: diff.type === _NO_DIFF ? obj.type : diff.type,
-      position: diff.position === _NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position),
-      velocity: diff.velocity === _NO_DIFF ? obj.velocity : Velocity.applyDiff(obj.velocity, diff.velocity),
-      width: diff.width === _NO_DIFF ? obj.width : diff.width,
-      height: diff.height === _NO_DIFF ? obj.height : diff.height,
-      rotation: diff.rotation === _NO_DIFF ? obj.rotation : diff.rotation,
-      mass: diff.mass === _NO_DIFF ? obj.mass : diff.mass,
-      health: diff.health === _NO_DIFF ? obj.health : diff.health,
-      depth: diff.depth === _NO_DIFF ? obj.depth : diff.depth,
-      lifetime: diff.lifetime === _NO_DIFF ? obj.lifetime : diff.lifetime,
-      radius: diff.radius === _NO_DIFF ? obj.radius : diff.radius,
-      isSensor: diff.isSensor === _NO_DIFF ? obj.isSensor : diff.isSensor,
-      isStatic: diff.isStatic === _NO_DIFF ? obj.isStatic : diff.isStatic,
-      destroyed: diff.destroyed === _NO_DIFF ? obj.destroyed : diff.destroyed,
-      owner: diff.owner === _NO_DIFF ? obj.owner : diff.owner,
-      maxSpeed: diff.maxSpeed === _NO_DIFF ? obj.maxSpeed : diff.maxSpeed,
+      id: diff.id === _.NO_DIFF ? obj.id : diff.id,
+      name: diff.name === _.NO_DIFF ? obj.name : diff.name,
+      type: diff.type === _.NO_DIFF ? obj.type : diff.type,
+      position: diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position),
+      velocity: diff.velocity === _.NO_DIFF ? obj.velocity : Velocity.applyDiff(obj.velocity, diff.velocity),
+      width: diff.width === _.NO_DIFF ? obj.width : diff.width,
+      height: diff.height === _.NO_DIFF ? obj.height : diff.height,
+      rotation: diff.rotation === _.NO_DIFF ? obj.rotation : diff.rotation,
+      mass: diff.mass === _.NO_DIFF ? obj.mass : diff.mass,
+      health: diff.health === _.NO_DIFF ? obj.health : diff.health,
+      depth: diff.depth === _.NO_DIFF ? obj.depth : diff.depth,
+      lifetime: diff.lifetime === _.NO_DIFF ? obj.lifetime : diff.lifetime,
+      radius: diff.radius === _.NO_DIFF ? obj.radius : diff.radius,
+      isSensor: diff.isSensor === _.NO_DIFF ? obj.isSensor : diff.isSensor,
+      isStatic: diff.isStatic === _.NO_DIFF ? obj.isStatic : diff.isStatic,
+      destroyed: diff.destroyed === _.NO_DIFF ? obj.destroyed : diff.destroyed,
+      owner: diff.owner === _.NO_DIFF ? obj.owner : diff.owner,
+      maxSpeed: diff.maxSpeed === _.NO_DIFF ? obj.maxSpeed : diff.maxSpeed,
     };
   },
 };
@@ -517,61 +487,61 @@ export const State = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: State.id");
     }
-    validationErrors = validateArray(obj.state, (x) => Player.validate(x));
+    validationErrors = _.validateArray(obj.state, (x) => Player.validate(x));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: State.state");
     }
 
     return validationErrors;
   },
-  encode(obj: State, buf: _Writer = new _Writer()) {
-    writeInt(buf, obj.id);
-    writeArray(buf, obj.state, (x) => Player.encode(x, buf));
+  encode(obj: State, buf: _.Writer = new _.Writer()) {
+    _.writeInt(buf, obj.id);
+    _.writeArray(buf, obj.state, (x) => Player.encode(x, buf));
     return buf;
   },
-  encodeDiff(obj: _DeepPartial<State>, tracker: _Tracker, buf: _Writer = new _Writer()) {
-    tracker.push(obj.id !== _NO_DIFF);
-    if (obj.id !== _NO_DIFF) {
-      writeInt(buf, obj.id);
+  encodeDiff(obj: _.DeepPartial<State>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    tracker.push(obj.id !== _.NO_DIFF);
+    if (obj.id !== _.NO_DIFF) {
+      _.writeInt(buf, obj.id);
     }
-    tracker.push(obj.state !== _NO_DIFF);
-    if (obj.state !== _NO_DIFF) {
-      writeArrayDiff(buf, tracker, obj.state, (x) => Player.encodeDiff(x, tracker, buf));
+    tracker.push(obj.state !== _.NO_DIFF);
+    if (obj.state !== _.NO_DIFF) {
+      _.writeArrayDiff(buf, tracker, obj.state, (x) => Player.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
-  decode(buf: _Reader): State {
+  decode(buf: _.Reader): State {
     const sb = buf;
     return {
-      id: parseInt(sb),
-      state: parseArray(sb, () => Player.decode(sb)),
+      id: _.parseInt(sb),
+      state: _.parseArray(sb, () => Player.decode(sb)),
     };
   },
-  decodeDiff(buf: _Reader, tracker: _Tracker): _DeepPartial<State> {
+  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<State> {
     const sb = buf;
     return {
-      id: tracker.next() ? parseInt(sb) : _NO_DIFF,
-      state: tracker.next() ? parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _NO_DIFF,
+      id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      state: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
-  computeDiff(a: State, b: State): _DeepPartial<State> | typeof _NO_DIFF {
-    const diff: _DeepPartial<State> =  {
-      id: diffPrimitive(a.id, b.id),
-      state: diffArray(a.state, b.state, (x, y) => Player.computeDiff(x, y)),
+  computeDiff(a: State, b: State): _.DeepPartial<State> | typeof _.NO_DIFF {
+    const diff: _.DeepPartial<State> =  {
+      id: _.diffPrimitive(a.id, b.id),
+      state: _.diffArray(a.state, b.state, (x, y) => Player.computeDiff(x, y)),
     };
-    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+    return Object.values(diff).every((v) => v === _.NO_DIFF) ? _.NO_DIFF : diff;
   },
-  applyDiff(obj: State, diff: _DeepPartial<State> | typeof _NO_DIFF): State {
-    if (diff === _NO_DIFF) {
+  applyDiff(obj: State, diff: _.DeepPartial<State> | typeof _.NO_DIFF): State {
+    if (diff === _.NO_DIFF) {
       return obj;
     }
     return {
-      id: diff.id === _NO_DIFF ? obj.id : diff.id,
-      state: diff.state === _NO_DIFF ? obj.state : patchArray(obj.state, diff.state, (a, b) => Player.applyDiff(a, b)),
+      id: diff.id === _.NO_DIFF ? obj.id : diff.id,
+      state: diff.state === _.NO_DIFF ? obj.state : _.patchArray(obj.state, diff.state, (a, b) => Player.applyDiff(a, b)),
     };
   },
 };

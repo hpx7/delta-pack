@@ -1,7 +1,7 @@
 import util from "util";
 import { Reader, Writer } from "bin-serde";
 import { GameState } from "./output4";
-import { _Tracker, _DeepPartial, _NO_DIFF } from "../helpers";
+import { Tracker, DeepPartial, NO_DIFF } from "../helpers";
 
 const state1: GameState = {
   timeRemaining: 120,
@@ -63,11 +63,11 @@ const decodedDiff = decodeDiff(new Reader(encodedDiff));
 const applied = GameState.applyDiff(state1, decodedDiff);
 console.log("applied", util.inspect(applied, { depth: null, colors: true }));
 
-function encodeDiff(diff: _DeepPartial<GameState> | typeof _NO_DIFF) {
-  if (diff === _NO_DIFF) {
+function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
+  if (diff === NO_DIFF) {
     return new Uint8Array(0);
   }
-  const tracker = new _Tracker();
+  const tracker = new Tracker();
   const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
   const writer = new Writer();
   tracker.encode(writer);
@@ -77,8 +77,8 @@ function encodeDiff(diff: _DeepPartial<GameState> | typeof _NO_DIFF) {
 
 function decodeDiff(reader: Reader) {
   if (reader.remaining() === 0) {
-    return _NO_DIFF;
+    return NO_DIFF;
   }
-  const tracker = new _Tracker(reader);
+  const tracker = new Tracker(reader);
   return GameState.decodeDiff(reader, tracker);
 }
