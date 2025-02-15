@@ -12,12 +12,22 @@ export type _DeepPartial<T> = T extends string | number | boolean | undefined
   : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
 
 export class _Tracker {
-  constructor(public bits: boolean[] = [], private idx = 0) {}
+  private bits: boolean[] = [];
+  private idx = 0;
+  constructor(reader?: _Reader) {
+    if (reader !== undefined) {
+      this.bits = reader.readBits(reader.readUVarint());
+    }
+  }
   push(val: boolean) {
     this.bits.push(val);
   }
   next() {
     return this.bits[this.idx++];
+  }
+  encode(buf: _Writer) {
+    buf.writeUVarint(this.bits.length);
+    buf.writeBits(this.bits);
   }
 }
 
@@ -130,10 +140,8 @@ export function diffOptional<T>(
 ) {
   if (a !== undefined && b !== undefined) {
     return innerDiff(a, b);
-  } else if (a !== undefined || b !== undefined) {
-    return b;
   }
-  return _NO_DIFF;
+  return a === b ? _NO_DIFF : b;
 }
 export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => _DeepPartial<T> | typeof _NO_DIFF) {
   const arr = b.map((val, i) => {
@@ -165,7 +173,6 @@ export function patchOptional<T>(obj: T | undefined, patch: any, innerPatch: (a:
     return undefined;
   } else if (obj === undefined) {
     return patch as T;
-  } else {
-    return innerPatch(obj, patch);
   }
+  return innerPatch(obj, patch);
 }

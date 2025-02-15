@@ -37,17 +37,29 @@ const decoded = GameState.decode(new Reader(encoded));
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
 
 const state2: GameState = {
-  ...JSON.parse(JSON.stringify(state1)),
   timeRemaining: 60,
+  players: [
+    ...state1.players,
+    {
+      id: 3,
+      position: { x: 300, y: 300 },
+      health: 100,
+      weapon: { name: "Axe", damage: 30 },
+      stealth: false,
+    },
+  ],
 };
 const diff = GameState.computeDiff(state1, state2);
+console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(3) [ 2, 1, 120 ]
+// Uint8Array(23) [
+//   14, 243, 63, 120,   3,  6,   0,  0,
+//  150,  67,  0,   0, 150, 67, 129, 72,
+//    1,   3, 65, 120, 101, 60,   0
+// ]
 
 const decodedDiff = decodeDiff(new Reader(encodedDiff));
-console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));
-
 const applied = GameState.applyDiff(state1, decodedDiff);
 console.log("applied", util.inspect(applied, { depth: null, colors: true }));
 
@@ -58,8 +70,7 @@ function encodeDiff(diff: _DeepPartial<GameState> | typeof _NO_DIFF) {
   const tracker = new _Tracker();
   const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
   const writer = new Writer();
-  writer.writeUVarint(tracker.bits.length);
-  writer.writeBits(tracker.bits);
+  tracker.encode(writer);
   writer.writeBuffer(encodedDiff);
   return writer.toBuffer();
 }
@@ -68,6 +79,6 @@ function decodeDiff(reader: Reader) {
   if (reader.remaining() === 0) {
     return _NO_DIFF;
   }
-  const clientTracker = new _Tracker(reader.readBits(reader.readUVarint()));
-  return GameState.decodeDiff(reader, clientTracker);
+  const tracker = new _Tracker(reader);
+  return GameState.decodeDiff(reader, tracker);
 }
