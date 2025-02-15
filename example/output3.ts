@@ -1,23 +1,34 @@
-import { Writer as _Writer, Reader as _Reader } from "bin-serde";
-
-const _NO_DIFF = Symbol("NODIFF");
-type _DeepPartial<T> = T extends string | number | boolean | undefined
-  ? T
-  : T extends Array<infer ArrayType>
-  ? Array<_DeepPartial<ArrayType> | typeof _NO_DIFF> | typeof _NO_DIFF
-  : T extends { type: string; val: any }
-  ? { type: T["type"]; val: _DeepPartial<T["val"] | typeof _NO_DIFF> }
-  : { [K in keyof T]: _DeepPartial<T[K]> | typeof _NO_DIFF };
-
-class _Tracker {
-  constructor(private bits: boolean[] = [], private idx = 0) {}
-  push(val: boolean) {
-    this.bits.push(val);
-  }
-  next() {
-    return this.bits[this.idx++];
-  }
-}
+import {
+  _DeepPartial,
+  _NO_DIFF,
+  _Reader,
+  _Tracker,
+  _Writer,
+  diffArray,
+  diffOptional,
+  diffPrimitive,
+  parseArray,
+  parseArrayDiff,
+  parseBoolean,
+  parseFloat,
+  parseInt,
+  parseOptional,
+  parseString,
+  patchArray,
+  patchOptional,
+  parseUInt8,
+  validateArray,
+  validateOptional,
+  validatePrimitive,
+  writeArray,
+  writeArrayDiff,
+  writeBoolean,
+  writeFloat,
+  writeInt,
+  writeOptional,
+  writeString,
+  writeUInt8,
+} from "../helpers";
 
 export type ChatMessage = {
   author: string;
@@ -44,9 +55,12 @@ export type Size3D = {
   depth: number;
 };
 export type Size1D = number;
+
 export enum EntityEvent {
   DESTROYED,
 }
+    
+
 export enum EntityState {
   IDLE,
   WALK,
@@ -56,6 +70,7 @@ export enum EntityState {
   FALL,
   DEATH,
 }
+    
 export type Component = { type: "Color"; val: Color } | { type: "Position"; val: Position } | { type: "Rotation"; val: Rotation } | { type: "Size3D"; val: Size3D } | { type: "Size1D"; val: Size1D } | { type: "EntityEvent"; val: EntityEvent } | { type: "EntityState"; val: EntityState } | { type: "ChatList"; val: ChatList };
 export type Entity = {
   entityId: number;
@@ -64,6 +79,7 @@ export type Entity = {
 export type Snapshot = {
   entities: Entity[];
 };
+
 
 export const ChatMessage = {
   default(): ChatMessage {
@@ -78,11 +94,11 @@ export const ChatMessage = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.author === "string", `Invalid string: ${ obj.author }`);
+    validationErrors = validatePrimitive(typeof obj.author === "string", `Invalid string: ${obj.author}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: ChatMessage.author");
     }
-    validationErrors = validatePrimitive(typeof obj.content === "string", `Invalid string: ${ obj.content }`);
+    validationErrors = validatePrimitive(typeof obj.content === "string", `Invalid string: ${obj.content}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: ChatMessage.content");
     }
@@ -119,7 +135,24 @@ export const ChatMessage = {
       content: tracker.next() ? parseString(sb) : _NO_DIFF,
     };
   },
+  computeDiff(a: ChatMessage, b: ChatMessage): _DeepPartial<ChatMessage> | typeof _NO_DIFF {
+    const diff: _DeepPartial<ChatMessage> =  {
+      author: diffPrimitive(a.author, b.author),
+      content: diffPrimitive(a.content, b.content),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: ChatMessage, diff: _DeepPartial<ChatMessage> | typeof _NO_DIFF): ChatMessage {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      author: diff.author === _NO_DIFF ? obj.author : diff.author,
+      content: diff.content === _NO_DIFF ? obj.content : diff.content,
+    };
+  },
 };
+
 export const ChatList = {
   default(): ChatList {
     return {
@@ -162,7 +195,23 @@ export const ChatList = {
       messages: tracker.next() ? parseArrayDiff(sb, tracker, () => ChatMessage.decodeDiff(sb, tracker)) : _NO_DIFF,
     };
   },
+  computeDiff(a: ChatList, b: ChatList): _DeepPartial<ChatList> | typeof _NO_DIFF {
+    const diff: _DeepPartial<ChatList> =  {
+      messages: diffArray(a.messages, b.messages, (x, y) => ChatMessage.computeDiff(x, y)),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: ChatList, diff: _DeepPartial<ChatList> | typeof _NO_DIFF): ChatList {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      messages: diff.messages === _NO_DIFF ? obj.messages : patchArray(obj.messages, diff.messages, (a, b) => ChatMessage.applyDiff(a, b)),
+    };
+  },
 };
+
+
 export const Position = {
   default(): Position {
     return {
@@ -177,15 +226,15 @@ export const Position = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.x === "number", `Invalid float: ${ obj.x }`);
+    validationErrors = validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.x");
     }
-    validationErrors = validatePrimitive(typeof obj.y === "number", `Invalid float: ${ obj.y }`);
+    validationErrors = validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.y");
     }
-    validationErrors = validatePrimitive(typeof obj.z === "number", `Invalid float: ${ obj.z }`);
+    validationErrors = validatePrimitive(typeof obj.z === "number", `Invalid float: ${obj.z}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.z");
     }
@@ -229,7 +278,26 @@ export const Position = {
       z: tracker.next() ? parseFloat(sb) : _NO_DIFF,
     };
   },
+  computeDiff(a: Position, b: Position): _DeepPartial<Position> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Position> =  {
+      x: diffPrimitive(a.x, b.x),
+      y: diffPrimitive(a.y, b.y),
+      z: diffPrimitive(a.z, b.z),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Position, diff: _DeepPartial<Position> | typeof _NO_DIFF): Position {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      x: diff.x === _NO_DIFF ? obj.x : diff.x,
+      y: diff.y === _NO_DIFF ? obj.y : diff.y,
+      z: diff.z === _NO_DIFF ? obj.z : diff.z,
+    };
+  },
 };
+
 export const Rotation = {
   default(): Rotation {
     return {
@@ -245,19 +313,19 @@ export const Rotation = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.x === "number", `Invalid float: ${ obj.x }`);
+    validationErrors = validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Rotation.x");
     }
-    validationErrors = validatePrimitive(typeof obj.y === "number", `Invalid float: ${ obj.y }`);
+    validationErrors = validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Rotation.y");
     }
-    validationErrors = validatePrimitive(typeof obj.z === "number", `Invalid float: ${ obj.z }`);
+    validationErrors = validatePrimitive(typeof obj.z === "number", `Invalid float: ${obj.z}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Rotation.z");
     }
-    validationErrors = validatePrimitive(typeof obj.w === "number", `Invalid float: ${ obj.w }`);
+    validationErrors = validatePrimitive(typeof obj.w === "number", `Invalid float: ${obj.w}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Rotation.w");
     }
@@ -308,7 +376,28 @@ export const Rotation = {
       w: tracker.next() ? parseFloat(sb) : _NO_DIFF,
     };
   },
+  computeDiff(a: Rotation, b: Rotation): _DeepPartial<Rotation> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Rotation> =  {
+      x: diffPrimitive(a.x, b.x),
+      y: diffPrimitive(a.y, b.y),
+      z: diffPrimitive(a.z, b.z),
+      w: diffPrimitive(a.w, b.w),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Rotation, diff: _DeepPartial<Rotation> | typeof _NO_DIFF): Rotation {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      x: diff.x === _NO_DIFF ? obj.x : diff.x,
+      y: diff.y === _NO_DIFF ? obj.y : diff.y,
+      z: diff.z === _NO_DIFF ? obj.z : diff.z,
+      w: diff.w === _NO_DIFF ? obj.w : diff.w,
+    };
+  },
 };
+
 export const Size3D = {
   default(): Size3D {
     return {
@@ -323,15 +412,15 @@ export const Size3D = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.width === "number", `Invalid float: ${ obj.width }`);
+    validationErrors = validatePrimitive(typeof obj.width === "number", `Invalid float: ${obj.width}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Size3D.width");
     }
-    validationErrors = validatePrimitive(typeof obj.height === "number", `Invalid float: ${ obj.height }`);
+    validationErrors = validatePrimitive(typeof obj.height === "number", `Invalid float: ${obj.height}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Size3D.height");
     }
-    validationErrors = validatePrimitive(typeof obj.depth === "number", `Invalid float: ${ obj.depth }`);
+    validationErrors = validatePrimitive(typeof obj.depth === "number", `Invalid float: ${obj.depth}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Size3D.depth");
     }
@@ -375,7 +464,29 @@ export const Size3D = {
       depth: tracker.next() ? parseFloat(sb) : _NO_DIFF,
     };
   },
+  computeDiff(a: Size3D, b: Size3D): _DeepPartial<Size3D> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Size3D> =  {
+      width: diffPrimitive(a.width, b.width),
+      height: diffPrimitive(a.height, b.height),
+      depth: diffPrimitive(a.depth, b.depth),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Size3D, diff: _DeepPartial<Size3D> | typeof _NO_DIFF): Size3D {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      width: diff.width === _NO_DIFF ? obj.width : diff.width,
+      height: diff.height === _NO_DIFF ? obj.height : diff.height,
+      depth: diff.depth === _NO_DIFF ? obj.depth : diff.depth,
+    };
+  },
 };
+
+
+
+
 export const Component = {
   default(): Component {
     return {
@@ -388,7 +499,7 @@ export const Component = {
   },
   validate(obj: Component) {
     if (obj.type === "Color") {
-      const validationErrors = validatePrimitive(typeof obj.val === "string", `Invalid string: ${ obj.val }`);
+      const validationErrors = validatePrimitive(typeof obj.val === "string", `Invalid string: ${obj.val}`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: Component");
       }
@@ -416,21 +527,21 @@ export const Component = {
       return validationErrors;
     }
     else if (obj.type === "Size1D") {
-      const validationErrors = validatePrimitive(typeof obj.val === "number", `Invalid float: ${ obj.val }`);
+      const validationErrors = validatePrimitive(typeof obj.val === "number", `Invalid float: ${obj.val}`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: Component");
       }
       return validationErrors;
     }
     else if (obj.type === "EntityEvent") {
-      const validationErrors = validatePrimitive(obj.val in EntityEvent, `Invalid EntityEvent: ${ obj.val }`);
+      const validationErrors = validatePrimitive(obj.val in EntityEvent, `Invalid EntityEvent: ${obj.val}`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: Component");
       }
       return validationErrors;
     }
     else if (obj.type === "EntityState") {
-      const validationErrors = validatePrimitive(obj.val in EntityState, `Invalid EntityState: ${ obj.val }`);
+      const validationErrors = validatePrimitive(obj.val in EntityState, `Invalid EntityState: ${obj.val}`);
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: Component");
       }
@@ -450,43 +561,35 @@ export const Component = {
   encode(obj: Component, buf: _Writer = new _Writer()) {
     if (obj.type === "Color") {
       writeUInt8(buf, 0);
-      const x = obj.val;
-      writeString(buf, x);
+      writeString(buf, obj.val);
     }
     else if (obj.type === "Position") {
       writeUInt8(buf, 1);
-      const x = obj.val;
-      Position.encode(x, buf);
+      Position.encode(obj.val, buf);
     }
     else if (obj.type === "Rotation") {
       writeUInt8(buf, 2);
-      const x = obj.val;
-      Rotation.encode(x, buf);
+      Rotation.encode(obj.val, buf);
     }
     else if (obj.type === "Size3D") {
       writeUInt8(buf, 3);
-      const x = obj.val;
-      Size3D.encode(x, buf);
+      Size3D.encode(obj.val, buf);
     }
     else if (obj.type === "Size1D") {
       writeUInt8(buf, 4);
-      const x = obj.val;
-      writeFloat(buf, x);
+      writeFloat(buf, obj.val);
     }
     else if (obj.type === "EntityEvent") {
       writeUInt8(buf, 5);
-      const x = obj.val;
-      writeUInt8(buf, x);
+      writeUInt8(buf, obj.val);
     }
     else if (obj.type === "EntityState") {
       writeUInt8(buf, 6);
-      const x = obj.val;
-      writeUInt8(buf, x);
+      writeUInt8(buf, obj.val);
     }
     else if (obj.type === "ChatList") {
       writeUInt8(buf, 7);
-      const x = obj.val;
-      ChatList.encode(x, buf);
+      ChatList.encode(obj.val, buf);
     }
     return buf;
   },
@@ -495,64 +598,56 @@ export const Component = {
       writeUInt8(buf, 0);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        writeString(buf, x);
+       writeString(buf, obj.val);
       }
     }
     else if (obj.type === "Position") {
       writeUInt8(buf, 1);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        Position.encodeDiff(x, tracker, buf);
+       Position.encodeDiff(obj.val, tracker, buf);
       }
     }
     else if (obj.type === "Rotation") {
       writeUInt8(buf, 2);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        Rotation.encodeDiff(x, tracker, buf);
+       Rotation.encodeDiff(obj.val, tracker, buf);
       }
     }
     else if (obj.type === "Size3D") {
       writeUInt8(buf, 3);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        Size3D.encodeDiff(x, tracker, buf);
+       Size3D.encodeDiff(obj.val, tracker, buf);
       }
     }
     else if (obj.type === "Size1D") {
       writeUInt8(buf, 4);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        writeFloat(buf, x);
+       writeFloat(buf, obj.val);
       }
     }
     else if (obj.type === "EntityEvent") {
       writeUInt8(buf, 5);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        writeUInt8(buf, x);
+       writeUInt8(buf, obj.val);
       }
     }
     else if (obj.type === "EntityState") {
       writeUInt8(buf, 6);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        writeUInt8(buf, x);
+       writeUInt8(buf, obj.val);
       }
     }
     else if (obj.type === "ChatList") {
       writeUInt8(buf, 7);
       writeBoolean(buf, obj.val !== _NO_DIFF);
       if (obj.val !== _NO_DIFF) {
-        const x = obj.val;
-        ChatList.encodeDiff(x, tracker, buf);
+       ChatList.encodeDiff(obj.val, tracker, buf);
       }
     }
     return buf;
@@ -614,6 +709,7 @@ export const Component = {
     throw new Error("Invalid union");
   },
 }
+
 export const Entity = {
   default(): Entity {
     return {
@@ -627,7 +723,7 @@ export const Entity = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.entityId), `Invalid int: ${ obj.entityId }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.entityId), `Invalid int: ${obj.entityId}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Entity.entityId");
     }
@@ -668,7 +764,24 @@ export const Entity = {
       components: tracker.next() ? parseArrayDiff(sb, tracker, () => Component.decodeDiff(sb, tracker)) : _NO_DIFF,
     };
   },
+  computeDiff(a: Entity, b: Entity): _DeepPartial<Entity> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Entity> =  {
+      entityId: diffPrimitive(a.entityId, b.entityId),
+      components: diffArray(a.components, b.components, (x, y) => Component.computeDiff(x, y)),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Entity, diff: _DeepPartial<Entity> | typeof _NO_DIFF): Entity {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      entityId: diff.entityId === _NO_DIFF ? obj.entityId : diff.entityId,
+      components: diff.components === _NO_DIFF ? obj.components : patchArray(obj.components, diff.components, (a, b) => Component.applyDiff(a, b)),
+    };
+  },
 };
+
 export const Snapshot = {
   default(): Snapshot {
     return {
@@ -711,99 +824,19 @@ export const Snapshot = {
       entities: tracker.next() ? parseArrayDiff(sb, tracker, () => Entity.decodeDiff(sb, tracker)) : _NO_DIFF,
     };
   },
+  computeDiff(a: Snapshot, b: Snapshot): _DeepPartial<Snapshot> | typeof _NO_DIFF {
+    const diff: _DeepPartial<Snapshot> =  {
+      entities: diffArray(a.entities, b.entities, (x, y) => Entity.computeDiff(x, y)),
+    };
+    return Object.values(diff).every((v) => v === _NO_DIFF) ? _NO_DIFF : diff;
+  },
+  applyDiff(obj: Snapshot, diff: _DeepPartial<Snapshot> | typeof _NO_DIFF): Snapshot {
+    if (diff === _NO_DIFF) {
+      return obj;
+    }
+    return {
+      entities: diff.entities === _NO_DIFF ? obj.entities : patchArray(obj.entities, diff.entities, (a, b) => Entity.applyDiff(a, b)),
+    };
+  },
 };
-
-function validatePrimitive(isValid: boolean, errorMessage: string) {
-  return isValid ? [] : [errorMessage];
-}
-function validateOptional<T>(val: T | undefined, innerValidate: (x: T) => string[]) {
-  if (val !== undefined) {
-    return innerValidate(val);
-  }
-  return [];
-}
-function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
-  if (!Array.isArray(arr)) {
-    return ["Invalid array: " + arr];
-  }
-  for (let i = 0; i < arr.length; i++) {
-    const validationErrors = innerValidate(arr[i]);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid array item at index " + i);
-    }
-  }
-  return [];
-}
-
-function writeUInt8(buf: _Writer, x: number) {
-  buf.writeUInt8(x);
-}
-function writeBoolean(buf: _Writer, x: boolean) {
-  buf.writeUInt8(x ? 1 : 0);
-}
-function writeInt(buf: _Writer, x: number) {
-  buf.writeVarint(x);
-}
-function writeFloat(buf: _Writer, x: number) {
-  buf.writeFloat(x);
-}
-function writeString(buf: _Writer, x: string) {
-  buf.writeString(x);
-}
-function writeOptional<T>(buf: _Writer, x: T | undefined, innerWrite: (x: T) => void) {
-  writeBoolean(buf, x !== undefined);
-  if (x !== undefined) {
-    innerWrite(x);
-  }
-}
-function writeArray<T>(buf: _Writer, x: T[], innerWrite: (x: T) => void) {
-  buf.writeUVarint(x.length);
-  for (const val of x) {
-    innerWrite(val);
-  }
-}
-function writeArrayDiff<T>(buf: _Writer, tracker: _Tracker, x: (T | typeof _NO_DIFF)[], innerWrite: (x: T) => void) {
-  buf.writeUVarint(x.length);
-  x.forEach((val) => {
-    tracker.push(val !== _NO_DIFF);
-    if (val !== _NO_DIFF) {
-      innerWrite(val);
-    }
-  });
-}
-
-function parseUInt8(buf: _Reader): number {
-  return buf.readUInt8();
-}
-function parseBoolean(buf: _Reader): boolean {
-  return buf.readUInt8() > 0;
-}
-function parseInt(buf: _Reader): number {
-  return buf.readVarint();
-}
-function parseFloat(buf: _Reader): number {
-  return buf.readFloat();
-}
-function parseString(buf: _Reader): string {
-  return buf.readString();
-}
-function parseOptional<T>(buf: _Reader, innerParse: (buf: _Reader) => T): T | undefined {
-  return parseBoolean(buf) ? innerParse(buf) : undefined;
-}
-function parseArray<T>(buf: _Reader, innerParse: () => T): T[] {
-  const len = buf.readUVarint();
-  const arr: T[] = [];
-  for (let i = 0; i < len; i++) {
-    arr.push(innerParse());
-  }
-  return arr;
-}
-function parseArrayDiff<T>(buf: _Reader, tracker: _Tracker, innerParse: () => T): (T | typeof _NO_DIFF)[] {
-  const len = buf.readUVarint();
-  const arr: (T | typeof _NO_DIFF)[] = [];
-  for (let i = 0; i < len; i++) {
-    arr.push(tracker.next() ? innerParse() : _NO_DIFF);
-  }
-  return arr;
-}
 

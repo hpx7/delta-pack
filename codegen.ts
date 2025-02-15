@@ -19,6 +19,7 @@ export function renderDoc(doc: Record<string, Type>) {
   parseString,
   patchArray,
   patchOptional,
+  parseUInt8,
   validateArray,
   validateOptional,
   validatePrimitive,
@@ -29,6 +30,7 @@ export function renderDoc(doc: Record<string, Type>) {
   writeInt,
   writeOptional,
   writeString,
+  writeUInt8,
 } from "../helpers";
 
 ${Object.entries(doc)
@@ -142,7 +144,7 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-}`;
+};`;
     } else if (type.type === "union") {
       return `
 export const ${name} = {
@@ -280,15 +282,15 @@ export const ${name} = {
     } else if (type.type === "reference") {
       return renderValidate(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
-      return `validatePrimitive(typeof ${key} === "string", \`Invalid string: \${ ${key} }\`)`;
+      return `validatePrimitive(typeof ${key} === "string", \`Invalid string: \${${key}}\`)`;
     } else if (type.type === "int") {
-      return `validatePrimitive(Number.isInteger(${key}), \`Invalid int: \${ ${key} }\`)`;
+      return `validatePrimitive(Number.isInteger(${key}), \`Invalid int: \${${key}}\`)`;
     } else if (type.type === "float") {
-      return `validatePrimitive(typeof ${key} === "number", \`Invalid string: \${ ${key} }\`)`;
+      return `validatePrimitive(typeof ${key} === "number", \`Invalid float: \${${key}}\`)`;
     } else if (type.type === "boolean") {
-      return `validatePrimitive(typeof ${key} === "boolean", \`Invalid string: \${ ${key} }\`)`;
+      return `validatePrimitive(typeof ${key} === "boolean", \`Invalid boolean: \${${key}}\`)`;
     } else if (type.type === "enum") {
-      return `validatePrimitive(${key} in ${name}, \`Invalid ${name}: \${ ${key} }\`)`;
+      return `validatePrimitive(${key} in ${name}, \`Invalid ${name}: \${${key}}\`)`;
     }
     return `${name}.validate(${key})`;
   }

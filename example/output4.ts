@@ -16,6 +16,7 @@ import {
   parseString,
   patchArray,
   patchOptional,
+  parseUInt8,
   validateArray,
   validateOptional,
   validatePrimitive,
@@ -26,6 +27,7 @@ import {
   writeInt,
   writeOptional,
   writeString,
+  writeUInt8,
 } from "../helpers";
 
 export type Position = {
@@ -62,11 +64,11 @@ export const Position = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.x === "number", `Invalid string: ${ obj.x }`);
+    validationErrors = validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.x");
     }
-    validationErrors = validatePrimitive(typeof obj.y === "number", `Invalid string: ${ obj.y }`);
+    validationErrors = validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.y");
     }
@@ -119,7 +121,7 @@ export const Position = {
       y: diff.y === _NO_DIFF ? obj.y : diff.y,
     };
   },
-}
+};
 
 export const Weapon = {
   default(): Weapon {
@@ -134,11 +136,11 @@ export const Weapon = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(typeof obj.name === "string", `Invalid string: ${ obj.name }`);
+    validationErrors = validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Weapon.name");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.damage), `Invalid int: ${ obj.damage }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.damage), `Invalid int: ${obj.damage}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Weapon.damage");
     }
@@ -191,7 +193,7 @@ export const Weapon = {
       damage: diff.damage === _NO_DIFF ? obj.damage : diff.damage,
     };
   },
-}
+};
 
 export const Player = {
   default(): Player {
@@ -209,7 +211,7 @@ export const Player = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${ obj.id }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.id");
     }
@@ -217,7 +219,7 @@ export const Player = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.position");
     }
-    validationErrors = validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${ obj.health }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${obj.health}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.health");
     }
@@ -225,7 +227,7 @@ export const Player = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.weapon");
     }
-    validationErrors = validatePrimitive(typeof obj.stealth === "boolean", `Invalid string: ${ obj.stealth }`);
+    validationErrors = validatePrimitive(typeof obj.stealth === "boolean", `Invalid boolean: ${obj.stealth}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.stealth");
     }
@@ -305,7 +307,7 @@ export const Player = {
       stealth: diff.stealth === _NO_DIFF ? obj.stealth : diff.stealth,
     };
   },
-}
+};
 
 export const GameState = {
   default(): GameState {
@@ -320,7 +322,7 @@ export const GameState = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = validatePrimitive(Number.isInteger(obj.timeRemaining), `Invalid int: ${ obj.timeRemaining }`);
+    validationErrors = validatePrimitive(Number.isInteger(obj.timeRemaining), `Invalid int: ${obj.timeRemaining}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.timeRemaining");
     }
@@ -377,5 +379,5 @@ export const GameState = {
       players: diff.players === _NO_DIFF ? obj.players : patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b)),
     };
   },
-}
+};
 
