@@ -296,7 +296,11 @@ export const ${name} = {
         "x",
       )})`;
     } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.writeOptional(buf, ${key}, (x) => ${renderEncodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+      return `_.writeOptionalDiff(tracker, ${key}, (x) => ${renderEncodeDiff(
+        { ...type, modifier: undefined },
+        name,
+        "x",
+      )})`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -338,7 +342,7 @@ export const ${name} = {
     if ("modifier" in type && type.modifier === "array") {
       return `_.parseArrayDiff(sb, tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
     } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.parseOptional(sb, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+      return `_.parseOptionalDiff(tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {

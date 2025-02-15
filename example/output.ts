@@ -245,15 +245,15 @@ export const PlayerState = {
     }
     tracker.push(obj.turn !== _.NO_DIFF);
     if (obj.turn !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.turn, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.turn, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.pile !== _.NO_DIFF);
     if (obj.pile !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.pile, (x) => Card.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.pile, (x) => Card.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.winner, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.winner, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.intArray !== _.NO_DIFF);
     if (obj.intArray !== _.NO_DIFF) {
@@ -261,7 +261,7 @@ export const PlayerState = {
     }
     tracker.push(obj.intOptional !== _.NO_DIFF);
     if (obj.intOptional !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.intOptional, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.intOptional, (x) => _.writeInt(buf, x));
     }
     return buf;
   },
@@ -282,11 +282,11 @@ export const PlayerState = {
     return {
       hand: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
       players: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      turn: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      pile: tracker.next() ? _.parseOptional(sb, () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      winner: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      turn: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      pile: tracker.next() ? _.parseOptionalDiff(tracker, () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      winner: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       intArray: tracker.next() ? _.parseArrayDiff(sb, tracker, () => _.parseInt(sb)) : _.NO_DIFF,
-      intOptional: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
+      intOptional: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: PlayerState, b: PlayerState): _.DeepPartial<PlayerState> | typeof _.NO_DIFF {

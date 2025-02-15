@@ -337,7 +337,7 @@ export const Creature = {
     }
     tracker.push(obj.equippedItemType !== _.NO_DIFF);
     if (obj.equippedItemType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.equippedItemType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.equippedItemType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.health !== _.NO_DIFF);
     if (obj.health !== _.NO_DIFF) {
@@ -365,27 +365,27 @@ export const Creature = {
     }
     tracker.push(obj.moveTargetX !== _.NO_DIFF);
     if (obj.moveTargetX !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.moveTargetX, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.moveTargetX, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.moveTargetY !== _.NO_DIFF);
     if (obj.moveTargetY !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.moveTargetY, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.moveTargetY, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.enemyTargetX !== _.NO_DIFF);
     if (obj.enemyTargetX !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.enemyTargetX, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.enemyTargetX, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.enemyTargetY !== _.NO_DIFF);
     if (obj.enemyTargetY !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.enemyTargetY, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.enemyTargetY, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.using !== _.NO_DIFF);
     if (obj.using !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.using, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.using, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.useDirection !== _.NO_DIFF);
     if (obj.useDirection !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.useDirection, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.useDirection, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.takingDamage !== _.NO_DIFF);
     if (obj.takingDamage !== _.NO_DIFF) {
@@ -397,7 +397,7 @@ export const Creature = {
     }
     tracker.push(obj.statusEffect !== _.NO_DIFF);
     if (obj.statusEffect !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.statusEffect, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.statusEffect, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -448,22 +448,22 @@ export const Creature = {
       team: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       hero: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
       creatureType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      equippedItemType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      equippedItemType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       maxHealth: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       visible: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
       facing: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       moving: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
       moveType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      moveTargetX: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      moveTargetY: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      enemyTargetX: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      enemyTargetY: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      using: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      useDirection: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      moveTargetX: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      moveTargetY: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      enemyTargetX: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      enemyTargetY: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      using: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      useDirection: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       takingDamage: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
       frozen: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
-      statusEffect: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      statusEffect: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       dead: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
@@ -593,11 +593,11 @@ export const Item = {
     }
     tracker.push(obj.potionType !== _.NO_DIFF);
     if (obj.potionType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.potionType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.potionType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.weaponType !== _.NO_DIFF);
     if (obj.weaponType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.weaponType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.weaponType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -625,8 +625,8 @@ export const Item = {
     return {
       id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       itemType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      potionType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      weaponType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      potionType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      weaponType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
     };
@@ -783,7 +783,7 @@ export const Effect = {
     }
     tracker.push(obj.creatureId !== _.NO_DIFF);
     if (obj.creatureId !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.creatureId, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.creatureId, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.effectType !== _.NO_DIFF);
     if (obj.effectType !== _.NO_DIFF) {
@@ -791,47 +791,47 @@ export const Effect = {
     }
     tracker.push(obj.triggerType !== _.NO_DIFF);
     if (obj.triggerType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.triggerType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.triggerType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.ellipseEffectType !== _.NO_DIFF);
     if (obj.ellipseEffectType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.ellipseEffectType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.ellipseEffectType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.weaponEffectType !== _.NO_DIFF);
     if (obj.weaponEffectType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.weaponEffectType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.weaponEffectType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.projectileType !== _.NO_DIFF);
     if (obj.projectileType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.projectileType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.projectileType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.visualEffectType !== _.NO_DIFF);
     if (obj.visualEffectType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.visualEffectType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.visualEffectType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.swingType !== _.NO_DIFF);
     if (obj.swingType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.swingType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.swingType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.thrustType !== _.NO_DIFF);
     if (obj.thrustType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.thrustType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.thrustType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.weaponType !== _.NO_DIFF);
     if (obj.weaponType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.weaponType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.weaponType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.direction !== _.NO_DIFF);
     if (obj.direction !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.direction, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.direction, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.angle !== _.NO_DIFF);
     if (obj.angle !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.angle, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.angle, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.radius !== _.NO_DIFF);
     if (obj.radius !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.radius, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.radius, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -843,7 +843,7 @@ export const Effect = {
     }
     tracker.push(obj.z !== _.NO_DIFF);
     if (obj.z !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.z, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.z, (x) => _.writeInt(buf, x));
     }
     return buf;
   },
@@ -873,22 +873,22 @@ export const Effect = {
     const sb = buf;
     return {
       id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      creatureId: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
+      creatureId: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       effectType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      triggerType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      ellipseEffectType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      weaponEffectType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      projectileType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      visualEffectType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      swingType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      thrustType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      weaponType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      direction: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      angle: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      radius: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
+      triggerType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      ellipseEffectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      weaponEffectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      projectileType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      visualEffectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      swingType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      thrustType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      weaponType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      direction: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      angle: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      radius: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      z: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
+      z: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: Effect, b: Effect): _.DeepPartial<Effect> | typeof _.NO_DIFF {
@@ -1053,7 +1053,7 @@ export const Object = {
     }
     tracker.push(obj.team !== _.NO_DIFF);
     if (obj.team !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.team, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.team, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.objectType !== _.NO_DIFF);
     if (obj.objectType !== _.NO_DIFF) {
@@ -1061,43 +1061,43 @@ export const Object = {
     }
     tracker.push(obj.destructibleObjectType !== _.NO_DIFF);
     if (obj.destructibleObjectType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.destructibleObjectType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.destructibleObjectType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.environmentObjectType !== _.NO_DIFF);
     if (obj.environmentObjectType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.environmentObjectType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.environmentObjectType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.interactiveObjectType !== _.NO_DIFF);
     if (obj.interactiveObjectType !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.interactiveObjectType, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.interactiveObjectType, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.active !== _.NO_DIFF);
     if (obj.active !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.active, (x) => _.writeBoolean(buf, x));
+      _.writeOptionalDiff(tracker, obj.active, (x) => _.writeBoolean(buf, x));
     }
     tracker.push(obj.towerName !== _.NO_DIFF);
     if (obj.towerName !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.towerName, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.towerName, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.width !== _.NO_DIFF);
     if (obj.width !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.width, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.width, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.height !== _.NO_DIFF);
     if (obj.height !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.height, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.height, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.angle !== _.NO_DIFF);
     if (obj.angle !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.angle, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.angle, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.durability !== _.NO_DIFF);
     if (obj.durability !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.durability, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.durability, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.maxDurability !== _.NO_DIFF);
     if (obj.maxDurability !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.maxDurability, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.maxDurability, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -1133,18 +1133,18 @@ export const Object = {
     const sb = buf;
     return {
       id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      team: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      team: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       objectType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      destructibleObjectType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      environmentObjectType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      interactiveObjectType: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      active: tracker.next() ? _.parseOptional(sb, () => _.parseBoolean(sb)) : _.NO_DIFF,
-      towerName: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      width: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      height: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      angle: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      durability: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      maxDurability: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
+      destructibleObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      environmentObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      interactiveObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      active: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(sb)) : _.NO_DIFF,
+      towerName: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      width: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      height: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      angle: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      durability: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      maxDurability: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
     };
@@ -1281,19 +1281,19 @@ export const Player = {
     }
     tracker.push(obj.team !== _.NO_DIFF);
     if (obj.team !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.team, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.team, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.hero !== _.NO_DIFF);
     if (obj.hero !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.hero, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.hero, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.cents !== _.NO_DIFF);
     if (obj.cents !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.cents, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.cents, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.deck !== _.NO_DIFF);
     if (obj.deck !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.deck, (x) => Deck.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.deck, (x) => Deck.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.randomSlots !== _.NO_DIFF);
     if (obj.randomSlots !== _.NO_DIFF) {
@@ -1301,11 +1301,11 @@ export const Player = {
     }
     tracker.push(obj.hand !== _.NO_DIFF);
     if (obj.hand !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.hand, (x) => Hand.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.hand, (x) => Hand.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.skills !== _.NO_DIFF);
     if (obj.skills !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.skills, (x) => Skills.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.skills, (x) => Skills.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.restrictionZones !== _.NO_DIFF);
     if (obj.restrictionZones !== _.NO_DIFF) {
@@ -1333,13 +1333,13 @@ export const Player = {
     return {
       id: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       name: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      team: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      hero: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      cents: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      deck: tracker.next() ? _.parseOptional(sb, () => Deck.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      team: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      hero: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      cents: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      deck: tracker.next() ? _.parseOptionalDiff(tracker, () => Deck.decodeDiff(sb, tracker)) : _.NO_DIFF,
       randomSlots: tracker.next() ? _.parseArrayDiff(sb, tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      hand: tracker.next() ? _.parseOptional(sb, () => Hand.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      skills: tracker.next() ? _.parseOptional(sb, () => Skills.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      hand: tracker.next() ? _.parseOptionalDiff(tracker, () => Hand.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      skills: tracker.next() ? _.parseOptionalDiff(tracker, () => Skills.decodeDiff(sb, tracker)) : _.NO_DIFF,
       restrictionZones: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
     };
   },
@@ -1517,35 +1517,35 @@ export const Deck = {
   encodeDiff(obj: _.DeepPartial<Deck>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.card1 !== _.NO_DIFF);
     if (obj.card1 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card1, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card1, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card2 !== _.NO_DIFF);
     if (obj.card2 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card2, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card2, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card3 !== _.NO_DIFF);
     if (obj.card3 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card3, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card3, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card4 !== _.NO_DIFF);
     if (obj.card4 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card4, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card4, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card5 !== _.NO_DIFF);
     if (obj.card5 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card5, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card5, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card6 !== _.NO_DIFF);
     if (obj.card6 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card6, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card6, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card7 !== _.NO_DIFF);
     if (obj.card7 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card7, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card7, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card8 !== _.NO_DIFF);
     if (obj.card8 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card8, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card8, (x) => _.writeString(buf, x));
     }
     return buf;
   },
@@ -1565,14 +1565,14 @@ export const Deck = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Deck> {
     const sb = buf;
     return {
-      card1: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card2: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card3: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card4: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card5: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card6: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card7: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card8: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      card1: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card2: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card3: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card4: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card5: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card6: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card7: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card8: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: Deck, b: Deck): _.DeepPartial<Deck> | typeof _.NO_DIFF {
@@ -1649,19 +1649,19 @@ export const Hand = {
   encodeDiff(obj: _.DeepPartial<Hand>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.slot1 !== _.NO_DIFF);
     if (obj.slot1 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot1, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.slot1, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.slot2 !== _.NO_DIFF);
     if (obj.slot2 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot2, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.slot2, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.slot3 !== _.NO_DIFF);
     if (obj.slot3 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot3, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.slot3, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.slot4 !== _.NO_DIFF);
     if (obj.slot4 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot4, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.slot4, (x) => _.writeString(buf, x));
     }
     return buf;
   },
@@ -1677,10 +1677,10 @@ export const Hand = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Hand> {
     const sb = buf;
     return {
-      slot1: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      slot2: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      slot3: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      slot4: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      slot1: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      slot2: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      slot3: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      slot4: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: Hand, b: Hand): _.DeepPartial<Hand> | typeof _.NO_DIFF {
@@ -1749,19 +1749,19 @@ export const Skills = {
   encodeDiff(obj: _.DeepPartial<Skills>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.slot1 !== _.NO_DIFF);
     if (obj.slot1 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot1, (x) => Skill.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.slot1, (x) => Skill.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.slot2 !== _.NO_DIFF);
     if (obj.slot2 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot2, (x) => Skill.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.slot2, (x) => Skill.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.slot3 !== _.NO_DIFF);
     if (obj.slot3 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot3, (x) => Skill.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.slot3, (x) => Skill.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.slot4 !== _.NO_DIFF);
     if (obj.slot4 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.slot4, (x) => Skill.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.slot4, (x) => Skill.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
@@ -1777,10 +1777,10 @@ export const Skills = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Skills> {
     const sb = buf;
     return {
-      slot1: tracker.next() ? _.parseOptional(sb, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      slot2: tracker.next() ? _.parseOptional(sb, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      slot3: tracker.next() ? _.parseOptional(sb, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      slot4: tracker.next() ? _.parseOptional(sb, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      slot1: tracker.next() ? _.parseOptionalDiff(tracker, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      slot2: tracker.next() ? _.parseOptionalDiff(tracker, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      slot3: tracker.next() ? _.parseOptionalDiff(tracker, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      slot4: tracker.next() ? _.parseOptionalDiff(tracker, () => Skill.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: Skills, b: Skills): _.DeepPartial<Skills> | typeof _.NO_DIFF {
@@ -1955,23 +1955,23 @@ export const GameInfo = {
   encodeDiff(obj: _.DeepPartial<GameInfo>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.mode !== _.NO_DIFF);
     if (obj.mode !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.mode, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.mode, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.timeLimit !== _.NO_DIFF);
     if (obj.timeLimit !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.timeLimit, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.timeLimit, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.timeElapsed !== _.NO_DIFF);
     if (obj.timeElapsed !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.timeElapsed, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff(tracker, obj.timeElapsed, (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.suddenDeath !== _.NO_DIFF);
     if (obj.suddenDeath !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.suddenDeath, (x) => _.writeBoolean(buf, x));
+      _.writeOptionalDiff(tracker, obj.suddenDeath, (x) => _.writeBoolean(buf, x));
     }
     tracker.push(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.winner, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.winner, (x) => _.writeString(buf, x));
     }
     return buf;
   },
@@ -1988,11 +1988,11 @@ export const GameInfo = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<GameInfo> {
     const sb = buf;
     return {
-      mode: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      timeLimit: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      timeElapsed: tracker.next() ? _.parseOptional(sb, () => _.parseInt(sb)) : _.NO_DIFF,
-      suddenDeath: tracker.next() ? _.parseOptional(sb, () => _.parseBoolean(sb)) : _.NO_DIFF,
-      winner: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      mode: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      timeLimit: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      timeElapsed: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      suddenDeath: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(sb)) : _.NO_DIFF,
+      winner: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: GameInfo, b: GameInfo): _.DeepPartial<GameInfo> | typeof _.NO_DIFF {
@@ -2183,35 +2183,35 @@ export const DraftDeck = {
     }
     tracker.push(obj.card1 !== _.NO_DIFF);
     if (obj.card1 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card1, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card1, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card2 !== _.NO_DIFF);
     if (obj.card2 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card2, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card2, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card3 !== _.NO_DIFF);
     if (obj.card3 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card3, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card3, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card4 !== _.NO_DIFF);
     if (obj.card4 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card4, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card4, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card5 !== _.NO_DIFF);
     if (obj.card5 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card5, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card5, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card6 !== _.NO_DIFF);
     if (obj.card6 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card6, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card6, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card7 !== _.NO_DIFF);
     if (obj.card7 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card7, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card7, (x) => _.writeString(buf, x));
     }
     tracker.push(obj.card8 !== _.NO_DIFF);
     if (obj.card8 !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.card8, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff(tracker, obj.card8, (x) => _.writeString(buf, x));
     }
     return buf;
   },
@@ -2233,14 +2233,14 @@ export const DraftDeck = {
     const sb = buf;
     return {
       playerId: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      card1: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card2: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card3: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card4: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card5: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card6: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card7: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
-      card8: tracker.next() ? _.parseOptional(sb, () => _.parseString(sb)) : _.NO_DIFF,
+      card1: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card2: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card3: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card4: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card5: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card6: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card7: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
+      card8: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: DraftDeck, b: DraftDeck): _.DeepPartial<DraftDeck> | typeof _.NO_DIFF {
@@ -2621,7 +2621,7 @@ export const GameState = {
     }
     tracker.push(obj.draft !== _.NO_DIFF);
     if (obj.draft !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.draft, (x) => DraftState.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.draft, (x) => DraftState.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.debugBodies !== _.NO_DIFF);
     if (obj.debugBodies !== _.NO_DIFF) {
@@ -2653,7 +2653,7 @@ export const GameState = {
       players: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
       spectators: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Spectator.decodeDiff(sb, tracker)) : _.NO_DIFF,
       info: tracker.next() ? GameInfo.decodeDiff(sb, tracker) : _.NO_DIFF,
-      draft: tracker.next() ? _.parseOptional(sb, () => DraftState.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      draft: tracker.next() ? _.parseOptionalDiff(tracker, () => DraftState.decodeDiff(sb, tracker)) : _.NO_DIFF,
       debugBodies: tracker.next() ? _.parseArrayDiff(sb, tracker, () => DebugBody.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },

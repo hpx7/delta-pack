@@ -227,7 +227,7 @@ export const Player = {
     }
     tracker.push(obj.weapon !== _.NO_DIFF);
     if (obj.weapon !== _.NO_DIFF) {
-      _.writeOptional(buf, obj.weapon, (x) => Weapon.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.weapon, (x) => Weapon.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.stealth !== _.NO_DIFF);
     if (obj.stealth !== _.NO_DIFF) {
@@ -251,7 +251,7 @@ export const Player = {
       id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       position: tracker.next() ? Position.decodeDiff(sb, tracker) : _.NO_DIFF,
       health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      weapon: tracker.next() ? _.parseOptional(sb, () => Weapon.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      weapon: tracker.next() ? _.parseOptionalDiff(tracker, () => Weapon.decodeDiff(sb, tracker)) : _.NO_DIFF,
       stealth: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
     };
   },

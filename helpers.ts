@@ -78,6 +78,12 @@ export function writeArray<T>(buf: Writer, x: T[], innerWrite: (x: T) => void) {
     innerWrite(val);
   }
 }
+export function writeOptionalDiff<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
+  tracker.push(x !== undefined);
+  if (x !== undefined) {
+    innerWrite(x);
+  }
+}
 export function writeArrayDiff<T>(
   buf: Writer,
   tracker: Tracker,
@@ -118,6 +124,9 @@ export function parseArray<T>(buf: Reader, innerParse: () => T): T[] {
     arr[i] = innerParse();
   }
   return arr;
+}
+export function parseOptionalDiff<T>(tracker: Tracker, innerParse: () => T): T | undefined {
+  return tracker.next() ? innerParse() : undefined;
 }
 export function parseArrayDiff<T>(buf: Reader, tracker: Tracker, innerParse: () => T): (T | typeof NO_DIFF)[] {
   const len = buf.readUVarint();
