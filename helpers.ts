@@ -12,12 +12,10 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : { [K in keyof T]: DeepPartial<T[K]> | typeof NO_DIFF };
 
 export class Tracker {
-  private bits: boolean[] = [];
+  private bits: boolean[];
   private idx = 0;
   constructor(reader?: Reader) {
-    if (reader !== undefined) {
-      this.bits = reader.readBits(reader.readUVarint());
-    }
+    this.bits = reader !== undefined ? reader.readBits(reader.readUVarint()) : [];
   }
   push(val: boolean) {
     this.bits.push(val);
@@ -144,10 +142,16 @@ export function diffOptional<T>(
   return a === b ? NO_DIFF : b;
 }
 export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF) {
+  let changed = a.length !== b.length;
   const arr = b.map((val, i) => {
-    return i < a.length ? innerDiff(val, a[i]) : val;
+    if (i < a.length) {
+      const diff = innerDiff(a[i], val);
+      changed ||= diff !== NO_DIFF;
+      return diff;
+    }
+    return val;
   });
-  return a.length === b.length && arr.every((v) => v === NO_DIFF) ? NO_DIFF : arr;
+  return changed ? arr : NO_DIFF;
 }
 
 export function patchArray<T>(arr: T[], patch: typeof NO_DIFF | any[], innerPatch: (a: T, b: DeepPartial<T>) => T) {
