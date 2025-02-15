@@ -1,4 +1,4 @@
-import { Color, PlayerState } from "./output";
+import { Color, PlayerState } from "./output.ts";
 
 const state1: PlayerState = {
   hand: [],

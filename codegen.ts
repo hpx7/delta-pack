@@ -1,7 +1,7 @@
 import type { ChildType, Type } from "./generator";
 
 export function renderDoc(doc: Record<string, Type>) {
-  return `import * as _ from "../helpers";
+  return `import * as _ from "../helpers.ts";
 
 ${Object.entries(doc)
   .map(([name, type]) => {

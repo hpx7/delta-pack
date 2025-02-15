@@ -1,4 +1,4 @@
-import * as _ from "../helpers";
+import * as _ from "../helpers.ts";
 
 export type UserId = string;
 

@@ -1,7 +1,7 @@
 import util from "util";
 import { Reader, Writer } from "bin-serde";
-import { GameState } from "./output4";
-import { Tracker, DeepPartial, NO_DIFF } from "../helpers";
+import { GameState } from "./output4.ts";
+import { Tracker, DeepPartial, NO_DIFF } from "../helpers.ts";
 
 const state1: GameState = {
   timeRemaining: 120,

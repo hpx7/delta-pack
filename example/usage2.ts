@@ -1,5 +1,5 @@
-import fs from "fs";
-import { State } from "./output2";
+import fs from "node:fs";
+import { State } from "./output2.ts";
 import { Reader } from "bin-serde";
 
 function runBenchmark() {

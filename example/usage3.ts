@@ -1,6 +1,6 @@
 import util from "util";
 import { Reader } from "bin-serde";
-import { EntityEvent, EntityState, Snapshot } from "./output3";
+import { EntityEvent, EntityState, Snapshot } from "./output3.ts";
 
 const snashot: Snapshot = {
   entities: [
