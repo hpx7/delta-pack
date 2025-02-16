@@ -30,7 +30,7 @@ const Player = ObjectType({
 
 const GameState = ObjectType({
   timeRemaining: IntType(),
-  players: RecordType(ReferenceType("Player")),
+  players: RecordType(IntType(), ReferenceType("Player")),
 });
 
 console.log(

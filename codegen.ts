@@ -216,7 +216,7 @@ export const ${name} = {
         .map((option) => `{ type: "${renderTypeArg(option)}"; val: ${renderTypeArg(option)} }`)
         .join(" | ");
     } else if (type.type === "record") {
-      return `Record<string, ${renderTypeArg(type.value)}>`;
+      return `Map<${renderTypeArg(type.key)}, ${renderTypeArg(type.value)}>`;
     } else if (type.type === "reference") {
       return type.reference;
     } else if (type.type === "int" || type.type === "float") {
@@ -231,7 +231,7 @@ export const ${name} = {
     } else if ("modifier" in type && type.modifier === "optional") {
       return "undefined";
     } else if (type.type === "record") {
-      return "{}";
+      return "new Map()";
     } else if (type.type === "reference") {
       return renderDefault(doc[type.reference], type.reference);
     } else if (type.type === "string") {
@@ -277,7 +277,9 @@ export const ${name} = {
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.writeOptional(buf, ${key}, (x) => ${renderEncode({ ...type, modifier: undefined }, name, "x")})`;
     } else if (type.type === "record") {
-      return `_.writeRecord(buf, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
+      const keyFn = renderEncode(type.key, name, "x");
+      const valueFn = renderEncode(type.value, name, "x");
+      return `_.writeRecord(buf, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderEncode(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -308,7 +310,9 @@ export const ${name} = {
         "x",
       )})`;
     } else if (type.type === "record") {
-      return `_.writeRecordDiff(buf, tracker, ${key}, (x) => ${renderEncodeDiff(type.value, name, "x")})`;
+      const keyFn = renderEncodeDiff(type.key, name, "x");
+      const valueFn = renderEncodeDiff(type.value, name, "x");
+      return `_.writeRecordDiff(buf, tracker, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -331,7 +335,9 @@ export const ${name} = {
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.parseOptional(sb, () => ${renderDecode({ ...type, modifier: undefined }, name, "x")})`;
     } else if (type.type === "record") {
-      return `_.parseRecord(sb, () => ${renderDecode(type.value, name, "x")})`;
+      const keyFn = renderDecode(type.key, name, "x");
+      const valueFn = renderDecode(type.value, name, "x");
+      return `_.parseRecord(sb, () => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderDecode(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -354,7 +360,9 @@ export const ${name} = {
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.parseOptionalDiff(tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
     } else if (type.type === "record") {
-      return `_.parseRecordDiff(sb, tracker, () => ${renderDecodeDiff(type.value, name, "x")})`;
+      const keyFn = renderDecodeDiff(type.key, name, "x");
+      const valueFn = renderDecodeDiff(type.value, name, "x");
+      return `_.parseRecordDiff(sb, tracker, () => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {

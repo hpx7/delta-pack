@@ -16,7 +16,7 @@ export type Player = {
 };
 export type GameState = {
   timeRemaining: number;
-  players: Record<string, Player>;
+  players: Map<number, Player>;
 };
 
 
@@ -265,7 +265,7 @@ export const GameState = {
   default(): GameState {
     return {
       timeRemaining: 0,
-      players: {},
+      players: new Map(),
     };
   },
   validate(obj: GameState) {
@@ -287,7 +287,7 @@ export const GameState = {
   },
   encode(obj: GameState, buf: _.Writer = new _.Writer()) {
     _.writeInt(buf, obj.timeRemaining);
-    _.writeRecord(buf, obj.players, (x) => Player.encode(x, buf));
+    _.writeRecord(buf, obj.players, (x) => _.writeInt(buf, x), (x) => Player.encode(x, buf));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<GameState>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
@@ -297,7 +297,7 @@ export const GameState = {
     }
     tracker.push(obj.players !== _.NO_DIFF);
     if (obj.players !== _.NO_DIFF) {
-      _.writeRecordDiff(buf, tracker, obj.players, (x) => Player.encodeDiff(x, tracker, buf));
+      _.writeRecordDiff(buf, tracker, obj.players, (x) => _.writeInt(buf, x), (x) => Player.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
@@ -305,14 +305,14 @@ export const GameState = {
     const sb = buf;
     return {
       timeRemaining: _.parseInt(sb),
-      players: _.parseRecord(sb, () => Player.decode(sb)),
+      players: _.parseRecord(sb, () => _.parseInt(sb), () => Player.decode(sb)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<GameState> {
     const sb = buf;
     return {
       timeRemaining: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      players: tracker.next() ? _.parseRecordDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      players: tracker.next() ? _.parseRecordDiff(sb, tracker, () => _.parseInt(sb), () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: GameState, b: GameState): _.DeepPartial<GameState> | typeof _.NO_DIFF {

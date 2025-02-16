@@ -22,6 +22,7 @@ interface UnionType {
 }
 interface RecordType {
   type: "record";
+  key: StringType | IntType | FloatType | EnumType;
   value: StringType | IntType | FloatType | BooleanType | ReferenceType;
 }
 interface EnumType {
@@ -60,8 +61,11 @@ export function UnionType(options: ReferenceType[]): UnionType {
   return { type: "union", options };
 }
 
-export function RecordType(value: StringType | IntType | FloatType | BooleanType | ReferenceType): RecordType {
-  return { type: "record", value };
+export function RecordType(
+  key: StringType | IntType | FloatType | EnumType,
+  value: StringType | IntType | FloatType | BooleanType | ReferenceType,
+): RecordType {
+  return { type: "record", key, value };
 }
 
 export function EnumType(options: string[]): EnumType {

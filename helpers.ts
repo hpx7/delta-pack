@@ -9,6 +9,8 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   ? Array<DeepPartial<ArrayType> | typeof NO_DIFF> | typeof NO_DIFF
   : T extends { type: string; val: any }
   ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
+  : T extends Map<infer K, infer V>
+  ? Map<K, DeepPartial<V> | typeof NO_DIFF>
   : { [K in keyof T]: DeepPartial<T[K]> | typeof NO_DIFF };
 
 export class Tracker {
@@ -50,12 +52,12 @@ export function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
   }
   return [];
 }
-export function validateRecord<T>(obj: Record<string, T>, innerValidate: (x: T) => string[]) {
+export function validateRecord<K, T>(obj: Map<K, T>, innerValidate: (x: T) => string[]) {
   if (typeof obj !== "object" || obj === null) {
     return ["Invalid record: " + obj];
   }
-  for (const key in obj) {
-    const validationErrors = innerValidate(obj[key]);
+  for (const [key, val] of obj) {
+    const validationErrors = innerValidate(val);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid record key " + key);
     }
@@ -90,12 +92,16 @@ export function writeArray<T>(buf: Writer, x: T[], innerWrite: (x: T) => void) {
     innerWrite(val);
   }
 }
-export function writeRecord<T>(buf: Writer, x: Record<string, T>, innerWrite: (x: T) => void) {
-  const entries = Object.entries(x);
-  buf.writeUVarint(entries.length);
-  for (const [key, val] of entries) {
-    buf.writeString(key);
-    innerWrite(val);
+export function writeRecord<K, T>(
+  buf: Writer,
+  x: Map<K, T>,
+  innerKeyWrite: (x: K) => void,
+  innerValWrite: (x: T) => void,
+) {
+  buf.writeUVarint(x.size);
+  for (const [key, val] of x) {
+    innerKeyWrite(key);
+    innerValWrite(val);
   }
 }
 export function writeOptionalDiff<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
@@ -118,19 +124,19 @@ export function writeArrayDiff<T>(
     }
   });
 }
-export function writeRecordDiff<T>(
+export function writeRecordDiff<K, T>(
   buf: Writer,
   tracker: Tracker,
-  x: Record<string, T | typeof NO_DIFF>,
-  innerWrite: (x: T) => void,
+  x: Map<K, T | typeof NO_DIFF>,
+  innerKeyWrite: (x: K) => void,
+  innerValWrite: (x: T) => void,
 ) {
-  const entries = Object.entries(x);
-  buf.writeUVarint(entries.length);
-  for (const [key, val] of entries) {
-    buf.writeString(key);
+  buf.writeUVarint(x.size);
+  for (const [key, val] of x) {
+    innerKeyWrite(key);
     tracker.push(val !== NO_DIFF);
     if (val !== NO_DIFF) {
-      innerWrite(val);
+      innerValWrite(val);
     }
   }
 }
@@ -161,11 +167,11 @@ export function parseArray<T>(buf: Reader, innerParse: () => T): T[] {
   }
   return arr;
 }
-export function parseRecord<T>(buf: Reader, innerParse: () => T): Record<string, T> {
+export function parseRecord<K, T>(buf: Reader, innerKeyParse: () => K, innerValParse: () => T): Map<K, T> {
   const len = buf.readUVarint();
-  const obj: Record<string, T> = {};
+  const obj: Map<K, T> = new Map();
   for (let i = 0; i < len; i++) {
-    obj[buf.readString()] = innerParse();
+    obj.set(innerKeyParse(), innerValParse());
   }
   return obj;
 }
@@ -180,16 +186,16 @@ export function parseArrayDiff<T>(buf: Reader, tracker: Tracker, innerParse: () 
   }
   return arr;
 }
-export function parseRecordDiff<T>(
+export function parseRecordDiff<K, T>(
   buf: Reader,
   tracker: Tracker,
-  innerParse: () => T,
-): Record<string, T | typeof NO_DIFF> {
+  innerKeyParse: () => K,
+  innerValParse: () => T,
+): Map<K, T | typeof NO_DIFF> {
   const len = buf.readUVarint();
-  const obj: Record<string, T | typeof NO_DIFF> = {};
+  const obj: Map<K, T | typeof NO_DIFF> = new Map();
   for (let i = 0; i < len; i++) {
-    const key = buf.readString();
-    obj[key] = tracker.next() ? innerParse() : NO_DIFF;
+    obj.set(innerKeyParse(), tracker.next() ? innerValParse() : NO_DIFF);
   }
   return obj;
 }
@@ -219,31 +225,28 @@ export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => DeepPart
   });
   return changed ? arr : NO_DIFF;
 }
-export function diffRecord<T>(
-  a: Record<string, T>,
-  b: Record<string, T>,
+export function diffRecord<K, T>(
+  a: Map<K, T>,
+  b: Map<K, T>,
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
 ) {
-  const obj: Record<string, T | DeepPartial<T> | typeof NO_DIFF> = {};
-  for (const key in b) {
-    if (!(key in a)) {
-      obj[key] = b[key];
+  const obj: Map<K, T | DeepPartial<T> | typeof NO_DIFF> = new Map();
+  for (const [bKey, bVal] of b) {
+    if (!a.has(bKey)) {
+      obj.set(bKey, bVal);
     } else {
-      const diff = innerDiff(a[key], b[key]);
+      const diff = innerDiff(a.get(bKey)!, bVal);
       if (diff !== NO_DIFF) {
-        obj[key] = diff;
+        obj.set(bKey, diff);
       }
     }
   }
-  for (const key in a) {
-    if (!(key in b)) {
-      obj[key] = NO_DIFF;
+  for (const [aKey, aVal] of a) {
+    if (!b.has(aKey)) {
+      obj.set(aKey, NO_DIFF);
     }
   }
-  for (const _ in obj) {
-    return obj;
-  }
-  return NO_DIFF;
+  return obj.size > 0 ? obj : NO_DIFF;
 }
 
 export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch: (a: T, b: DeepPartial<T>) => T) {
@@ -269,19 +272,15 @@ export function patchArray<T>(arr: T[], patch: unknown[], innerPatch: (a: T, b: 
   }
   return arr;
 }
-export function patchRecord<T>(
-  obj: Record<string, T>,
-  patch: Record<string, unknown>,
-  innerPatch: (a: T, b: DeepPartial<T>) => T,
-) {
-  for (const key in patch) {
-    if (patch[key] === NO_DIFF) {
-      delete obj[key];
+export function patchRecord<K, T>(obj: Map<K, T>, patch: Map<K, unknown>, innerPatch: (a: T, b: DeepPartial<T>) => T) {
+  for (const [key, val] of patch) {
+    if (val === NO_DIFF) {
+      obj.delete(key);
     } else {
-      if (key in obj) {
-        obj[key] = innerPatch(obj[key], patch[key] as DeepPartial<T>);
+      if (obj.has(key)) {
+        obj.set(key, innerPatch(obj.get(key)!, val as DeepPartial<T>));
       } else {
-        obj[key] = patch[key] as T;
+        obj.set(key, val as T);
       }
     }
   }
