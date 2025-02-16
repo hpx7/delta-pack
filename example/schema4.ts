@@ -5,6 +5,7 @@ import {
   IntType,
   Modifier,
   ObjectType,
+  RecordType,
   ReferenceType,
   StringType,
   codegenTypescript,
@@ -21,7 +22,6 @@ const Weapon = ObjectType({
 });
 
 const Player = ObjectType({
-  id: IntType(),
   position: ReferenceType("Position"),
   health: IntType(),
   weapon: ChildType(ReferenceType("Weapon"), Modifier.OPTIONAL),
@@ -30,7 +30,7 @@ const Player = ObjectType({
 
 const GameState = ObjectType({
   timeRemaining: IntType(),
-  players: ChildType(ReferenceType("Player"), Modifier.ARRAY),
+  players: RecordType(ReferenceType("Player")),
 });
 
 console.log(

@@ -51,5 +51,5 @@ console.log(
     Velocity,
     Player,
     State,
-  })
+  }),
 );

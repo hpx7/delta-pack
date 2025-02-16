@@ -215,6 +215,8 @@ export const ${name} = {
       return type.options
         .map((option) => `{ type: "${renderTypeArg(option)}"; val: ${renderTypeArg(option)} }`)
         .join(" | ");
+    } else if (type.type === "record") {
+      return `Record<string, ${renderTypeArg(type.value)}>`;
     } else if (type.type === "reference") {
       return type.reference;
     } else if (type.type === "int" || type.type === "float") {
@@ -228,6 +230,8 @@ export const ${name} = {
       return "[]";
     } else if ("modifier" in type && type.modifier === "optional") {
       return "undefined";
+    } else if (type.type === "record") {
+      return "{}";
     } else if (type.type === "reference") {
       return renderDefault(doc[type.reference], type.reference);
     } else if (type.type === "string") {
@@ -249,6 +253,8 @@ export const ${name} = {
       return `_.validateArray(${key}, (x) => ${renderValidate({ ...type, modifier: undefined }, name, "x")})`;
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.validateOptional(${key}, (x) => ${renderValidate({ ...type, modifier: undefined }, name, "x")})`;
+    } else if (type.type === "record") {
+      return `_.validateRecord(${key}, (x) => ${renderValidate(type.value, name, "x")})`;
     } else if (type.type === "reference") {
       return renderValidate(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -270,6 +276,8 @@ export const ${name} = {
       return `_.writeArray(buf, ${key}, (x) => ${renderEncode({ ...type, modifier: undefined }, name, "x")})`;
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.writeOptional(buf, ${key}, (x) => ${renderEncode({ ...type, modifier: undefined }, name, "x")})`;
+    } else if (type.type === "record") {
+      return `_.writeRecord(buf, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
     } else if (type.type === "reference") {
       return renderEncode(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -299,6 +307,8 @@ export const ${name} = {
         name,
         "x",
       )})`;
+    } else if (type.type === "record") {
+      return `_.writeRecordDiff(buf, tracker, ${key}, (x) => ${renderEncodeDiff(type.value, name, "x")})`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -320,6 +330,8 @@ export const ${name} = {
       return `_.parseArray(sb, () => ${renderDecode({ ...type, modifier: undefined }, name, "x")})`;
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.parseOptional(sb, () => ${renderDecode({ ...type, modifier: undefined }, name, "x")})`;
+    } else if (type.type === "record") {
+      return `_.parseRecord(sb, () => ${renderDecode(type.value, name, "x")})`;
     } else if (type.type === "reference") {
       return renderDecode(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -341,6 +353,8 @@ export const ${name} = {
       return `_.parseArrayDiff(sb, tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.parseOptionalDiff(tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+    } else if (type.type === "record") {
+      return `_.parseRecordDiff(sb, tracker, () => ${renderDecodeDiff(type.value, name, "x")})`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -372,6 +386,8 @@ export const ${name} = {
         "x",
         "y",
       )})`;
+    } else if (type.type === "record") {
+      return `_.diffRecord(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
     } else if (type.type === "reference") {
       return renderComputeDiff(doc[type.reference], type.reference, keyA, keyB);
     } else if (
@@ -401,6 +417,8 @@ export const ${name} = {
         "a",
         "b",
       )})`;
+    } else if (type.type === "record") {
+      return `_.patchRecord(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
     } else if (type.type === "reference") {
       return renderApplyDiff(doc[type.reference], type.reference, key, diff);
     } else if (

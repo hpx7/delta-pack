@@ -50,6 +50,18 @@ export function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
   }
   return [];
 }
+export function validateRecord<T>(obj: Record<string, T>, innerValidate: (x: T) => string[]) {
+  if (typeof obj !== "object" || obj === null) {
+    return ["Invalid record: " + obj];
+  }
+  for (const key in obj) {
+    const validationErrors = innerValidate(obj[key]);
+    if (validationErrors.length > 0) {
+      return validationErrors.concat("Invalid record key " + key);
+    }
+  }
+  return [];
+}
 
 export function writeUInt8(buf: Writer, x: number) {
   buf.writeUInt8(x);
@@ -78,6 +90,14 @@ export function writeArray<T>(buf: Writer, x: T[], innerWrite: (x: T) => void) {
     innerWrite(val);
   }
 }
+export function writeRecord<T>(buf: Writer, x: Record<string, T>, innerWrite: (x: T) => void) {
+  const entries = Object.entries(x);
+  buf.writeUVarint(entries.length);
+  for (const [key, val] of entries) {
+    buf.writeString(key);
+    innerWrite(val);
+  }
+}
 export function writeOptionalDiff<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
   tracker.push(x !== undefined);
   if (x !== undefined) {
@@ -97,6 +117,22 @@ export function writeArrayDiff<T>(
       innerWrite(val);
     }
   });
+}
+export function writeRecordDiff<T>(
+  buf: Writer,
+  tracker: Tracker,
+  x: Record<string, T | typeof NO_DIFF>,
+  innerWrite: (x: T) => void,
+) {
+  const entries = Object.entries(x);
+  buf.writeUVarint(entries.length);
+  for (const [key, val] of entries) {
+    buf.writeString(key);
+    tracker.push(val !== NO_DIFF);
+    if (val !== NO_DIFF) {
+      innerWrite(val);
+    }
+  }
 }
 
 export function parseUInt8(buf: Reader): number {
@@ -125,6 +161,14 @@ export function parseArray<T>(buf: Reader, innerParse: () => T): T[] {
   }
   return arr;
 }
+export function parseRecord<T>(buf: Reader, innerParse: () => T): Record<string, T> {
+  const len = buf.readUVarint();
+  const obj: Record<string, T> = {};
+  for (let i = 0; i < len; i++) {
+    obj[buf.readString()] = innerParse();
+  }
+  return obj;
+}
 export function parseOptionalDiff<T>(tracker: Tracker, innerParse: () => T): T | undefined {
   return tracker.next() ? innerParse() : undefined;
 }
@@ -135,6 +179,19 @@ export function parseArrayDiff<T>(buf: Reader, tracker: Tracker, innerParse: () 
     arr[i] = tracker.next() ? innerParse() : NO_DIFF;
   }
   return arr;
+}
+export function parseRecordDiff<T>(
+  buf: Reader,
+  tracker: Tracker,
+  innerParse: () => T,
+): Record<string, T | typeof NO_DIFF> {
+  const len = buf.readUVarint();
+  const obj: Record<string, T | typeof NO_DIFF> = {};
+  for (let i = 0; i < len; i++) {
+    const key = buf.readString();
+    obj[key] = tracker.next() ? innerParse() : NO_DIFF;
+  }
+  return obj;
 }
 
 export function diffPrimitive<T>(a: T, b: T) {
@@ -162,7 +219,41 @@ export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => DeepPart
   });
   return changed ? arr : NO_DIFF;
 }
+export function diffRecord<T>(
+  a: Record<string, T>,
+  b: Record<string, T>,
+  innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
+) {
+  const obj: Record<string, T | DeepPartial<T> | typeof NO_DIFF> = {};
+  for (const key in b) {
+    if (!(key in a)) {
+      obj[key] = b[key];
+    } else {
+      const diff = innerDiff(a[key], b[key]);
+      if (diff !== NO_DIFF) {
+        obj[key] = diff;
+      }
+    }
+  }
+  for (const key in a) {
+    if (!(key in b)) {
+      obj[key] = NO_DIFF;
+    }
+  }
+  for (const _ in obj) {
+    return obj;
+  }
+  return NO_DIFF;
+}
 
+export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch: (a: T, b: DeepPartial<T>) => T) {
+  if (patch === undefined) {
+    return undefined;
+  } else if (obj === undefined) {
+    return patch as T;
+  }
+  return innerPatch(obj, patch as DeepPartial<T>);
+}
 export function patchArray<T>(arr: T[], patch: unknown[], innerPatch: (a: T, b: DeepPartial<T>) => T): T[] {
   patch.forEach((val, i) => {
     if (val !== NO_DIFF) {
@@ -178,11 +269,21 @@ export function patchArray<T>(arr: T[], patch: unknown[], innerPatch: (a: T, b: 
   }
   return arr;
 }
-export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch: (a: T, b: DeepPartial<T>) => T) {
-  if (patch === undefined) {
-    return undefined;
-  } else if (obj === undefined) {
-    return patch as T;
+export function patchRecord<T>(
+  obj: Record<string, T>,
+  patch: Record<string, unknown>,
+  innerPatch: (a: T, b: DeepPartial<T>) => T,
+) {
+  for (const key in patch) {
+    if (patch[key] === NO_DIFF) {
+      delete obj[key];
+    } else {
+      if (key in obj) {
+        obj[key] = innerPatch(obj[key], patch[key] as DeepPartial<T>);
+      } else {
+        obj[key] = patch[key] as T;
+      }
+    }
   }
-  return innerPatch(obj, patch as DeepPartial<T>);
+  return obj;
 }

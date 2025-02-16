@@ -5,7 +5,7 @@ export enum Modifier {
   OPTIONAL = "optional",
   ARRAY = "array",
 }
-export type ChildType = (StringType | IntType | FloatType | BooleanType | ReferenceType) & {
+export type ChildType = (StringType | IntType | FloatType | BooleanType | RecordType | ReferenceType) & {
   modifier?: Modifier;
 };
 interface ReferenceType {
@@ -19,6 +19,10 @@ interface ObjectType {
 interface UnionType {
   type: "union";
   options: ReferenceType[];
+}
+interface RecordType {
+  type: "record";
+  value: StringType | IntType | FloatType | BooleanType | ReferenceType;
 }
 interface EnumType {
   type: "enum";
@@ -46,7 +50,7 @@ export function ObjectType(properties: Record<string, ChildType>): ObjectType {
 }
 
 export function ChildType(
-  type: StringType | IntType | FloatType | BooleanType | ReferenceType,
+  type: StringType | IntType | FloatType | BooleanType | RecordType | ReferenceType,
   modifier?: Modifier,
 ): ChildType {
   return { ...type, modifier };
@@ -54,6 +58,10 @@ export function ChildType(
 
 export function UnionType(options: ReferenceType[]): UnionType {
   return { type: "union", options };
+}
+
+export function RecordType(value: StringType | IntType | FloatType | BooleanType | ReferenceType): RecordType {
+  return { type: "record", value };
 }
 
 export function EnumType(options: string[]): EnumType {

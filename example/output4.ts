@@ -9,7 +9,6 @@ export type Weapon = {
   damage: number;
 };
 export type Player = {
-  id: number;
   position: Position;
   health: number;
   weapon?: Weapon;
@@ -17,7 +16,7 @@ export type Player = {
 };
 export type GameState = {
   timeRemaining: number;
-  players: Player[];
+  players: Record<string, Player>;
 };
 
 
@@ -166,7 +165,6 @@ export const Weapon = {
 export const Player = {
   default(): Player {
     return {
-      id: 0,
       position: Position.default(),
       health: 0,
       weapon: undefined,
@@ -179,10 +177,6 @@ export const Player = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.id");
-    }
     validationErrors = Position.validate(obj.position);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.position");
@@ -203,7 +197,6 @@ export const Player = {
     return validationErrors;
   },
   encode(obj: Player, buf: _.Writer = new _.Writer()) {
-    _.writeInt(buf, obj.id);
     Position.encode(obj.position, buf);
     _.writeInt(buf, obj.health);
     _.writeOptional(buf, obj.weapon, (x) => Weapon.encode(x, buf));
@@ -211,10 +204,6 @@ export const Player = {
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Player>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
-    tracker.push(obj.id !== _.NO_DIFF);
-    if (obj.id !== _.NO_DIFF) {
-      _.writeInt(buf, obj.id);
-    }
     tracker.push(obj.position !== _.NO_DIFF);
     if (obj.position !== _.NO_DIFF) {
       Position.encodeDiff(obj.position, tracker, buf);
@@ -236,7 +225,6 @@ export const Player = {
   decode(buf: _.Reader): Player {
     const sb = buf;
     return {
-      id: _.parseInt(sb),
       position: Position.decode(sb),
       health: _.parseInt(sb),
       weapon: _.parseOptional(sb, () => Weapon.decode(sb)),
@@ -246,7 +234,6 @@ export const Player = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Player> {
     const sb = buf;
     return {
-      id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       position: tracker.next() ? Position.decodeDiff(sb, tracker) : _.NO_DIFF,
       health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       weapon: tracker.next() ? _.parseOptionalDiff(tracker, () => Weapon.decodeDiff(sb, tracker)) : _.NO_DIFF,
@@ -255,19 +242,17 @@ export const Player = {
   },
   computeDiff(a: Player, b: Player): _.DeepPartial<Player> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<Player> =  {
-      id: _.diffPrimitive(a.id, b.id),
       position: Position.computeDiff(a.position, b.position),
       health: _.diffPrimitive(a.health, b.health),
       weapon: _.diffOptional(a.weapon, b.weapon, (x, y) => Weapon.computeDiff(x, y)),
       stealth: _.diffPrimitive(a.stealth, b.stealth),
     };
-    return diff.id === _.NO_DIFF && diff.position === _.NO_DIFF && diff.health === _.NO_DIFF && diff.weapon === _.NO_DIFF && diff.stealth === _.NO_DIFF ? _.NO_DIFF : diff;
+    return diff.position === _.NO_DIFF && diff.health === _.NO_DIFF && diff.weapon === _.NO_DIFF && diff.stealth === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
     obj.position = diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position);
     obj.health = diff.health === _.NO_DIFF ? obj.health : diff.health;
     obj.weapon = diff.weapon === _.NO_DIFF ? obj.weapon : _.patchOptional(obj.weapon, diff.weapon, (a, b) => Weapon.applyDiff(a, b));
@@ -280,7 +265,7 @@ export const GameState = {
   default(): GameState {
     return {
       timeRemaining: 0,
-      players: [],
+      players: {},
     };
   },
   validate(obj: GameState) {
@@ -293,7 +278,7 @@ export const GameState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.timeRemaining");
     }
-    validationErrors = _.validateArray(obj.players, (x) => Player.validate(x));
+    validationErrors = _.validateRecord(obj.players, (x) => Player.validate(x));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.players");
     }
@@ -302,7 +287,7 @@ export const GameState = {
   },
   encode(obj: GameState, buf: _.Writer = new _.Writer()) {
     _.writeInt(buf, obj.timeRemaining);
-    _.writeArray(buf, obj.players, (x) => Player.encode(x, buf));
+    _.writeRecord(buf, obj.players, (x) => Player.encode(x, buf));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<GameState>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
@@ -312,7 +297,7 @@ export const GameState = {
     }
     tracker.push(obj.players !== _.NO_DIFF);
     if (obj.players !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.players, (x) => Player.encodeDiff(x, tracker, buf));
+      _.writeRecordDiff(buf, tracker, obj.players, (x) => Player.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
@@ -320,20 +305,20 @@ export const GameState = {
     const sb = buf;
     return {
       timeRemaining: _.parseInt(sb),
-      players: _.parseArray(sb, () => Player.decode(sb)),
+      players: _.parseRecord(sb, () => Player.decode(sb)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<GameState> {
     const sb = buf;
     return {
       timeRemaining: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      players: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      players: tracker.next() ? _.parseRecordDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: GameState, b: GameState): _.DeepPartial<GameState> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<GameState> =  {
       timeRemaining: _.diffPrimitive(a.timeRemaining, b.timeRemaining),
-      players: _.diffArray(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
+      players: _.diffRecord(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
     };
     return diff.timeRemaining === _.NO_DIFF && diff.players === _.NO_DIFF ? _.NO_DIFF : diff;
   },
@@ -342,7 +327,7 @@ export const GameState = {
       return obj;
     }
     obj.timeRemaining = diff.timeRemaining === _.NO_DIFF ? obj.timeRemaining : diff.timeRemaining;
-    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
+    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchRecord(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
     return obj;
   },
 };
