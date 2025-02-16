@@ -233,16 +233,17 @@ export function diffRecord<K, T>(
 ) {
   const obj: Map<K, T | DeepPartial<T> | typeof DELETED> = new Map();
   for (const [bKey, bVal] of b) {
-    if (!a.has(bKey)) {
+    const aVal = a.get(bKey);
+    if (aVal === undefined) {
       obj.set(bKey, bVal);
     } else {
-      const diff = innerDiff(a.get(bKey)!, bVal);
+      const diff = innerDiff(aVal, bVal);
       if (diff !== NO_DIFF) {
         obj.set(bKey, diff);
       }
     }
   }
-  for (const [aKey, aVal] of a) {
+  for (const aKey of a.keys()) {
     if (!b.has(aKey)) {
       obj.set(aKey, DELETED);
     }
@@ -274,15 +275,12 @@ export function patchArray<T>(arr: T[], patch: unknown[], innerPatch: (a: T, b: 
   return arr;
 }
 export function patchRecord<K, T>(obj: Map<K, T>, patch: Map<K, unknown>, innerPatch: (a: T, b: DeepPartial<T>) => T) {
-  for (const [key, val] of patch) {
-    if (val === DELETED) {
+  for (const [key, patchVal] of patch) {
+    if (patchVal === DELETED) {
       obj.delete(key);
     } else {
-      if (obj.has(key)) {
-        obj.set(key, innerPatch(obj.get(key)!, val as DeepPartial<T>));
-      } else {
-        obj.set(key, val as T);
-      }
+      const objVal = obj.get(key);
+      obj.set(key, objVal === undefined ? (patchVal as T) : innerPatch(objVal, patchVal as DeepPartial<T>));
     }
   }
   return obj;
