@@ -219,7 +219,7 @@ export const ${name} = {
       return `Map<${renderTypeArg(type.key)}, ${renderTypeArg(type.value)}>`;
     } else if (type.type === "reference") {
       return type.reference;
-    } else if (type.type === "int" || type.type === "float") {
+    } else if (type.type === "int" || type.type === "uint" || type.type === "float") {
       return "number";
     }
     return type.type;
@@ -237,6 +237,8 @@ export const ${name} = {
     } else if (type.type === "string") {
       return '""';
     } else if (type.type === "int") {
+      return "0";
+    } else if (type.type === "uint") {
       return "0";
     } else if (type.type === "float") {
       return "0.0";
@@ -261,6 +263,8 @@ export const ${name} = {
       return `_.validatePrimitive(typeof ${key} === "string", \`Invalid string: \${${key}}\`)`;
     } else if (type.type === "int") {
       return `_.validatePrimitive(Number.isInteger(${key}), \`Invalid int: \${${key}}\`)`;
+    } else if (type.type === "uint") {
+      return `_.validatePrimitive(Number.isInteger(${key}) && ${key} >= 0, \`Invalid uint: \${${key}}\`)`;
     } else if (type.type === "float") {
       return `_.validatePrimitive(typeof ${key} === "number", \`Invalid float: \${${key}}\`)`;
     } else if (type.type === "boolean") {
@@ -286,6 +290,8 @@ export const ${name} = {
       return `_.writeString(buf, ${key})`;
     } else if (type.type === "int") {
       return `_.writeInt(buf, ${key})`;
+    } else if (type.type === "uint") {
+      return `_.writeUInt(buf, ${key})`;
     } else if (type.type === "float") {
       return `_.writeFloat(buf, ${key})`;
     } else if (type.type === "boolean") {
@@ -319,6 +325,8 @@ export const ${name} = {
       return `_.writeString(buf, ${key})`;
     } else if (type.type === "int") {
       return `_.writeInt(buf, ${key})`;
+    } else if (type.type === "uint") {
+      return `_.writeUInt(buf, ${key})`;
     } else if (type.type === "float") {
       return `_.writeFloat(buf, ${key})`;
     } else if (type.type === "boolean") {
@@ -344,6 +352,8 @@ export const ${name} = {
       return `_.parseString(sb)`;
     } else if (type.type === "int") {
       return `_.parseInt(sb)`;
+    } else if (type.type === "uint") {
+      return `_.parseUInt(sb)`;
     } else if (type.type === "float") {
       return `_.parseFloat(sb)`;
     } else if (type.type === "boolean") {
@@ -369,6 +379,8 @@ export const ${name} = {
       return `_.parseString(sb)`;
     } else if (type.type === "int") {
       return `_.parseInt(sb)`;
+    } else if (type.type === "uint") {
+      return `_.parseUInt(sb)`;
     } else if (type.type === "float") {
       return `_.parseFloat(sb)`;
     } else if (type.type === "boolean") {
@@ -401,6 +413,7 @@ export const ${name} = {
     } else if (
       type.type === "string" ||
       type.type === "int" ||
+      type.type === "uint" ||
       type.type === "float" ||
       type.type === "boolean" ||
       type.type === "enum"
@@ -432,6 +445,7 @@ export const ${name} = {
     } else if (
       type.type === "string" ||
       type.type === "int" ||
+      type.type === "uint" ||
       type.type === "float" ||
       type.type === "boolean" ||
       type.type === "enum"

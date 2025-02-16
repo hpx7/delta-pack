@@ -1,7 +1,6 @@
 import * as _ from "../helpers.ts";
 
 export type Creature = {
-  id: number;
   team: string;
   hero: boolean;
   creatureType: string;
@@ -151,7 +150,7 @@ export type Point = {
   y: number;
 };
 export type GameState = {
-  creatures: Creature[];
+  creatures: Map<number, Creature>;
   items: Item[];
   effects: Effect[];
   objects: Object[];
@@ -166,7 +165,6 @@ export type GameState = {
 export const Creature = {
   default(): Creature {
     return {
-      id: 0,
       team: "",
       hero: false,
       creatureType: "",
@@ -197,10 +195,6 @@ export const Creature = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Creature.id");
-    }
     validationErrors = _.validatePrimitive(typeof obj.team === "string", `Invalid string: ${obj.team}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Creature.team");
@@ -293,7 +287,6 @@ export const Creature = {
     return validationErrors;
   },
   encode(obj: Creature, buf: _.Writer = new _.Writer()) {
-    _.writeInt(buf, obj.id);
     _.writeString(buf, obj.team);
     _.writeBoolean(buf, obj.hero);
     _.writeString(buf, obj.creatureType);
@@ -319,10 +312,6 @@ export const Creature = {
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Creature>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
-    tracker.push(obj.id !== _.NO_DIFF);
-    if (obj.id !== _.NO_DIFF) {
-      _.writeInt(buf, obj.id);
-    }
     tracker.push(obj.team !== _.NO_DIFF);
     if (obj.team !== _.NO_DIFF) {
       _.writeString(buf, obj.team);
@@ -416,7 +405,6 @@ export const Creature = {
   decode(buf: _.Reader): Creature {
     const sb = buf;
     return {
-      id: _.parseInt(sb),
       team: _.parseString(sb),
       hero: _.parseBoolean(sb),
       creatureType: _.parseString(sb),
@@ -444,7 +432,6 @@ export const Creature = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Creature> {
     const sb = buf;
     return {
-      id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       team: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       hero: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
       creatureType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
@@ -471,7 +458,6 @@ export const Creature = {
   },
   computeDiff(a: Creature, b: Creature): _.DeepPartial<Creature> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<Creature> =  {
-      id: _.diffPrimitive(a.id, b.id),
       team: _.diffPrimitive(a.team, b.team),
       hero: _.diffPrimitive(a.hero, b.hero),
       creatureType: _.diffPrimitive(a.creatureType, b.creatureType),
@@ -495,13 +481,12 @@ export const Creature = {
       y: _.diffPrimitive(a.y, b.y),
       dead: _.diffPrimitive(a.dead, b.dead),
     };
-    return diff.id === _.NO_DIFF && diff.team === _.NO_DIFF && diff.hero === _.NO_DIFF && diff.creatureType === _.NO_DIFF && diff.equippedItemType === _.NO_DIFF && diff.health === _.NO_DIFF && diff.maxHealth === _.NO_DIFF && diff.visible === _.NO_DIFF && diff.facing === _.NO_DIFF && diff.moving === _.NO_DIFF && diff.moveType === _.NO_DIFF && diff.moveTargetX === _.NO_DIFF && diff.moveTargetY === _.NO_DIFF && diff.enemyTargetX === _.NO_DIFF && diff.enemyTargetY === _.NO_DIFF && diff.using === _.NO_DIFF && diff.useDirection === _.NO_DIFF && diff.takingDamage === _.NO_DIFF && diff.frozen === _.NO_DIFF && diff.statusEffect === _.NO_DIFF && diff.x === _.NO_DIFF && diff.y === _.NO_DIFF && diff.dead === _.NO_DIFF ? _.NO_DIFF : diff;
+    return diff.team === _.NO_DIFF && diff.hero === _.NO_DIFF && diff.creatureType === _.NO_DIFF && diff.equippedItemType === _.NO_DIFF && diff.health === _.NO_DIFF && diff.maxHealth === _.NO_DIFF && diff.visible === _.NO_DIFF && diff.facing === _.NO_DIFF && diff.moving === _.NO_DIFF && diff.moveType === _.NO_DIFF && diff.moveTargetX === _.NO_DIFF && diff.moveTargetY === _.NO_DIFF && diff.enemyTargetX === _.NO_DIFF && diff.enemyTargetY === _.NO_DIFF && diff.using === _.NO_DIFF && diff.useDirection === _.NO_DIFF && diff.takingDamage === _.NO_DIFF && diff.frozen === _.NO_DIFF && diff.statusEffect === _.NO_DIFF && diff.x === _.NO_DIFF && diff.y === _.NO_DIFF && diff.dead === _.NO_DIFF ? _.NO_DIFF : diff;
   },
   applyDiff(obj: Creature, diff: _.DeepPartial<Creature> | typeof _.NO_DIFF): Creature {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
     obj.team = diff.team === _.NO_DIFF ? obj.team : diff.team;
     obj.hero = diff.hero === _.NO_DIFF ? obj.hero : diff.hero;
     obj.creatureType = diff.creatureType === _.NO_DIFF ? obj.creatureType : diff.creatureType;
@@ -2506,7 +2491,7 @@ export const Point = {
 export const GameState = {
   default(): GameState {
     return {
-      creatures: [],
+      creatures: new Map(),
       items: [],
       effects: [],
       objects: [],
@@ -2523,7 +2508,7 @@ export const GameState = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validateArray(obj.creatures, (x) => Creature.validate(x));
+    validationErrors = _.validateRecord(obj.creatures, (x) => Creature.validate(x));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.creatures");
     }
@@ -2563,7 +2548,7 @@ export const GameState = {
     return validationErrors;
   },
   encode(obj: GameState, buf: _.Writer = new _.Writer()) {
-    _.writeArray(buf, obj.creatures, (x) => Creature.encode(x, buf));
+    _.writeRecord(buf, obj.creatures, (x) => _.writeUInt(buf, x), (x) => Creature.encode(x, buf));
     _.writeArray(buf, obj.items, (x) => Item.encode(x, buf));
     _.writeArray(buf, obj.effects, (x) => Effect.encode(x, buf));
     _.writeArray(buf, obj.objects, (x) => Object.encode(x, buf));
@@ -2577,7 +2562,7 @@ export const GameState = {
   encodeDiff(obj: _.DeepPartial<GameState>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.creatures !== _.NO_DIFF);
     if (obj.creatures !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.creatures, (x) => Creature.encodeDiff(x, tracker, buf));
+      _.writeRecordDiff(buf, obj.creatures, (x) => _.writeUInt(buf, x), (x) => Creature.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.items !== _.NO_DIFF);
     if (obj.items !== _.NO_DIFF) {
@@ -2616,7 +2601,7 @@ export const GameState = {
   decode(buf: _.Reader): GameState {
     const sb = buf;
     return {
-      creatures: _.parseArray(sb, () => Creature.decode(sb)),
+      creatures: _.parseRecord(sb, () => _.parseUInt(sb), () => Creature.decode(sb)),
       items: _.parseArray(sb, () => Item.decode(sb)),
       effects: _.parseArray(sb, () => Effect.decode(sb)),
       objects: _.parseArray(sb, () => Object.decode(sb)),
@@ -2630,7 +2615,7 @@ export const GameState = {
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<GameState> {
     const sb = buf;
     return {
-      creatures: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Creature.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      creatures: tracker.next() ? _.parseRecordDiff(sb, () => _.parseUInt(sb), () => Creature.decodeDiff(sb, tracker)) : _.NO_DIFF,
       items: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Item.decodeDiff(sb, tracker)) : _.NO_DIFF,
       effects: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Effect.decodeDiff(sb, tracker)) : _.NO_DIFF,
       objects: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Object.decodeDiff(sb, tracker)) : _.NO_DIFF,
@@ -2643,7 +2628,7 @@ export const GameState = {
   },
   computeDiff(a: GameState, b: GameState): _.DeepPartial<GameState> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<GameState> =  {
-      creatures: _.diffArray(a.creatures, b.creatures, (x, y) => Creature.computeDiff(x, y)),
+      creatures: _.diffRecord(a.creatures, b.creatures, (x, y) => Creature.computeDiff(x, y)),
       items: _.diffArray(a.items, b.items, (x, y) => Item.computeDiff(x, y)),
       effects: _.diffArray(a.effects, b.effects, (x, y) => Effect.computeDiff(x, y)),
       objects: _.diffArray(a.objects, b.objects, (x, y) => Object.computeDiff(x, y)),
@@ -2659,7 +2644,7 @@ export const GameState = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.creatures = diff.creatures === _.NO_DIFF ? obj.creatures : _.patchArray(obj.creatures, diff.creatures, (a, b) => Creature.applyDiff(a, b));
+    obj.creatures = diff.creatures === _.NO_DIFF ? obj.creatures : _.patchRecord(obj.creatures, diff.creatures, (a, b) => Creature.applyDiff(a, b));
     obj.items = diff.items === _.NO_DIFF ? obj.items : _.patchArray(obj.items, diff.items, (a, b) => Item.applyDiff(a, b));
     obj.effects = diff.effects === _.NO_DIFF ? obj.effects : _.patchArray(obj.effects, diff.effects, (a, b) => Effect.applyDiff(a, b));
     obj.objects = diff.objects === _.NO_DIFF ? obj.objects : _.patchArray(obj.objects, diff.objects, (a, b) => Object.applyDiff(a, b));

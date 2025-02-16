@@ -75,6 +75,9 @@ export function writeBoolean(buf: Writer, x: boolean) {
 export function writeInt(buf: Writer, x: number) {
   buf.writeVarint(x);
 }
+export function writeUInt(buf: Writer, x: number) {
+  buf.writeUVarint(x);
+}
 export function writeFloat(buf: Writer, x: number) {
   buf.writeFloat(x);
 }
@@ -158,6 +161,9 @@ export function parseBoolean(buf: Reader): boolean {
 }
 export function parseInt(buf: Reader): number {
   return buf.readVarint();
+}
+export function parseUInt(buf: Reader): number {
+  return buf.readUVarint();
 }
 export function parseFloat(buf: Reader): number {
   return buf.readFloat();

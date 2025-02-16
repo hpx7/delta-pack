@@ -1,6 +1,6 @@
 import { renderDoc } from "./codegen";
 
-export type Type = ObjectType | UnionType | EnumType | StringType | IntType | FloatType | BooleanType;
+export type Type = ObjectType | UnionType | EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
 export enum Modifier {
   OPTIONAL = "optional",
   ARRAY = "array",
@@ -22,7 +22,7 @@ interface UnionType {
 }
 interface RecordType {
   type: "record";
-  key: StringType | IntType | FloatType | EnumType;
+  key: StringType | IntType | UIntType;
   value: StringType | IntType | FloatType | BooleanType | ReferenceType;
 }
 interface EnumType {
@@ -34,6 +34,9 @@ interface StringType {
 }
 interface IntType {
   type: "int";
+}
+interface UIntType {
+  type: "uint";
 }
 interface FloatType {
   type: "float";
@@ -62,7 +65,7 @@ export function UnionType(options: ReferenceType[]): UnionType {
 }
 
 export function RecordType(
-  key: StringType | IntType | FloatType | EnumType,
+  key: StringType | IntType | UIntType,
   value: StringType | IntType | FloatType | BooleanType | ReferenceType,
 ): RecordType {
   return { type: "record", key, value };
@@ -78,6 +81,10 @@ export function StringType(): StringType {
 
 export function IntType(): IntType {
   return { type: "int" };
+}
+
+export function UIntType(): UIntType {
+  return { type: "uint" };
 }
 
 export function FloatType(): FloatType {

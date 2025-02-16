@@ -4,8 +4,10 @@ import {
   IntType,
   Modifier,
   ObjectType,
+  RecordType,
   ReferenceType,
   StringType,
+  UIntType,
   codegenTypescript,
 } from "../generator";
 
@@ -15,7 +17,6 @@ const Point = ObjectType({
 });
 
 const Creature = ObjectType({
-  id: IntType(),
   team: StringType(),
   hero: BooleanType(),
   creatureType: StringType(),
@@ -176,7 +177,7 @@ const CardPair = ObjectType({
 });
 
 const GameState = ObjectType({
-  creatures: ChildType(ReferenceType("Creature"), Modifier.ARRAY),
+  creatures: ChildType(RecordType(UIntType(), ReferenceType("Creature"))),
   items: ChildType(ReferenceType("Item"), Modifier.ARRAY),
   effects: ChildType(ReferenceType("Effect"), Modifier.ARRAY),
   objects: ChildType(ReferenceType("Object"), Modifier.ARRAY),
