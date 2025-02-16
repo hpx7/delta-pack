@@ -163,16 +163,13 @@ export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => DeepPart
   return changed ? arr : NO_DIFF;
 }
 
-export function patchArray<T>(arr: T[], patch: typeof NO_DIFF | any[], innerPatch: (a: T, b: DeepPartial<T>) => T) {
-  if (patch === NO_DIFF) {
-    return arr;
-  }
+export function patchArray<T>(arr: T[], patch: unknown[], innerPatch: (a: T, b: DeepPartial<T>) => T): T[] {
   patch.forEach((val, i) => {
     if (val !== NO_DIFF) {
       if (i >= arr.length) {
         arr.push(val as T);
       } else {
-        arr[i] = innerPatch(arr[i], val);
+        arr[i] = innerPatch(arr[i], val as DeepPartial<T>);
       }
     }
   });
@@ -181,11 +178,11 @@ export function patchArray<T>(arr: T[], patch: typeof NO_DIFF | any[], innerPatc
   }
   return arr;
 }
-export function patchOptional<T>(obj: T | undefined, patch: any, innerPatch: (a: T, b: DeepPartial<T>) => T) {
+export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch: (a: T, b: DeepPartial<T>) => T) {
   if (patch === undefined) {
     return undefined;
   } else if (obj === undefined) {
     return patch as T;
   }
-  return innerPatch(obj, patch);
+  return innerPatch(obj, patch as DeepPartial<T>);
 }
