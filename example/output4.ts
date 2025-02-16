@@ -297,7 +297,7 @@ export const GameState = {
     }
     tracker.push(obj.players !== _.NO_DIFF);
     if (obj.players !== _.NO_DIFF) {
-      _.writeRecordDiff(buf, tracker, obj.players, (x) => _.writeInt(buf, x), (x) => Player.encodeDiff(x, tracker, buf));
+      _.writeRecordDiff(buf, obj.players, (x) => _.writeInt(buf, x), (x) => Player.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
@@ -312,7 +312,7 @@ export const GameState = {
     const sb = buf;
     return {
       timeRemaining: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      players: tracker.next() ? _.parseRecordDiff(sb, tracker, () => _.parseInt(sb), () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      players: tracker.next() ? _.parseRecordDiff(sb, () => _.parseInt(sb), () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: GameState, b: GameState): _.DeepPartial<GameState> | typeof _.NO_DIFF {

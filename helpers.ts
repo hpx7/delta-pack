@@ -127,16 +127,24 @@ export function writeArrayDiff<T>(
 }
 export function writeRecordDiff<K, T>(
   buf: Writer,
-  tracker: Tracker,
   x: Map<K, T | typeof DELETED>,
   innerKeyWrite: (x: K) => void,
   innerValWrite: (x: T) => void,
 ) {
-  buf.writeUVarint(x.size);
+  const deletedKeys = new Set<K>();
   for (const [key, val] of x) {
+    if (val === DELETED) {
+      deletedKeys.add(key);
+    }
+  }
+  buf.writeUVarint(deletedKeys.size);
+  for (const key of deletedKeys) {
     innerKeyWrite(key);
-    tracker.push(val !== DELETED);
+  }
+  buf.writeUVarint(x.size - deletedKeys.size);
+  for (const [key, val] of x) {
     if (val !== DELETED) {
+      innerKeyWrite(key);
       innerValWrite(val);
     }
   }
@@ -189,14 +197,17 @@ export function parseArrayDiff<T>(buf: Reader, tracker: Tracker, innerParse: () 
 }
 export function parseRecordDiff<K, T>(
   buf: Reader,
-  tracker: Tracker,
   innerKeyParse: () => K,
   innerValParse: () => T,
 ): Map<K, T | typeof DELETED> {
-  const len = buf.readUVarint();
   const obj: Map<K, T | typeof DELETED> = new Map();
-  for (let i = 0; i < len; i++) {
-    obj.set(innerKeyParse(), tracker.next() ? innerValParse() : DELETED);
+  const numDeleted = buf.readUVarint();
+  for (let i = 0; i < numDeleted; i++) {
+    obj.set(innerKeyParse(), DELETED);
+  }
+  const numAdded = buf.readUVarint();
+  for (let i = 0; i < numAdded; i++) {
+    obj.set(innerKeyParse(), innerValParse());
   }
   return obj;
 }

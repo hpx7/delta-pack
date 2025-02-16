@@ -65,6 +65,12 @@ console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(27) [
+//   15, 203, 127, 120,  1,   2,  2,   4,
+//  129,  32,   6,   0,  0, 150, 67,   0,
+//    0, 150,  67, 129, 72,   3, 65, 120,
+//  101,  60,   0
+// ]
+// Uint8Array(27) [
 //   18, 151, 255,  1, 120,  3,   4, 129,
 //   32,   6,   0,  0, 150, 67,   0,   0,
 //  150,  67, 129, 72,   3, 65, 120, 101,

@@ -312,7 +312,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       const keyFn = renderEncodeDiff(type.key, name, "x");
       const valueFn = renderEncodeDiff(type.value, name, "x");
-      return `_.writeRecordDiff(buf, tracker, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
+      return `_.writeRecordDiff(buf, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
@@ -362,7 +362,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       const keyFn = renderDecodeDiff(type.key, name, "x");
       const valueFn = renderDecodeDiff(type.value, name, "x");
-      return `_.parseRecordDiff(sb, tracker, () => ${keyFn}, () => ${valueFn})`;
+      return `_.parseRecordDiff(sb, () => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {
