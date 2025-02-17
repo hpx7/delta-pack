@@ -1,8 +1,7 @@
 import {
+  ArrayType,
   BooleanType,
-  ChildType,
   IntType,
-  Modifier,
   ObjectType,
   ReferenceType,
   StringType,
@@ -42,7 +41,7 @@ const Player = ObjectType({
 
 const State = ObjectType({
   id: IntType(),
-  state: ChildType(ReferenceType("Player"), Modifier.ARRAY),
+  state: ArrayType(ReferenceType("Player")),
 });
 
 console.log(

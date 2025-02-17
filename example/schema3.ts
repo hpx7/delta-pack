@@ -1,9 +1,8 @@
 import {
-  ChildType,
+  ArrayType,
   EnumType,
   FloatType,
   IntType,
-  Modifier,
   ObjectType,
   ReferenceType,
   StringType,
@@ -17,7 +16,7 @@ const ChatMessage = ObjectType({
 });
 
 const ChatList = ObjectType({
-  messages: ChildType(ReferenceType("ChatMessage"), Modifier.ARRAY),
+  messages: ArrayType(ReferenceType("ChatMessage")),
 });
 
 const Color = StringType();
@@ -60,11 +59,11 @@ const Component = UnionType([
 
 const Entity = ObjectType({
   entityId: IntType(),
-  components: ChildType(ReferenceType("Component"), Modifier.ARRAY),
+  components: ArrayType(ReferenceType("Component")),
 });
 
 const Snapshot = ObjectType({
-  entities: ChildType(ReferenceType("Entity"), Modifier.ARRAY),
+  entities: ArrayType(ReferenceType("Entity")),
 });
 
 console.log(
