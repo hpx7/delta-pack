@@ -318,7 +318,7 @@ export const Creature = {
     }
     tracker.push(obj.hero !== _.NO_DIFF);
     if (obj.hero !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.hero);
+      _.writeNothing();
     }
     tracker.push(obj.creatureType !== _.NO_DIFF);
     if (obj.creatureType !== _.NO_DIFF) {
@@ -338,7 +338,7 @@ export const Creature = {
     }
     tracker.push(obj.visible !== _.NO_DIFF);
     if (obj.visible !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.visible);
+      _.writeNothing();
     }
     tracker.push(obj.facing !== _.NO_DIFF);
     if (obj.facing !== _.NO_DIFF) {
@@ -346,7 +346,7 @@ export const Creature = {
     }
     tracker.push(obj.moving !== _.NO_DIFF);
     if (obj.moving !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.moving);
+      _.writeNothing();
     }
     tracker.push(obj.moveType !== _.NO_DIFF);
     if (obj.moveType !== _.NO_DIFF) {
@@ -378,11 +378,11 @@ export const Creature = {
     }
     tracker.push(obj.takingDamage !== _.NO_DIFF);
     if (obj.takingDamage !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.takingDamage);
+      _.writeNothing();
     }
     tracker.push(obj.frozen !== _.NO_DIFF);
     if (obj.frozen !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.frozen);
+      _.writeNothing();
     }
     tracker.push(obj.statusEffect !== _.NO_DIFF);
     if (obj.statusEffect !== _.NO_DIFF) {
@@ -398,7 +398,7 @@ export const Creature = {
     }
     tracker.push(obj.dead !== _.NO_DIFF);
     if (obj.dead !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.dead);
+      _.writeNothing();
     }
     return buf;
   },
@@ -433,14 +433,14 @@ export const Creature = {
     const sb = buf;
     return {
       team: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      hero: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      hero: tracker.next() ? true : _.NO_DIFF,
       creatureType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       equippedItemType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       maxHealth: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      visible: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      visible: tracker.next() ? true : _.NO_DIFF,
       facing: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      moving: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      moving: tracker.next() ? true : _.NO_DIFF,
       moveType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       moveTargetX: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       moveTargetY: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
@@ -448,12 +448,12 @@ export const Creature = {
       enemyTargetY: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       using: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       useDirection: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      takingDamage: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
-      frozen: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      takingDamage: tracker.next() ? true : _.NO_DIFF,
+      frozen: tracker.next() ? true : _.NO_DIFF,
       statusEffect: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      dead: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      dead: tracker.next() ? true : _.NO_DIFF,
     };
   },
   computeDiff(a: Creature, b: Creature): _.DeepPartial<Creature> | typeof _.NO_DIFF {
@@ -488,14 +488,14 @@ export const Creature = {
       return obj;
     }
     obj.team = diff.team === _.NO_DIFF ? obj.team : diff.team;
-    obj.hero = diff.hero === _.NO_DIFF ? obj.hero : diff.hero;
+    obj.hero = diff.hero === _.NO_DIFF ? obj.hero : !obj.hero;
     obj.creatureType = diff.creatureType === _.NO_DIFF ? obj.creatureType : diff.creatureType;
     obj.equippedItemType = diff.equippedItemType === _.NO_DIFF ? obj.equippedItemType : _.patchOptional(obj.equippedItemType, diff.equippedItemType, (a, b) => b);
     obj.health = diff.health === _.NO_DIFF ? obj.health : diff.health;
     obj.maxHealth = diff.maxHealth === _.NO_DIFF ? obj.maxHealth : diff.maxHealth;
-    obj.visible = diff.visible === _.NO_DIFF ? obj.visible : diff.visible;
+    obj.visible = diff.visible === _.NO_DIFF ? obj.visible : !obj.visible;
     obj.facing = diff.facing === _.NO_DIFF ? obj.facing : diff.facing;
-    obj.moving = diff.moving === _.NO_DIFF ? obj.moving : diff.moving;
+    obj.moving = diff.moving === _.NO_DIFF ? obj.moving : !obj.moving;
     obj.moveType = diff.moveType === _.NO_DIFF ? obj.moveType : diff.moveType;
     obj.moveTargetX = diff.moveTargetX === _.NO_DIFF ? obj.moveTargetX : _.patchOptional(obj.moveTargetX, diff.moveTargetX, (a, b) => b);
     obj.moveTargetY = diff.moveTargetY === _.NO_DIFF ? obj.moveTargetY : _.patchOptional(obj.moveTargetY, diff.moveTargetY, (a, b) => b);
@@ -503,12 +503,12 @@ export const Creature = {
     obj.enemyTargetY = diff.enemyTargetY === _.NO_DIFF ? obj.enemyTargetY : _.patchOptional(obj.enemyTargetY, diff.enemyTargetY, (a, b) => b);
     obj.using = diff.using === _.NO_DIFF ? obj.using : _.patchOptional(obj.using, diff.using, (a, b) => b);
     obj.useDirection = diff.useDirection === _.NO_DIFF ? obj.useDirection : _.patchOptional(obj.useDirection, diff.useDirection, (a, b) => b);
-    obj.takingDamage = diff.takingDamage === _.NO_DIFF ? obj.takingDamage : diff.takingDamage;
-    obj.frozen = diff.frozen === _.NO_DIFF ? obj.frozen : diff.frozen;
+    obj.takingDamage = diff.takingDamage === _.NO_DIFF ? obj.takingDamage : !obj.takingDamage;
+    obj.frozen = diff.frozen === _.NO_DIFF ? obj.frozen : !obj.frozen;
     obj.statusEffect = diff.statusEffect === _.NO_DIFF ? obj.statusEffect : _.patchOptional(obj.statusEffect, diff.statusEffect, (a, b) => b);
     obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
     obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
-    obj.dead = diff.dead === _.NO_DIFF ? obj.dead : diff.dead;
+    obj.dead = diff.dead === _.NO_DIFF ? obj.dead : !obj.dead;
     return obj;
   },
 };
@@ -1055,7 +1055,7 @@ export const Object = {
     }
     tracker.push(obj.active !== _.NO_DIFF);
     if (obj.active !== _.NO_DIFF) {
-      _.writeOptionalDiff(tracker, obj.active, (x) => _.writeBoolean(buf, x));
+      _.writeOptionalDiff(tracker, obj.active, (x) => _.writeNothing());
     }
     tracker.push(obj.towerName !== _.NO_DIFF);
     if (obj.towerName !== _.NO_DIFF) {
@@ -1120,7 +1120,7 @@ export const Object = {
       destructibleObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       environmentObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       interactiveObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      active: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(sb)) : _.NO_DIFF,
+      active: tracker.next() ? _.parseOptionalDiff(tracker, () => true) : _.NO_DIFF,
       towerName: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       width: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       height: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
@@ -1161,7 +1161,7 @@ export const Object = {
     obj.destructibleObjectType = diff.destructibleObjectType === _.NO_DIFF ? obj.destructibleObjectType : _.patchOptional(obj.destructibleObjectType, diff.destructibleObjectType, (a, b) => b);
     obj.environmentObjectType = diff.environmentObjectType === _.NO_DIFF ? obj.environmentObjectType : _.patchOptional(obj.environmentObjectType, diff.environmentObjectType, (a, b) => b);
     obj.interactiveObjectType = diff.interactiveObjectType === _.NO_DIFF ? obj.interactiveObjectType : _.patchOptional(obj.interactiveObjectType, diff.interactiveObjectType, (a, b) => b);
-    obj.active = diff.active === _.NO_DIFF ? obj.active : _.patchOptional(obj.active, diff.active, (a, b) => b);
+    obj.active = diff.active === _.NO_DIFF ? obj.active : _.patchOptional(obj.active, diff.active, (a, b) => !a);
     obj.towerName = diff.towerName === _.NO_DIFF ? obj.towerName : _.patchOptional(obj.towerName, diff.towerName, (a, b) => b);
     obj.width = diff.width === _.NO_DIFF ? obj.width : _.patchOptional(obj.width, diff.width, (a, b) => b);
     obj.height = diff.height === _.NO_DIFF ? obj.height : _.patchOptional(obj.height, diff.height, (a, b) => b);
@@ -1829,7 +1829,7 @@ export const Skill = {
     }
     tracker.push(obj.inUse !== _.NO_DIFF);
     if (obj.inUse !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.inUse);
+      _.writeNothing();
     }
     tracker.push(obj.cooldown !== _.NO_DIFF);
     if (obj.cooldown !== _.NO_DIFF) {
@@ -1854,7 +1854,7 @@ export const Skill = {
     const sb = buf;
     return {
       type: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      inUse: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      inUse: tracker.next() ? true : _.NO_DIFF,
       cooldown: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       cooldownTotal: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
     };
@@ -1873,7 +1873,7 @@ export const Skill = {
       return obj;
     }
     obj.type = diff.type === _.NO_DIFF ? obj.type : diff.type;
-    obj.inUse = diff.inUse === _.NO_DIFF ? obj.inUse : diff.inUse;
+    obj.inUse = diff.inUse === _.NO_DIFF ? obj.inUse : !obj.inUse;
     obj.cooldown = diff.cooldown === _.NO_DIFF ? obj.cooldown : diff.cooldown;
     obj.cooldownTotal = diff.cooldownTotal === _.NO_DIFF ? obj.cooldownTotal : diff.cooldownTotal;
     return obj;
@@ -1942,7 +1942,7 @@ export const GameInfo = {
     }
     tracker.push(obj.suddenDeath !== _.NO_DIFF);
     if (obj.suddenDeath !== _.NO_DIFF) {
-      _.writeOptionalDiff(tracker, obj.suddenDeath, (x) => _.writeBoolean(buf, x));
+      _.writeOptionalDiff(tracker, obj.suddenDeath, (x) => _.writeNothing());
     }
     tracker.push(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
@@ -1966,7 +1966,7 @@ export const GameInfo = {
       mode: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       timeLimit: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       timeElapsed: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
-      suddenDeath: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(sb)) : _.NO_DIFF,
+      suddenDeath: tracker.next() ? _.parseOptionalDiff(tracker, () => true) : _.NO_DIFF,
       winner: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
     };
   },
@@ -1987,7 +1987,7 @@ export const GameInfo = {
     obj.mode = diff.mode === _.NO_DIFF ? obj.mode : _.patchOptional(obj.mode, diff.mode, (a, b) => b);
     obj.timeLimit = diff.timeLimit === _.NO_DIFF ? obj.timeLimit : _.patchOptional(obj.timeLimit, diff.timeLimit, (a, b) => b);
     obj.timeElapsed = diff.timeElapsed === _.NO_DIFF ? obj.timeElapsed : _.patchOptional(obj.timeElapsed, diff.timeElapsed, (a, b) => b);
-    obj.suddenDeath = diff.suddenDeath === _.NO_DIFF ? obj.suddenDeath : _.patchOptional(obj.suddenDeath, diff.suddenDeath, (a, b) => b);
+    obj.suddenDeath = diff.suddenDeath === _.NO_DIFF ? obj.suddenDeath : _.patchOptional(obj.suddenDeath, diff.suddenDeath, (a, b) => !a);
     obj.winner = diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional(obj.winner, diff.winner, (a, b) => b);
     return obj;
   },

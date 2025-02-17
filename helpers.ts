@@ -66,6 +66,7 @@ export function validateRecord<K, T>(obj: Map<K, T>, innerValidate: (x: T) => st
   return [];
 }
 
+export function writeNothing() {}
 export function writeUInt8(buf: Writer, x: number) {
   buf.writeUInt8(x);
 }
