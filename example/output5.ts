@@ -277,14 +277,14 @@ export const CreatureState = {
   },
   encode(obj: CreatureState, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeString(buf, obj.team);
-    _.writeBoolean(buf, obj.hero);
+    _.writeBoolean(tracker, obj.hero);
     _.writeString(buf, obj.creatureType);
     _.writeOptional(tracker, obj.equippedItemType, (x) => _.writeString(buf, x));
     _.writeUInt(buf, obj.health);
     _.writeUInt(buf, obj.maxHealth);
-    _.writeBoolean(buf, obj.visible);
+    _.writeBoolean(tracker, obj.visible);
     _.writeString(buf, obj.facing);
-    _.writeBoolean(buf, obj.moving);
+    _.writeBoolean(tracker, obj.moving);
     _.writeString(buf, obj.moveType);
     _.writeOptional(tracker, obj.moveTargetX, (x) => _.writeInt(buf, x));
     _.writeOptional(tracker, obj.moveTargetY, (x) => _.writeInt(buf, x));
@@ -292,8 +292,8 @@ export const CreatureState = {
     _.writeOptional(tracker, obj.enemyTargetY, (x) => _.writeInt(buf, x));
     _.writeOptional(tracker, obj.using, (x) => _.writeString(buf, x));
     _.writeOptional(tracker, obj.useDirection, (x) => _.writeString(buf, x));
-    _.writeBoolean(buf, obj.takingDamage);
-    _.writeBoolean(buf, obj.frozen);
+    _.writeBoolean(tracker, obj.takingDamage);
+    _.writeBoolean(tracker, obj.frozen);
     _.writeOptional(tracker, obj.statusEffect, (x) => _.writeString(buf, x));
     _.writeInt(buf, obj.x);
     _.writeInt(buf, obj.y);
@@ -306,7 +306,7 @@ export const CreatureState = {
     }
     tracker.push(obj.hero !== _.NO_DIFF);
     if (obj.hero !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.hero);
+      _.writeBoolean(tracker, obj.hero);
     }
     tracker.push(obj.creatureType !== _.NO_DIFF);
     if (obj.creatureType !== _.NO_DIFF) {
@@ -326,7 +326,7 @@ export const CreatureState = {
     }
     tracker.push(obj.visible !== _.NO_DIFF);
     if (obj.visible !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.visible);
+      _.writeBoolean(tracker, obj.visible);
     }
     tracker.push(obj.facing !== _.NO_DIFF);
     if (obj.facing !== _.NO_DIFF) {
@@ -334,7 +334,7 @@ export const CreatureState = {
     }
     tracker.push(obj.moving !== _.NO_DIFF);
     if (obj.moving !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.moving);
+      _.writeBoolean(tracker, obj.moving);
     }
     tracker.push(obj.moveType !== _.NO_DIFF);
     if (obj.moveType !== _.NO_DIFF) {
@@ -366,11 +366,11 @@ export const CreatureState = {
     }
     tracker.push(obj.takingDamage !== _.NO_DIFF);
     if (obj.takingDamage !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.takingDamage);
+      _.writeBoolean(tracker, obj.takingDamage);
     }
     tracker.push(obj.frozen !== _.NO_DIFF);
     if (obj.frozen !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.frozen);
+      _.writeBoolean(tracker, obj.frozen);
     }
     tracker.push(obj.statusEffect !== _.NO_DIFF);
     if (obj.statusEffect !== _.NO_DIFF) {
@@ -390,14 +390,14 @@ export const CreatureState = {
     const sb = buf;
     return {
       team: _.parseString(sb),
-      hero: _.parseBoolean(sb),
+      hero: _.parseBoolean(tracker),
       creatureType: _.parseString(sb),
       equippedItemType: _.parseOptional(tracker, () => _.parseString(sb)),
       health: _.parseUInt(sb),
       maxHealth: _.parseUInt(sb),
-      visible: _.parseBoolean(sb),
+      visible: _.parseBoolean(tracker),
       facing: _.parseString(sb),
-      moving: _.parseBoolean(sb),
+      moving: _.parseBoolean(tracker),
       moveType: _.parseString(sb),
       moveTargetX: _.parseOptional(tracker, () => _.parseInt(sb)),
       moveTargetY: _.parseOptional(tracker, () => _.parseInt(sb)),
@@ -405,8 +405,8 @@ export const CreatureState = {
       enemyTargetY: _.parseOptional(tracker, () => _.parseInt(sb)),
       using: _.parseOptional(tracker, () => _.parseString(sb)),
       useDirection: _.parseOptional(tracker, () => _.parseString(sb)),
-      takingDamage: _.parseBoolean(sb),
-      frozen: _.parseBoolean(sb),
+      takingDamage: _.parseBoolean(tracker),
+      frozen: _.parseBoolean(tracker),
       statusEffect: _.parseOptional(tracker, () => _.parseString(sb)),
       x: _.parseInt(sb),
       y: _.parseInt(sb),
@@ -416,14 +416,14 @@ export const CreatureState = {
     const sb = buf;
     return {
       team: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      hero: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      hero: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       creatureType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       equippedItemType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       health: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
       maxHealth: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
-      visible: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      visible: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       facing: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      moving: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      moving: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       moveType: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       moveTargetX: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       moveTargetY: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
@@ -431,8 +431,8 @@ export const CreatureState = {
       enemyTargetY: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
       using: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       useDirection: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      takingDamage: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
-      frozen: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      takingDamage: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
+      frozen: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       statusEffect: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
@@ -963,7 +963,7 @@ export const ObjectState = {
     _.writeOptional(tracker, obj.destructibleObjectType, (x) => _.writeString(buf, x));
     _.writeOptional(tracker, obj.environmentObjectType, (x) => _.writeString(buf, x));
     _.writeOptional(tracker, obj.interactiveObjectType, (x) => _.writeString(buf, x));
-    _.writeOptional(tracker, obj.active, (x) => _.writeBoolean(buf, x));
+    _.writeOptional(tracker, obj.active, (x) => _.writeBoolean(tracker, x));
     _.writeOptional(tracker, obj.towerName, (x) => _.writeString(buf, x));
     _.writeOptional(tracker, obj.width, (x) => _.writeUInt(buf, x));
     _.writeOptional(tracker, obj.height, (x) => _.writeUInt(buf, x));
@@ -997,7 +997,7 @@ export const ObjectState = {
     }
     tracker.push(obj.active !== _.NO_DIFF);
     if (obj.active !== _.NO_DIFF) {
-      _.writeOptionalDiff<boolean>(tracker, obj.active, (x) => _.writeBoolean(buf, x));
+      _.writeOptionalDiff<boolean>(tracker, obj.active, (x) => _.writeBoolean(tracker, x));
     }
     tracker.push(obj.towerName !== _.NO_DIFF);
     if (obj.towerName !== _.NO_DIFF) {
@@ -1041,7 +1041,7 @@ export const ObjectState = {
       destructibleObjectType: _.parseOptional(tracker, () => _.parseString(sb)),
       environmentObjectType: _.parseOptional(tracker, () => _.parseString(sb)),
       interactiveObjectType: _.parseOptional(tracker, () => _.parseString(sb)),
-      active: _.parseOptional(tracker, () => _.parseBoolean(sb)),
+      active: _.parseOptional(tracker, () => _.parseBoolean(tracker)),
       towerName: _.parseOptional(tracker, () => _.parseString(sb)),
       width: _.parseOptional(tracker, () => _.parseUInt(sb)),
       height: _.parseOptional(tracker, () => _.parseUInt(sb)),
@@ -1060,7 +1060,7 @@ export const ObjectState = {
       destructibleObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       environmentObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       interactiveObjectType: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      active: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(sb)) : _.NO_DIFF,
+      active: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(tracker)) : _.NO_DIFF,
       towerName: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       width: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseUInt(sb)) : _.NO_DIFF,
       height: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseUInt(sb)) : _.NO_DIFF,
@@ -1727,7 +1727,7 @@ export const SkillState = {
   },
   encode(obj: SkillState, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeString(buf, obj.type);
-    _.writeBoolean(buf, obj.inUse);
+    _.writeBoolean(tracker, obj.inUse);
     _.writeUInt(buf, obj.cooldown);
     _.writeUInt(buf, obj.cooldownTotal);
     return buf;
@@ -1739,7 +1739,7 @@ export const SkillState = {
     }
     tracker.push(obj.inUse !== _.NO_DIFF);
     if (obj.inUse !== _.NO_DIFF) {
-      _.writeBoolean(buf, obj.inUse);
+      _.writeBoolean(tracker, obj.inUse);
     }
     tracker.push(obj.cooldown !== _.NO_DIFF);
     if (obj.cooldown !== _.NO_DIFF) {
@@ -1755,7 +1755,7 @@ export const SkillState = {
     const sb = buf;
     return {
       type: _.parseString(sb),
-      inUse: _.parseBoolean(sb),
+      inUse: _.parseBoolean(tracker),
       cooldown: _.parseUInt(sb),
       cooldownTotal: _.parseUInt(sb),
     };
@@ -1764,7 +1764,7 @@ export const SkillState = {
     const sb = buf;
     return {
       type: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
-      inUse: tracker.next() ? _.parseBoolean(sb) : _.NO_DIFF,
+      inUse: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       cooldown: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
       cooldownTotal: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
     };
@@ -1833,7 +1833,7 @@ export const GameInfo = {
     _.writeOptional(tracker, obj.mode, (x) => _.writeString(buf, x));
     _.writeOptional(tracker, obj.timeLimit, (x) => _.writeUInt(buf, x));
     _.writeOptional(tracker, obj.timeElapsed, (x) => _.writeInt(buf, x));
-    _.writeOptional(tracker, obj.suddenDeath, (x) => _.writeBoolean(buf, x));
+    _.writeOptional(tracker, obj.suddenDeath, (x) => _.writeBoolean(tracker, x));
     _.writeOptional(tracker, obj.winner, (x) => _.writeString(buf, x));
     return buf;
   },
@@ -1852,7 +1852,7 @@ export const GameInfo = {
     }
     tracker.push(obj.suddenDeath !== _.NO_DIFF);
     if (obj.suddenDeath !== _.NO_DIFF) {
-      _.writeOptionalDiff<boolean>(tracker, obj.suddenDeath, (x) => _.writeBoolean(buf, x));
+      _.writeOptionalDiff<boolean>(tracker, obj.suddenDeath, (x) => _.writeBoolean(tracker, x));
     }
     tracker.push(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
@@ -1866,7 +1866,7 @@ export const GameInfo = {
       mode: _.parseOptional(tracker, () => _.parseString(sb)),
       timeLimit: _.parseOptional(tracker, () => _.parseUInt(sb)),
       timeElapsed: _.parseOptional(tracker, () => _.parseInt(sb)),
-      suddenDeath: _.parseOptional(tracker, () => _.parseBoolean(sb)),
+      suddenDeath: _.parseOptional(tracker, () => _.parseBoolean(tracker)),
       winner: _.parseOptional(tracker, () => _.parseString(sb)),
     };
   },
@@ -1876,7 +1876,7 @@ export const GameInfo = {
       mode: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
       timeLimit: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseUInt(sb)) : _.NO_DIFF,
       timeElapsed: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
-      suddenDeath: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(sb)) : _.NO_DIFF,
+      suddenDeath: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseBoolean(tracker)) : _.NO_DIFF,
       winner: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
     };
   },

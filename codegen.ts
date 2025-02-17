@@ -299,7 +299,7 @@ export const ${name} = {
     } else if (type.type === "float") {
       return `_.writeFloat(buf, ${key})`;
     } else if (type.type === "boolean") {
-      return `_.writeBoolean(buf, ${key})`;
+      return `_.writeBoolean(tracker, ${key})`;
     } else if (type.type === "enum") {
       return `_.writeUInt8(buf, ${key})`;
     }
@@ -336,7 +336,7 @@ export const ${name} = {
     } else if (type.type === "float") {
       return `_.writeFloat(buf, ${key})`;
     } else if (type.type === "boolean") {
-      return `_.writeBoolean(buf, ${key})`;
+      return `_.writeBoolean(tracker, ${key})`;
     } else if (type.type === "enum") {
       return `_.writeUInt8(buf, ${key})`;
     }
@@ -363,7 +363,7 @@ export const ${name} = {
     } else if (type.type === "float") {
       return `_.parseFloat(sb)`;
     } else if (type.type === "boolean") {
-      return `_.parseBoolean(sb)`;
+      return `_.parseBoolean(tracker)`;
     } else if (type.type === "enum") {
       return `_.parseUInt8(sb)`;
     }
@@ -396,7 +396,7 @@ export const ${name} = {
     } else if (type.type === "float") {
       return `_.parseFloat(sb)`;
     } else if (type.type === "boolean") {
-      return `_.parseBoolean(sb)`;
+      return `_.parseBoolean(tracker)`;
     } else if (type.type === "enum") {
       return `_.parseUInt8(sb)`;
     }

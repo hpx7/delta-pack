@@ -76,8 +76,8 @@ export function validateRecord<K, T>(
 export function writeUInt8(buf: Writer, x: number) {
   buf.writeUInt8(x);
 }
-export function writeBoolean(buf: Writer, x: boolean) {
-  buf.writeUInt8(x ? 1 : 0);
+export function writeBoolean(tracker: Tracker, x: boolean) {
+  tracker.push(x);
 }
 export function writeInt(buf: Writer, x: number) {
   buf.writeVarint(x);
@@ -170,8 +170,8 @@ export function writeRecordDiff<K, T>(
 export function parseUInt8(buf: Reader): number {
   return buf.readUInt8();
 }
-export function parseBoolean(buf: Reader): boolean {
-  return buf.readUInt8() > 0;
+export function parseBoolean(tracker: Tracker): boolean {
+  return tracker.next();
 }
 export function parseInt(buf: Reader): number {
   return buf.readVarint();
