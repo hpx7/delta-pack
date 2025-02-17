@@ -332,7 +332,7 @@ export const ${name} = {
     } else if (type.type === "float") {
       return `_.writeFloat(buf, ${key})`;
     } else if (type.type === "boolean") {
-      return `_.writeNothing()`;
+      return `_.writeBoolean(buf, ${key})`;
     } else if (type.type === "enum") {
       return `_.writeUInt8(buf, ${key})`;
     }
@@ -386,7 +386,7 @@ export const ${name} = {
     } else if (type.type === "float") {
       return `_.parseFloat(sb)`;
     } else if (type.type === "boolean") {
-      return `true`;
+      return `_.parseBoolean(sb)`;
     } else if (type.type === "enum") {
       return `_.parseUInt8(sb)`;
     }
@@ -444,13 +444,12 @@ export const ${name} = {
       return `_.patchRecord(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
     } else if (type.type === "reference") {
       return renderApplyDiff(doc[type.reference], type.reference, key, diff);
-    } else if (type.type === "boolean") {
-      return `!${key}`;
     } else if (
       type.type === "string" ||
       type.type === "int" ||
       type.type === "uint" ||
       type.type === "float" ||
+      type.type === "boolean" ||
       type.type === "enum"
     ) {
       return diff;

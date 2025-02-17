@@ -74,7 +74,6 @@ export function validateRecord<K, T>(
   return [];
 }
 
-export function writeNothing() {}
 export function writeUInt8(buf: Writer, x: number) {
   buf.writeUInt8(x);
 }
