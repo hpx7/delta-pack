@@ -5,7 +5,6 @@ import {
   ObjectType,
   OptionalType,
   RecordType,
-  ReferenceType,
   StringType,
   codegenTypescript,
 } from "../generator";
@@ -21,15 +20,15 @@ const Weapon = ObjectType({
 });
 
 const Player = ObjectType({
-  position: ReferenceType("Position"),
+  position: "Position",
   health: IntType(),
-  weapon: OptionalType(ReferenceType("Weapon")),
+  weapon: OptionalType("Weapon"),
   stealth: BooleanType(),
 });
 
 const GameState = ObjectType({
   timeRemaining: IntType(),
-  players: RecordType(IntType(), ReferenceType("Player")),
+  players: RecordType(IntType(), "Player"),
 });
 
 console.log(

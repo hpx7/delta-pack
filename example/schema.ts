@@ -4,7 +4,6 @@ import {
   IntType,
   ObjectType,
   OptionalType,
-  ReferenceType,
   StringType,
   UnionType,
   codegenTypescript,
@@ -16,25 +15,25 @@ const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
 const Card = ObjectType({
   value: IntType(),
-  color: ReferenceType("Color"),
+  color: "Color",
 });
 
 const Player = ObjectType({
-  id: ReferenceType("UserId"),
+  id: "UserId",
   numCards: IntType(),
 });
 
 const PlayerState = ObjectType({
-  hand: ArrayType(ReferenceType("Card")),
-  players: ArrayType(ReferenceType("Player")),
-  turn: OptionalType(ReferenceType("UserId")),
-  pile: OptionalType(ReferenceType("Card")),
-  winner: OptionalType(ReferenceType("UserId")),
+  hand: ArrayType("Card"),
+  players: ArrayType("Player"),
+  turn: OptionalType("UserId"),
+  pile: OptionalType("Card"),
+  winner: OptionalType("UserId"),
   intArray: ArrayType(IntType()),
   intOptional: OptionalType(IntType()),
 });
 
-const UnionTest = UnionType([ReferenceType("UserId"), ReferenceType("Color"), ReferenceType("Card")]);
+const UnionTest = UnionType(["UserId", "Color", "Card"]);
 
 console.log(
   codegenTypescript({
