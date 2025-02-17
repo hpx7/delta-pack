@@ -490,22 +490,22 @@ export const Creature = {
     obj.team = diff.team === _.NO_DIFF ? obj.team : diff.team;
     obj.hero = diff.hero === _.NO_DIFF ? obj.hero : diff.hero;
     obj.creatureType = diff.creatureType === _.NO_DIFF ? obj.creatureType : diff.creatureType;
-    obj.equippedItemType = diff.equippedItemType === _.NO_DIFF ? obj.equippedItemType : _.patchOptional(obj.equippedItemType, diff.equippedItemType, (a, b) => b);
+    obj.equippedItemType = diff.equippedItemType === _.NO_DIFF ? obj.equippedItemType : _.patchOptional<string>(obj.equippedItemType, diff.equippedItemType, (a, b) => b);
     obj.health = diff.health === _.NO_DIFF ? obj.health : diff.health;
     obj.maxHealth = diff.maxHealth === _.NO_DIFF ? obj.maxHealth : diff.maxHealth;
     obj.visible = diff.visible === _.NO_DIFF ? obj.visible : diff.visible;
     obj.facing = diff.facing === _.NO_DIFF ? obj.facing : diff.facing;
     obj.moving = diff.moving === _.NO_DIFF ? obj.moving : diff.moving;
     obj.moveType = diff.moveType === _.NO_DIFF ? obj.moveType : diff.moveType;
-    obj.moveTargetX = diff.moveTargetX === _.NO_DIFF ? obj.moveTargetX : _.patchOptional(obj.moveTargetX, diff.moveTargetX, (a, b) => b);
-    obj.moveTargetY = diff.moveTargetY === _.NO_DIFF ? obj.moveTargetY : _.patchOptional(obj.moveTargetY, diff.moveTargetY, (a, b) => b);
-    obj.enemyTargetX = diff.enemyTargetX === _.NO_DIFF ? obj.enemyTargetX : _.patchOptional(obj.enemyTargetX, diff.enemyTargetX, (a, b) => b);
-    obj.enemyTargetY = diff.enemyTargetY === _.NO_DIFF ? obj.enemyTargetY : _.patchOptional(obj.enemyTargetY, diff.enemyTargetY, (a, b) => b);
-    obj.using = diff.using === _.NO_DIFF ? obj.using : _.patchOptional(obj.using, diff.using, (a, b) => b);
-    obj.useDirection = diff.useDirection === _.NO_DIFF ? obj.useDirection : _.patchOptional(obj.useDirection, diff.useDirection, (a, b) => b);
+    obj.moveTargetX = diff.moveTargetX === _.NO_DIFF ? obj.moveTargetX : _.patchOptional<number>(obj.moveTargetX, diff.moveTargetX, (a, b) => b);
+    obj.moveTargetY = diff.moveTargetY === _.NO_DIFF ? obj.moveTargetY : _.patchOptional<number>(obj.moveTargetY, diff.moveTargetY, (a, b) => b);
+    obj.enemyTargetX = diff.enemyTargetX === _.NO_DIFF ? obj.enemyTargetX : _.patchOptional<number>(obj.enemyTargetX, diff.enemyTargetX, (a, b) => b);
+    obj.enemyTargetY = diff.enemyTargetY === _.NO_DIFF ? obj.enemyTargetY : _.patchOptional<number>(obj.enemyTargetY, diff.enemyTargetY, (a, b) => b);
+    obj.using = diff.using === _.NO_DIFF ? obj.using : _.patchOptional<string>(obj.using, diff.using, (a, b) => b);
+    obj.useDirection = diff.useDirection === _.NO_DIFF ? obj.useDirection : _.patchOptional<string>(obj.useDirection, diff.useDirection, (a, b) => b);
     obj.takingDamage = diff.takingDamage === _.NO_DIFF ? obj.takingDamage : diff.takingDamage;
     obj.frozen = diff.frozen === _.NO_DIFF ? obj.frozen : diff.frozen;
-    obj.statusEffect = diff.statusEffect === _.NO_DIFF ? obj.statusEffect : _.patchOptional(obj.statusEffect, diff.statusEffect, (a, b) => b);
+    obj.statusEffect = diff.statusEffect === _.NO_DIFF ? obj.statusEffect : _.patchOptional<string>(obj.statusEffect, diff.statusEffect, (a, b) => b);
     obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
     obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
     obj.dead = diff.dead === _.NO_DIFF ? obj.dead : diff.dead;
@@ -632,8 +632,8 @@ export const Item = {
     }
     obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
     obj.itemType = diff.itemType === _.NO_DIFF ? obj.itemType : diff.itemType;
-    obj.potionType = diff.potionType === _.NO_DIFF ? obj.potionType : _.patchOptional(obj.potionType, diff.potionType, (a, b) => b);
-    obj.weaponType = diff.weaponType === _.NO_DIFF ? obj.weaponType : _.patchOptional(obj.weaponType, diff.weaponType, (a, b) => b);
+    obj.potionType = diff.potionType === _.NO_DIFF ? obj.potionType : _.patchOptional<string>(obj.potionType, diff.potionType, (a, b) => b);
+    obj.weaponType = diff.weaponType === _.NO_DIFF ? obj.weaponType : _.patchOptional<string>(obj.weaponType, diff.weaponType, (a, b) => b);
     obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
     obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
     return obj;
@@ -901,22 +901,22 @@ export const Effect = {
       return obj;
     }
     obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
-    obj.creatureId = diff.creatureId === _.NO_DIFF ? obj.creatureId : _.patchOptional(obj.creatureId, diff.creatureId, (a, b) => b);
+    obj.creatureId = diff.creatureId === _.NO_DIFF ? obj.creatureId : _.patchOptional<number>(obj.creatureId, diff.creatureId, (a, b) => b);
     obj.effectType = diff.effectType === _.NO_DIFF ? obj.effectType : diff.effectType;
-    obj.triggerType = diff.triggerType === _.NO_DIFF ? obj.triggerType : _.patchOptional(obj.triggerType, diff.triggerType, (a, b) => b);
-    obj.ellipseEffectType = diff.ellipseEffectType === _.NO_DIFF ? obj.ellipseEffectType : _.patchOptional(obj.ellipseEffectType, diff.ellipseEffectType, (a, b) => b);
-    obj.weaponEffectType = diff.weaponEffectType === _.NO_DIFF ? obj.weaponEffectType : _.patchOptional(obj.weaponEffectType, diff.weaponEffectType, (a, b) => b);
-    obj.projectileType = diff.projectileType === _.NO_DIFF ? obj.projectileType : _.patchOptional(obj.projectileType, diff.projectileType, (a, b) => b);
-    obj.visualEffectType = diff.visualEffectType === _.NO_DIFF ? obj.visualEffectType : _.patchOptional(obj.visualEffectType, diff.visualEffectType, (a, b) => b);
-    obj.swingType = diff.swingType === _.NO_DIFF ? obj.swingType : _.patchOptional(obj.swingType, diff.swingType, (a, b) => b);
-    obj.thrustType = diff.thrustType === _.NO_DIFF ? obj.thrustType : _.patchOptional(obj.thrustType, diff.thrustType, (a, b) => b);
-    obj.weaponType = diff.weaponType === _.NO_DIFF ? obj.weaponType : _.patchOptional(obj.weaponType, diff.weaponType, (a, b) => b);
-    obj.direction = diff.direction === _.NO_DIFF ? obj.direction : _.patchOptional(obj.direction, diff.direction, (a, b) => b);
-    obj.angle = diff.angle === _.NO_DIFF ? obj.angle : _.patchOptional(obj.angle, diff.angle, (a, b) => b);
-    obj.radius = diff.radius === _.NO_DIFF ? obj.radius : _.patchOptional(obj.radius, diff.radius, (a, b) => b);
+    obj.triggerType = diff.triggerType === _.NO_DIFF ? obj.triggerType : _.patchOptional<string>(obj.triggerType, diff.triggerType, (a, b) => b);
+    obj.ellipseEffectType = diff.ellipseEffectType === _.NO_DIFF ? obj.ellipseEffectType : _.patchOptional<string>(obj.ellipseEffectType, diff.ellipseEffectType, (a, b) => b);
+    obj.weaponEffectType = diff.weaponEffectType === _.NO_DIFF ? obj.weaponEffectType : _.patchOptional<string>(obj.weaponEffectType, diff.weaponEffectType, (a, b) => b);
+    obj.projectileType = diff.projectileType === _.NO_DIFF ? obj.projectileType : _.patchOptional<string>(obj.projectileType, diff.projectileType, (a, b) => b);
+    obj.visualEffectType = diff.visualEffectType === _.NO_DIFF ? obj.visualEffectType : _.patchOptional<string>(obj.visualEffectType, diff.visualEffectType, (a, b) => b);
+    obj.swingType = diff.swingType === _.NO_DIFF ? obj.swingType : _.patchOptional<string>(obj.swingType, diff.swingType, (a, b) => b);
+    obj.thrustType = diff.thrustType === _.NO_DIFF ? obj.thrustType : _.patchOptional<string>(obj.thrustType, diff.thrustType, (a, b) => b);
+    obj.weaponType = diff.weaponType === _.NO_DIFF ? obj.weaponType : _.patchOptional<string>(obj.weaponType, diff.weaponType, (a, b) => b);
+    obj.direction = diff.direction === _.NO_DIFF ? obj.direction : _.patchOptional<string>(obj.direction, diff.direction, (a, b) => b);
+    obj.angle = diff.angle === _.NO_DIFF ? obj.angle : _.patchOptional<number>(obj.angle, diff.angle, (a, b) => b);
+    obj.radius = diff.radius === _.NO_DIFF ? obj.radius : _.patchOptional<number>(obj.radius, diff.radius, (a, b) => b);
     obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
     obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
-    obj.z = diff.z === _.NO_DIFF ? obj.z : _.patchOptional(obj.z, diff.z, (a, b) => b);
+    obj.z = diff.z === _.NO_DIFF ? obj.z : _.patchOptional<number>(obj.z, diff.z, (a, b) => b);
     return obj;
   },
 };
@@ -1156,18 +1156,18 @@ export const Object = {
       return obj;
     }
     obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
-    obj.team = diff.team === _.NO_DIFF ? obj.team : _.patchOptional(obj.team, diff.team, (a, b) => b);
+    obj.team = diff.team === _.NO_DIFF ? obj.team : _.patchOptional<string>(obj.team, diff.team, (a, b) => b);
     obj.objectType = diff.objectType === _.NO_DIFF ? obj.objectType : diff.objectType;
-    obj.destructibleObjectType = diff.destructibleObjectType === _.NO_DIFF ? obj.destructibleObjectType : _.patchOptional(obj.destructibleObjectType, diff.destructibleObjectType, (a, b) => b);
-    obj.environmentObjectType = diff.environmentObjectType === _.NO_DIFF ? obj.environmentObjectType : _.patchOptional(obj.environmentObjectType, diff.environmentObjectType, (a, b) => b);
-    obj.interactiveObjectType = diff.interactiveObjectType === _.NO_DIFF ? obj.interactiveObjectType : _.patchOptional(obj.interactiveObjectType, diff.interactiveObjectType, (a, b) => b);
-    obj.active = diff.active === _.NO_DIFF ? obj.active : _.patchOptional(obj.active, diff.active, (a, b) => b);
-    obj.towerName = diff.towerName === _.NO_DIFF ? obj.towerName : _.patchOptional(obj.towerName, diff.towerName, (a, b) => b);
-    obj.width = diff.width === _.NO_DIFF ? obj.width : _.patchOptional(obj.width, diff.width, (a, b) => b);
-    obj.height = diff.height === _.NO_DIFF ? obj.height : _.patchOptional(obj.height, diff.height, (a, b) => b);
-    obj.angle = diff.angle === _.NO_DIFF ? obj.angle : _.patchOptional(obj.angle, diff.angle, (a, b) => b);
-    obj.durability = diff.durability === _.NO_DIFF ? obj.durability : _.patchOptional(obj.durability, diff.durability, (a, b) => b);
-    obj.maxDurability = diff.maxDurability === _.NO_DIFF ? obj.maxDurability : _.patchOptional(obj.maxDurability, diff.maxDurability, (a, b) => b);
+    obj.destructibleObjectType = diff.destructibleObjectType === _.NO_DIFF ? obj.destructibleObjectType : _.patchOptional<string>(obj.destructibleObjectType, diff.destructibleObjectType, (a, b) => b);
+    obj.environmentObjectType = diff.environmentObjectType === _.NO_DIFF ? obj.environmentObjectType : _.patchOptional<string>(obj.environmentObjectType, diff.environmentObjectType, (a, b) => b);
+    obj.interactiveObjectType = diff.interactiveObjectType === _.NO_DIFF ? obj.interactiveObjectType : _.patchOptional<string>(obj.interactiveObjectType, diff.interactiveObjectType, (a, b) => b);
+    obj.active = diff.active === _.NO_DIFF ? obj.active : _.patchOptional<boolean>(obj.active, diff.active, (a, b) => b);
+    obj.towerName = diff.towerName === _.NO_DIFF ? obj.towerName : _.patchOptional<string>(obj.towerName, diff.towerName, (a, b) => b);
+    obj.width = diff.width === _.NO_DIFF ? obj.width : _.patchOptional<number>(obj.width, diff.width, (a, b) => b);
+    obj.height = diff.height === _.NO_DIFF ? obj.height : _.patchOptional<number>(obj.height, diff.height, (a, b) => b);
+    obj.angle = diff.angle === _.NO_DIFF ? obj.angle : _.patchOptional<number>(obj.angle, diff.angle, (a, b) => b);
+    obj.durability = diff.durability === _.NO_DIFF ? obj.durability : _.patchOptional<number>(obj.durability, diff.durability, (a, b) => b);
+    obj.maxDurability = diff.maxDurability === _.NO_DIFF ? obj.maxDurability : _.patchOptional<number>(obj.maxDurability, diff.maxDurability, (a, b) => b);
     obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
     obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
     return obj;
@@ -1345,13 +1345,13 @@ export const Player = {
     }
     obj.id = diff.id === _.NO_DIFF ? obj.id : diff.id;
     obj.name = diff.name === _.NO_DIFF ? obj.name : diff.name;
-    obj.team = diff.team === _.NO_DIFF ? obj.team : _.patchOptional(obj.team, diff.team, (a, b) => b);
-    obj.hero = diff.hero === _.NO_DIFF ? obj.hero : _.patchOptional(obj.hero, diff.hero, (a, b) => b);
-    obj.cents = diff.cents === _.NO_DIFF ? obj.cents : _.patchOptional(obj.cents, diff.cents, (a, b) => b);
-    obj.deck = diff.deck === _.NO_DIFF ? obj.deck : _.patchOptional(obj.deck, diff.deck, (a, b) => Deck.applyDiff(a, b));
-    obj.randomSlots = diff.randomSlots === _.NO_DIFF ? obj.randomSlots : _.patchArray(obj.randomSlots, diff.randomSlots, (a, b) => b);
-    obj.hand = diff.hand === _.NO_DIFF ? obj.hand : _.patchOptional(obj.hand, diff.hand, (a, b) => Hand.applyDiff(a, b));
-    obj.skills = diff.skills === _.NO_DIFF ? obj.skills : _.patchOptional(obj.skills, diff.skills, (a, b) => Skills.applyDiff(a, b));
+    obj.team = diff.team === _.NO_DIFF ? obj.team : _.patchOptional<string>(obj.team, diff.team, (a, b) => b);
+    obj.hero = diff.hero === _.NO_DIFF ? obj.hero : _.patchOptional<number>(obj.hero, diff.hero, (a, b) => b);
+    obj.cents = diff.cents === _.NO_DIFF ? obj.cents : _.patchOptional<number>(obj.cents, diff.cents, (a, b) => b);
+    obj.deck = diff.deck === _.NO_DIFF ? obj.deck : _.patchOptional<Deck>(obj.deck, diff.deck, (a, b) => Deck.applyDiff(a, b));
+    obj.randomSlots = diff.randomSlots === _.NO_DIFF ? obj.randomSlots : _.patchArray<string>(obj.randomSlots, diff.randomSlots, (a, b) => b);
+    obj.hand = diff.hand === _.NO_DIFF ? obj.hand : _.patchOptional<Hand>(obj.hand, diff.hand, (a, b) => Hand.applyDiff(a, b));
+    obj.skills = diff.skills === _.NO_DIFF ? obj.skills : _.patchOptional<Skills>(obj.skills, diff.skills, (a, b) => Skills.applyDiff(a, b));
     obj.restrictionZones = diff.restrictionZones === _.NO_DIFF ? obj.restrictionZones : diff.restrictionZones;
     return obj;
   },
@@ -1571,14 +1571,14 @@ export const Deck = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.card1 = diff.card1 === _.NO_DIFF ? obj.card1 : _.patchOptional(obj.card1, diff.card1, (a, b) => b);
-    obj.card2 = diff.card2 === _.NO_DIFF ? obj.card2 : _.patchOptional(obj.card2, diff.card2, (a, b) => b);
-    obj.card3 = diff.card3 === _.NO_DIFF ? obj.card3 : _.patchOptional(obj.card3, diff.card3, (a, b) => b);
-    obj.card4 = diff.card4 === _.NO_DIFF ? obj.card4 : _.patchOptional(obj.card4, diff.card4, (a, b) => b);
-    obj.card5 = diff.card5 === _.NO_DIFF ? obj.card5 : _.patchOptional(obj.card5, diff.card5, (a, b) => b);
-    obj.card6 = diff.card6 === _.NO_DIFF ? obj.card6 : _.patchOptional(obj.card6, diff.card6, (a, b) => b);
-    obj.card7 = diff.card7 === _.NO_DIFF ? obj.card7 : _.patchOptional(obj.card7, diff.card7, (a, b) => b);
-    obj.card8 = diff.card8 === _.NO_DIFF ? obj.card8 : _.patchOptional(obj.card8, diff.card8, (a, b) => b);
+    obj.card1 = diff.card1 === _.NO_DIFF ? obj.card1 : _.patchOptional<string>(obj.card1, diff.card1, (a, b) => b);
+    obj.card2 = diff.card2 === _.NO_DIFF ? obj.card2 : _.patchOptional<string>(obj.card2, diff.card2, (a, b) => b);
+    obj.card3 = diff.card3 === _.NO_DIFF ? obj.card3 : _.patchOptional<string>(obj.card3, diff.card3, (a, b) => b);
+    obj.card4 = diff.card4 === _.NO_DIFF ? obj.card4 : _.patchOptional<string>(obj.card4, diff.card4, (a, b) => b);
+    obj.card5 = diff.card5 === _.NO_DIFF ? obj.card5 : _.patchOptional<string>(obj.card5, diff.card5, (a, b) => b);
+    obj.card6 = diff.card6 === _.NO_DIFF ? obj.card6 : _.patchOptional<string>(obj.card6, diff.card6, (a, b) => b);
+    obj.card7 = diff.card7 === _.NO_DIFF ? obj.card7 : _.patchOptional<string>(obj.card7, diff.card7, (a, b) => b);
+    obj.card8 = diff.card8 === _.NO_DIFF ? obj.card8 : _.patchOptional<string>(obj.card8, diff.card8, (a, b) => b);
     return obj;
   },
 };
@@ -1674,10 +1674,10 @@ export const Hand = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.slot1 = diff.slot1 === _.NO_DIFF ? obj.slot1 : _.patchOptional(obj.slot1, diff.slot1, (a, b) => b);
-    obj.slot2 = diff.slot2 === _.NO_DIFF ? obj.slot2 : _.patchOptional(obj.slot2, diff.slot2, (a, b) => b);
-    obj.slot3 = diff.slot3 === _.NO_DIFF ? obj.slot3 : _.patchOptional(obj.slot3, diff.slot3, (a, b) => b);
-    obj.slot4 = diff.slot4 === _.NO_DIFF ? obj.slot4 : _.patchOptional(obj.slot4, diff.slot4, (a, b) => b);
+    obj.slot1 = diff.slot1 === _.NO_DIFF ? obj.slot1 : _.patchOptional<string>(obj.slot1, diff.slot1, (a, b) => b);
+    obj.slot2 = diff.slot2 === _.NO_DIFF ? obj.slot2 : _.patchOptional<string>(obj.slot2, diff.slot2, (a, b) => b);
+    obj.slot3 = diff.slot3 === _.NO_DIFF ? obj.slot3 : _.patchOptional<string>(obj.slot3, diff.slot3, (a, b) => b);
+    obj.slot4 = diff.slot4 === _.NO_DIFF ? obj.slot4 : _.patchOptional<string>(obj.slot4, diff.slot4, (a, b) => b);
     return obj;
   },
 };
@@ -1773,10 +1773,10 @@ export const Skills = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.slot1 = diff.slot1 === _.NO_DIFF ? obj.slot1 : _.patchOptional(obj.slot1, diff.slot1, (a, b) => Skill.applyDiff(a, b));
-    obj.slot2 = diff.slot2 === _.NO_DIFF ? obj.slot2 : _.patchOptional(obj.slot2, diff.slot2, (a, b) => Skill.applyDiff(a, b));
-    obj.slot3 = diff.slot3 === _.NO_DIFF ? obj.slot3 : _.patchOptional(obj.slot3, diff.slot3, (a, b) => Skill.applyDiff(a, b));
-    obj.slot4 = diff.slot4 === _.NO_DIFF ? obj.slot4 : _.patchOptional(obj.slot4, diff.slot4, (a, b) => Skill.applyDiff(a, b));
+    obj.slot1 = diff.slot1 === _.NO_DIFF ? obj.slot1 : _.patchOptional<Skill>(obj.slot1, diff.slot1, (a, b) => Skill.applyDiff(a, b));
+    obj.slot2 = diff.slot2 === _.NO_DIFF ? obj.slot2 : _.patchOptional<Skill>(obj.slot2, diff.slot2, (a, b) => Skill.applyDiff(a, b));
+    obj.slot3 = diff.slot3 === _.NO_DIFF ? obj.slot3 : _.patchOptional<Skill>(obj.slot3, diff.slot3, (a, b) => Skill.applyDiff(a, b));
+    obj.slot4 = diff.slot4 === _.NO_DIFF ? obj.slot4 : _.patchOptional<Skill>(obj.slot4, diff.slot4, (a, b) => Skill.applyDiff(a, b));
     return obj;
   },
 };
@@ -1984,11 +1984,11 @@ export const GameInfo = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.mode = diff.mode === _.NO_DIFF ? obj.mode : _.patchOptional(obj.mode, diff.mode, (a, b) => b);
-    obj.timeLimit = diff.timeLimit === _.NO_DIFF ? obj.timeLimit : _.patchOptional(obj.timeLimit, diff.timeLimit, (a, b) => b);
-    obj.timeElapsed = diff.timeElapsed === _.NO_DIFF ? obj.timeElapsed : _.patchOptional(obj.timeElapsed, diff.timeElapsed, (a, b) => b);
-    obj.suddenDeath = diff.suddenDeath === _.NO_DIFF ? obj.suddenDeath : _.patchOptional(obj.suddenDeath, diff.suddenDeath, (a, b) => b);
-    obj.winner = diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional(obj.winner, diff.winner, (a, b) => b);
+    obj.mode = diff.mode === _.NO_DIFF ? obj.mode : _.patchOptional<string>(obj.mode, diff.mode, (a, b) => b);
+    obj.timeLimit = diff.timeLimit === _.NO_DIFF ? obj.timeLimit : _.patchOptional<number>(obj.timeLimit, diff.timeLimit, (a, b) => b);
+    obj.timeElapsed = diff.timeElapsed === _.NO_DIFF ? obj.timeElapsed : _.patchOptional<number>(obj.timeElapsed, diff.timeElapsed, (a, b) => b);
+    obj.suddenDeath = diff.suddenDeath === _.NO_DIFF ? obj.suddenDeath : _.patchOptional<boolean>(obj.suddenDeath, diff.suddenDeath, (a, b) => b);
+    obj.winner = diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional<string>(obj.winner, diff.winner, (a, b) => b);
     return obj;
   },
 };
@@ -2072,8 +2072,8 @@ export const DraftState = {
       return obj;
     }
     obj.timeRemaining = diff.timeRemaining === _.NO_DIFF ? obj.timeRemaining : diff.timeRemaining;
-    obj.decks = diff.decks === _.NO_DIFF ? obj.decks : _.patchArray(obj.decks, diff.decks, (a, b) => DraftDeck.applyDiff(a, b));
-    obj.pairs = diff.pairs === _.NO_DIFF ? obj.pairs : _.patchArray(obj.pairs, diff.pairs, (a, b) => CardPair.applyDiff(a, b));
+    obj.decks = diff.decks === _.NO_DIFF ? obj.decks : _.patchArray<DraftDeck>(obj.decks, diff.decks, (a, b) => DraftDeck.applyDiff(a, b));
+    obj.pairs = diff.pairs === _.NO_DIFF ? obj.pairs : _.patchArray<CardPair>(obj.pairs, diff.pairs, (a, b) => CardPair.applyDiff(a, b));
     return obj;
   },
 };
@@ -2235,14 +2235,14 @@ export const DraftDeck = {
       return obj;
     }
     obj.playerId = diff.playerId === _.NO_DIFF ? obj.playerId : diff.playerId;
-    obj.card1 = diff.card1 === _.NO_DIFF ? obj.card1 : _.patchOptional(obj.card1, diff.card1, (a, b) => b);
-    obj.card2 = diff.card2 === _.NO_DIFF ? obj.card2 : _.patchOptional(obj.card2, diff.card2, (a, b) => b);
-    obj.card3 = diff.card3 === _.NO_DIFF ? obj.card3 : _.patchOptional(obj.card3, diff.card3, (a, b) => b);
-    obj.card4 = diff.card4 === _.NO_DIFF ? obj.card4 : _.patchOptional(obj.card4, diff.card4, (a, b) => b);
-    obj.card5 = diff.card5 === _.NO_DIFF ? obj.card5 : _.patchOptional(obj.card5, diff.card5, (a, b) => b);
-    obj.card6 = diff.card6 === _.NO_DIFF ? obj.card6 : _.patchOptional(obj.card6, diff.card6, (a, b) => b);
-    obj.card7 = diff.card7 === _.NO_DIFF ? obj.card7 : _.patchOptional(obj.card7, diff.card7, (a, b) => b);
-    obj.card8 = diff.card8 === _.NO_DIFF ? obj.card8 : _.patchOptional(obj.card8, diff.card8, (a, b) => b);
+    obj.card1 = diff.card1 === _.NO_DIFF ? obj.card1 : _.patchOptional<string>(obj.card1, diff.card1, (a, b) => b);
+    obj.card2 = diff.card2 === _.NO_DIFF ? obj.card2 : _.patchOptional<string>(obj.card2, diff.card2, (a, b) => b);
+    obj.card3 = diff.card3 === _.NO_DIFF ? obj.card3 : _.patchOptional<string>(obj.card3, diff.card3, (a, b) => b);
+    obj.card4 = diff.card4 === _.NO_DIFF ? obj.card4 : _.patchOptional<string>(obj.card4, diff.card4, (a, b) => b);
+    obj.card5 = diff.card5 === _.NO_DIFF ? obj.card5 : _.patchOptional<string>(obj.card5, diff.card5, (a, b) => b);
+    obj.card6 = diff.card6 === _.NO_DIFF ? obj.card6 : _.patchOptional<string>(obj.card6, diff.card6, (a, b) => b);
+    obj.card7 = diff.card7 === _.NO_DIFF ? obj.card7 : _.patchOptional<string>(obj.card7, diff.card7, (a, b) => b);
+    obj.card8 = diff.card8 === _.NO_DIFF ? obj.card8 : _.patchOptional<string>(obj.card8, diff.card8, (a, b) => b);
     return obj;
   },
 };
@@ -2412,7 +2412,7 @@ export const DebugBody = {
     }
     obj.x = diff.x === _.NO_DIFF ? obj.x : diff.x;
     obj.y = diff.y === _.NO_DIFF ? obj.y : diff.y;
-    obj.points = diff.points === _.NO_DIFF ? obj.points : _.patchArray(obj.points, diff.points, (a, b) => Point.applyDiff(a, b));
+    obj.points = diff.points === _.NO_DIFF ? obj.points : _.patchArray<Point>(obj.points, diff.points, (a, b) => Point.applyDiff(a, b));
     return obj;
   },
 };
@@ -2644,15 +2644,15 @@ export const GameState = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.creatures = diff.creatures === _.NO_DIFF ? obj.creatures : _.patchRecord(obj.creatures, diff.creatures, (a, b) => Creature.applyDiff(a, b));
-    obj.items = diff.items === _.NO_DIFF ? obj.items : _.patchArray(obj.items, diff.items, (a, b) => Item.applyDiff(a, b));
-    obj.effects = diff.effects === _.NO_DIFF ? obj.effects : _.patchArray(obj.effects, diff.effects, (a, b) => Effect.applyDiff(a, b));
-    obj.objects = diff.objects === _.NO_DIFF ? obj.objects : _.patchArray(obj.objects, diff.objects, (a, b) => Object.applyDiff(a, b));
-    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
-    obj.spectators = diff.spectators === _.NO_DIFF ? obj.spectators : _.patchArray(obj.spectators, diff.spectators, (a, b) => Spectator.applyDiff(a, b));
+    obj.creatures = diff.creatures === _.NO_DIFF ? obj.creatures : _.patchRecord<number, Creature>(obj.creatures, diff.creatures, (a, b) => Creature.applyDiff(a, b));
+    obj.items = diff.items === _.NO_DIFF ? obj.items : _.patchArray<Item>(obj.items, diff.items, (a, b) => Item.applyDiff(a, b));
+    obj.effects = diff.effects === _.NO_DIFF ? obj.effects : _.patchArray<Effect>(obj.effects, diff.effects, (a, b) => Effect.applyDiff(a, b));
+    obj.objects = diff.objects === _.NO_DIFF ? obj.objects : _.patchArray<Object>(obj.objects, diff.objects, (a, b) => Object.applyDiff(a, b));
+    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray<Player>(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
+    obj.spectators = diff.spectators === _.NO_DIFF ? obj.spectators : _.patchArray<Spectator>(obj.spectators, diff.spectators, (a, b) => Spectator.applyDiff(a, b));
     obj.info = diff.info === _.NO_DIFF ? obj.info : GameInfo.applyDiff(obj.info, diff.info);
-    obj.draft = diff.draft === _.NO_DIFF ? obj.draft : _.patchOptional(obj.draft, diff.draft, (a, b) => DraftState.applyDiff(a, b));
-    obj.debugBodies = diff.debugBodies === _.NO_DIFF ? obj.debugBodies : _.patchOptional(obj.debugBodies, diff.debugBodies, (a, b) => _.patchArray(a, b, (a, b) => DebugBody.applyDiff(a, b)));
+    obj.draft = diff.draft === _.NO_DIFF ? obj.draft : _.patchOptional<DraftState>(obj.draft, diff.draft, (a, b) => DraftState.applyDiff(a, b));
+    obj.debugBodies = diff.debugBodies === _.NO_DIFF ? obj.debugBodies : _.patchOptional<DebugBody[]>(obj.debugBodies, diff.debugBodies, (a, b) => _.patchArray<DebugBody>(a, b, (a, b) => DebugBody.applyDiff(a, b)));
     return obj;
   },
 };

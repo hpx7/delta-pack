@@ -6,12 +6,12 @@ export const NO_DIFF = Symbol("NODIFF");
 export const DELETED = Symbol("DELETED");
 export type DeepPartial<T> = T extends string | number | boolean | undefined
   ? T
-  : T extends Array<infer ArrayType>
-  ? Array<DeepPartial<ArrayType> | typeof NO_DIFF> | typeof NO_DIFF
+  : T extends Array<infer V>
+  ? Array<V | DeepPartial<V> | typeof NO_DIFF>
   : T extends { type: string; val: any }
   ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
   : T extends Map<infer K, infer V>
-  ? Map<K, DeepPartial<V> | typeof DELETED>
+  ? Map<K, V | DeepPartial<V> | typeof DELETED>
   : { [K in keyof T]: DeepPartial<T[K]> | typeof NO_DIFF };
 
 export class Tracker {
@@ -116,7 +116,11 @@ export function writeRecord<K, T>(
     innerValWrite(val);
   }
 }
-export function writeOptionalDiff<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
+export function writeOptionalDiff<T>(
+  tracker: Tracker,
+  x: DeepPartial<T> | undefined,
+  innerWrite: (x: DeepPartial<T>) => void,
+) {
   tracker.push(x !== undefined);
   if (x !== undefined) {
     innerWrite(x);
@@ -125,22 +129,22 @@ export function writeOptionalDiff<T>(tracker: Tracker, x: T | undefined, innerWr
 export function writeArrayDiff<T>(
   buf: Writer,
   tracker: Tracker,
-  x: (T | typeof NO_DIFF)[],
-  innerWrite: (x: T) => void,
+  x: DeepPartial<T[]>,
+  innerWrite: (x: DeepPartial<T>) => void,
 ) {
   buf.writeUVarint(x.length);
   x.forEach((val) => {
     tracker.push(val !== NO_DIFF);
     if (val !== NO_DIFF) {
-      innerWrite(val);
+      innerWrite(val as DeepPartial<T>);
     }
   });
 }
 export function writeRecordDiff<K, T>(
   buf: Writer,
-  x: Map<K, T | typeof DELETED>,
+  x: DeepPartial<Map<K, T>>,
   innerKeyWrite: (x: K) => void,
-  innerValWrite: (x: T) => void,
+  innerValWrite: (x: DeepPartial<T>) => void,
 ) {
   const deletedKeys = new Set<K>();
   for (const [key, val] of x) {
@@ -156,7 +160,7 @@ export function writeRecordDiff<K, T>(
   for (const [key, val] of x) {
     if (val !== DELETED) {
       innerKeyWrite(key);
-      innerValWrite(val);
+      innerValWrite(val as DeepPartial<T>);
     }
   }
 }
@@ -233,13 +237,17 @@ export function diffOptional<T>(
   a: T | undefined,
   b: T | undefined,
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
-) {
+): T | DeepPartial<T> | undefined | typeof NO_DIFF {
   if (a !== undefined && b !== undefined) {
     return innerDiff(a, b);
   }
   return a === b ? NO_DIFF : b;
 }
-export function diffArray<T>(a: T[], b: T[], innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF) {
+export function diffArray<T>(
+  a: T[],
+  b: T[],
+  innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
+): DeepPartial<T[]> | typeof NO_DIFF {
   let changed = a.length !== b.length;
   const arr = b.map((val, i) => {
     if (i < a.length) {
@@ -255,8 +263,8 @@ export function diffRecord<K, T>(
   a: Map<K, T>,
   b: Map<K, T>,
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
-) {
-  const obj: Map<K, T | DeepPartial<T> | typeof DELETED> = new Map();
+): DeepPartial<Map<K, T>> | typeof NO_DIFF {
+  const obj: DeepPartial<Map<K, T>> = new Map();
   for (const [bKey, bVal] of b) {
     const aVal = a.get(bKey);
     if (aVal === undefined) {
@@ -276,8 +284,14 @@ export function diffRecord<K, T>(
   return obj.size > 0 ? obj : NO_DIFF;
 }
 
-export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch: (a: T, b: DeepPartial<T>) => T) {
-  if (patch === undefined) {
+export function patchOptional<T>(
+  obj: T | undefined,
+  patch: T | DeepPartial<T> | undefined | typeof NO_DIFF,
+  innerPatch: (a: T, b: DeepPartial<T>) => T,
+) {
+  if (patch === NO_DIFF) {
+    return obj;
+  } else if (patch === undefined) {
     return undefined;
   } else if (obj === undefined) {
     return patch as T;
@@ -286,7 +300,7 @@ export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch:
 }
 export function patchArray<T>(
   arr: T[],
-  patch: unknown[] | typeof NO_DIFF,
+  patch: DeepPartial<T[]> | typeof NO_DIFF,
   innerPatch: (a: T, b: DeepPartial<T>) => T,
 ): T[] {
   if (patch === NO_DIFF) {
@@ -306,7 +320,14 @@ export function patchArray<T>(
   }
   return arr;
 }
-export function patchRecord<K, T>(obj: Map<K, T>, patch: Map<K, unknown>, innerPatch: (a: T, b: DeepPartial<T>) => T) {
+export function patchRecord<K, T>(
+  obj: Map<K, T>,
+  patch: DeepPartial<Map<K, T>> | typeof NO_DIFF,
+  innerPatch: (a: T, b: DeepPartial<T>) => T,
+) {
+  if (patch === NO_DIFF) {
+    return obj;
+  }
   for (const [key, patchVal] of patch) {
     if (patchVal === DELETED) {
       obj.delete(key);

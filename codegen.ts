@@ -411,11 +411,23 @@ export const ${name} = {
 
   function renderApplyDiff(type: Type, name: string, key: string, diff: string): string {
     if (type.type === "array") {
-      return `_.patchArray(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
+      return `_.patchArray<${renderTypeArg(type.value)}>(${key}, ${diff}, (a, b) => ${renderApplyDiff(
+        type.value,
+        name,
+        "a",
+        "b",
+      )})`;
     } else if (type.type === "optional") {
-      return `_.patchOptional(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
+      return `_.patchOptional<${renderTypeArg(type.value)}>(${key}, ${diff}, (a, b) => ${renderApplyDiff(
+        type.value,
+        name,
+        "a",
+        "b",
+      )})`;
     } else if (type.type === "record") {
-      return `_.patchRecord(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
+      return `_.patchRecord<${renderTypeArg(type.key)}, ${renderTypeArg(
+        type.value,
+      )}>(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
     } else if (type.type === "reference") {
       return renderApplyDiff(doc[type.reference], type.reference, key, diff);
     } else if (
