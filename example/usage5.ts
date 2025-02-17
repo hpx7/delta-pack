@@ -25,11 +25,11 @@ const state1: GameState = {
   debugBodies: [],
 };
 
-const encoded = GameState.encode(state1).toBuffer();
+const encoded = encode(state1);
 console.log("encoded", encoded);
-// Uint8Array(52)
+// Uint8Array(42)
 
-const decoded = GameState.decode(new Reader(encoded));
+const decoded = decode(encoded);
 assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
 
 const state2: GameState = {
@@ -92,11 +92,20 @@ console.log(
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(222)
+// Uint8Array(220)
 
-const decodedDiff = decodeDiff(new Reader(encodedDiff));
+const decodedDiff = decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);
 assert.equal(GameState.computeDiff(applied, state2), NO_DIFF);
+
+function encode(state: GameState) {
+  const tracker = new Tracker();
+  const encoded = GameState.encode(state, tracker).toBuffer();
+  const writer = new Writer();
+  tracker.encode(writer);
+  writer.writeBuffer(encoded);
+  return writer.toBuffer();
+}
 
 function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
   if (diff === NO_DIFF) {
@@ -110,10 +119,17 @@ function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
   return writer.toBuffer();
 }
 
-function decodeDiff(reader: Reader) {
-  if (reader.remaining() === 0) {
+function decode(buf: Uint8Array) {
+  const reader = new Reader(buf);
+  const tracker = new Tracker(reader);
+  return GameState.decode(reader, tracker);
+}
+
+function decodeDiff(buf: Uint8Array) {
+  if (buf.length === 0) {
     return NO_DIFF;
   }
+  const reader = new Reader(buf);
   const tracker = new Tracker(reader);
   return GameState.decodeDiff(reader, tracker);
 }

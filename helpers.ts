@@ -3,7 +3,6 @@ import { Writer, Reader } from "bin-serde";
 export { Writer, Reader };
 
 export const NO_DIFF = Symbol("NODIFF");
-export const DELETED = Symbol("DELETED");
 export type DeepPartial<T> = T extends string | number | boolean | undefined
   ? T
   : T extends Array<infer V>
@@ -11,7 +10,7 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : T extends { type: string; val: any }
   ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
   : T extends Map<infer K, infer V>
-  ? Map<K, V | DeepPartial<V> | typeof DELETED>
+  ? { deletions: Set<K>; additions: Map<K, V>; updates: Map<K, DeepPartial<V>> }
   : { [K in keyof T]: DeepPartial<T[K]> | typeof NO_DIFF };
 
 export class Tracker {
@@ -92,8 +91,8 @@ export function writeFloat(buf: Writer, x: number) {
 export function writeString(buf: Writer, x: string) {
   buf.writeString(x);
 }
-export function writeOptional<T>(buf: Writer, x: T | undefined, innerWrite: (x: T) => void) {
-  writeBoolean(buf, x !== undefined);
+export function writeOptional<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
+  tracker.push(x !== undefined);
   if (x !== undefined) {
     innerWrite(x);
   }
@@ -144,24 +143,22 @@ export function writeRecordDiff<K, T>(
   buf: Writer,
   x: DeepPartial<Map<K, T>>,
   innerKeyWrite: (x: K) => void,
-  innerValWrite: (x: DeepPartial<T>) => void,
+  innerValWrite: (x: T) => void,
+  innerValUpdateWrite: (x: DeepPartial<T>) => void,
 ) {
-  const deletedKeys = new Set<K>();
-  for (const [key, val] of x) {
-    if (val === DELETED) {
-      deletedKeys.add(key);
-    }
-  }
-  buf.writeUVarint(deletedKeys.size);
-  for (const key of deletedKeys) {
+  buf.writeUVarint(x.deletions.size);
+  for (const key of x.deletions) {
     innerKeyWrite(key);
   }
-  buf.writeUVarint(x.size - deletedKeys.size);
-  for (const [key, val] of x) {
-    if (val !== DELETED) {
-      innerKeyWrite(key);
-      innerValWrite(val as DeepPartial<T>);
-    }
+  buf.writeUVarint(x.additions.size);
+  for (const [key, val] of x.additions) {
+    innerKeyWrite(key);
+    innerValWrite(val);
+  }
+  buf.writeUVarint(x.updates.size);
+  for (const [key, val] of x.updates) {
+    innerKeyWrite(key);
+    innerValUpdateWrite(val);
   }
 }
 
@@ -183,8 +180,8 @@ export function parseFloat(buf: Reader): number {
 export function parseString(buf: Reader): string {
   return buf.readString();
 }
-export function parseOptional<T>(buf: Reader, innerParse: (buf: Reader) => T): T | undefined {
-  return parseBoolean(buf) ? innerParse(buf) : undefined;
+export function parseOptional<T>(tracker: Tracker, innerParse: () => T): T | undefined {
+  return tracker.next() ? innerParse() : undefined;
 }
 export function parseArray<T>(buf: Reader, innerParse: () => T): T[] {
   const len = buf.readUVarint();
@@ -217,15 +214,20 @@ export function parseRecordDiff<K, T>(
   buf: Reader,
   innerKeyParse: () => K,
   innerValParse: () => T,
-): Map<K, T | typeof DELETED> {
-  const obj: Map<K, T | typeof DELETED> = new Map();
+  innerValUpdateParse: () => DeepPartial<T>,
+): DeepPartial<Map<K, T>> {
+  const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
   const numDeleted = buf.readUVarint();
   for (let i = 0; i < numDeleted; i++) {
-    obj.set(innerKeyParse(), DELETED);
+    obj.deletions.add(innerKeyParse());
   }
   const numAdded = buf.readUVarint();
   for (let i = 0; i < numAdded; i++) {
-    obj.set(innerKeyParse(), innerValParse());
+    obj.additions.set(innerKeyParse(), innerValParse());
+  }
+  const numUpdated = buf.readUVarint();
+  for (let i = 0; i < numUpdated; i++) {
+    obj.updates.set(innerKeyParse(), innerValUpdateParse());
   }
   return obj;
 }
@@ -264,24 +266,24 @@ export function diffRecord<K, T>(
   b: Map<K, T>,
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
 ): DeepPartial<Map<K, T>> | typeof NO_DIFF {
-  const obj: DeepPartial<Map<K, T>> = new Map();
+  const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
   for (const [bKey, bVal] of b) {
     const aVal = a.get(bKey);
     if (aVal === undefined) {
-      obj.set(bKey, bVal);
+      obj.additions.set(bKey, bVal);
     } else {
       const diff = innerDiff(aVal, bVal);
       if (diff !== NO_DIFF) {
-        obj.set(bKey, diff);
+        obj.updates.set(bKey, diff);
       }
     }
   }
   for (const aKey of a.keys()) {
     if (!b.has(aKey)) {
-      obj.set(aKey, DELETED);
+      obj.deletions.add(aKey);
     }
   }
-  return obj.size > 0 ? obj : NO_DIFF;
+  return obj.deletions.size + obj.additions.size + obj.updates.size > 0 ? obj : NO_DIFF;
 }
 
 export function patchOptional<T>(
@@ -328,13 +330,14 @@ export function patchRecord<K, T>(
   if (patch === NO_DIFF) {
     return obj;
   }
-  for (const [key, patchVal] of patch) {
-    if (patchVal === DELETED) {
-      obj.delete(key);
-    } else {
-      const objVal = obj.get(key);
-      obj.set(key, objVal === undefined ? (patchVal as T) : innerPatch(objVal, patchVal as DeepPartial<T>));
-    }
+  for (const key of patch.deletions) {
+    obj.delete(key);
+  }
+  for (const [key, patchVal] of patch.additions) {
+    obj.set(key, patchVal);
+  }
+  for (const [key, patchVal] of patch.updates) {
+    obj.set(key, innerPatch(obj.get(key)!, patchVal));
   }
   return obj;
 }
