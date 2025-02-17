@@ -256,7 +256,9 @@ export const ${name} = {
     } else if ("modifier" in type && type.modifier === "optional") {
       return `_.validateOptional(${key}, (x) => ${renderValidate({ ...type, modifier: undefined }, name, "x")})`;
     } else if (type.type === "record") {
-      return `_.validateRecord(${key}, (x) => ${renderValidate(type.value, name, "x")})`;
+      const keyFn = renderValidate(type.key, name, "x");
+      const valueFn = renderValidate(type.value, name, "x");
+      return `_.validateRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderValidate(doc[type.reference], type.reference, key);
     } else if (type.type === "string") {

@@ -53,14 +53,22 @@ export function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
   }
   return [];
 }
-export function validateRecord<K, T>(obj: Map<K, T>, innerValidate: (x: T) => string[]) {
-  if (typeof obj !== "object" || obj === null) {
+export function validateRecord<K, T>(
+  obj: Map<K, T>,
+  innerKeyValidate: (x: K) => string[],
+  innerValueValidate: (x: T) => string[],
+) {
+  if (!(obj instanceof Map)) {
     return ["Invalid record: " + obj];
   }
   for (const [key, val] of obj) {
-    const validationErrors = innerValidate(val);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid record key " + key);
+    const keyValidationErrors = innerKeyValidate(key);
+    if (keyValidationErrors.length > 0) {
+      return keyValidationErrors.concat("Invalid record key " + key);
+    }
+    const valueValidationErrors = innerValueValidate(val);
+    if (valueValidationErrors.length > 0) {
+      return valueValidationErrors.concat("Invalid record value " + val + " for key " + key);
     }
   }
   return [];

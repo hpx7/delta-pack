@@ -2508,7 +2508,7 @@ export const GameState = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validateRecord(obj.creatures, (x) => Creature.validate(x));
+    validationErrors = _.validateRecord(obj.creatures, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`), (x) => Creature.validate(x));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.creatures");
     }
