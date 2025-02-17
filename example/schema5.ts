@@ -5,7 +5,6 @@ import {
   ObjectType,
   OptionalType,
   RecordType,
-  ReferenceType,
   StringType,
   UIntType,
   codegenTypescript,
@@ -91,7 +90,7 @@ const Object = ObjectType({
 const DebugBody = ObjectType({
   x: IntType(),
   y: IntType(),
-  points: ArrayType(ReferenceType("Point")),
+  points: ArrayType("Point"),
 });
 
 const Player = ObjectType({
@@ -100,10 +99,10 @@ const Player = ObjectType({
   team: OptionalType(StringType()),
   hero: OptionalType(IntType()),
   cents: OptionalType(IntType()),
-  deck: OptionalType(ReferenceType("Deck")),
+  deck: OptionalType("Deck"),
   randomSlots: ArrayType(StringType()),
-  hand: OptionalType(ReferenceType("Hand")),
-  skills: OptionalType(ReferenceType("Skills")),
+  hand: OptionalType("Hand"),
+  skills: OptionalType("Skills"),
   restrictionZones: StringType(),
 });
 
@@ -131,10 +130,10 @@ const Hand = ObjectType({
 });
 
 const Skills = ObjectType({
-  slot1: OptionalType(ReferenceType("Skill")),
-  slot2: OptionalType(ReferenceType("Skill")),
-  slot3: OptionalType(ReferenceType("Skill")),
-  slot4: OptionalType(ReferenceType("Skill")),
+  slot1: OptionalType("Skill"),
+  slot2: OptionalType("Skill"),
+  slot3: OptionalType("Skill"),
+  slot4: OptionalType("Skill"),
 });
 
 const Skill = ObjectType({
@@ -154,8 +153,8 @@ const GameInfo = ObjectType({
 
 const DraftState = ObjectType({
   timeRemaining: IntType(),
-  decks: ArrayType(ReferenceType("DraftDeck")),
-  pairs: ArrayType(ReferenceType("CardPair")),
+  decks: ArrayType("DraftDeck"),
+  pairs: ArrayType("CardPair"),
 });
 
 const DraftDeck = ObjectType({
@@ -177,16 +176,16 @@ const CardPair = ObjectType({
 });
 
 const GameState = ObjectType({
-  creatures: RecordType(UIntType(), ReferenceType("Creature")),
-  items: ArrayType(ReferenceType("Item")),
-  effects: ArrayType(ReferenceType("Effect")),
-  objects: ArrayType(ReferenceType("Object")),
-  players: ArrayType(ReferenceType("Player")),
-  spectators: ArrayType(ReferenceType("Spectator")),
-  info: ReferenceType("GameInfo"),
-  draft: OptionalType(ReferenceType("DraftState")),
+  creatures: RecordType(UIntType(), "Creature"),
+  items: ArrayType("Item"),
+  effects: ArrayType("Effect"),
+  objects: ArrayType("Object"),
+  players: ArrayType("Player"),
+  spectators: ArrayType("Spectator"),
+  info: "GameInfo",
+  draft: OptionalType("DraftState"),
   // TODO: make optional array? (empty array is easier to handle)
-  debugBodies: ArrayType(ReferenceType("DebugBody")),
+  debugBodies: ArrayType("DebugBody"),
 });
 
 console.log(

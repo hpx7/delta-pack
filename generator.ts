@@ -1,26 +1,15 @@
 import { renderDoc } from "./codegen";
 
-export type Type =
-  | ReferenceType
-  | ObjectType
-  | UnionType
-  | ArrayType
-  | OptionalType
-  | RecordType
-  | EnumType
-  | StringType
-  | IntType
-  | UIntType
-  | FloatType
-  | BooleanType;
-type ChildType = StringType | IntType | FloatType | BooleanType | ArrayType | OptionalType | RecordType | ReferenceType;
-interface ReferenceType {
+type PrimitiveType = EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
+type ContainerType = ArrayType | OptionalType | RecordType;
+export type Type = ReferenceType | ObjectType | UnionType | ContainerType | PrimitiveType;
+type ReferenceType = {
   type: "reference";
   reference: string;
-}
+};
 interface ObjectType {
   type: "object";
-  properties: Record<string, ChildType>;
+  properties: Record<string, PrimitiveType | ContainerType | ReferenceType>;
 }
 interface UnionType {
   type: "union";
@@ -28,16 +17,16 @@ interface UnionType {
 }
 interface ArrayType {
   type: "array";
-  value: StringType | IntType | FloatType | BooleanType | ReferenceType;
+  value: PrimitiveType | ReferenceType;
 }
 interface OptionalType {
   type: "optional";
-  value: StringType | IntType | FloatType | BooleanType | ReferenceType;
+  value: PrimitiveType | ReferenceType;
 }
 interface RecordType {
   type: "record";
   key: StringType | IntType | UIntType;
-  value: StringType | IntType | FloatType | BooleanType | ReferenceType;
+  value: PrimitiveType | ReferenceType;
 }
 interface EnumType {
   type: "enum";
@@ -59,31 +48,31 @@ interface BooleanType {
   type: "boolean";
 }
 
-export function ReferenceType(reference: string): ReferenceType {
-  return { type: "reference", reference };
+export function ObjectType(properties: Record<string, PrimitiveType | ContainerType | string>): ObjectType {
+  return {
+    type: "object",
+    properties: Object.fromEntries(
+      Object.entries(properties).map(([key, value]) => {
+        return [key, handleReference(value)];
+      }),
+    ),
+  };
 }
 
-export function ObjectType(properties: Record<string, ChildType>): ObjectType {
-  return { type: "object", properties };
+export function UnionType(options: string[]): UnionType {
+  return { type: "union", options: options.map((option) => ({ type: "reference", reference: option })) };
 }
 
-export function UnionType(options: ReferenceType[]): UnionType {
-  return { type: "union", options };
+export function ArrayType(value: PrimitiveType | string): ArrayType {
+  return { type: "array", value: handleReference(value) };
 }
 
-export function ArrayType(value: StringType | IntType | FloatType | BooleanType | ReferenceType): ArrayType {
-  return { type: "array", value };
+export function OptionalType(value: PrimitiveType | string): OptionalType {
+  return { type: "optional", value: handleReference(value) };
 }
 
-export function OptionalType(value: StringType | IntType | FloatType | BooleanType | ReferenceType): OptionalType {
-  return { type: "optional", value };
-}
-
-export function RecordType(
-  key: StringType | IntType | UIntType,
-  value: StringType | IntType | FloatType | BooleanType | ReferenceType,
-): RecordType {
-  return { type: "record", key, value };
+export function RecordType(key: StringType | IntType | UIntType, value: PrimitiveType | string): RecordType {
+  return { type: "record", key, value: handleReference(value) };
 }
 
 export function EnumType(options: string[]): EnumType {
@@ -112,4 +101,8 @@ export function BooleanType(): BooleanType {
 
 export function codegenTypescript(doc: Record<string, Type>) {
   return renderDoc(doc);
+}
+
+function handleReference<T>(value: T | string) {
+  return typeof value === "string" ? { type: "reference" as const, reference: value } : value;
 }
