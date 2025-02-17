@@ -1,10 +1,9 @@
 import {
   BooleanType,
-  ChildType,
   FloatType,
   IntType,
-  Modifier,
   ObjectType,
+  OptionalType,
   RecordType,
   ReferenceType,
   StringType,
@@ -24,7 +23,7 @@ const Weapon = ObjectType({
 const Player = ObjectType({
   position: ReferenceType("Position"),
   health: IntType(),
-  weapon: ChildType(ReferenceType("Weapon"), Modifier.OPTIONAL),
+  weapon: OptionalType(ReferenceType("Weapon")),
   stealth: BooleanType(),
 });
 

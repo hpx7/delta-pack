@@ -1,4 +1,4 @@
-import type { ChildType, Type } from "./generator";
+import type { Type } from "./generator";
 
 export function renderDoc(doc: Record<string, Type>) {
   return `import * as _ from "../helpers.ts";
@@ -200,14 +200,12 @@ export const ${name} = {
   })
   .join("\n")}`;
 
-  function renderTypeArg(type: Type | ChildType): string {
+  function renderTypeArg(type: Type): string {
     if (type.type === "object") {
       return `{
   ${Object.entries(type.properties)
     .map(([name, childType]) => {
-      const optionalModifier = childType.modifier === "optional" ? "?" : "";
-      const arrayModifier = childType.modifier === "array" ? "[]" : "";
-      return `${name}${optionalModifier}: ${renderTypeArg(childType)}${arrayModifier};`;
+      return `${name}${childType.type === "optional" ? "?" : ""}: ${renderTypeArg(childType)};`;
     })
     .join("\n  ")}
 }`;
@@ -215,6 +213,10 @@ export const ${name} = {
       return type.options
         .map((option) => `{ type: "${renderTypeArg(option)}"; val: ${renderTypeArg(option)} }`)
         .join(" | ");
+    } else if (type.type === "array") {
+      return `${renderTypeArg(type.value)}[]`;
+    } else if (type.type === "optional") {
+      return `${renderTypeArg(type.value)}`;
     } else if (type.type === "record") {
       return `Map<${renderTypeArg(type.key)}, ${renderTypeArg(type.value)}>`;
     } else if (type.type === "reference") {
@@ -225,10 +227,10 @@ export const ${name} = {
     return type.type;
   }
 
-  function renderDefault(type: Type | ChildType, name: string): string {
-    if ("modifier" in type && type.modifier === "array") {
+  function renderDefault(type: Type, name: string): string {
+    if (type.type === "array") {
       return "[]";
-    } else if ("modifier" in type && type.modifier === "optional") {
+    } else if (type.type === "optional") {
       return "undefined";
     } else if (type.type === "record") {
       return "new Map()";
@@ -250,11 +252,11 @@ export const ${name} = {
     return `${name}.default()`;
   }
 
-  function renderValidate(type: Type | ChildType, name: string, key: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.validateArray(${key}, (x) => ${renderValidate({ ...type, modifier: undefined }, name, "x")})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.validateOptional(${key}, (x) => ${renderValidate({ ...type, modifier: undefined }, name, "x")})`;
+  function renderValidate(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `_.validateArray(${key}, (x) => ${renderValidate(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return `_.validateOptional(${key}, (x) => ${renderValidate(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderValidate(type.key, name, "x");
       const valueFn = renderValidate(type.value, name, "x");
@@ -277,11 +279,11 @@ export const ${name} = {
     return `${name}.validate(${key})`;
   }
 
-  function renderEncode(type: Type | ChildType, name: string, key: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.writeArray(buf, ${key}, (x) => ${renderEncode({ ...type, modifier: undefined }, name, "x")})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.writeOptional(buf, ${key}, (x) => ${renderEncode({ ...type, modifier: undefined }, name, "x")})`;
+  function renderEncode(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `_.writeArray(buf, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return `_.writeOptional(buf, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderEncode(type.key, name, "x");
       const valueFn = renderEncode(type.value, name, "x");
@@ -304,19 +306,11 @@ export const ${name} = {
     return `${name}.encode(${key}, buf)`;
   }
 
-  function renderEncodeDiff(type: Type | ChildType, name: string, key: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.writeArrayDiff(buf, tracker, ${key}, (x) => ${renderEncodeDiff(
-        { ...type, modifier: undefined },
-        name,
-        "x",
-      )})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.writeOptionalDiff(tracker, ${key}, (x) => ${renderEncodeDiff(
-        { ...type, modifier: undefined },
-        name,
-        "x",
-      )})`;
+  function renderEncodeDiff(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `_.writeArrayDiff(buf, tracker, ${key}, (x) => ${renderEncodeDiff(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return `_.writeOptionalDiff(tracker, ${key}, (x) => ${renderEncodeDiff(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderEncodeDiff(type.key, name, "x");
       const valueFn = renderEncodeDiff(type.value, name, "x");
@@ -339,11 +333,11 @@ export const ${name} = {
     return `${name}.encodeDiff(${key}, tracker, buf)`;
   }
 
-  function renderDecode(type: Type | ChildType, name: string, key: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.parseArray(sb, () => ${renderDecode({ ...type, modifier: undefined }, name, "x")})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.parseOptional(sb, () => ${renderDecode({ ...type, modifier: undefined }, name, "x")})`;
+  function renderDecode(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `_.parseArray(sb, () => ${renderDecode(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return `_.parseOptional(sb, () => ${renderDecode(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderDecode(type.key, name, "x");
       const valueFn = renderDecode(type.value, name, "x");
@@ -366,11 +360,11 @@ export const ${name} = {
     return `${name}.decode(sb)`;
   }
 
-  function renderDecodeDiff(type: Type | ChildType, name: string, key: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.parseArrayDiff(sb, tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.parseOptionalDiff(tracker, () => ${renderDecodeDiff({ ...type, modifier: undefined }, name, "x")})`;
+  function renderDecodeDiff(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `_.parseArrayDiff(sb, tracker, () => ${renderDecodeDiff(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return `_.parseOptionalDiff(tracker, () => ${renderDecodeDiff(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderDecodeDiff(type.key, name, "x");
       const valueFn = renderDecodeDiff(type.value, name, "x");
@@ -393,21 +387,11 @@ export const ${name} = {
     return `${name}.decodeDiff(sb, tracker)`;
   }
 
-  function renderComputeDiff(type: Type | ChildType, name: string, keyA: string, keyB: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.diffArray(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(
-        { ...type, modifier: undefined },
-        name,
-        "x",
-        "y",
-      )})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.diffOptional(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(
-        { ...type, modifier: undefined },
-        name,
-        "x",
-        "y",
-      )})`;
+  function renderComputeDiff(type: Type, name: string, keyA: string, keyB: string): string {
+    if (type.type === "array") {
+      return `_.diffArray(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
+    } else if (type.type === "optional") {
+      return `_.diffOptional(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
     } else if (type.type === "record") {
       return `_.diffRecord(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
     } else if (type.type === "reference") {
@@ -425,21 +409,11 @@ export const ${name} = {
     return `${name}.computeDiff(${keyA}, ${keyB})`;
   }
 
-  function renderApplyDiff(type: Type | ChildType, name: string, key: string, diff: string): string {
-    if ("modifier" in type && type.modifier === "array") {
-      return `_.patchArray(${key}, ${diff}, (a, b) => ${renderApplyDiff(
-        { ...type, modifier: undefined },
-        name,
-        "a",
-        "b",
-      )})`;
-    } else if ("modifier" in type && type.modifier === "optional") {
-      return `_.patchOptional(${key}, ${diff}, (a, b) => ${renderApplyDiff(
-        { ...type, modifier: undefined },
-        name,
-        "a",
-        "b",
-      )})`;
+  function renderApplyDiff(type: Type, name: string, key: string, diff: string): string {
+    if (type.type === "array") {
+      return `_.patchArray(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
+    } else if (type.type === "optional") {
+      return `_.patchOptional(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
     } else if (type.type === "record") {
       return `_.patchRecord(${key}, ${diff}, (a, b) => ${renderApplyDiff(type.value, name, "a", "b")})`;
     } else if (type.type === "reference") {

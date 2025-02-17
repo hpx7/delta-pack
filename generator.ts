@@ -1,13 +1,19 @@
 import { renderDoc } from "./codegen";
 
-export type Type = ObjectType | UnionType | EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
-export enum Modifier {
-  OPTIONAL = "optional",
-  ARRAY = "array",
-}
-export type ChildType = (StringType | IntType | FloatType | BooleanType | RecordType | ReferenceType) & {
-  modifier?: Modifier;
-};
+export type Type =
+  | ReferenceType
+  | ObjectType
+  | UnionType
+  | ArrayType
+  | OptionalType
+  | RecordType
+  | EnumType
+  | StringType
+  | IntType
+  | UIntType
+  | FloatType
+  | BooleanType;
+type ChildType = StringType | IntType | FloatType | BooleanType | ArrayType | OptionalType | RecordType | ReferenceType;
 interface ReferenceType {
   type: "reference";
   reference: string;
@@ -19,6 +25,14 @@ interface ObjectType {
 interface UnionType {
   type: "union";
   options: ReferenceType[];
+}
+interface ArrayType {
+  type: "array";
+  value: StringType | IntType | FloatType | BooleanType | ReferenceType;
+}
+interface OptionalType {
+  type: "optional";
+  value: StringType | IntType | FloatType | BooleanType | ReferenceType;
 }
 interface RecordType {
   type: "record";
@@ -53,15 +67,16 @@ export function ObjectType(properties: Record<string, ChildType>): ObjectType {
   return { type: "object", properties };
 }
 
-export function ChildType(
-  type: StringType | IntType | FloatType | BooleanType | RecordType | ReferenceType,
-  modifier?: Modifier,
-): ChildType {
-  return { ...type, modifier };
-}
-
 export function UnionType(options: ReferenceType[]): UnionType {
   return { type: "union", options };
+}
+
+export function ArrayType(value: StringType | IntType | FloatType | BooleanType | ReferenceType): ArrayType {
+  return { type: "array", value };
+}
+
+export function OptionalType(value: StringType | IntType | FloatType | BooleanType | ReferenceType): OptionalType {
+  return { type: "optional", value };
 }
 
 export function RecordType(

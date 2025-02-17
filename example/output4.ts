@@ -278,7 +278,7 @@ export const GameState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.timeRemaining");
     }
-    validationErrors = _.validateRecord(obj.players, (x) => Player.validate(x));
+    validationErrors = _.validateRecord(obj.players, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`), (x) => Player.validate(x));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.players");
     }
