@@ -313,11 +313,10 @@ export const ${name} = {
       const valueUpdateFn = renderEncodeDiff(type.value, name, "x");
       return `_.writeArrayDiff<${valueType}>(buf, tracker, ${key}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
     } else if (type.type === "optional") {
-      return `_.writeOptionalDiff<${renderTypeArg(type.value)}>(tracker, ${key}, (x) => ${renderEncodeDiff(
-        type.value,
-        name,
-        "x",
-      )})`;
+      const valueType = renderTypeArg(type.value);
+      const fullFn = renderEncode(type.value, name, "x");
+      const partialFn = renderEncodeDiff(type.value, name, "x");
+      return `_.writeOptionalDiff<${valueType}>(tracker, ${key}!, (x) => ${fullFn}, (x) => ${partialFn})`;
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key);
       const valueType = renderTypeArg(type.value);
@@ -377,7 +376,10 @@ export const ${name} = {
       const valueUpdateFn = renderDecodeDiff(type.value, name, "x");
       return `_.parseArrayDiff<${valueType}>(sb, tracker, () => ${valueFn}, () => ${valueUpdateFn})`;
     } else if (type.type === "optional") {
-      return `_.parseOptionalDiff(tracker, () => ${renderDecodeDiff(type.value, name, "x")})`;
+      const valueType = renderTypeArg(type.value);
+      const fullFn = renderDecode(type.value, name, "x");
+      const partialFn = renderDecodeDiff(type.value, name, "x");
+      return `_.parseOptionalDiff<${valueType}>(tracker, () => ${fullFn}, () => ${partialFn})`;
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key);
       const valueType = renderTypeArg(type.value);
@@ -439,7 +441,7 @@ export const ${name} = {
         "b",
       )})`;
     } else if (type.type === "optional") {
-      return `_.patchOptional<${renderTypeArg(type.value)}>(${key}, ${diff}, (a, b) => ${renderApplyDiff(
+      return `_.patchOptional<${renderTypeArg(type.value)}>(${key}, ${diff}!, (a, b) => ${renderApplyDiff(
         type.value,
         name,
         "a",

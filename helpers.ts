@@ -11,7 +11,16 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
   : T extends Map<infer K, infer V>
   ? { deletions: Set<K>; additions: Map<K, V>; updates: Map<K, DeepPartial<V>> }
-  : { [K in keyof T]: DeepPartial<T[K]> | typeof NO_DIFF };
+  : T extends Object
+  ? {
+      [K in keyof T]: undefined extends T[K]
+        ?
+            | { type: "partial"; val: NonNullable<DeepPartial<T[K]>> }
+            | { type: "full"; val: T[K] | undefined }
+            | typeof NO_DIFF
+        : DeepPartial<T[K]> | typeof NO_DIFF;
+    }
+  : never;
 
 export class Tracker {
   private bits: boolean[];
@@ -117,12 +126,18 @@ export function writeRecord<K, T>(
 }
 export function writeOptionalDiff<T>(
   tracker: Tracker,
-  x: DeepPartial<T> | undefined,
-  innerWrite: (x: DeepPartial<T>) => void,
+  x: { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined },
+  innerFullWrite: (x: T) => void,
+  innerPartialWrite: (x: DeepPartial<T>) => void,
 ) {
-  tracker.push(x !== undefined);
-  if (x !== undefined) {
-    innerWrite(x);
+  tracker.push(x.type === "partial");
+  if (x.type === "partial") {
+    innerPartialWrite(x.val);
+  } else {
+    tracker.push(x.val !== undefined);
+    if (x.val !== undefined) {
+      innerFullWrite(x.val);
+    }
   }
 }
 export function writeArrayDiff<T>(
@@ -204,8 +219,16 @@ export function parseRecord<K, T>(buf: Reader, innerKeyParse: () => K, innerValP
   }
   return obj;
 }
-export function parseOptionalDiff<T>(tracker: Tracker, innerParse: () => T): T | undefined {
-  return tracker.next() ? innerParse() : undefined;
+export function parseOptionalDiff<T>(
+  tracker: Tracker,
+  innerFullParse: () => T,
+  innerPartialParse: () => DeepPartial<T>,
+): typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined } {
+  const isPartial = tracker.next();
+  if (isPartial) {
+    return { type: "partial", val: innerPartialParse() };
+  }
+  return { type: "full", val: tracker.next() ? innerFullParse() : undefined };
 }
 export function parseArrayDiff<T>(
   buf: Reader,
@@ -254,11 +277,12 @@ export function diffOptional<T>(
   a: T | undefined,
   b: T | undefined,
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
-): DeepPartial<T> | undefined | typeof NO_DIFF {
+): typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined } {
   if (a !== undefined && b !== undefined) {
-    return innerDiff(a, b);
+    const diff = innerDiff(a, b);
+    return diff === NO_DIFF ? NO_DIFF : { type: "partial", val: diff };
   }
-  return a === b ? NO_DIFF : (b as DeepPartial<T> | undefined);
+  return a === b ? NO_DIFF : { type: "full", val: b };
 }
 export function diffArray<T>(
   a: T[],
@@ -302,17 +326,15 @@ export function diffRecord<K, T>(
 
 export function patchOptional<T>(
   obj: T | undefined,
-  patch: T | DeepPartial<T> | undefined | typeof NO_DIFF,
+  patch: typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined },
   innerPatch: (a: T, b: DeepPartial<T>) => T,
-) {
+): T | undefined {
   if (patch === NO_DIFF) {
     return obj;
-  } else if (patch === undefined) {
-    return undefined;
-  } else if (obj === undefined) {
-    return patch as T;
+  } else if (patch.type === "full") {
+    return patch.val;
   }
-  return innerPatch(obj, patch as DeepPartial<T>);
+  return innerPatch(obj!, patch.val);
 }
 export function patchArray<T>(
   arr: T[],
@@ -340,7 +362,7 @@ export function patchRecord<K, T>(
   obj: Map<K, T>,
   patch: DeepPartial<Map<K, T>> | typeof NO_DIFF,
   innerPatch: (a: T, b: DeepPartial<T>) => T,
-) {
+): Map<K, T> {
   if (patch === NO_DIFF) {
     return obj;
   }
