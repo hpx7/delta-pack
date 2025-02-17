@@ -184,8 +184,7 @@ const GameState = ObjectType({
   spectators: ArrayType("Spectator"),
   info: "GameInfo",
   draft: OptionalType("DraftState"),
-  // TODO: make optional array? (empty array is easier to handle)
-  debugBodies: ArrayType("DebugBody"),
+  debugBodies: OptionalType(ArrayType("DebugBody")),
 });
 
 console.log(

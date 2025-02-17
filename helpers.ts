@@ -284,7 +284,14 @@ export function patchOptional<T>(obj: T | undefined, patch: unknown, innerPatch:
   }
   return innerPatch(obj, patch as DeepPartial<T>);
 }
-export function patchArray<T>(arr: T[], patch: unknown[], innerPatch: (a: T, b: DeepPartial<T>) => T): T[] {
+export function patchArray<T>(
+  arr: T[],
+  patch: unknown[] | typeof NO_DIFF,
+  innerPatch: (a: T, b: DeepPartial<T>) => T,
+): T[] {
+  if (patch === NO_DIFF) {
+    return arr;
+  }
   patch.forEach((val, i) => {
     if (val !== NO_DIFF) {
       if (i >= arr.length) {

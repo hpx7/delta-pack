@@ -158,7 +158,7 @@ export type GameState = {
   spectators: Spectator[];
   info: GameInfo;
   draft?: DraftState;
-  debugBodies: DebugBody[];
+  debugBodies?: DebugBody[];
 };
 
 
@@ -2499,7 +2499,7 @@ export const GameState = {
       spectators: [],
       info: GameInfo.default(),
       draft: undefined,
-      debugBodies: [],
+      debugBodies: undefined,
     };
   },
   validate(obj: GameState) {
@@ -2540,7 +2540,7 @@ export const GameState = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.draft");
     }
-    validationErrors = _.validateArray(obj.debugBodies, (x) => DebugBody.validate(x));
+    validationErrors = _.validateOptional(obj.debugBodies, (x) => _.validateArray(x, (x) => DebugBody.validate(x)));
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: GameState.debugBodies");
     }
@@ -2556,7 +2556,7 @@ export const GameState = {
     _.writeArray(buf, obj.spectators, (x) => Spectator.encode(x, buf));
     GameInfo.encode(obj.info, buf);
     _.writeOptional(buf, obj.draft, (x) => DraftState.encode(x, buf));
-    _.writeArray(buf, obj.debugBodies, (x) => DebugBody.encode(x, buf));
+    _.writeOptional(buf, obj.debugBodies, (x) => _.writeArray(buf, x, (x) => DebugBody.encode(x, buf)));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<GameState>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
@@ -2594,7 +2594,7 @@ export const GameState = {
     }
     tracker.push(obj.debugBodies !== _.NO_DIFF);
     if (obj.debugBodies !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.debugBodies, (x) => DebugBody.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff(tracker, obj.debugBodies, (x) => _.writeArrayDiff(buf, tracker, x, (x) => DebugBody.encodeDiff(x, tracker, buf)));
     }
     return buf;
   },
@@ -2609,7 +2609,7 @@ export const GameState = {
       spectators: _.parseArray(sb, () => Spectator.decode(sb)),
       info: GameInfo.decode(sb),
       draft: _.parseOptional(sb, () => DraftState.decode(sb)),
-      debugBodies: _.parseArray(sb, () => DebugBody.decode(sb)),
+      debugBodies: _.parseOptional(sb, () => _.parseArray(sb, () => DebugBody.decode(sb))),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<GameState> {
@@ -2623,7 +2623,7 @@ export const GameState = {
       spectators: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Spectator.decodeDiff(sb, tracker)) : _.NO_DIFF,
       info: tracker.next() ? GameInfo.decodeDiff(sb, tracker) : _.NO_DIFF,
       draft: tracker.next() ? _.parseOptionalDiff(tracker, () => DraftState.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      debugBodies: tracker.next() ? _.parseArrayDiff(sb, tracker, () => DebugBody.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      debugBodies: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseArrayDiff(sb, tracker, () => DebugBody.decodeDiff(sb, tracker))) : _.NO_DIFF,
     };
   },
   computeDiff(a: GameState, b: GameState): _.DeepPartial<GameState> | typeof _.NO_DIFF {
@@ -2636,7 +2636,7 @@ export const GameState = {
       spectators: _.diffArray(a.spectators, b.spectators, (x, y) => Spectator.computeDiff(x, y)),
       info: GameInfo.computeDiff(a.info, b.info),
       draft: _.diffOptional(a.draft, b.draft, (x, y) => DraftState.computeDiff(x, y)),
-      debugBodies: _.diffArray(a.debugBodies, b.debugBodies, (x, y) => DebugBody.computeDiff(x, y)),
+      debugBodies: _.diffOptional(a.debugBodies, b.debugBodies, (x, y) => _.diffArray(x, y, (x, y) => DebugBody.computeDiff(x, y))),
     };
     return diff.creatures === _.NO_DIFF && diff.items === _.NO_DIFF && diff.effects === _.NO_DIFF && diff.objects === _.NO_DIFF && diff.players === _.NO_DIFF && diff.spectators === _.NO_DIFF && diff.info === _.NO_DIFF && diff.draft === _.NO_DIFF && diff.debugBodies === _.NO_DIFF ? _.NO_DIFF : diff;
   },
@@ -2652,7 +2652,7 @@ export const GameState = {
     obj.spectators = diff.spectators === _.NO_DIFF ? obj.spectators : _.patchArray(obj.spectators, diff.spectators, (a, b) => Spectator.applyDiff(a, b));
     obj.info = diff.info === _.NO_DIFF ? obj.info : GameInfo.applyDiff(obj.info, diff.info);
     obj.draft = diff.draft === _.NO_DIFF ? obj.draft : _.patchOptional(obj.draft, diff.draft, (a, b) => DraftState.applyDiff(a, b));
-    obj.debugBodies = diff.debugBodies === _.NO_DIFF ? obj.debugBodies : _.patchArray(obj.debugBodies, diff.debugBodies, (a, b) => DebugBody.applyDiff(a, b));
+    obj.debugBodies = diff.debugBodies === _.NO_DIFF ? obj.debugBodies : _.patchOptional(obj.debugBodies, diff.debugBodies, (a, b) => _.patchArray(a, b, (a, b) => DebugBody.applyDiff(a, b)));
     return obj;
   },
 };
