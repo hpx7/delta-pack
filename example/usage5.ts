@@ -4,18 +4,20 @@ import { Tracker, DeepPartial, NO_DIFF, Reader, Writer } from "../helpers.ts";
 
 const state1: GameState = {
   creatures: new Map(),
-  items: [],
-  effects: [],
-  objects: [],
-  players: [
-    {
-      id: "pJmLTr3ekWjP",
-      name: "Jade Louse",
-      randomSlots: [],
-      restrictionZones: "",
-    },
-  ],
-  spectators: [],
+  items: new Map(),
+  effects: new Map(),
+  objects: new Map(),
+  players: new Map([
+    [
+      "pJmLTr3ekWjP",
+      {
+        name: "Jade Louse",
+        randomSlots: [],
+        restrictionZones: "",
+      },
+    ],
+  ]),
+  spectators: new Map(),
   info: {
     mode: "1v1",
     timeLimit: 600,
@@ -25,50 +27,55 @@ const state1: GameState = {
 
 const encoded = GameState.encode(state1).toBuffer();
 console.log("encoded", encoded);
+// Uint8Array(52)
 
 const decoded = GameState.decode(new Reader(encoded));
 assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
 
 const state2: GameState = {
   creatures: new Map(),
-  items: [],
-  effects: [],
-  objects: [],
-  players: [
-    {
-      id: "iSfj9vIZlNIJK0BvpgW9iiEJErzdWVP8",
-      name: "Aseph",
-      team: "blue",
-      cents: 1000,
-      deck: {
-        card1: "cleric",
-        card2: "goblinCatapult",
-        card3: "golem",
-        card4: "offenseUp",
-        card5: "elf",
-        card6: "halfling",
-        card7: "goblin",
-        card8: "healthPotion",
+  items: new Map(),
+  effects: new Map(),
+  objects: new Map(),
+  players: new Map([
+    [
+      "iSfj9vIZlNIJK0BvpgW9iiEJErzdWVP8",
+      {
+        name: "Aseph",
+        team: "blue",
+        cents: 1000,
+        deck: {
+          card1: "cleric",
+          card2: "goblinCatapult",
+          card3: "golem",
+          card4: "offenseUp",
+          card5: "elf",
+          card6: "halfling",
+          card7: "goblin",
+          card8: "healthPotion",
+        },
+        randomSlots: [],
+        hand: {
+          slot1: "cleric",
+          slot2: "healthPotion",
+          slot3: "goblinCatapult",
+          slot4: "offenseUp",
+        },
+        skills: {},
+        restrictionZones: "bottomRight,redBase,topRight",
       },
-      randomSlots: [],
-      hand: {
-        slot1: "cleric",
-        slot2: "healthPotion",
-        slot3: "goblinCatapult",
-        slot4: "offenseUp",
+    ],
+    [
+      "pJmLTr3ekWjP",
+      {
+        name: "Jade Louse",
+        randomSlots: [],
+        restrictionZones: "",
+        team: "red",
       },
-      skills: {},
-      restrictionZones: "bottomRight,redBase,topRight",
-    },
-    {
-      id: "pJmLTr3ekWjP",
-      name: "Jade Louse",
-      randomSlots: [],
-      restrictionZones: "",
-      team: "red",
-    },
-  ],
-  spectators: [],
+    ],
+  ]),
+  spectators: new Map(),
   info: {
     mode: "1v1",
     timeLimit: 600,
@@ -85,7 +92,7 @@ console.log(
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(164)
+// Uint8Array(222)
 
 const decodedDiff = decodeDiff(new Reader(encodedDiff));
 const applied = GameState.applyDiff(state1, decodedDiff);

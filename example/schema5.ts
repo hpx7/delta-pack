@@ -15,13 +15,13 @@ const Point = ObjectType({
   y: IntType(),
 });
 
-const Creature = ObjectType({
+const CreatureState = ObjectType({
   team: StringType(),
   hero: BooleanType(),
   creatureType: StringType(),
   equippedItemType: OptionalType(StringType()),
-  health: IntType(),
-  maxHealth: IntType(),
+  health: UIntType(),
+  maxHealth: UIntType(),
   visible: BooleanType(),
   facing: StringType(),
   moving: BooleanType(),
@@ -37,11 +37,9 @@ const Creature = ObjectType({
   statusEffect: OptionalType(StringType()),
   x: IntType(),
   y: IntType(),
-  dead: BooleanType(),
 });
 
-const Item = ObjectType({
-  id: IntType(),
+const ItemState = ObjectType({
   itemType: StringType(),
   potionType: OptionalType(StringType()),
   weaponType: OptionalType(StringType()),
@@ -49,8 +47,7 @@ const Item = ObjectType({
   y: IntType(),
 });
 
-const Effect = ObjectType({
-  id: IntType(),
+const EffectState = ObjectType({
   creatureId: OptionalType(IntType()),
   effectType: StringType(),
   triggerType: OptionalType(StringType()),
@@ -63,14 +60,13 @@ const Effect = ObjectType({
   weaponType: OptionalType(StringType()),
   direction: OptionalType(StringType()),
   angle: OptionalType(IntType()),
-  radius: OptionalType(IntType()),
+  radius: OptionalType(UIntType()),
   x: IntType(),
   y: IntType(),
   z: OptionalType(IntType()),
 });
 
-const Object = ObjectType({
-  id: IntType(),
+const ObjectState = ObjectType({
   team: OptionalType(StringType()),
   objectType: StringType(),
   destructibleObjectType: OptionalType(StringType()),
@@ -78,40 +74,38 @@ const Object = ObjectType({
   interactiveObjectType: OptionalType(StringType()),
   active: OptionalType(BooleanType()),
   towerName: OptionalType(StringType()),
-  width: OptionalType(IntType()),
-  height: OptionalType(IntType()),
+  width: OptionalType(UIntType()),
+  height: OptionalType(UIntType()),
   angle: OptionalType(IntType()),
-  durability: OptionalType(IntType()),
-  maxDurability: OptionalType(IntType()),
+  durability: OptionalType(UIntType()),
+  maxDurability: OptionalType(UIntType()),
   x: IntType(),
   y: IntType(),
 });
 
-const DebugBody = ObjectType({
+const DebugBodyState = ObjectType({
   x: IntType(),
   y: IntType(),
   points: ArrayType("Point"),
 });
 
-const Player = ObjectType({
-  id: StringType(),
+const PlayerState = ObjectType({
   name: StringType(),
   team: OptionalType(StringType()),
-  hero: OptionalType(IntType()),
-  cents: OptionalType(IntType()),
-  deck: OptionalType("Deck"),
+  hero: OptionalType(UIntType()),
+  cents: OptionalType(UIntType()),
+  deck: OptionalType("DeckState"),
   randomSlots: ArrayType(StringType()),
-  hand: OptionalType("Hand"),
-  skills: OptionalType("Skills"),
+  hand: OptionalType("HandState"),
+  skills: OptionalType("SkillsState"),
   restrictionZones: StringType(),
 });
 
-const Spectator = ObjectType({
-  id: StringType(),
+const SpectatorState = ObjectType({
   name: StringType(),
 });
 
-const Deck = ObjectType({
+const DeckState = ObjectType({
   card1: OptionalType(StringType()),
   card2: OptionalType(StringType()),
   card3: OptionalType(StringType()),
@@ -122,42 +116,42 @@ const Deck = ObjectType({
   card8: OptionalType(StringType()),
 });
 
-const Hand = ObjectType({
+const HandState = ObjectType({
   slot1: OptionalType(StringType()),
   slot2: OptionalType(StringType()),
   slot3: OptionalType(StringType()),
   slot4: OptionalType(StringType()),
 });
 
-const Skills = ObjectType({
-  slot1: OptionalType("Skill"),
-  slot2: OptionalType("Skill"),
-  slot3: OptionalType("Skill"),
-  slot4: OptionalType("Skill"),
+const SkillsState = ObjectType({
+  slot1: OptionalType("SkillState"),
+  slot2: OptionalType("SkillState"),
+  slot3: OptionalType("SkillState"),
+  slot4: OptionalType("SkillState"),
 });
 
-const Skill = ObjectType({
+const SkillState = ObjectType({
   type: StringType(),
   inUse: BooleanType(),
-  cooldown: IntType(),
-  cooldownTotal: IntType(),
+  cooldown: UIntType(),
+  cooldownTotal: UIntType(),
 });
 
 const GameInfo = ObjectType({
   mode: OptionalType(StringType()),
-  timeLimit: OptionalType(IntType()),
+  timeLimit: OptionalType(UIntType()),
   timeElapsed: OptionalType(IntType()),
   suddenDeath: OptionalType(BooleanType()),
   winner: OptionalType(StringType()),
 });
 
 const DraftState = ObjectType({
-  timeRemaining: IntType(),
-  decks: ArrayType("DraftDeck"),
-  pairs: ArrayType("CardPair"),
+  timeRemaining: UIntType(),
+  decks: ArrayType("DraftDeckState"),
+  pairs: ArrayType("CardPairState"),
 });
 
-const DraftDeck = ObjectType({
+const DraftDeckState = ObjectType({
   playerId: StringType(),
   card1: OptionalType(StringType()),
   card2: OptionalType(StringType()),
@@ -169,41 +163,41 @@ const DraftDeck = ObjectType({
   card8: OptionalType(StringType()),
 });
 
-const CardPair = ObjectType({
+const CardPairState = ObjectType({
   playerId: StringType(),
   slot1: StringType(),
   slot2: StringType(),
 });
 
 const GameState = ObjectType({
-  creatures: RecordType(UIntType(), "Creature"),
-  items: ArrayType("Item"),
-  effects: ArrayType("Effect"),
-  objects: ArrayType("Object"),
-  players: ArrayType("Player"),
-  spectators: ArrayType("Spectator"),
+  creatures: RecordType(UIntType(), "CreatureState"),
+  items: RecordType(UIntType(), "ItemState"),
+  effects: RecordType(UIntType(), "EffectState"),
+  objects: RecordType(UIntType(), "ObjectState"),
+  players: RecordType(StringType(), "PlayerState"),
+  spectators: RecordType(StringType(), "SpectatorState"),
   info: "GameInfo",
   draft: OptionalType("DraftState"),
-  debugBodies: OptionalType(ArrayType("DebugBody")),
+  debugBodies: OptionalType(ArrayType("DebugBodyState")),
 });
 
 console.log(
   codegenTypescript({
-    Creature,
-    Item,
-    Effect,
-    Object,
-    Player,
-    Spectator,
-    Deck,
-    Hand,
-    Skills,
-    Skill,
+    CreatureState,
+    ItemState,
+    EffectState,
+    ObjectState,
+    PlayerState,
+    SpectatorState,
+    DeckState,
+    HandState,
+    SkillsState,
+    SkillState,
     GameInfo,
     DraftState,
-    DraftDeck,
-    CardPair,
-    DebugBody,
+    DraftDeckState,
+    CardPairState,
+    DebugBodyState,
     Point,
     GameState,
   }),
