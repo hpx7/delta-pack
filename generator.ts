@@ -17,16 +17,16 @@ interface UnionType {
 }
 interface ArrayType {
   type: "array";
-  value: PrimitiveType | ReferenceType;
+  value: PrimitiveType | ContainerType | ReferenceType;
 }
 interface OptionalType {
   type: "optional";
-  value: PrimitiveType | ReferenceType;
+  value: PrimitiveType | ContainerType | ReferenceType;
 }
 interface RecordType {
   type: "record";
   key: StringType | IntType | UIntType;
-  value: PrimitiveType | ReferenceType;
+  value: PrimitiveType | ContainerType | ReferenceType;
 }
 interface EnumType {
   type: "enum";
