@@ -22,12 +22,18 @@ const state1: GameState = {
     mode: "1v1",
     timeLimit: 600,
   },
-  debugBodies: [],
+  debugBodies: [
+    {
+      x: 0,
+      y: 0,
+      points: [],
+    },
+  ],
 };
 
 const encoded = encode(state1);
 console.log("encoded", encoded);
-// Uint8Array(42)
+// Uint8Array(45)
 
 const decoded = decode(encoded);
 assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
@@ -92,7 +98,7 @@ console.log(
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(221)
+// Uint8Array(224)
 
 const decodedDiff = decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);

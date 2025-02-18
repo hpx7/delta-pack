@@ -297,7 +297,7 @@ export function diffArray<T>(
 ): DeepPartial<T[]> | typeof NO_DIFF {
   const additions = b.slice(a.length);
   const updates: (DeepPartial<T> | typeof NO_DIFF)[] = [];
-  let changed = additions.length > 0;
+  let changed = additions.length > 0 || a.length !== b.length;
   for (let i = 0; i < a.length && i < b.length; i++) {
     const diff = innerDiff(a[i], b[i]);
     updates.push(diff);
