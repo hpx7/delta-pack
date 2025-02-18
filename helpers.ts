@@ -1,4 +1,5 @@
 import { Writer, Reader } from "bin-serde";
+import { rleDecode, rleEncode } from "./rle";
 
 export { Writer, Reader };
 
@@ -23,10 +24,11 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : never;
 
 export class Tracker {
-  private bits: boolean[];
   private idx = 0;
-  constructor(reader?: Reader) {
-    this.bits = reader !== undefined ? reader.readBits(reader.readUVarint()) : [];
+  constructor(private bits: boolean[] = []) {}
+  static parse(reader: Reader) {
+    const rleBits = reader.readBits(reader.readUVarint());
+    return new Tracker(rleDecode(rleBits));
   }
   push(val: boolean) {
     this.bits.push(val);
@@ -34,9 +36,13 @@ export class Tracker {
   next() {
     return this.bits[this.idx++];
   }
+  remaining() {
+    return this.bits.length - this.idx;
+  }
   encode(buf: Writer) {
-    buf.writeUVarint(this.bits.length);
-    buf.writeBits(this.bits);
+    const rleBits = rleEncode(this.bits);
+    buf.writeUVarint(rleBits.length);
+    buf.writeBits(rleBits);
   }
 }
 

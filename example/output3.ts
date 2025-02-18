@@ -75,7 +75,7 @@ export const ChatMessage = {
 
     return validationErrors;
   },
-  encode(obj: ChatMessage, buf: _.Writer = new _.Writer()) {
+  encode(obj: ChatMessage, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeString(buf, obj.author);
     _.writeString(buf, obj.content);
     return buf;
@@ -91,7 +91,7 @@ export const ChatMessage = {
     }
     return buf;
   },
-  decode(buf: _.Reader): ChatMessage {
+  decode(buf: _.Reader, tracker: _.Tracker): ChatMessage {
     const sb = buf;
     return {
       author: _.parseString(sb),
@@ -141,27 +141,27 @@ export const ChatList = {
 
     return validationErrors;
   },
-  encode(obj: ChatList, buf: _.Writer = new _.Writer()) {
-    _.writeArray(buf, obj.messages, (x) => ChatMessage.encode(x, buf));
+  encode(obj: ChatList, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    _.writeArray(buf, obj.messages, (x) => ChatMessage.encode(x, tracker, buf));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<ChatList>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.messages !== _.NO_DIFF);
     if (obj.messages !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.messages, (x) => ChatMessage.encodeDiff(x, tracker, buf));
+      _.writeArrayDiff<ChatMessage>(buf, tracker, obj.messages, (x) => ChatMessage.encode(x, tracker, buf), (x) => ChatMessage.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
-  decode(buf: _.Reader): ChatList {
+  decode(buf: _.Reader, tracker: _.Tracker): ChatList {
     const sb = buf;
     return {
-      messages: _.parseArray(sb, () => ChatMessage.decode(sb)),
+      messages: _.parseArray(sb, () => ChatMessage.decode(sb, tracker)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<ChatList> {
     const sb = buf;
     return {
-      messages: tracker.next() ? _.parseArrayDiff(sb, tracker, () => ChatMessage.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      messages: tracker.next() ? _.parseArrayDiff<ChatMessage>(sb, tracker, () => ChatMessage.decode(sb, tracker), () => ChatMessage.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: ChatList, b: ChatList): _.DeepPartial<ChatList> | typeof _.NO_DIFF {
@@ -174,7 +174,7 @@ export const ChatList = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.messages = diff.messages === _.NO_DIFF ? obj.messages : _.patchArray(obj.messages, diff.messages, (a, b) => ChatMessage.applyDiff(a, b));
+    obj.messages = diff.messages === _.NO_DIFF ? obj.messages : _.patchArray<ChatMessage>(obj.messages, diff.messages, (a, b) => ChatMessage.applyDiff(a, b));
     return obj;
   },
 };
@@ -209,7 +209,7 @@ export const Position = {
 
     return validationErrors;
   },
-  encode(obj: Position, buf: _.Writer = new _.Writer()) {
+  encode(obj: Position, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeFloat(buf, obj.x);
     _.writeFloat(buf, obj.y);
     _.writeFloat(buf, obj.z);
@@ -230,7 +230,7 @@ export const Position = {
     }
     return buf;
   },
-  decode(buf: _.Reader): Position {
+  decode(buf: _.Reader, tracker: _.Tracker): Position {
     const sb = buf;
     return {
       x: _.parseFloat(sb),
@@ -299,7 +299,7 @@ export const Rotation = {
 
     return validationErrors;
   },
-  encode(obj: Rotation, buf: _.Writer = new _.Writer()) {
+  encode(obj: Rotation, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeFloat(buf, obj.x);
     _.writeFloat(buf, obj.y);
     _.writeFloat(buf, obj.z);
@@ -325,7 +325,7 @@ export const Rotation = {
     }
     return buf;
   },
-  decode(buf: _.Reader): Rotation {
+  decode(buf: _.Reader, tracker: _.Tracker): Rotation {
     const sb = buf;
     return {
       x: _.parseFloat(sb),
@@ -393,7 +393,7 @@ export const Size3D = {
 
     return validationErrors;
   },
-  encode(obj: Size3D, buf: _.Writer = new _.Writer()) {
+  encode(obj: Size3D, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeFloat(buf, obj.width);
     _.writeFloat(buf, obj.height);
     _.writeFloat(buf, obj.depth);
@@ -414,7 +414,7 @@ export const Size3D = {
     }
     return buf;
   },
-  decode(buf: _.Reader): Size3D {
+  decode(buf: _.Reader, tracker: _.Tracker): Size3D {
     const sb = buf;
     return {
       width: _.parseFloat(sb),
@@ -530,15 +530,15 @@ export const Component = {
     }
     else if (obj.type === "Position") {
       _.writeUInt8(buf, 1);
-      Position.encode(obj.val, buf);
+      Position.encode(obj.val, tracker, buf);
     }
     else if (obj.type === "Rotation") {
       _.writeUInt8(buf, 2);
-      Rotation.encode(obj.val, buf);
+      Rotation.encode(obj.val, tracker, buf);
     }
     else if (obj.type === "Size3D") {
       _.writeUInt8(buf, 3);
-      Size3D.encode(obj.val, buf);
+      Size3D.encode(obj.val, tracker, buf);
     }
     else if (obj.type === "Size1D") {
       _.writeUInt8(buf, 4);
@@ -554,7 +554,7 @@ export const Component = {
     }
     else if (obj.type === "ChatList") {
       _.writeUInt8(buf, 7);
-      ChatList.encode(obj.val, buf);
+      ChatList.encode(obj.val, tracker, buf);
     }
     return buf;
   },
@@ -623,13 +623,13 @@ export const Component = {
       return { type: "Color", val: _.parseString(sb) };
     }
     else if (type === 1) {
-      return { type: "Position", val: Position.decode(sb) };
+      return { type: "Position", val: Position.decode(sb, tracker) };
     }
     else if (type === 2) {
-      return { type: "Rotation", val: Rotation.decode(sb) };
+      return { type: "Rotation", val: Rotation.decode(sb, tracker) };
     }
     else if (type === 3) {
-      return { type: "Size3D", val: Size3D.decode(sb) };
+      return { type: "Size3D", val: Size3D.decode(sb, tracker) };
     }
     else if (type === 4) {
       return { type: "Size1D", val: _.parseFloat(sb) };
@@ -641,7 +641,7 @@ export const Component = {
       return { type: "EntityState", val: _.parseUInt8(sb) };
     }
     else if (type === 7) {
-      return { type: "ChatList", val: ChatList.decode(sb) };
+      return { type: "ChatList", val: ChatList.decode(sb, tracker) };
     }
     throw new Error("Invalid union");
   },
@@ -699,9 +699,9 @@ export const Entity = {
 
     return validationErrors;
   },
-  encode(obj: Entity, buf: _.Writer = new _.Writer()) {
+  encode(obj: Entity, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeInt(buf, obj.entityId);
-    _.writeArray(buf, obj.components, (x) => Component.encode(x, buf));
+    _.writeArray(buf, obj.components, (x) => Component.encode(x, tracker, buf));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Entity>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
@@ -711,22 +711,22 @@ export const Entity = {
     }
     tracker.push(obj.components !== _.NO_DIFF);
     if (obj.components !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.components, (x) => Component.encodeDiff(x, tracker, buf));
+      _.writeArrayDiff<Component>(buf, tracker, obj.components, (x) => Component.encode(x, tracker, buf), (x) => Component.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
-  decode(buf: _.Reader): Entity {
+  decode(buf: _.Reader, tracker: _.Tracker): Entity {
     const sb = buf;
     return {
       entityId: _.parseInt(sb),
-      components: _.parseArray(sb, () => Component.decode(sb)),
+      components: _.parseArray(sb, () => Component.decode(sb, tracker)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Entity> {
     const sb = buf;
     return {
       entityId: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      components: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Component.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      components: tracker.next() ? _.parseArrayDiff<Component>(sb, tracker, () => Component.decode(sb, tracker), () => Component.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: Entity, b: Entity): _.DeepPartial<Entity> | typeof _.NO_DIFF {
@@ -741,7 +741,7 @@ export const Entity = {
       return obj;
     }
     obj.entityId = diff.entityId === _.NO_DIFF ? obj.entityId : diff.entityId;
-    obj.components = diff.components === _.NO_DIFF ? obj.components : _.patchArray(obj.components, diff.components, (a, b) => Component.applyDiff(a, b));
+    obj.components = diff.components === _.NO_DIFF ? obj.components : _.patchArray<Component>(obj.components, diff.components, (a, b) => Component.applyDiff(a, b));
     return obj;
   },
 };
@@ -765,27 +765,27 @@ export const Snapshot = {
 
     return validationErrors;
   },
-  encode(obj: Snapshot, buf: _.Writer = new _.Writer()) {
-    _.writeArray(buf, obj.entities, (x) => Entity.encode(x, buf));
+  encode(obj: Snapshot, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    _.writeArray(buf, obj.entities, (x) => Entity.encode(x, tracker, buf));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Snapshot>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.entities !== _.NO_DIFF);
     if (obj.entities !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.entities, (x) => Entity.encodeDiff(x, tracker, buf));
+      _.writeArrayDiff<Entity>(buf, tracker, obj.entities, (x) => Entity.encode(x, tracker, buf), (x) => Entity.encodeDiff(x, tracker, buf));
     }
     return buf;
   },
-  decode(buf: _.Reader): Snapshot {
+  decode(buf: _.Reader, tracker: _.Tracker): Snapshot {
     const sb = buf;
     return {
-      entities: _.parseArray(sb, () => Entity.decode(sb)),
+      entities: _.parseArray(sb, () => Entity.decode(sb, tracker)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Snapshot> {
     const sb = buf;
     return {
-      entities: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Entity.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      entities: tracker.next() ? _.parseArrayDiff<Entity>(sb, tracker, () => Entity.decode(sb, tracker), () => Entity.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },
   computeDiff(a: Snapshot, b: Snapshot): _.DeepPartial<Snapshot> | typeof _.NO_DIFF {
@@ -798,7 +798,7 @@ export const Snapshot = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.entities = diff.entities === _.NO_DIFF ? obj.entities : _.patchArray(obj.entities, diff.entities, (a, b) => Entity.applyDiff(a, b));
+    obj.entities = diff.entities === _.NO_DIFF ? obj.entities : _.patchArray<Entity>(obj.entities, diff.entities, (a, b) => Entity.applyDiff(a, b));
     return obj;
   },
 };

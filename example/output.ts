@@ -55,7 +55,7 @@ export const Card = {
 
     return validationErrors;
   },
-  encode(obj: Card, buf: _.Writer = new _.Writer()) {
+  encode(obj: Card, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeInt(buf, obj.value);
     _.writeUInt8(buf, obj.color);
     return buf;
@@ -71,7 +71,7 @@ export const Card = {
     }
     return buf;
   },
-  decode(buf: _.Reader): Card {
+  decode(buf: _.Reader, tracker: _.Tracker): Card {
     const sb = buf;
     return {
       value: _.parseInt(sb),
@@ -126,7 +126,7 @@ export const Player = {
 
     return validationErrors;
   },
-  encode(obj: Player, buf: _.Writer = new _.Writer()) {
+  encode(obj: Player, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     _.writeString(buf, obj.id);
     _.writeInt(buf, obj.numCards);
     return buf;
@@ -142,7 +142,7 @@ export const Player = {
     }
     return buf;
   },
-  decode(buf: _.Reader): Player {
+  decode(buf: _.Reader, tracker: _.Tracker): Player {
     const sb = buf;
     return {
       id: _.parseString(sb),
@@ -222,80 +222,80 @@ export const PlayerState = {
 
     return validationErrors;
   },
-  encode(obj: PlayerState, buf: _.Writer = new _.Writer()) {
-    _.writeArray(buf, obj.hand, (x) => Card.encode(x, buf));
-    _.writeArray(buf, obj.players, (x) => Player.encode(x, buf));
-    _.writeOptional(buf, obj.turn, (x) => _.writeString(buf, x));
-    _.writeOptional(buf, obj.pile, (x) => Card.encode(x, buf));
-    _.writeOptional(buf, obj.winner, (x) => _.writeString(buf, x));
+  encode(obj: PlayerState, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+    _.writeArray(buf, obj.hand, (x) => Card.encode(x, tracker, buf));
+    _.writeArray(buf, obj.players, (x) => Player.encode(x, tracker, buf));
+    _.writeOptional(tracker, obj.turn, (x) => _.writeString(buf, x));
+    _.writeOptional(tracker, obj.pile, (x) => Card.encode(x, tracker, buf));
+    _.writeOptional(tracker, obj.winner, (x) => _.writeString(buf, x));
     _.writeArray(buf, obj.intArray, (x) => _.writeInt(buf, x));
-    _.writeOptional(buf, obj.intOptional, (x) => _.writeInt(buf, x));
+    _.writeOptional(tracker, obj.intOptional, (x) => _.writeInt(buf, x));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<PlayerState>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.hand !== _.NO_DIFF);
     if (obj.hand !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.hand, (x) => Card.encodeDiff(x, tracker, buf));
+      _.writeArrayDiff<Card>(buf, tracker, obj.hand, (x) => Card.encode(x, tracker, buf), (x) => Card.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.players !== _.NO_DIFF);
     if (obj.players !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.players, (x) => Player.encodeDiff(x, tracker, buf));
+      _.writeArrayDiff<Player>(buf, tracker, obj.players, (x) => Player.encode(x, tracker, buf), (x) => Player.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.turn !== _.NO_DIFF);
     if (obj.turn !== _.NO_DIFF) {
-      _.writeOptionalDiff(tracker, obj.turn, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff<UserId>(tracker, obj.turn!, (x) => _.writeString(buf, x), (x) => _.writeString(buf, x));
     }
     tracker.push(obj.pile !== _.NO_DIFF);
     if (obj.pile !== _.NO_DIFF) {
-      _.writeOptionalDiff(tracker, obj.pile, (x) => Card.encodeDiff(x, tracker, buf));
+      _.writeOptionalDiff<Card>(tracker, obj.pile!, (x) => Card.encode(x, tracker, buf), (x) => Card.encodeDiff(x, tracker, buf));
     }
     tracker.push(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
-      _.writeOptionalDiff(tracker, obj.winner, (x) => _.writeString(buf, x));
+      _.writeOptionalDiff<UserId>(tracker, obj.winner!, (x) => _.writeString(buf, x), (x) => _.writeString(buf, x));
     }
     tracker.push(obj.intArray !== _.NO_DIFF);
     if (obj.intArray !== _.NO_DIFF) {
-      _.writeArrayDiff(buf, tracker, obj.intArray, (x) => _.writeInt(buf, x));
+      _.writeArrayDiff<number>(buf, tracker, obj.intArray, (x) => _.writeInt(buf, x), (x) => _.writeInt(buf, x));
     }
     tracker.push(obj.intOptional !== _.NO_DIFF);
     if (obj.intOptional !== _.NO_DIFF) {
-      _.writeOptionalDiff(tracker, obj.intOptional, (x) => _.writeInt(buf, x));
+      _.writeOptionalDiff<number>(tracker, obj.intOptional!, (x) => _.writeInt(buf, x), (x) => _.writeInt(buf, x));
     }
     return buf;
   },
-  decode(buf: _.Reader): PlayerState {
+  decode(buf: _.Reader, tracker: _.Tracker): PlayerState {
     const sb = buf;
     return {
-      hand: _.parseArray(sb, () => Card.decode(sb)),
-      players: _.parseArray(sb, () => Player.decode(sb)),
-      turn: _.parseOptional(sb, () => _.parseString(sb)),
-      pile: _.parseOptional(sb, () => Card.decode(sb)),
-      winner: _.parseOptional(sb, () => _.parseString(sb)),
+      hand: _.parseArray(sb, () => Card.decode(sb, tracker)),
+      players: _.parseArray(sb, () => Player.decode(sb, tracker)),
+      turn: _.parseOptional(tracker, () => _.parseString(sb)),
+      pile: _.parseOptional(tracker, () => Card.decode(sb, tracker)),
+      winner: _.parseOptional(tracker, () => _.parseString(sb)),
       intArray: _.parseArray(sb, () => _.parseInt(sb)),
-      intOptional: _.parseOptional(sb, () => _.parseInt(sb)),
+      intOptional: _.parseOptional(tracker, () => _.parseInt(sb)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<PlayerState> {
     const sb = buf;
     return {
-      hand: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      players: tracker.next() ? _.parseArrayDiff(sb, tracker, () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      turn: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      pile: tracker.next() ? _.parseOptionalDiff(tracker, () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
-      winner: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseString(sb)) : _.NO_DIFF,
-      intArray: tracker.next() ? _.parseArrayDiff(sb, tracker, () => _.parseInt(sb)) : _.NO_DIFF,
-      intOptional: tracker.next() ? _.parseOptionalDiff(tracker, () => _.parseInt(sb)) : _.NO_DIFF,
+      hand: tracker.next() ? _.parseArrayDiff<Card>(sb, tracker, () => Card.decode(sb, tracker), () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      players: tracker.next() ? _.parseArrayDiff<Player>(sb, tracker, () => Player.decode(sb, tracker), () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      turn: tracker.next() ? _.parseOptionalDiff<UserId>(tracker, () => _.parseString(sb), () => _.parseString(sb)) : _.NO_DIFF,
+      pile: tracker.next() ? _.parseOptionalDiff<Card>(tracker, () => Card.decode(sb, tracker), () => Card.decodeDiff(sb, tracker)) : _.NO_DIFF,
+      winner: tracker.next() ? _.parseOptionalDiff<UserId>(tracker, () => _.parseString(sb), () => _.parseString(sb)) : _.NO_DIFF,
+      intArray: tracker.next() ? _.parseArrayDiff<number>(sb, tracker, () => _.parseInt(sb), () => _.parseInt(sb)) : _.NO_DIFF,
+      intOptional: tracker.next() ? _.parseOptionalDiff<number>(tracker, () => _.parseInt(sb), () => _.parseInt(sb)) : _.NO_DIFF,
     };
   },
   computeDiff(a: PlayerState, b: PlayerState): _.DeepPartial<PlayerState> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<PlayerState> =  {
       hand: _.diffArray(a.hand, b.hand, (x, y) => Card.computeDiff(x, y)),
       players: _.diffArray(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
-      turn: _.diffOptional(a.turn, b.turn, (x, y) => _.diffPrimitive(x, y)),
-      pile: _.diffOptional(a.pile, b.pile, (x, y) => Card.computeDiff(x, y)),
-      winner: _.diffOptional(a.winner, b.winner, (x, y) => _.diffPrimitive(x, y)),
+      turn: _.diffOptional<UserId>(a.turn, b.turn, (x, y) => _.diffPrimitive(x, y)),
+      pile: _.diffOptional<Card>(a.pile, b.pile, (x, y) => Card.computeDiff(x, y)),
+      winner: _.diffOptional<UserId>(a.winner, b.winner, (x, y) => _.diffPrimitive(x, y)),
       intArray: _.diffArray(a.intArray, b.intArray, (x, y) => _.diffPrimitive(x, y)),
-      intOptional: _.diffOptional(a.intOptional, b.intOptional, (x, y) => _.diffPrimitive(x, y)),
+      intOptional: _.diffOptional<number>(a.intOptional, b.intOptional, (x, y) => _.diffPrimitive(x, y)),
     };
     return diff.hand === _.NO_DIFF && diff.players === _.NO_DIFF && diff.turn === _.NO_DIFF && diff.pile === _.NO_DIFF && diff.winner === _.NO_DIFF && diff.intArray === _.NO_DIFF && diff.intOptional === _.NO_DIFF ? _.NO_DIFF : diff;
   },
@@ -303,13 +303,13 @@ export const PlayerState = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    obj.hand = diff.hand === _.NO_DIFF ? obj.hand : _.patchArray(obj.hand, diff.hand, (a, b) => Card.applyDiff(a, b));
-    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
-    obj.turn = diff.turn === _.NO_DIFF ? obj.turn : _.patchOptional(obj.turn, diff.turn, (a, b) => b);
-    obj.pile = diff.pile === _.NO_DIFF ? obj.pile : _.patchOptional(obj.pile, diff.pile, (a, b) => Card.applyDiff(a, b));
-    obj.winner = diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional(obj.winner, diff.winner, (a, b) => b);
-    obj.intArray = diff.intArray === _.NO_DIFF ? obj.intArray : _.patchArray(obj.intArray, diff.intArray, (a, b) => b);
-    obj.intOptional = diff.intOptional === _.NO_DIFF ? obj.intOptional : _.patchOptional(obj.intOptional, diff.intOptional, (a, b) => b);
+    obj.hand = diff.hand === _.NO_DIFF ? obj.hand : _.patchArray<Card>(obj.hand, diff.hand, (a, b) => Card.applyDiff(a, b));
+    obj.players = diff.players === _.NO_DIFF ? obj.players : _.patchArray<Player>(obj.players, diff.players, (a, b) => Player.applyDiff(a, b));
+    obj.turn = diff.turn === _.NO_DIFF ? obj.turn : _.patchOptional<UserId>(obj.turn, diff.turn!, (a, b) => b);
+    obj.pile = diff.pile === _.NO_DIFF ? obj.pile : _.patchOptional<Card>(obj.pile, diff.pile!, (a, b) => Card.applyDiff(a, b));
+    obj.winner = diff.winner === _.NO_DIFF ? obj.winner : _.patchOptional<UserId>(obj.winner, diff.winner!, (a, b) => b);
+    obj.intArray = diff.intArray === _.NO_DIFF ? obj.intArray : _.patchArray<number>(obj.intArray, diff.intArray, (a, b) => b);
+    obj.intOptional = diff.intOptional === _.NO_DIFF ? obj.intOptional : _.patchOptional<number>(obj.intOptional, diff.intOptional!, (a, b) => b);
     return obj;
   },
 };
@@ -361,7 +361,7 @@ export const UnionTest = {
     }
     else if (obj.type === "Card") {
       _.writeUInt8(buf, 2);
-      Card.encode(obj.val, buf);
+      Card.encode(obj.val, tracker, buf);
     }
     return buf;
   },
@@ -398,7 +398,7 @@ export const UnionTest = {
       return { type: "Color", val: _.parseUInt8(sb) };
     }
     else if (type === 2) {
-      return { type: "Card", val: Card.decode(sb) };
+      return { type: "Card", val: Card.decode(sb, tracker) };
     }
     throw new Error("Invalid union");
   },

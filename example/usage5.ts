@@ -121,7 +121,7 @@ function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
 
 function decode(buf: Uint8Array) {
   const reader = new Reader(buf);
-  const tracker = new Tracker(reader);
+  const tracker = Tracker.parse(reader);
   return GameState.decode(reader, tracker);
 }
 
@@ -130,6 +130,6 @@ function decodeDiff(buf: Uint8Array) {
     return NO_DIFF;
   }
   const reader = new Reader(buf);
-  const tracker = new Tracker(reader);
+  const tracker = Tracker.parse(reader);
   return GameState.decodeDiff(reader, tracker);
 }

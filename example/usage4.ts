@@ -26,17 +26,17 @@ const state1: GameState = {
   ]),
 };
 
-const encoded = GameState.encode(state1).toBuffer();
+const encoded = encode(state1);
 console.log("encoded", encoded);
-// Uint8Array(41) [
-//   129, 112,   2,  2,   0,   0, 189,  66, 154, 153,
-//   204,  66, 129, 72,   1,   5,  83, 119, 111, 114,
-//   100,  50,   0,  4, 154, 153,  88,  67, 154,  25,
-//    70,  67, 129, 72,   1,   3,  66, 111, 119,  30,
-//     1
+// Uint8Array(40) [
+//   10, 147,   2, 129, 112,  2,   2,   0,   0,
+//  189,  66, 154, 153, 204, 66, 129,  72,   5,
+//   83, 119, 111, 114, 100, 50,   4, 154, 153,
+//   88,  67, 154,  25,  70, 67, 129,  72,   3,
+//   66, 111, 119,  30
 // ]
 
-const decoded = GameState.decode(new Reader(encoded));
+const decoded = decode(encoded);
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
 
 const state2: GameState = {
@@ -65,21 +65,24 @@ console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(27) [
-//   15, 203, 127, 120,  1,   2,  2,   4,
-//  129,  32,   6,   0,  0, 150, 67,   0,
-//    0, 150,  67, 129, 72,   3, 65, 120,
-//  101,  60,   0
-// ]
-// Uint8Array(27) [
-//   18, 151, 255,  1, 120,  3,   4, 129,
-//   32,   6,   0,  0, 150, 67,   0,   0,
-//  150,  67, 129, 72,   3, 65, 120, 101,
-//   60,   0,   2
+//   13, 215,  20, 120,   1,   2,   1,  6,
+//    0,   0, 150,  67,   0,   0, 150, 67,
+//  129,  72,   3,  65, 120, 101,  60,  1,
+//    4, 129,  32
 // ]
 
-const decodedDiff = decodeDiff(new Reader(encodedDiff));
+const decodedDiff = decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);
 console.log("applied", util.inspect(applied, { depth: null, colors: true }));
+
+function encode(state: GameState) {
+  const tracker = new Tracker();
+  const encoded = GameState.encode(state, tracker).toBuffer();
+  const writer = new Writer();
+  tracker.encode(writer);
+  writer.writeBuffer(encoded);
+  return writer.toBuffer();
+}
 
 function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
   if (diff === NO_DIFF) {
@@ -93,10 +96,17 @@ function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
   return writer.toBuffer();
 }
 
-function decodeDiff(reader: Reader) {
-  if (reader.remaining() === 0) {
+function decode(buf: Uint8Array) {
+  const reader = new Reader(buf);
+  const tracker = Tracker.parse(reader);
+  return GameState.decode(reader, tracker);
+}
+
+function decodeDiff(buf: Uint8Array) {
+  if (buf.length === 0) {
     return NO_DIFF;
   }
-  const tracker = new Tracker(reader);
+  const reader = new Reader(buf);
+  const tracker = Tracker.parse(reader);
   return GameState.decodeDiff(reader, tracker);
 }
