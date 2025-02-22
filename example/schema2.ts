@@ -1,38 +1,38 @@
-import { ArrayType, BooleanType, IntType, ObjectType, StringType, codegenTypescript } from "../generator";
+import { ArrayType, BooleanType, UIntType, ObjectType, StringType, codegenTypescript } from "../generator";
 
 const Position = ObjectType({
-  x: IntType(),
-  y: IntType(),
+  x: UIntType(),
+  y: UIntType(),
 });
 
 const Velocity = ObjectType({
-  x: IntType(),
-  y: IntType(),
+  x: UIntType(),
+  y: UIntType(),
 });
 
 const Player = ObjectType({
-  id: IntType(),
+  id: UIntType(),
   name: StringType(),
   type: StringType(),
   position: "Position",
   velocity: "Velocity",
-  width: IntType(),
-  height: IntType(),
-  rotation: IntType(),
-  mass: IntType(),
-  health: IntType(),
-  depth: IntType(),
-  lifetime: IntType(),
-  radius: IntType(),
+  width: UIntType(),
+  height: UIntType(),
+  rotation: UIntType(),
+  mass: UIntType(),
+  health: UIntType(),
+  depth: UIntType(),
+  lifetime: UIntType(),
+  radius: UIntType(),
   isSensor: BooleanType(),
   isStatic: BooleanType(),
   destroyed: BooleanType(),
-  owner: IntType(),
-  maxSpeed: IntType(),
+  owner: UIntType(),
+  maxSpeed: UIntType(),
 });
 
 const State = ObjectType({
-  id: IntType(),
+  id: UIntType(),
   state: ArrayType("Player"),
 });
 

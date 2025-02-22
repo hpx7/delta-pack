@@ -47,11 +47,11 @@ export const Position = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.x) && obj.x >= 0, `Invalid uint: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.x");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.y) && obj.y >= 0, `Invalid uint: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Position.y");
     }
@@ -59,33 +59,33 @@ export const Position = {
     return validationErrors;
   },
   encode(obj: Position, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
-    _.writeInt(buf, obj.x);
-    _.writeInt(buf, obj.y);
+    _.writeUInt(buf, obj.x);
+    _.writeUInt(buf, obj.y);
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Position>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
-      _.writeInt(buf, obj.x);
+      _.writeUInt(buf, obj.x);
     }
     tracker.push(obj.y !== _.NO_DIFF);
     if (obj.y !== _.NO_DIFF) {
-      _.writeInt(buf, obj.y);
+      _.writeUInt(buf, obj.y);
     }
     return buf;
   },
   decode(buf: _.Reader, tracker: _.Tracker): Position {
     const sb = buf;
     return {
-      x: _.parseInt(sb),
-      y: _.parseInt(sb),
+      x: _.parseUInt(sb),
+      y: _.parseUInt(sb),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Position> {
     const sb = buf;
     return {
-      x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      x: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      y: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
     };
   },
   computeDiff(a: Position, b: Position): _.DeepPartial<Position> | typeof _.NO_DIFF {
@@ -118,11 +118,11 @@ export const Velocity = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.x) && obj.x >= 0, `Invalid uint: ${obj.x}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Velocity.x");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.y) && obj.y >= 0, `Invalid uint: ${obj.y}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Velocity.y");
     }
@@ -130,33 +130,33 @@ export const Velocity = {
     return validationErrors;
   },
   encode(obj: Velocity, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
-    _.writeInt(buf, obj.x);
-    _.writeInt(buf, obj.y);
+    _.writeUInt(buf, obj.x);
+    _.writeUInt(buf, obj.y);
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Velocity>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
-      _.writeInt(buf, obj.x);
+      _.writeUInt(buf, obj.x);
     }
     tracker.push(obj.y !== _.NO_DIFF);
     if (obj.y !== _.NO_DIFF) {
-      _.writeInt(buf, obj.y);
+      _.writeUInt(buf, obj.y);
     }
     return buf;
   },
   decode(buf: _.Reader, tracker: _.Tracker): Velocity {
     const sb = buf;
     return {
-      x: _.parseInt(sb),
-      y: _.parseInt(sb),
+      x: _.parseUInt(sb),
+      y: _.parseUInt(sb),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Velocity> {
     const sb = buf;
     return {
-      x: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      y: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      x: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      y: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
     };
   },
   computeDiff(a: Velocity, b: Velocity): _.DeepPartial<Velocity> | typeof _.NO_DIFF {
@@ -205,7 +205,7 @@ export const Player = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.id) && obj.id >= 0, `Invalid uint: ${obj.id}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.id");
     }
@@ -225,35 +225,35 @@ export const Player = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.velocity");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.width), `Invalid int: ${obj.width}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.width) && obj.width >= 0, `Invalid uint: ${obj.width}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.width");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.height), `Invalid int: ${obj.height}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.height) && obj.height >= 0, `Invalid uint: ${obj.height}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.height");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.rotation), `Invalid int: ${obj.rotation}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.rotation) && obj.rotation >= 0, `Invalid uint: ${obj.rotation}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.rotation");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.mass), `Invalid int: ${obj.mass}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.mass) && obj.mass >= 0, `Invalid uint: ${obj.mass}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.mass");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${obj.health}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.health) && obj.health >= 0, `Invalid uint: ${obj.health}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.health");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.depth), `Invalid int: ${obj.depth}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.depth) && obj.depth >= 0, `Invalid uint: ${obj.depth}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.depth");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.lifetime), `Invalid int: ${obj.lifetime}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.lifetime) && obj.lifetime >= 0, `Invalid uint: ${obj.lifetime}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.lifetime");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.radius), `Invalid int: ${obj.radius}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.radius) && obj.radius >= 0, `Invalid uint: ${obj.radius}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.radius");
     }
@@ -269,11 +269,11 @@ export const Player = {
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.destroyed");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.owner), `Invalid int: ${obj.owner}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.owner) && obj.owner >= 0, `Invalid uint: ${obj.owner}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.owner");
     }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.maxSpeed), `Invalid int: ${obj.maxSpeed}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.maxSpeed) && obj.maxSpeed >= 0, `Invalid uint: ${obj.maxSpeed}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: Player.maxSpeed");
     }
@@ -281,30 +281,30 @@ export const Player = {
     return validationErrors;
   },
   encode(obj: Player, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
-    _.writeInt(buf, obj.id);
+    _.writeUInt(buf, obj.id);
     _.writeString(buf, obj.name);
     _.writeString(buf, obj.type);
     Position.encode(obj.position, tracker, buf);
     Velocity.encode(obj.velocity, tracker, buf);
-    _.writeInt(buf, obj.width);
-    _.writeInt(buf, obj.height);
-    _.writeInt(buf, obj.rotation);
-    _.writeInt(buf, obj.mass);
-    _.writeInt(buf, obj.health);
-    _.writeInt(buf, obj.depth);
-    _.writeInt(buf, obj.lifetime);
-    _.writeInt(buf, obj.radius);
+    _.writeUInt(buf, obj.width);
+    _.writeUInt(buf, obj.height);
+    _.writeUInt(buf, obj.rotation);
+    _.writeUInt(buf, obj.mass);
+    _.writeUInt(buf, obj.health);
+    _.writeUInt(buf, obj.depth);
+    _.writeUInt(buf, obj.lifetime);
+    _.writeUInt(buf, obj.radius);
     _.writeBoolean(tracker, obj.isSensor);
     _.writeBoolean(tracker, obj.isStatic);
     _.writeBoolean(tracker, obj.destroyed);
-    _.writeInt(buf, obj.owner);
-    _.writeInt(buf, obj.maxSpeed);
+    _.writeUInt(buf, obj.owner);
+    _.writeUInt(buf, obj.maxSpeed);
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<Player>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.id !== _.NO_DIFF);
     if (obj.id !== _.NO_DIFF) {
-      _.writeInt(buf, obj.id);
+      _.writeUInt(buf, obj.id);
     }
     tracker.push(obj.name !== _.NO_DIFF);
     if (obj.name !== _.NO_DIFF) {
@@ -324,35 +324,35 @@ export const Player = {
     }
     tracker.push(obj.width !== _.NO_DIFF);
     if (obj.width !== _.NO_DIFF) {
-      _.writeInt(buf, obj.width);
+      _.writeUInt(buf, obj.width);
     }
     tracker.push(obj.height !== _.NO_DIFF);
     if (obj.height !== _.NO_DIFF) {
-      _.writeInt(buf, obj.height);
+      _.writeUInt(buf, obj.height);
     }
     tracker.push(obj.rotation !== _.NO_DIFF);
     if (obj.rotation !== _.NO_DIFF) {
-      _.writeInt(buf, obj.rotation);
+      _.writeUInt(buf, obj.rotation);
     }
     tracker.push(obj.mass !== _.NO_DIFF);
     if (obj.mass !== _.NO_DIFF) {
-      _.writeInt(buf, obj.mass);
+      _.writeUInt(buf, obj.mass);
     }
     tracker.push(obj.health !== _.NO_DIFF);
     if (obj.health !== _.NO_DIFF) {
-      _.writeInt(buf, obj.health);
+      _.writeUInt(buf, obj.health);
     }
     tracker.push(obj.depth !== _.NO_DIFF);
     if (obj.depth !== _.NO_DIFF) {
-      _.writeInt(buf, obj.depth);
+      _.writeUInt(buf, obj.depth);
     }
     tracker.push(obj.lifetime !== _.NO_DIFF);
     if (obj.lifetime !== _.NO_DIFF) {
-      _.writeInt(buf, obj.lifetime);
+      _.writeUInt(buf, obj.lifetime);
     }
     tracker.push(obj.radius !== _.NO_DIFF);
     if (obj.radius !== _.NO_DIFF) {
-      _.writeInt(buf, obj.radius);
+      _.writeUInt(buf, obj.radius);
     }
     tracker.push(obj.isSensor !== _.NO_DIFF);
     if (obj.isSensor !== _.NO_DIFF) {
@@ -368,58 +368,58 @@ export const Player = {
     }
     tracker.push(obj.owner !== _.NO_DIFF);
     if (obj.owner !== _.NO_DIFF) {
-      _.writeInt(buf, obj.owner);
+      _.writeUInt(buf, obj.owner);
     }
     tracker.push(obj.maxSpeed !== _.NO_DIFF);
     if (obj.maxSpeed !== _.NO_DIFF) {
-      _.writeInt(buf, obj.maxSpeed);
+      _.writeUInt(buf, obj.maxSpeed);
     }
     return buf;
   },
   decode(buf: _.Reader, tracker: _.Tracker): Player {
     const sb = buf;
     return {
-      id: _.parseInt(sb),
+      id: _.parseUInt(sb),
       name: _.parseString(sb),
       type: _.parseString(sb),
       position: Position.decode(sb, tracker),
       velocity: Velocity.decode(sb, tracker),
-      width: _.parseInt(sb),
-      height: _.parseInt(sb),
-      rotation: _.parseInt(sb),
-      mass: _.parseInt(sb),
-      health: _.parseInt(sb),
-      depth: _.parseInt(sb),
-      lifetime: _.parseInt(sb),
-      radius: _.parseInt(sb),
+      width: _.parseUInt(sb),
+      height: _.parseUInt(sb),
+      rotation: _.parseUInt(sb),
+      mass: _.parseUInt(sb),
+      health: _.parseUInt(sb),
+      depth: _.parseUInt(sb),
+      lifetime: _.parseUInt(sb),
+      radius: _.parseUInt(sb),
       isSensor: _.parseBoolean(tracker),
       isStatic: _.parseBoolean(tracker),
       destroyed: _.parseBoolean(tracker),
-      owner: _.parseInt(sb),
-      maxSpeed: _.parseInt(sb),
+      owner: _.parseUInt(sb),
+      maxSpeed: _.parseUInt(sb),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Player> {
     const sb = buf;
     return {
-      id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      id: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
       name: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       type: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       position: tracker.next() ? Position.decodeDiff(sb, tracker) : _.NO_DIFF,
       velocity: tracker.next() ? Velocity.decodeDiff(sb, tracker) : _.NO_DIFF,
-      width: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      height: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      rotation: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      mass: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      depth: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      lifetime: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      radius: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      width: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      height: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      rotation: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      mass: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      health: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      depth: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      lifetime: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      radius: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
       isSensor: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       isStatic: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
       destroyed: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
-      owner: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
-      maxSpeed: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      owner: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
+      maxSpeed: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
     };
   },
   computeDiff(a: Player, b: Player): _.DeepPartial<Player> | typeof _.NO_DIFF {
@@ -484,7 +484,7 @@ export const State = {
     }
     let validationErrors: string[] = [];
 
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.id), `Invalid int: ${obj.id}`);
+    validationErrors = _.validatePrimitive(Number.isInteger(obj.id) && obj.id >= 0, `Invalid uint: ${obj.id}`);
     if (validationErrors.length > 0) {
       return validationErrors.concat("Invalid key: State.id");
     }
@@ -496,14 +496,14 @@ export const State = {
     return validationErrors;
   },
   encode(obj: State, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
-    _.writeInt(buf, obj.id);
+    _.writeUInt(buf, obj.id);
     _.writeArray(buf, obj.state, (x) => Player.encode(x, tracker, buf));
     return buf;
   },
   encodeDiff(obj: _.DeepPartial<State>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
     tracker.push(obj.id !== _.NO_DIFF);
     if (obj.id !== _.NO_DIFF) {
-      _.writeInt(buf, obj.id);
+      _.writeUInt(buf, obj.id);
     }
     tracker.push(obj.state !== _.NO_DIFF);
     if (obj.state !== _.NO_DIFF) {
@@ -514,14 +514,14 @@ export const State = {
   decode(buf: _.Reader, tracker: _.Tracker): State {
     const sb = buf;
     return {
-      id: _.parseInt(sb),
+      id: _.parseUInt(sb),
       state: _.parseArray(sb, () => Player.decode(sb, tracker)),
     };
   },
   decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<State> {
     const sb = buf;
     return {
-      id: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
+      id: tracker.next() ? _.parseUInt(sb) : _.NO_DIFF,
       state: tracker.next() ? _.parseArrayDiff<Player>(sb, tracker, () => Player.decode(sb, tracker), () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,
     };
   },

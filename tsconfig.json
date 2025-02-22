@@ -1,5 +1,5 @@
 {
-  "include": ["generator.ts"],
+  "include": ["generator.ts", "example/**/*.ts"],
   "compilerOptions": {
     "strict": true,
     "declaration": true,
@@ -11,6 +11,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "allowImportingTsExtensions": true,
     "outDir": "dist"
   }
 }
