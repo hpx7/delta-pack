@@ -44,12 +44,20 @@ export const Position = {
 
     return validationErrors;
   },
-  encode(obj: Position, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encode(obj: Position, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     _.writeFloat(buf, obj.x);
     _.writeFloat(buf, obj.y);
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<Position>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Position>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     tracker.push(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
       _.writeFloat(buf, obj.x);
@@ -58,17 +66,25 @@ export const Position = {
     if (obj.y !== _.NO_DIFF) {
       _.writeFloat(buf, obj.y);
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(buf: _.Reader, tracker: _.Tracker): Position {
-    const sb = buf;
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): Position {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       x: _.parseFloat(sb),
       y: _.parseFloat(sb),
     };
   },
-  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Position> {
-    const sb = buf;
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Position> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       x: tracker.next() ? _.parseFloat(sb) : _.NO_DIFF,
       y: tracker.next() ? _.parseFloat(sb) : _.NO_DIFF,
@@ -115,12 +131,20 @@ export const Weapon = {
 
     return validationErrors;
   },
-  encode(obj: Weapon, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encode(obj: Weapon, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     _.writeString(buf, obj.name);
     _.writeInt(buf, obj.damage);
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<Weapon>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Weapon>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     tracker.push(obj.name !== _.NO_DIFF);
     if (obj.name !== _.NO_DIFF) {
       _.writeString(buf, obj.name);
@@ -129,17 +153,25 @@ export const Weapon = {
     if (obj.damage !== _.NO_DIFF) {
       _.writeInt(buf, obj.damage);
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(buf: _.Reader, tracker: _.Tracker): Weapon {
-    const sb = buf;
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): Weapon {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       name: _.parseString(sb),
       damage: _.parseInt(sb),
     };
   },
-  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Weapon> {
-    const sb = buf;
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Weapon> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       name: tracker.next() ? _.parseString(sb) : _.NO_DIFF,
       damage: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
@@ -196,14 +228,22 @@ export const Player = {
 
     return validationErrors;
   },
-  encode(obj: Player, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encode(obj: Player, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     Position.encode(obj.position, tracker, buf);
     _.writeInt(buf, obj.health);
     _.writeOptional(tracker, obj.weapon, (x) => Weapon.encode(x, tracker, buf));
     _.writeBoolean(tracker, obj.stealth);
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<Player>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Player>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     tracker.push(obj.position !== _.NO_DIFF);
     if (obj.position !== _.NO_DIFF) {
       Position.encodeDiff(obj.position, tracker, buf);
@@ -220,10 +260,17 @@ export const Player = {
     if (obj.stealth !== _.NO_DIFF) {
       _.writeBoolean(tracker, obj.stealth);
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(buf: _.Reader, tracker: _.Tracker): Player {
-    const sb = buf;
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): Player {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       position: Position.decode(sb, tracker),
       health: _.parseInt(sb),
@@ -231,8 +278,9 @@ export const Player = {
       stealth: _.parseBoolean(tracker),
     };
   },
-  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<Player> {
-    const sb = buf;
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Player> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       position: tracker.next() ? Position.decodeDiff(sb, tracker) : _.NO_DIFF,
       health: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
@@ -285,12 +333,20 @@ export const GameState = {
 
     return validationErrors;
   },
-  encode(obj: GameState, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encode(obj: GameState, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     _.writeInt(buf, obj.timeRemaining);
     _.writeRecord(buf, obj.players, (x) => _.writeInt(buf, x), (x) => Player.encode(x, tracker, buf));
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<GameState>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<GameState>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     tracker.push(obj.timeRemaining !== _.NO_DIFF);
     if (obj.timeRemaining !== _.NO_DIFF) {
       _.writeInt(buf, obj.timeRemaining);
@@ -299,17 +355,25 @@ export const GameState = {
     if (obj.players !== _.NO_DIFF) {
       _.writeRecordDiff<number, Player>(buf, obj.players, (x) => _.writeInt(buf, x), (x) => Player.encode(x, tracker, buf), (x) => Player.encodeDiff(x, tracker, buf));
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(buf: _.Reader, tracker: _.Tracker): GameState {
-    const sb = buf;
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): GameState {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       timeRemaining: _.parseInt(sb),
       players: _.parseRecord(sb, () => _.parseInt(sb), () => Player.decode(sb, tracker)),
     };
   },
-  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<GameState> {
-    const sb = buf;
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<GameState> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       timeRemaining: tracker.next() ? _.parseInt(sb) : _.NO_DIFF,
       players: tracker.next() ? _.parseRecordDiff<number, Player>(sb, () => _.parseInt(sb), () => Player.decode(sb, tracker), () => Player.decodeDiff(sb, tracker)) : _.NO_DIFF,

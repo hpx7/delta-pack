@@ -1,6 +1,6 @@
 import assert from "assert";
 import { GameState } from "./output5.ts";
-import { Tracker, DeepPartial, NO_DIFF, Reader, Writer } from "../helpers.ts";
+import { NO_DIFF } from "../helpers.ts";
 
 const state1: GameState = {
   creatures: new Map(),
@@ -31,11 +31,11 @@ const state1: GameState = {
   ],
 };
 
-const encoded = encode(state1);
+const encoded = GameState.encode(state1).toBuffer();
 console.log("encoded", encoded);
 // Uint8Array(45)
 
-const decoded = decode(encoded);
+const decoded = GameState.decode(encoded);
 assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
 
 const state2: GameState = {
@@ -96,46 +96,13 @@ console.log(
   JSON.stringify(diff, (k, v) => (v instanceof Map ? [...v] : v), 2),
 );
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
-const encodedDiff = encodeDiff(diff);
+if (diff === NO_DIFF) {
+  assert.fail("diff === NO_DIFF");
+}
+const encodedDiff = GameState.encodeDiff(diff).toBuffer();
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(224)
 
-const decodedDiff = decodeDiff(encodedDiff);
+const decodedDiff = GameState.decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);
 assert.equal(GameState.computeDiff(applied, state2), NO_DIFF);
-
-function encode(state: GameState) {
-  const tracker = new Tracker();
-  const encoded = GameState.encode(state, tracker).toBuffer();
-  const writer = new Writer();
-  tracker.encode(writer);
-  writer.writeBuffer(encoded);
-  return writer.toBuffer();
-}
-
-function encodeDiff(diff: DeepPartial<GameState> | typeof NO_DIFF) {
-  if (diff === NO_DIFF) {
-    return new Uint8Array(0);
-  }
-  const tracker = new Tracker();
-  const encodedDiff = GameState.encodeDiff(diff, tracker).toBuffer();
-  const writer = new Writer();
-  tracker.encode(writer);
-  writer.writeBuffer(encodedDiff);
-  return writer.toBuffer();
-}
-
-function decode(buf: Uint8Array) {
-  const reader = new Reader(buf);
-  const tracker = Tracker.parse(reader);
-  return GameState.decode(reader, tracker);
-}
-
-function decodeDiff(buf: Uint8Array) {
-  if (buf.length === 0) {
-    return NO_DIFF;
-  }
-  const reader = new Reader(buf);
-  const tracker = Tracker.parse(reader);
-  return GameState.decodeDiff(reader, tracker);
-}

@@ -1,5 +1,4 @@
 import util from "util";
-import { Reader } from "bin-serde";
 import { EntityEvent, EntityState, Snapshot } from "./output3.ts";
 
 const snashot: Snapshot = {
@@ -36,5 +35,5 @@ const snashot: Snapshot = {
 const encoded = Snapshot.encode(snashot).toBuffer();
 console.log("encoded", encoded);
 
-const decoded = Snapshot.decode(new Reader(encoded));
+const decoded = Snapshot.decode(encoded);
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));

@@ -48,15 +48,23 @@ export const ${name} = {
 
     return validationErrors;
   },
-  encode(obj: ${name}, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encode(obj: ${name}, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     ${Object.entries(type.properties)
       .map(([childName, childType]) => {
         return `${renderEncode(childType, name, `obj.${childName}`)};`;
       })
       .join("\n    ")}
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<${name}>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     ${Object.entries(type.properties)
       .map(([childName, childType]) => {
         return `tracker.push(obj.${childName} !== _.NO_DIFF);
@@ -65,10 +73,17 @@ export const ${name} = {
     }`;
       })
       .join("\n    ")}
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(buf: _.Reader, tracker: _.Tracker): ${name} {
-    const sb = buf;
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): ${name} {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
@@ -77,8 +92,9 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  decodeDiff(buf: _.Reader, tracker: _.Tracker): _.DeepPartial<${name}> {
-    const sb = buf;
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<${name}> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
