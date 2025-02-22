@@ -603,7 +603,8 @@ export const Component = {
       return [`Invalid Component union: ${obj}`];
     }
   },
-  encode(obj: Component, buf: _.Writer = new _.Writer()) {
+  encode(obj: Component, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     if (obj.type === "Color") {
       _.writeUInt8(buf, 0);
       _.writeString(buf, obj.val);
@@ -636,68 +637,83 @@ export const Component = {
       _.writeUInt8(buf, 7);
       ChatList.encode(obj.val, tracker, buf);
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<Component>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Component>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     if (obj.type === "Color") {
       _.writeUInt8(buf, 0);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        _.writeString(buf, obj.val);
       }
     }
     else if (obj.type === "Position") {
       _.writeUInt8(buf, 1);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        Position.encodeDiff(obj.val, tracker, buf);
       }
     }
     else if (obj.type === "Rotation") {
       _.writeUInt8(buf, 2);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        Rotation.encodeDiff(obj.val, tracker, buf);
       }
     }
     else if (obj.type === "Size3D") {
       _.writeUInt8(buf, 3);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        Size3D.encodeDiff(obj.val, tracker, buf);
       }
     }
     else if (obj.type === "Size1D") {
       _.writeUInt8(buf, 4);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        _.writeFloat(buf, obj.val);
       }
     }
     else if (obj.type === "EntityEvent") {
       _.writeUInt8(buf, 5);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        _.writeUInt8(buf, obj.val);
       }
     }
     else if (obj.type === "EntityState") {
       _.writeUInt8(buf, 6);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        _.writeUInt8(buf, obj.val);
       }
     }
     else if (obj.type === "ChatList") {
       _.writeUInt8(buf, 7);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        ChatList.encodeDiff(obj.val, tracker, buf);
       }
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(sb: _.Reader): Component {
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): Component {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     const type = _.parseUInt8(sb);
     if (type === 0) {
       return { type: "Color", val: _.parseString(sb) };
@@ -725,31 +741,33 @@ export const Component = {
     }
     throw new Error("Invalid union");
   },
-  decodeDiff(sb: _.Reader, tracker: _.Tracker): _.DeepPartial<Component> {
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Component> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     const type = _.parseUInt8(sb);
     if (type === 0) {
-      return { type: "Color", val: _.parseBoolean(sb) ? _.parseString(sb) : _.NO_DIFF };
+      return { type: "Color", val: _.parseBoolean(tracker) ? _.parseString(sb) : _.NO_DIFF };
     }
     else if (type === 1) {
-      return { type: "Position", val: _.parseBoolean(sb) ? Position.decodeDiff(sb, tracker) : _.NO_DIFF };
+      return { type: "Position", val: _.parseBoolean(tracker) ? Position.decodeDiff(sb, tracker) : _.NO_DIFF };
     }
     else if (type === 2) {
-      return { type: "Rotation", val: _.parseBoolean(sb) ? Rotation.decodeDiff(sb, tracker) : _.NO_DIFF };
+      return { type: "Rotation", val: _.parseBoolean(tracker) ? Rotation.decodeDiff(sb, tracker) : _.NO_DIFF };
     }
     else if (type === 3) {
-      return { type: "Size3D", val: _.parseBoolean(sb) ? Size3D.decodeDiff(sb, tracker) : _.NO_DIFF };
+      return { type: "Size3D", val: _.parseBoolean(tracker) ? Size3D.decodeDiff(sb, tracker) : _.NO_DIFF };
     }
     else if (type === 4) {
-      return { type: "Size1D", val: _.parseBoolean(sb) ? _.parseFloat(sb) : _.NO_DIFF };
+      return { type: "Size1D", val: _.parseBoolean(tracker) ? _.parseFloat(sb) : _.NO_DIFF };
     }
     else if (type === 5) {
-      return { type: "EntityEvent", val: _.parseBoolean(sb) ? _.parseUInt8(sb) : _.NO_DIFF };
+      return { type: "EntityEvent", val: _.parseBoolean(tracker) ? _.parseUInt8(sb) : _.NO_DIFF };
     }
     else if (type === 6) {
-      return { type: "EntityState", val: _.parseBoolean(sb) ? _.parseUInt8(sb) : _.NO_DIFF };
+      return { type: "EntityState", val: _.parseBoolean(tracker) ? _.parseUInt8(sb) : _.NO_DIFF };
     }
     else if (type === 7) {
-      return { type: "ChatList", val: _.parseBoolean(sb) ? ChatList.decodeDiff(sb, tracker) : _.NO_DIFF };
+      return { type: "ChatList", val: _.parseBoolean(tracker) ? ChatList.decodeDiff(sb, tracker) : _.NO_DIFF };
     }
     throw new Error("Invalid union");
   },

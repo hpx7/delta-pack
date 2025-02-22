@@ -398,7 +398,8 @@ export const UnionTest = {
       return [`Invalid UnionTest union: ${obj}`];
     }
   },
-  encode(obj: UnionTest, buf: _.Writer = new _.Writer()) {
+  encode(obj: UnionTest, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     if (obj.type === "UserId") {
       _.writeUInt8(buf, 0);
       _.writeString(buf, obj.val);
@@ -411,33 +412,48 @@ export const UnionTest = {
       _.writeUInt8(buf, 2);
       Card.encode(obj.val, tracker, buf);
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<UnionTest>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<UnionTest>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     if (obj.type === "UserId") {
       _.writeUInt8(buf, 0);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        _.writeString(buf, obj.val);
       }
     }
     else if (obj.type === "Color") {
       _.writeUInt8(buf, 1);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        _.writeUInt8(buf, obj.val);
       }
     }
     else if (obj.type === "Card") {
       _.writeUInt8(buf, 2);
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        Card.encodeDiff(obj.val, tracker, buf);
       }
     }
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(sb: _.Reader): UnionTest {
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): UnionTest {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     const type = _.parseUInt8(sb);
     if (type === 0) {
       return { type: "UserId", val: _.parseString(sb) };
@@ -450,16 +466,18 @@ export const UnionTest = {
     }
     throw new Error("Invalid union");
   },
-  decodeDiff(sb: _.Reader, tracker: _.Tracker): _.DeepPartial<UnionTest> {
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<UnionTest> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     const type = _.parseUInt8(sb);
     if (type === 0) {
-      return { type: "UserId", val: _.parseBoolean(sb) ? _.parseString(sb) : _.NO_DIFF };
+      return { type: "UserId", val: _.parseBoolean(tracker) ? _.parseString(sb) : _.NO_DIFF };
     }
     else if (type === 1) {
-      return { type: "Color", val: _.parseBoolean(sb) ? _.parseUInt8(sb) : _.NO_DIFF };
+      return { type: "Color", val: _.parseBoolean(tracker) ? _.parseUInt8(sb) : _.NO_DIFF };
     }
     else if (type === 2) {
-      return { type: "Card", val: _.parseBoolean(sb) ? Card.decodeDiff(sb, tracker) : _.NO_DIFF };
+      return { type: "Card", val: _.parseBoolean(tracker) ? Card.decodeDiff(sb, tracker) : _.NO_DIFF };
     }
     throw new Error("Invalid union");
   },

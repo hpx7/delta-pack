@@ -160,7 +160,8 @@ export const ${name} = {
       return [\`Invalid ${name} union: \${obj}\`];
     }
   },
-  encode(obj: ${name}, buf: _.Writer = new _.Writer()) {
+  encode(obj: ${name}, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
@@ -169,23 +170,38 @@ export const ${name} = {
     }`;
       })
       .join("\n    ")}
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  encodeDiff(obj: _.DeepPartial<${name}>, tracker: _.Tracker, buf: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker, buf: _.Writer = new _.Writer()) {
+    const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
       _.writeUInt8(buf, ${i});
-      _.writeBoolean(buf, obj.val !== _.NO_DIFF);
+      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        ${renderEncodeDiff(reference, reference.reference, "obj.val")};
       }
     }`;
       })
       .join("\n    ")}
+    if (track === undefined) {
+      const writer = new _.Writer();
+      tracker.encode(writer);
+      writer.writeBuffer(buf.toBuffer());
+      return writer;
+    }
     return buf;
   },
-  decode(sb: _.Reader): ${name} {
+  decode(buf: Uint8Array | _.Reader, track?: _.Tracker): ${name} {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     const type = _.parseUInt8(sb);
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
@@ -196,12 +212,14 @@ export const ${name} = {
       .join("\n    ")}
     throw new Error("Invalid union");
   },
-  decodeDiff(sb: _.Reader, tracker: _.Tracker): _.DeepPartial<${name}> {
+  decodeDiff(buf: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<${name}> {
+    const sb = buf instanceof Uint8Array ? new _.Reader(buf) : buf;
+    const tracker = buf instanceof Uint8Array ? _.Tracker.parse(sb) : track!;
     const type = _.parseUInt8(sb);
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${reference.reference}", val: _.parseBoolean(sb) ? ${renderDecodeDiff(
+      return { type: "${reference.reference}", val: _.parseBoolean(tracker) ? ${renderDecodeDiff(
           reference,
           reference.reference,
           "obj.val",
