@@ -279,6 +279,9 @@ export function parseRecordDiff<K, T>(
 export function diffPrimitive<T>(a: T, b: T) {
   return a === b ? NO_DIFF : b;
 }
+export function diffFloat(a: number, b: number) {
+  return Math.abs(a - b) < 0.00001 ? NO_DIFF : b;
+}
 export function diffOptional<T>(
   a: T | undefined,
   b: T | undefined,

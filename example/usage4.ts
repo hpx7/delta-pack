@@ -1,4 +1,5 @@
 import util from "util";
+import assert from "assert";
 import { GameState } from "./output4.ts";
 import { NO_DIFF } from "../helpers.ts";
 
@@ -38,6 +39,7 @@ console.log("encoded", encoded);
 
 const decoded = GameState.decode(encoded);
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
+assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
 
 const state2: GameState = {
   timeRemaining: 60,
@@ -63,7 +65,7 @@ const state2: GameState = {
 const diff = GameState.computeDiff(state1, state2);
 console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 if (diff === NO_DIFF) {
-  throw new Error("Unexpected NO_DIFF");
+  assert.fail("diff === NO_DIFF");
 }
 const encodedDiff = GameState.encodeDiff(diff).toBuffer();
 console.log("encodedDiff", encodedDiff);
@@ -77,3 +79,4 @@ console.log("encodedDiff", encodedDiff);
 const decodedDiff = GameState.decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);
 console.log("applied", util.inspect(applied, { depth: null, colors: true }));
+assert.equal(GameState.computeDiff(applied, state2), NO_DIFF);

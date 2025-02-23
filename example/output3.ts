@@ -265,9 +265,9 @@ export const Position = {
   },
   computeDiff(a: Position, b: Position): _.DeepPartial<Position> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<Position> =  {
-      x: _.diffPrimitive(a.x, b.x),
-      y: _.diffPrimitive(a.y, b.y),
-      z: _.diffPrimitive(a.z, b.z),
+      x: _.diffFloat(a.x, b.x),
+      y: _.diffFloat(a.y, b.y),
+      z: _.diffFloat(a.z, b.z),
     };
     return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF && diff.z === _.NO_DIFF ? _.NO_DIFF : diff;
   },
@@ -373,10 +373,10 @@ export const Rotation = {
   },
   computeDiff(a: Rotation, b: Rotation): _.DeepPartial<Rotation> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<Rotation> =  {
-      x: _.diffPrimitive(a.x, b.x),
-      y: _.diffPrimitive(a.y, b.y),
-      z: _.diffPrimitive(a.z, b.z),
-      w: _.diffPrimitive(a.w, b.w),
+      x: _.diffFloat(a.x, b.x),
+      y: _.diffFloat(a.y, b.y),
+      z: _.diffFloat(a.z, b.z),
+      w: _.diffFloat(a.w, b.w),
     };
     return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF && diff.z === _.NO_DIFF && diff.w === _.NO_DIFF ? _.NO_DIFF : diff;
   },
@@ -481,9 +481,9 @@ export const Size3D = {
   },
   computeDiff(a: Size3D, b: Size3D): _.DeepPartial<Size3D> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<Size3D> =  {
-      width: _.diffPrimitive(a.width, b.width),
-      height: _.diffPrimitive(a.height, b.height),
-      depth: _.diffPrimitive(a.depth, b.depth),
+      width: _.diffFloat(a.width, b.width),
+      height: _.diffFloat(a.height, b.height),
+      depth: _.diffFloat(a.depth, b.depth),
     };
     return diff.width === _.NO_DIFF && diff.height === _.NO_DIFF && diff.depth === _.NO_DIFF ? _.NO_DIFF : diff;
   },

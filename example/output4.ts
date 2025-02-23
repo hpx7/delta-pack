@@ -66,8 +66,8 @@ export const Position = {
   },
   computeDiff(a: Position, b: Position): _.DeepPartial<Position> | typeof _.NO_DIFF {
     const diff: _.DeepPartial<Position> =  {
-      x: _.diffPrimitive(a.x, b.x),
-      y: _.diffPrimitive(a.y, b.y),
+      x: _.diffFloat(a.x, b.x),
+      y: _.diffFloat(a.y, b.y),
     };
     return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
   },

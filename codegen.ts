@@ -381,11 +381,12 @@ export const ${name} = {
       return `_.diffRecord(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
     } else if (type.type === "reference") {
       return renderComputeDiff(doc[type.reference], type.reference, keyA, keyB);
+    } else if (type.type === "float") {
+      return `_.diffFloat(${keyA}, ${keyB})`;
     } else if (
       type.type === "string" ||
       type.type === "int" ||
       type.type === "uint" ||
-      type.type === "float" ||
       type.type === "boolean" ||
       type.type === "enum"
     ) {
