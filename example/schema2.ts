@@ -1,4 +1,12 @@
-import { ArrayType, BooleanType, UIntType, ObjectType, StringType, codegenTypescript } from "../generator";
+import {
+  ArrayType,
+  BooleanType,
+  UIntType,
+  ObjectType,
+  StringType,
+  codegenTypescript,
+  ReferenceType,
+} from "../generator";
 
 const Position = ObjectType({
   x: UIntType(),
@@ -14,8 +22,8 @@ const Player = ObjectType({
   id: UIntType(),
   name: StringType(),
   type: StringType(),
-  position: "Position",
-  velocity: "Velocity",
+  position: ReferenceType(Position),
+  velocity: ReferenceType(Velocity),
   width: UIntType(),
   height: UIntType(),
   rotation: UIntType(),
@@ -33,7 +41,7 @@ const Player = ObjectType({
 
 const State = ObjectType({
   id: UIntType(),
-  state: ArrayType("Player"),
+  state: ArrayType(ReferenceType(Player)),
 });
 
 console.log(

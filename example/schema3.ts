@@ -4,6 +4,7 @@ import {
   FloatType,
   IntType,
   ObjectType,
+  ReferenceType,
   StringType,
   UnionType,
   codegenTypescript,
@@ -15,7 +16,7 @@ const ChatMessage = ObjectType({
 });
 
 const ChatList = ObjectType({
-  messages: ArrayType("ChatMessage"),
+  messages: ArrayType(ReferenceType(ChatMessage)),
 });
 
 const Color = StringType();
@@ -46,23 +47,23 @@ const EntityEvent = EnumType(["DESTROYED"]);
 const EntityState = EnumType(["IDLE", "WALK", "RUN", "JUMP", "ATTACK", "FALL", "DEATH"]);
 
 const Component = UnionType([
-  "Color",
-  "Position",
-  "Rotation",
-  "Size3D",
-  "Size1D",
-  "EntityEvent",
-  "EntityState",
-  "ChatList",
+  ReferenceType(Color),
+  ReferenceType(Position),
+  ReferenceType(Rotation),
+  ReferenceType(Size3D),
+  ReferenceType(Size1D),
+  ReferenceType(EntityEvent),
+  ReferenceType(EntityState),
+  ReferenceType(ChatList),
 ]);
 
 const Entity = ObjectType({
   entityId: IntType(),
-  components: ArrayType("Component"),
+  components: ArrayType(ReferenceType(Component)),
 });
 
 const Snapshot = ObjectType({
-  entities: ArrayType("Entity"),
+  entities: ArrayType(ReferenceType(Entity)),
 });
 
 console.log(

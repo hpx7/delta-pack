@@ -1,4 +1,4 @@
-import type { Type } from "./generator";
+import type { ReferenceType, Type } from "./generator";
 
 export function renderDoc(doc: Record<string, Type>) {
   return `import * as _ from "../helpers.ts";
@@ -137,18 +137,18 @@ export const ${name} = {
 export const ${name} = {
   default(): ${name} {
     return {
-      type: "${type.options[0].reference}",
-      val: ${renderDefault(type.options[0], type.options[0].reference)},
+      type: "${lookup(type.options[0])}",
+      val: ${renderDefault(type.options[0], lookup(type.options[0]))},
     };
   },
   values() {
-    return [${type.options.map((option) => `"${option.reference}"`).join(", ")}];
+    return [${type.options.map((option) => `"${lookup(option)}"`).join(", ")}];
   },
   validate(obj: ${name}) {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
-      const validationErrors = ${renderValidate(reference, reference.reference, "obj.val")};
+        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
+      const validationErrors = ${renderValidate(reference, lookup(reference), "obj.val")};
       if (validationErrors.length > 0) {
         return validationErrors.concat("Invalid union: ${name}");
       }
@@ -164,9 +164,9 @@ export const ${name} = {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
       _.writeUInt8(output, ${childName});
-      ${renderEncode(reference, reference.reference, "obj.val")};
+      ${renderEncode(reference, lookup(reference), "obj.val")};
     }`;
       })
       .join("\n    ")}
@@ -185,7 +185,7 @@ export const ${name} = {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
+      return { type: "${lookup(reference)}", val: ${renderDecode(reference, lookup(reference), "obj.val")} };
     }`;
       })
       .join("\n    ")}
@@ -195,11 +195,11 @@ export const ${name} = {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
       _.writeUInt8(output, ${i});
       _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
-       ${renderEncodeDiff(reference, reference.reference, "obj.val")};
+       ${renderEncodeDiff(reference, lookup(reference), "obj.val")};
       }
     }`;
       })
@@ -219,9 +219,9 @@ export const ${name} = {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${reference.reference}", val: _.parseBoolean(tracker) ? ${renderDecodeDiff(
+      return { type: "${lookup(reference)}", val: _.parseBoolean(tracker) ? ${renderDecodeDiff(
           reference,
-          reference.reference,
+          lookup(reference),
           "obj.val",
         )} : _.NO_DIFF };
     }`;
@@ -233,6 +233,15 @@ export const ${name} = {
     }
   })
   .join("\n")}`;
+
+  function lookup(type: ReferenceType) {
+    for (const [name, value] of Object.entries(doc)) {
+      if (value === type.reference) {
+        return name;
+      }
+    }
+    throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(doc)}`);
+  }
 
   function renderTypeArg(type: Type): string {
     if (type.type === "object") {
@@ -254,7 +263,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return `Map<${renderTypeArg(type.key)}, ${renderTypeArg(type.value)}>`;
     } else if (type.type === "reference") {
-      return type.reference;
+      return lookup(type);
     } else if (type.type === "int" || type.type === "uint" || type.type === "float") {
       return "number";
     }
@@ -269,7 +278,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return "new Map()";
     } else if (type.type === "reference") {
-      return renderDefault(doc[type.reference], type.reference);
+      return renderDefault(type.reference, lookup(type));
     } else if (type.type === "string") {
       return '""';
     } else if (type.type === "int") {
@@ -296,7 +305,7 @@ export const ${name} = {
       const valueFn = renderValidate(type.value, name, "x");
       return `_.validateRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderValidate(doc[type.reference], type.reference, key);
+      return renderValidate(type.reference, lookup(type), key);
     } else if (type.type === "string") {
       return `_.validatePrimitive(typeof ${key} === "string", \`Invalid string: \${${key}}\`)`;
     } else if (type.type === "int") {
@@ -323,7 +332,7 @@ export const ${name} = {
       const valueFn = renderEncode(type.value, name, "x");
       return `_.writeRecord(output, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderEncode(doc[type.reference], type.reference, key);
+      return renderEncode(type.reference, lookup(type), key);
     } else if (type.type === "string") {
       return `_.writeString(output, ${key})`;
     } else if (type.type === "int") {
@@ -350,7 +359,7 @@ export const ${name} = {
       const valueFn = renderDecode(type.value, name, "x");
       return `_.parseRecord(reader, () => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderDecode(doc[type.reference], type.reference, key);
+      return renderDecode(type.reference, lookup(type), key);
     } else if (type.type === "string") {
       return `_.parseString(reader)`;
     } else if (type.type === "int") {
@@ -380,7 +389,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return `_.diffRecord(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
     } else if (type.type === "reference") {
-      return renderComputeDiff(doc[type.reference], type.reference, keyA, keyB);
+      return renderComputeDiff(type.reference, lookup(type), keyA, keyB);
     } else if (type.type === "float") {
       return `_.diffFloat(${keyA}, ${keyB})`;
     } else if (
@@ -414,7 +423,7 @@ export const ${name} = {
       const valueUpdateFn = renderEncodeDiff(type.value, name, "x");
       return `_.writeRecordDiff<${keyType}, ${valueType}>(output, ${key}, (x) => ${keyFn}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
     } else if (type.type === "reference") {
-      return renderEncodeDiff(doc[type.reference], type.reference, key);
+      return renderEncodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
       return `_.writeString(output, ${key})`;
     } else if (type.type === "int") {
@@ -450,7 +459,7 @@ export const ${name} = {
       const valueUpdateFn = renderDecodeDiff(type.value, name, "x");
       return `_.parseRecordDiff<${keyType}, ${valueType}>(reader, () => ${keyFn}, () => ${valueFn}, () => ${valueUpdateFn})`;
     } else if (type.type === "reference") {
-      return renderDecodeDiff(doc[type.reference], type.reference, key);
+      return renderDecodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
       return `_.parseString(reader)`;
     } else if (type.type === "int") {
@@ -492,7 +501,7 @@ export const ${name} = {
         "b",
       )})`;
     } else if (type.type === "reference") {
-      return renderApplyDiff(doc[type.reference], type.reference, key, diff);
+      return renderApplyDiff(type.reference, lookup(type), key, diff);
     } else if (
       type.type === "string" ||
       type.type === "int" ||
