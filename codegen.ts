@@ -48,24 +48,17 @@ export const ${name} = {
 
     return validationErrors;
   },
-  encode(obj: ${name}, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encode(obj: ${name}, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.properties)
       .map(([childName, childType]) => {
         return `${renderEncode(childType, name, `obj.${childName}`)};`;
       })
       .join("\n    ")}
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decode(input: Uint8Array | _.Reader, track?: _.Tracker): ${name} {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decode(input: Uint8Array | _.Tracker): ${name} {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
@@ -86,31 +79,28 @@ export const ${name} = {
       .map((childName) => `diff.${childName} === _.NO_DIFF`)
       .join(" && ")} ? _.NO_DIFF : diff;
   },
-  encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.properties)
       .map(([childName, childType]) => {
-        return `tracker.push(obj.${childName} !== _.NO_DIFF);
+        return `tracker.pushBoolean(obj.${childName} !== _.NO_DIFF);
     if (obj.${childName} !== _.NO_DIFF) {
       ${renderEncodeDiff(childType, name, `obj.${childName}`)};
     }`;
       })
       .join("\n    ")}
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decodeDiff(input: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<${name}> {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<${name}> {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
-          return `${childName}: tracker.next() ? ${renderDecodeDiff(childType, name, `obj.${childName}`)} : _.NO_DIFF,`;
+          return `${childName}: tracker.nextBoolean() ? ${renderDecodeDiff(
+            childType,
+            name,
+            `obj.${childName}`,
+          )} : _.NO_DIFF,`;
         })
         .join("\n      ")}
     };
@@ -160,28 +150,21 @@ export const ${name} = {
       return [\`Invalid ${name} union: \${obj}\`];
     }
   },
-  encode(obj: ${name}, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encode(obj: ${name}, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
-      _.writeUInt8(output, ${childName});
+      _.writeUInt8(tracker, ${childName});
       ${renderEncode(reference, lookup(reference), "obj.val")};
     }`;
       })
       .join("\n    ")}
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decode(input: Uint8Array | _.Reader, track?: _.Tracker): ${name} {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
-    const type = _.parseUInt8(reader);
+  decode(input: Uint8Array | _.Tracker): ${name} {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
+    const type = _.parseUInt8(tracker);
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
@@ -191,12 +174,12 @@ export const ${name} = {
       .join("\n    ")}
     throw new Error("Invalid union");
   },
-  encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
-      _.writeUInt8(output, ${i});
+      _.writeUInt8(tracker, ${i});
       _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        ${renderEncodeDiff(reference, lookup(reference), "obj.val")};
@@ -204,18 +187,11 @@ export const ${name} = {
     }`;
       })
       .join("\n    ")}
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decodeDiff(input: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<${name}> {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
-    const type = _.parseUInt8(reader);
+  decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<${name}> {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
+    const type = _.parseUInt8(tracker);
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
@@ -324,56 +300,56 @@ export const ${name} = {
 
   function renderEncode(type: Type, name: string, key: string): string {
     if (type.type === "array") {
-      return `_.writeArray(output, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
+      return `_.writeArray(tracker, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
     } else if (type.type === "optional") {
       return `_.writeOptional(tracker, ${key}, (x) => ${renderEncode(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderEncode(type.key, name, "x");
       const valueFn = renderEncode(type.value, name, "x");
-      return `_.writeRecord(output, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
+      return `_.writeRecord(tracker, ${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderEncode(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.writeString(output, ${key})`;
+      return `_.writeString(tracker, ${key})`;
     } else if (type.type === "int") {
-      return `_.writeInt(output, ${key})`;
+      return `_.writeInt(tracker, ${key})`;
     } else if (type.type === "uint") {
-      return `_.writeUInt(output, ${key})`;
+      return `_.writeUInt(tracker, ${key})`;
     } else if (type.type === "float") {
-      return `_.writeFloat(output, ${key})`;
+      return `_.writeFloat(tracker, ${key})`;
     } else if (type.type === "boolean") {
       return `_.writeBoolean(tracker, ${key})`;
     } else if (type.type === "enum") {
-      return `_.writeUInt8(output, ${key})`;
+      return `_.writeUInt8(tracker, ${key})`;
     }
-    return `${name}.encode(${key}, tracker, output)`;
+    return `${name}.encode(${key}, tracker)`;
   }
 
   function renderDecode(type: Type, name: string, key: string): string {
     if (type.type === "array") {
-      return `_.parseArray(reader, () => ${renderDecode(type.value, name, "x")})`;
+      return `_.parseArray(tracker, () => ${renderDecode(type.value, name, "x")})`;
     } else if (type.type === "optional") {
       return `_.parseOptional(tracker, () => ${renderDecode(type.value, name, "x")})`;
     } else if (type.type === "record") {
       const keyFn = renderDecode(type.key, name, "x");
       const valueFn = renderDecode(type.value, name, "x");
-      return `_.parseRecord(reader, () => ${keyFn}, () => ${valueFn})`;
+      return `_.parseRecord(tracker, () => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
       return renderDecode(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.parseString(reader)`;
+      return `_.parseString(tracker)`;
     } else if (type.type === "int") {
-      return `_.parseInt(reader)`;
+      return `_.parseInt(tracker)`;
     } else if (type.type === "uint") {
-      return `_.parseUInt(reader)`;
+      return `_.parseUInt(tracker)`;
     } else if (type.type === "float") {
-      return `_.parseFloat(reader)`;
+      return `_.parseFloat(tracker)`;
     } else if (type.type === "boolean") {
       return `_.parseBoolean(tracker)`;
     } else if (type.type === "enum") {
-      return `_.parseUInt8(reader)`;
+      return `_.parseUInt8(tracker)`;
     }
-    return `${name}.decode(reader, tracker)`;
+    return `${name}.decode(tracker)`;
   }
 
   function renderComputeDiff(type: Type, name: string, keyA: string, keyB: string): string {
@@ -409,7 +385,7 @@ export const ${name} = {
       const valueType = renderTypeArg(type.value);
       const valueFn = renderEncode(type.value, name, "x");
       const valueUpdateFn = renderEncodeDiff(type.value, name, "x");
-      return `_.writeArrayDiff<${valueType}>(output, tracker, ${key}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
+      return `_.writeArrayDiff<${valueType}>(tracker, ${key}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value);
       const fullFn = renderEncode(type.value, name, "x");
@@ -421,23 +397,23 @@ export const ${name} = {
       const keyFn = renderEncodeDiff(type.key, name, "x");
       const valueFn = renderEncode(type.value, name, "x");
       const valueUpdateFn = renderEncodeDiff(type.value, name, "x");
-      return `_.writeRecordDiff<${keyType}, ${valueType}>(output, ${key}, (x) => ${keyFn}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
+      return `_.writeRecordDiff<${keyType}, ${valueType}>(tracker, ${key}, (x) => ${keyFn}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.writeString(output, ${key})`;
+      return `_.writeString(tracker, ${key})`;
     } else if (type.type === "int") {
-      return `_.writeInt(output, ${key})`;
+      return `_.writeInt(tracker, ${key})`;
     } else if (type.type === "uint") {
-      return `_.writeUInt(output, ${key})`;
+      return `_.writeUInt(tracker, ${key})`;
     } else if (type.type === "float") {
-      return `_.writeFloat(output, ${key})`;
+      return `_.writeFloat(tracker, ${key})`;
     } else if (type.type === "boolean") {
       return `_.writeBoolean(tracker, ${key})`;
     } else if (type.type === "enum") {
-      return `_.writeUInt8(output, ${key})`;
+      return `_.writeUInt8(tracker, ${key})`;
     }
-    return `${name}.encodeDiff(${key}, tracker, output)`;
+    return `${name}.encodeDiff(${key}, tracker)`;
   }
 
   function renderDecodeDiff(type: Type, name: string, key: string): string {
@@ -445,7 +421,7 @@ export const ${name} = {
       const valueType = renderTypeArg(type.value);
       const valueFn = renderDecode(type.value, name, "x");
       const valueUpdateFn = renderDecodeDiff(type.value, name, "x");
-      return `_.parseArrayDiff<${valueType}>(reader, tracker, () => ${valueFn}, () => ${valueUpdateFn})`;
+      return `_.parseArrayDiff<${valueType}>(tracker, () => ${valueFn}, () => ${valueUpdateFn})`;
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value);
       const fullFn = renderDecode(type.value, name, "x");
@@ -457,23 +433,23 @@ export const ${name} = {
       const keyFn = renderDecodeDiff(type.key, name, "x");
       const valueFn = renderDecode(type.value, name, "x");
       const valueUpdateFn = renderDecodeDiff(type.value, name, "x");
-      return `_.parseRecordDiff<${keyType}, ${valueType}>(reader, () => ${keyFn}, () => ${valueFn}, () => ${valueUpdateFn})`;
+      return `_.parseRecordDiff<${keyType}, ${valueType}>(tracker, () => ${keyFn}, () => ${valueFn}, () => ${valueUpdateFn})`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.parseString(reader)`;
+      return `_.parseString(tracker)`;
     } else if (type.type === "int") {
-      return `_.parseInt(reader)`;
+      return `_.parseInt(tracker)`;
     } else if (type.type === "uint") {
-      return `_.parseUInt(reader)`;
+      return `_.parseUInt(tracker)`;
     } else if (type.type === "float") {
-      return `_.parseFloat(reader)`;
+      return `_.parseFloat(tracker)`;
     } else if (type.type === "boolean") {
       return `_.parseBoolean(tracker)`;
     } else if (type.type === "enum") {
-      return `_.parseUInt8(reader)`;
+      return `_.parseUInt8(tracker)`;
     }
-    return `${name}.decodeDiff(reader, tracker)`;
+    return `${name}.decodeDiff(tracker)`;
   }
 
   function renderApplyDiff(type: Type, name: string, key: string, diff: string): string {

@@ -58,24 +58,17 @@ export const Position = {
 
     return validationErrors;
   },
-  encode(obj: Position, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encode(obj: Position, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    _.writeUInt(output, obj.x);
-    _.writeUInt(output, obj.y);
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    _.writeUInt(tracker, obj.x);
+    _.writeUInt(tracker, obj.y);
+    return tracker;
   },
-  decode(input: Uint8Array | _.Reader, track?: _.Tracker): Position {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decode(input: Uint8Array | _.Tracker): Position {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      x: _.parseUInt(reader),
-      y: _.parseUInt(reader),
+      x: _.parseUInt(tracker),
+      y: _.parseUInt(tracker),
     };
   },
   computeDiff(a: Position, b: Position): _.DeepPartial<Position> | typeof _.NO_DIFF {
@@ -85,30 +78,23 @@ export const Position = {
     };
     return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
   },
-  encodeDiff(obj: _.DeepPartial<Position>, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Position>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    tracker.push(obj.x !== _.NO_DIFF);
+    tracker.pushBoolean(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
-      _.writeUInt(output, obj.x);
+      _.writeUInt(tracker, obj.x);
     }
-    tracker.push(obj.y !== _.NO_DIFF);
+    tracker.pushBoolean(obj.y !== _.NO_DIFF);
     if (obj.y !== _.NO_DIFF) {
-      _.writeUInt(output, obj.y);
+      _.writeUInt(tracker, obj.y);
     }
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decodeDiff(input: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Position> {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<Position> {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      x: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      y: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
+      x: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      y: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
     };
   },
   applyDiff(obj: Position, diff: _.DeepPartial<Position> | typeof _.NO_DIFF): Position {
@@ -145,24 +131,17 @@ export const Velocity = {
 
     return validationErrors;
   },
-  encode(obj: Velocity, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encode(obj: Velocity, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    _.writeUInt(output, obj.x);
-    _.writeUInt(output, obj.y);
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    _.writeUInt(tracker, obj.x);
+    _.writeUInt(tracker, obj.y);
+    return tracker;
   },
-  decode(input: Uint8Array | _.Reader, track?: _.Tracker): Velocity {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decode(input: Uint8Array | _.Tracker): Velocity {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      x: _.parseUInt(reader),
-      y: _.parseUInt(reader),
+      x: _.parseUInt(tracker),
+      y: _.parseUInt(tracker),
     };
   },
   computeDiff(a: Velocity, b: Velocity): _.DeepPartial<Velocity> | typeof _.NO_DIFF {
@@ -172,30 +151,23 @@ export const Velocity = {
     };
     return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
   },
-  encodeDiff(obj: _.DeepPartial<Velocity>, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Velocity>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    tracker.push(obj.x !== _.NO_DIFF);
+    tracker.pushBoolean(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
-      _.writeUInt(output, obj.x);
+      _.writeUInt(tracker, obj.x);
     }
-    tracker.push(obj.y !== _.NO_DIFF);
+    tracker.pushBoolean(obj.y !== _.NO_DIFF);
     if (obj.y !== _.NO_DIFF) {
-      _.writeUInt(output, obj.y);
+      _.writeUInt(tracker, obj.y);
     }
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decodeDiff(input: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Velocity> {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<Velocity> {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      x: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      y: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
+      x: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      y: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
     };
   },
   applyDiff(obj: Velocity, diff: _.DeepPartial<Velocity> | typeof _.NO_DIFF): Velocity {
@@ -312,56 +284,49 @@ export const Player = {
 
     return validationErrors;
   },
-  encode(obj: Player, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encode(obj: Player, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    _.writeUInt(output, obj.id);
-    _.writeString(output, obj.name);
-    _.writeString(output, obj.type);
-    Position.encode(obj.position, tracker, output);
-    Velocity.encode(obj.velocity, tracker, output);
-    _.writeUInt(output, obj.width);
-    _.writeUInt(output, obj.height);
-    _.writeUInt(output, obj.rotation);
-    _.writeUInt(output, obj.mass);
-    _.writeUInt(output, obj.health);
-    _.writeUInt(output, obj.depth);
-    _.writeUInt(output, obj.lifetime);
-    _.writeUInt(output, obj.radius);
+    _.writeUInt(tracker, obj.id);
+    _.writeString(tracker, obj.name);
+    _.writeString(tracker, obj.type);
+    Position.encode(obj.position, tracker);
+    Velocity.encode(obj.velocity, tracker);
+    _.writeUInt(tracker, obj.width);
+    _.writeUInt(tracker, obj.height);
+    _.writeUInt(tracker, obj.rotation);
+    _.writeUInt(tracker, obj.mass);
+    _.writeUInt(tracker, obj.health);
+    _.writeUInt(tracker, obj.depth);
+    _.writeUInt(tracker, obj.lifetime);
+    _.writeUInt(tracker, obj.radius);
     _.writeBoolean(tracker, obj.isSensor);
     _.writeBoolean(tracker, obj.isStatic);
     _.writeBoolean(tracker, obj.destroyed);
-    _.writeUInt(output, obj.owner);
-    _.writeUInt(output, obj.maxSpeed);
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    _.writeUInt(tracker, obj.owner);
+    _.writeUInt(tracker, obj.maxSpeed);
+    return tracker;
   },
-  decode(input: Uint8Array | _.Reader, track?: _.Tracker): Player {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decode(input: Uint8Array | _.Tracker): Player {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      id: _.parseUInt(reader),
-      name: _.parseString(reader),
-      type: _.parseString(reader),
-      position: Position.decode(reader, tracker),
-      velocity: Velocity.decode(reader, tracker),
-      width: _.parseUInt(reader),
-      height: _.parseUInt(reader),
-      rotation: _.parseUInt(reader),
-      mass: _.parseUInt(reader),
-      health: _.parseUInt(reader),
-      depth: _.parseUInt(reader),
-      lifetime: _.parseUInt(reader),
-      radius: _.parseUInt(reader),
+      id: _.parseUInt(tracker),
+      name: _.parseString(tracker),
+      type: _.parseString(tracker),
+      position: Position.decode(tracker),
+      velocity: Velocity.decode(tracker),
+      width: _.parseUInt(tracker),
+      height: _.parseUInt(tracker),
+      rotation: _.parseUInt(tracker),
+      mass: _.parseUInt(tracker),
+      health: _.parseUInt(tracker),
+      depth: _.parseUInt(tracker),
+      lifetime: _.parseUInt(tracker),
+      radius: _.parseUInt(tracker),
       isSensor: _.parseBoolean(tracker),
       isStatic: _.parseBoolean(tracker),
       destroyed: _.parseBoolean(tracker),
-      owner: _.parseUInt(reader),
-      maxSpeed: _.parseUInt(reader),
+      owner: _.parseUInt(tracker),
+      maxSpeed: _.parseUInt(tracker),
     };
   },
   computeDiff(a: Player, b: Player): _.DeepPartial<Player> | typeof _.NO_DIFF {
@@ -387,110 +352,103 @@ export const Player = {
     };
     return diff.id === _.NO_DIFF && diff.name === _.NO_DIFF && diff.type === _.NO_DIFF && diff.position === _.NO_DIFF && diff.velocity === _.NO_DIFF && diff.width === _.NO_DIFF && diff.height === _.NO_DIFF && diff.rotation === _.NO_DIFF && diff.mass === _.NO_DIFF && diff.health === _.NO_DIFF && diff.depth === _.NO_DIFF && diff.lifetime === _.NO_DIFF && diff.radius === _.NO_DIFF && diff.isSensor === _.NO_DIFF && diff.isStatic === _.NO_DIFF && diff.destroyed === _.NO_DIFF && diff.owner === _.NO_DIFF && diff.maxSpeed === _.NO_DIFF ? _.NO_DIFF : diff;
   },
-  encodeDiff(obj: _.DeepPartial<Player>, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<Player>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    tracker.push(obj.id !== _.NO_DIFF);
+    tracker.pushBoolean(obj.id !== _.NO_DIFF);
     if (obj.id !== _.NO_DIFF) {
-      _.writeUInt(output, obj.id);
+      _.writeUInt(tracker, obj.id);
     }
-    tracker.push(obj.name !== _.NO_DIFF);
+    tracker.pushBoolean(obj.name !== _.NO_DIFF);
     if (obj.name !== _.NO_DIFF) {
-      _.writeString(output, obj.name);
+      _.writeString(tracker, obj.name);
     }
-    tracker.push(obj.type !== _.NO_DIFF);
+    tracker.pushBoolean(obj.type !== _.NO_DIFF);
     if (obj.type !== _.NO_DIFF) {
-      _.writeString(output, obj.type);
+      _.writeString(tracker, obj.type);
     }
-    tracker.push(obj.position !== _.NO_DIFF);
+    tracker.pushBoolean(obj.position !== _.NO_DIFF);
     if (obj.position !== _.NO_DIFF) {
-      Position.encodeDiff(obj.position, tracker, output);
+      Position.encodeDiff(obj.position, tracker);
     }
-    tracker.push(obj.velocity !== _.NO_DIFF);
+    tracker.pushBoolean(obj.velocity !== _.NO_DIFF);
     if (obj.velocity !== _.NO_DIFF) {
-      Velocity.encodeDiff(obj.velocity, tracker, output);
+      Velocity.encodeDiff(obj.velocity, tracker);
     }
-    tracker.push(obj.width !== _.NO_DIFF);
+    tracker.pushBoolean(obj.width !== _.NO_DIFF);
     if (obj.width !== _.NO_DIFF) {
-      _.writeUInt(output, obj.width);
+      _.writeUInt(tracker, obj.width);
     }
-    tracker.push(obj.height !== _.NO_DIFF);
+    tracker.pushBoolean(obj.height !== _.NO_DIFF);
     if (obj.height !== _.NO_DIFF) {
-      _.writeUInt(output, obj.height);
+      _.writeUInt(tracker, obj.height);
     }
-    tracker.push(obj.rotation !== _.NO_DIFF);
+    tracker.pushBoolean(obj.rotation !== _.NO_DIFF);
     if (obj.rotation !== _.NO_DIFF) {
-      _.writeUInt(output, obj.rotation);
+      _.writeUInt(tracker, obj.rotation);
     }
-    tracker.push(obj.mass !== _.NO_DIFF);
+    tracker.pushBoolean(obj.mass !== _.NO_DIFF);
     if (obj.mass !== _.NO_DIFF) {
-      _.writeUInt(output, obj.mass);
+      _.writeUInt(tracker, obj.mass);
     }
-    tracker.push(obj.health !== _.NO_DIFF);
+    tracker.pushBoolean(obj.health !== _.NO_DIFF);
     if (obj.health !== _.NO_DIFF) {
-      _.writeUInt(output, obj.health);
+      _.writeUInt(tracker, obj.health);
     }
-    tracker.push(obj.depth !== _.NO_DIFF);
+    tracker.pushBoolean(obj.depth !== _.NO_DIFF);
     if (obj.depth !== _.NO_DIFF) {
-      _.writeUInt(output, obj.depth);
+      _.writeUInt(tracker, obj.depth);
     }
-    tracker.push(obj.lifetime !== _.NO_DIFF);
+    tracker.pushBoolean(obj.lifetime !== _.NO_DIFF);
     if (obj.lifetime !== _.NO_DIFF) {
-      _.writeUInt(output, obj.lifetime);
+      _.writeUInt(tracker, obj.lifetime);
     }
-    tracker.push(obj.radius !== _.NO_DIFF);
+    tracker.pushBoolean(obj.radius !== _.NO_DIFF);
     if (obj.radius !== _.NO_DIFF) {
-      _.writeUInt(output, obj.radius);
+      _.writeUInt(tracker, obj.radius);
     }
-    tracker.push(obj.isSensor !== _.NO_DIFF);
+    tracker.pushBoolean(obj.isSensor !== _.NO_DIFF);
     if (obj.isSensor !== _.NO_DIFF) {
       _.writeBoolean(tracker, obj.isSensor);
     }
-    tracker.push(obj.isStatic !== _.NO_DIFF);
+    tracker.pushBoolean(obj.isStatic !== _.NO_DIFF);
     if (obj.isStatic !== _.NO_DIFF) {
       _.writeBoolean(tracker, obj.isStatic);
     }
-    tracker.push(obj.destroyed !== _.NO_DIFF);
+    tracker.pushBoolean(obj.destroyed !== _.NO_DIFF);
     if (obj.destroyed !== _.NO_DIFF) {
       _.writeBoolean(tracker, obj.destroyed);
     }
-    tracker.push(obj.owner !== _.NO_DIFF);
+    tracker.pushBoolean(obj.owner !== _.NO_DIFF);
     if (obj.owner !== _.NO_DIFF) {
-      _.writeUInt(output, obj.owner);
+      _.writeUInt(tracker, obj.owner);
     }
-    tracker.push(obj.maxSpeed !== _.NO_DIFF);
+    tracker.pushBoolean(obj.maxSpeed !== _.NO_DIFF);
     if (obj.maxSpeed !== _.NO_DIFF) {
-      _.writeUInt(output, obj.maxSpeed);
+      _.writeUInt(tracker, obj.maxSpeed);
     }
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decodeDiff(input: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<Player> {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<Player> {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      id: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      name: tracker.next() ? _.parseString(reader) : _.NO_DIFF,
-      type: tracker.next() ? _.parseString(reader) : _.NO_DIFF,
-      position: tracker.next() ? Position.decodeDiff(reader, tracker) : _.NO_DIFF,
-      velocity: tracker.next() ? Velocity.decodeDiff(reader, tracker) : _.NO_DIFF,
-      width: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      height: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      rotation: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      mass: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      health: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      depth: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      lifetime: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      radius: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      isSensor: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
-      isStatic: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
-      destroyed: tracker.next() ? _.parseBoolean(tracker) : _.NO_DIFF,
-      owner: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      maxSpeed: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
+      id: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      name: tracker.nextBoolean() ? _.parseString(tracker) : _.NO_DIFF,
+      type: tracker.nextBoolean() ? _.parseString(tracker) : _.NO_DIFF,
+      position: tracker.nextBoolean() ? Position.decodeDiff(tracker) : _.NO_DIFF,
+      velocity: tracker.nextBoolean() ? Velocity.decodeDiff(tracker) : _.NO_DIFF,
+      width: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      height: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      rotation: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      mass: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      health: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      depth: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      lifetime: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      radius: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      isSensor: tracker.nextBoolean() ? _.parseBoolean(tracker) : _.NO_DIFF,
+      isStatic: tracker.nextBoolean() ? _.parseBoolean(tracker) : _.NO_DIFF,
+      destroyed: tracker.nextBoolean() ? _.parseBoolean(tracker) : _.NO_DIFF,
+      owner: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      maxSpeed: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
     };
   },
   applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
@@ -543,24 +501,17 @@ export const State = {
 
     return validationErrors;
   },
-  encode(obj: State, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encode(obj: State, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    _.writeUInt(output, obj.id);
-    _.writeArray(output, obj.state, (x) => Player.encode(x, tracker, output));
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    _.writeUInt(tracker, obj.id);
+    _.writeArray(tracker, obj.state, (x) => Player.encode(x, tracker));
+    return tracker;
   },
-  decode(input: Uint8Array | _.Reader, track?: _.Tracker): State {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decode(input: Uint8Array | _.Tracker): State {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      id: _.parseUInt(reader),
-      state: _.parseArray(reader, () => Player.decode(reader, tracker)),
+      id: _.parseUInt(tracker),
+      state: _.parseArray(tracker, () => Player.decode(tracker)),
     };
   },
   computeDiff(a: State, b: State): _.DeepPartial<State> | typeof _.NO_DIFF {
@@ -570,30 +521,23 @@ export const State = {
     };
     return diff.id === _.NO_DIFF && diff.state === _.NO_DIFF ? _.NO_DIFF : diff;
   },
-  encodeDiff(obj: _.DeepPartial<State>, track?: _.Tracker, output: _.Writer = new _.Writer()) {
+  encodeDiff(obj: _.DeepPartial<State>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    tracker.push(obj.id !== _.NO_DIFF);
+    tracker.pushBoolean(obj.id !== _.NO_DIFF);
     if (obj.id !== _.NO_DIFF) {
-      _.writeUInt(output, obj.id);
+      _.writeUInt(tracker, obj.id);
     }
-    tracker.push(obj.state !== _.NO_DIFF);
+    tracker.pushBoolean(obj.state !== _.NO_DIFF);
     if (obj.state !== _.NO_DIFF) {
-      _.writeArrayDiff<Player>(output, tracker, obj.state, (x) => Player.encode(x, tracker, output), (x) => Player.encodeDiff(x, tracker, output));
+      _.writeArrayDiff<Player>(tracker, obj.state, (x) => Player.encode(x, tracker), (x) => Player.encodeDiff(x, tracker));
     }
-    if (track === undefined) {
-      const writer = new _.Writer();
-      tracker.encode(writer);
-      writer.writeBuffer(output.toBuffer());
-      return writer;
-    }
-    return output;
+    return tracker;
   },
-  decodeDiff(input: Uint8Array | _.Reader, track?: _.Tracker): _.DeepPartial<State> {
-    const reader = input instanceof Uint8Array ? new _.Reader(input) : input;
-    const tracker = input instanceof Uint8Array ? _.Tracker.parse(reader) : track!;
+  decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<State> {
+    const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      id: tracker.next() ? _.parseUInt(reader) : _.NO_DIFF,
-      state: tracker.next() ? _.parseArrayDiff<Player>(reader, tracker, () => Player.decode(reader, tracker), () => Player.decodeDiff(reader, tracker)) : _.NO_DIFF,
+      id: tracker.nextBoolean() ? _.parseUInt(tracker) : _.NO_DIFF,
+      state: tracker.nextBoolean() ? _.parseArrayDiff<Player>(tracker, () => Player.decode(tracker), () => Player.decodeDiff(tracker)) : _.NO_DIFF,
     };
   },
   applyDiff(obj: State, diff: _.DeepPartial<State> | typeof _.NO_DIFF): State {

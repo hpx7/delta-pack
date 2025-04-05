@@ -1,8 +1,6 @@
 import { Writer, Reader } from "bin-serde";
 import { rleDecode, rleEncode } from "./rle";
 
-export { Writer, Reader };
-
 export const NO_DIFF = Symbol("NODIFF");
 export type DeepPartial<T> = T extends string | number | boolean | undefined
   ? T
@@ -23,26 +21,71 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
     }
   : never;
 
+type PrimitiveValue =
+  | { type: "string"; val: string }
+  | { type: "int"; val: number }
+  | { type: "uint"; val: number }
+  | { type: "float"; val: number };
+
 export class Tracker {
-  private idx = 0;
-  constructor(private bits: boolean[] = []) {}
-  static parse(reader: Reader) {
+  private bitsIdx = 0;
+  private data: PrimitiveValue[] = [];
+  constructor(private bits: boolean[] = [], private reader: Reader = new Reader(new Uint8Array())) {}
+  static parse(buf: Uint8Array) {
+    const reader = new Reader(buf);
     const rleBits = reader.readBits(reader.readUVarint());
-    return new Tracker(rleDecode(rleBits));
+    return new Tracker(rleDecode(rleBits), reader);
   }
-  push(val: boolean) {
+  pushString(val: string) {
+    this.data.push({ type: "string", val });
+  }
+  pushInt(val: number) {
+    this.data.push({ type: "int", val });
+  }
+  pushUInt(val: number) {
+    this.data.push({ type: "uint", val });
+  }
+  pushFloat(val: number) {
+    this.data.push({ type: "float", val });
+  }
+  pushBoolean(val: boolean) {
     this.bits.push(val);
   }
-  next() {
-    return this.bits[this.idx++];
+  nextString() {
+    return this.reader.readString();
   }
-  remaining() {
-    return this.bits.length - this.idx;
+  nextInt() {
+    return this.reader.readVarint();
   }
-  encode(buf: Writer) {
+  nextUInt() {
+    return this.reader.readUVarint();
+  }
+  nextFloat() {
+    return this.reader.readFloat();
+  }
+  nextBoolean() {
+    return this.bits[this.bitsIdx++];
+  }
+  toBuffer() {
+    const buf = new Writer();
+
     const rleBits = rleEncode(this.bits);
     buf.writeUVarint(rleBits.length);
     buf.writeBits(rleBits);
+
+    this.data.forEach((x) => {
+      if (x.type === "string") {
+        buf.writeString(x.val);
+      } else if (x.type === "int") {
+        buf.writeVarint(x.val);
+      } else if (x.type === "uint") {
+        buf.writeUVarint(x.val);
+      } else if (x.type === "float") {
+        buf.writeFloat(x.val);
+      }
+    });
+
+    return buf.toBuffer();
   }
 }
 
@@ -88,43 +131,43 @@ export function validateRecord<K, T>(
   return [];
 }
 
-export function writeUInt8(buf: Writer, x: number) {
-  buf.writeUInt8(x);
+export function writeUInt8(tracker: Tracker, x: number) {
+  tracker.pushUInt(x);
 }
 export function writeBoolean(tracker: Tracker, x: boolean) {
-  tracker.push(x);
+  tracker.pushBoolean(x);
 }
-export function writeInt(buf: Writer, x: number) {
-  buf.writeVarint(x);
+export function writeInt(tracker: Tracker, x: number) {
+  tracker.pushInt(x);
 }
-export function writeUInt(buf: Writer, x: number) {
-  buf.writeUVarint(x);
+export function writeUInt(tracker: Tracker, x: number) {
+  tracker.pushUInt(x);
 }
-export function writeFloat(buf: Writer, x: number) {
-  buf.writeFloat(x);
+export function writeFloat(tracker: Tracker, x: number) {
+  tracker.pushFloat(x);
 }
-export function writeString(buf: Writer, x: string) {
-  buf.writeString(x);
+export function writeString(tracker: Tracker, x: string) {
+  tracker.pushString(x);
 }
 export function writeOptional<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
-  tracker.push(x !== undefined);
+  tracker.pushBoolean(x !== undefined);
   if (x !== undefined) {
     innerWrite(x);
   }
 }
-export function writeArray<T>(buf: Writer, x: T[], innerWrite: (x: T) => void) {
-  buf.writeUVarint(x.length);
+export function writeArray<T>(tracker: Tracker, x: T[], innerWrite: (x: T) => void) {
+  tracker.pushUInt(x.length);
   for (const val of x) {
     innerWrite(val);
   }
 }
 export function writeRecord<K, T>(
-  buf: Writer,
+  tracker: Tracker,
   x: Map<K, T>,
   innerKeyWrite: (x: K) => void,
   innerValWrite: (x: T) => void,
 ) {
-  buf.writeUVarint(x.size);
+  tracker.pushUInt(x.size);
   for (const [key, val] of x) {
     innerKeyWrite(key);
     innerValWrite(val);
@@ -136,89 +179,88 @@ export function writeOptionalDiff<T>(
   innerFullWrite: (x: T) => void,
   innerPartialWrite: (x: DeepPartial<T>) => void,
 ) {
-  tracker.push(x.type === "partial");
+  tracker.pushBoolean(x.type === "partial");
   if (x.type === "partial") {
     innerPartialWrite(x.val);
   } else {
-    tracker.push(x.val !== undefined);
+    tracker.pushBoolean(x.val !== undefined);
     if (x.val !== undefined) {
       innerFullWrite(x.val);
     }
   }
 }
 export function writeArrayDiff<T>(
-  buf: Writer,
   tracker: Tracker,
   x: DeepPartial<T[]>,
   innerWrite: (x: T) => void,
   innerUpdateWrite: (x: DeepPartial<T>) => void,
 ) {
-  buf.writeUVarint(x.additions.length);
+  tracker.pushUInt(x.additions.length);
   x.additions.forEach((val) => {
     innerWrite(val);
   });
-  buf.writeUVarint(x.updates.length);
+  tracker.pushUInt(x.updates.length);
   x.updates.forEach((val) => {
-    tracker.push(val !== NO_DIFF);
+    tracker.pushBoolean(val !== NO_DIFF);
     if (val !== NO_DIFF) {
       innerUpdateWrite(val);
     }
   });
 }
 export function writeRecordDiff<K, T>(
-  buf: Writer,
+  tracker: Tracker,
   x: DeepPartial<Map<K, T>>,
   innerKeyWrite: (x: K) => void,
   innerValWrite: (x: T) => void,
   innerValUpdateWrite: (x: DeepPartial<T>) => void,
 ) {
-  buf.writeUVarint(x.deletions.size);
+  tracker.pushUInt(x.deletions.size);
   for (const key of x.deletions) {
     innerKeyWrite(key);
   }
-  buf.writeUVarint(x.additions.size);
+  tracker.pushUInt(x.additions.size);
   for (const [key, val] of x.additions) {
     innerKeyWrite(key);
     innerValWrite(val);
   }
-  buf.writeUVarint(x.updates.size);
+  tracker.pushUInt(x.updates.size);
   for (const [key, val] of x.updates) {
     innerKeyWrite(key);
     innerValUpdateWrite(val);
   }
 }
 
-export function parseUInt8(buf: Reader): number {
-  return buf.readUInt8();
+export function parseUInt8(tracker: Tracker): number {
+  return tracker.nextUInt();
 }
 export function parseBoolean(tracker: Tracker): boolean {
-  return tracker.next();
+  return tracker.nextBoolean();
 }
-export function parseInt(buf: Reader): number {
-  return buf.readVarint();
+export function parseInt(tracker: Tracker): number {
+  return tracker.nextInt();
 }
-export function parseUInt(buf: Reader): number {
-  return buf.readUVarint();
+export function parseUInt(tracker: Tracker): number {
+  return tracker.nextUInt();
 }
-export function parseFloat(buf: Reader): number {
-  return buf.readFloat();
+export function parseFloat(tracker: Tracker): number {
+  return tracker.nextFloat();
 }
-export function parseString(buf: Reader): string {
-  return buf.readString();
+export function parseString(tracker: Tracker): string {
+  return tracker.nextString();
 }
 export function parseOptional<T>(tracker: Tracker, innerParse: () => T): T | undefined {
-  return tracker.next() ? innerParse() : undefined;
+  return tracker.nextBoolean() ? innerParse() : undefined;
 }
-export function parseArray<T>(buf: Reader, innerParse: () => T): T[] {
-  const len = buf.readUVarint();
+export function parseArray<T>(tracker: Tracker, innerParse: () => T): T[] {
+  const len = tracker.nextUInt();
   const arr = new Array<T>(len);
   for (let i = 0; i < len; i++) {
     arr[i] = innerParse();
   }
   return arr;
 }
-export function parseRecord<K, T>(buf: Reader, innerKeyParse: () => K, innerValParse: () => T): Map<K, T> {
-  const len = buf.readUVarint();
+export function parseRecord<K, T>(tracker: Tracker, innerKeyParse: () => K, innerValParse: () => T): Map<K, T> {
+  const len = tracker.nextUInt();
   const obj: Map<K, T> = new Map();
   for (let i = 0; i < len; i++) {
     obj.set(innerKeyParse(), innerValParse());
@@ -230,46 +272,45 @@ export function parseOptionalDiff<T>(
   innerFullParse: () => T,
   innerPartialParse: () => DeepPartial<T>,
 ): typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined } {
-  const isPartial = tracker.next();
+  const isPartial = tracker.nextBoolean();
   if (isPartial) {
     return { type: "partial", val: innerPartialParse() };
   }
-  return { type: "full", val: tracker.next() ? innerFullParse() : undefined };
+  return { type: "full", val: tracker.nextBoolean() ? innerFullParse() : undefined };
 }
 export function parseArrayDiff<T>(
-  buf: Reader,
   tracker: Tracker,
   innerParse: () => T,
   innerUpdateParse: () => DeepPartial<T>,
 ): DeepPartial<T[]> {
-  const numAdditions = buf.readUVarint();
+  const numAdditions = tracker.nextUInt();
   const additions = new Array<T>(numAdditions);
   for (let i = 0; i < numAdditions; i++) {
     additions[i] = innerParse();
   }
-  const numUpdates = buf.readUVarint();
+  const numUpdates = tracker.nextUInt();
   const updates = new Array<DeepPartial<T> | typeof NO_DIFF>(numUpdates);
   for (let i = 0; i < numUpdates; i++) {
-    updates[i] = tracker.next() ? innerUpdateParse() : NO_DIFF;
+    updates[i] = tracker.nextBoolean() ? innerUpdateParse() : NO_DIFF;
   }
   return { additions, updates };
 }
 export function parseRecordDiff<K, T>(
-  buf: Reader,
+  tracker: Tracker,
   innerKeyParse: () => K,
   innerValParse: () => T,
   innerValUpdateParse: () => DeepPartial<T>,
 ): DeepPartial<Map<K, T>> {
   const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
-  const numDeleted = buf.readUVarint();
+  const numDeleted = tracker.nextUInt();
   for (let i = 0; i < numDeleted; i++) {
     obj.deletions.add(innerKeyParse());
   }
-  const numAdded = buf.readUVarint();
+  const numAdded = tracker.nextUInt();
   for (let i = 0; i < numAdded; i++) {
     obj.additions.set(innerKeyParse(), innerValParse());
   }
-  const numUpdated = buf.readUVarint();
+  const numUpdated = tracker.nextUInt();
   for (let i = 0; i < numUpdated; i++) {
     obj.updates.set(innerKeyParse(), innerValUpdateParse());
   }

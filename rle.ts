@@ -1,6 +1,4 @@
-import { Tracker } from "./helpers";
-
-export function rleEncode(bits: boolean[]) {
+export function rleEncode(bits: boolean[]): boolean[] {
   let last = bits[0];
   let count = 1;
   const rleBits: boolean[] = [last];
@@ -30,33 +28,33 @@ export function rleEncode(bits: boolean[]) {
   return rleBits;
 }
 
-export function rleDecode(rleBits: boolean[]) {
-  const tracker = new Tracker(rleBits);
+export function rleDecode(rleBits: boolean[]): boolean[] {
   const bits: boolean[] = [];
-  let last = tracker.next();
-  while (tracker.remaining() > 0) {
-    if (tracker.next()) {
-      const count = bitsToUint([tracker.next(), tracker.next()]) + 1;
+  let idx = 0;
+  let last = rleBits[idx++];
+  while (idx < rleBits.length) {
+    if (rleBits[idx++]) {
+      const count = bitsToUint([rleBits[idx++], rleBits[idx++]]) + 1;
       for (let i = 0; i < count; i++) {
         bits.push(last);
       }
     } else {
-      if (tracker.next()) {
-        const count = bitsToUint([tracker.next(), tracker.next(), tracker.next(), tracker.next()]) + 1;
+      if (rleBits[idx++]) {
+        const count = bitsToUint([rleBits[idx++], rleBits[idx++], rleBits[idx++], rleBits[idx++]]) + 1;
         for (let i = 0; i < count; i++) {
           bits.push(last);
         }
       } else {
         const count =
           bitsToUint([
-            tracker.next(),
-            tracker.next(),
-            tracker.next(),
-            tracker.next(),
-            tracker.next(),
-            tracker.next(),
-            tracker.next(),
-            tracker.next(),
+            rleBits[idx++],
+            rleBits[idx++],
+            rleBits[idx++],
+            rleBits[idx++],
+            rleBits[idx++],
+            rleBits[idx++],
+            rleBits[idx++],
+            rleBits[idx++],
           ]) + 1;
         for (let i = 0; i < count; i++) {
           bits.push(last);
