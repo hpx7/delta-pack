@@ -131,24 +131,6 @@ export function validateRecord<K, T>(
   return [];
 }
 
-export function writeUInt8(tracker: Tracker, x: number) {
-  tracker.pushUInt(x);
-}
-export function writeBoolean(tracker: Tracker, x: boolean) {
-  tracker.pushBoolean(x);
-}
-export function writeInt(tracker: Tracker, x: number) {
-  tracker.pushInt(x);
-}
-export function writeUInt(tracker: Tracker, x: number) {
-  tracker.pushUInt(x);
-}
-export function writeFloat(tracker: Tracker, x: number) {
-  tracker.pushFloat(x);
-}
-export function writeString(tracker: Tracker, x: string) {
-  tracker.pushString(x);
-}
 export function writeOptional<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
   tracker.pushBoolean(x !== undefined);
   if (x !== undefined) {
@@ -230,24 +212,6 @@ export function writeRecordDiff<K, T>(
   }
 }
 
-export function parseUInt8(tracker: Tracker): number {
-  return tracker.nextUInt();
-}
-export function parseBoolean(tracker: Tracker): boolean {
-  return tracker.nextBoolean();
-}
-export function parseInt(tracker: Tracker): number {
-  return tracker.nextInt();
-}
-export function parseUInt(tracker: Tracker): number {
-  return tracker.nextUInt();
-}
-export function parseFloat(tracker: Tracker): number {
-  return tracker.nextFloat();
-}
-export function parseString(tracker: Tracker): string {
-  return tracker.nextString();
-}
 export function parseOptional<T>(tracker: Tracker, innerParse: () => T): T | undefined {
   return tracker.nextBoolean() ? innerParse() : undefined;
 }

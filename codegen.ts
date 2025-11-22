@@ -155,7 +155,7 @@ export const ${name} = {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
-      _.writeUInt8(tracker, ${childName});
+      tracker.pushUInt(${childName});
       ${renderEncode(reference, lookup(reference), "obj.val")};
     }`;
       })
@@ -164,7 +164,7 @@ export const ${name} = {
   },
   decode(input: Uint8Array | _.Tracker): ${name} {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
-    const type = _.parseUInt8(tracker);
+    const type = tracker.nextUInt();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
@@ -179,8 +179,8 @@ export const ${name} = {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
-      _.writeUInt8(tracker, ${i});
-      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
+      tracker.pushUInt(${i});
+      tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        ${renderEncodeDiff(reference, lookup(reference), "obj.val")};
       }
@@ -191,11 +191,11 @@ export const ${name} = {
   },
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<${name}> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
-    const type = _.parseUInt8(tracker);
+    const type = tracker.nextUInt();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${lookup(reference)}", val: _.parseBoolean(tracker) ? ${renderDecodeDiff(
+      return { type: "${lookup(reference)}", val: tracker.nextBoolean() ? ${renderDecodeDiff(
           reference,
           lookup(reference),
           "obj.val",
@@ -310,17 +310,17 @@ export const ${name} = {
     } else if (type.type === "reference") {
       return renderEncode(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.writeString(tracker, ${key})`;
+      return `tracker.pushString(${key})`;
     } else if (type.type === "int") {
-      return `_.writeInt(tracker, ${key})`;
+      return `tracker.pushInt(${key})`;
     } else if (type.type === "uint") {
-      return `_.writeUInt(tracker, ${key})`;
+      return `tracker.pushUInt(${key})`;
     } else if (type.type === "float") {
-      return `_.writeFloat(tracker, ${key})`;
+      return `tracker.pushFloat(${key})`;
     } else if (type.type === "boolean") {
-      return `_.writeBoolean(tracker, ${key})`;
+      return `tracker.pushBoolean(${key})`;
     } else if (type.type === "enum") {
-      return `_.writeUInt8(tracker, ${key})`;
+      return `tracker.pushUInt(${key})`;
     }
     return `${name}.encode(${key}, tracker)`;
   }
@@ -337,17 +337,17 @@ export const ${name} = {
     } else if (type.type === "reference") {
       return renderDecode(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.parseString(tracker)`;
+      return `tracker.nextString()`;
     } else if (type.type === "int") {
-      return `_.parseInt(tracker)`;
+      return `tracker.nextInt()`;
     } else if (type.type === "uint") {
-      return `_.parseUInt(tracker)`;
+      return `tracker.nextUInt()`;
     } else if (type.type === "float") {
-      return `_.parseFloat(tracker)`;
+      return `tracker.nextFloat()`;
     } else if (type.type === "boolean") {
-      return `_.parseBoolean(tracker)`;
+      return `tracker.nextBoolean()`;
     } else if (type.type === "enum") {
-      return `_.parseUInt8(tracker)`;
+      return `tracker.nextUInt()`;
     }
     return `${name}.decode(tracker)`;
   }
@@ -401,17 +401,17 @@ export const ${name} = {
     } else if (type.type === "reference") {
       return renderEncodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.writeString(tracker, ${key})`;
+      return `tracker.pushString(${key})`;
     } else if (type.type === "int") {
-      return `_.writeInt(tracker, ${key})`;
+      return `tracker.pushInt(${key})`;
     } else if (type.type === "uint") {
-      return `_.writeUInt(tracker, ${key})`;
+      return `tracker.pushUInt(${key})`;
     } else if (type.type === "float") {
-      return `_.writeFloat(tracker, ${key})`;
+      return `tracker.pushFloat(${key})`;
     } else if (type.type === "boolean") {
-      return `_.writeBoolean(tracker, ${key})`;
+      return `tracker.pushBoolean(${key})`;
     } else if (type.type === "enum") {
-      return `_.writeUInt8(tracker, ${key})`;
+      return `tracker.pushUInt(${key})`;
     }
     return `${name}.encodeDiff(${key}, tracker)`;
   }
@@ -437,17 +437,17 @@ export const ${name} = {
     } else if (type.type === "reference") {
       return renderDecodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.parseString(tracker)`;
+      return `tracker.nextString()`;
     } else if (type.type === "int") {
-      return `_.parseInt(tracker)`;
+      return `tracker.nextInt()`;
     } else if (type.type === "uint") {
-      return `_.parseUInt(tracker)`;
+      return `tracker.nextUInt()`;
     } else if (type.type === "float") {
-      return `_.parseFloat(tracker)`;
+      return `tracker.nextFloat()`;
     } else if (type.type === "boolean") {
-      return `_.parseBoolean(tracker)`;
+      return `tracker.nextBoolean()`;
     } else if (type.type === "enum") {
-      return `_.parseUInt8(tracker)`;
+      return `tracker.nextUInt()`;
     }
     return `${name}.decodeDiff(tracker)`;
   }

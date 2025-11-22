@@ -57,15 +57,15 @@ export const Card = {
   },
   encode(obj: Card, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    _.writeInt(tracker, obj.value);
-    _.writeUInt8(tracker, obj.color);
+    tracker.pushInt(obj.value);
+    tracker.pushUInt(obj.color);
     return tracker;
   },
   decode(input: Uint8Array | _.Tracker): Card {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      value: _.parseInt(tracker),
-      color: _.parseUInt8(tracker),
+      value: tracker.nextInt(),
+      color: tracker.nextUInt(),
     };
   },
   computeDiff(a: Card, b: Card): _.DeepPartial<Card> | typeof _.NO_DIFF {
@@ -79,19 +79,19 @@ export const Card = {
     const tracker = track ?? new _.Tracker();
     tracker.pushBoolean(obj.value !== _.NO_DIFF);
     if (obj.value !== _.NO_DIFF) {
-      _.writeInt(tracker, obj.value);
+      tracker.pushInt(obj.value);
     }
     tracker.pushBoolean(obj.color !== _.NO_DIFF);
     if (obj.color !== _.NO_DIFF) {
-      _.writeUInt8(tracker, obj.color);
+      tracker.pushUInt(obj.color);
     }
     return tracker;
   },
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<Card> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      value: tracker.nextBoolean() ? _.parseInt(tracker) : _.NO_DIFF,
-      color: tracker.nextBoolean() ? _.parseUInt8(tracker) : _.NO_DIFF,
+      value: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
+      color: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF,
     };
   },
   applyDiff(obj: Card, diff: _.DeepPartial<Card> | typeof _.NO_DIFF): Card {
@@ -130,15 +130,15 @@ export const Player = {
   },
   encode(obj: Player, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
-    _.writeString(tracker, obj.id);
-    _.writeInt(tracker, obj.numCards);
+    tracker.pushString(obj.id);
+    tracker.pushInt(obj.numCards);
     return tracker;
   },
   decode(input: Uint8Array | _.Tracker): Player {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      id: _.parseString(tracker),
-      numCards: _.parseInt(tracker),
+      id: tracker.nextString(),
+      numCards: tracker.nextInt(),
     };
   },
   computeDiff(a: Player, b: Player): _.DeepPartial<Player> | typeof _.NO_DIFF {
@@ -152,19 +152,19 @@ export const Player = {
     const tracker = track ?? new _.Tracker();
     tracker.pushBoolean(obj.id !== _.NO_DIFF);
     if (obj.id !== _.NO_DIFF) {
-      _.writeString(tracker, obj.id);
+      tracker.pushString(obj.id);
     }
     tracker.pushBoolean(obj.numCards !== _.NO_DIFF);
     if (obj.numCards !== _.NO_DIFF) {
-      _.writeInt(tracker, obj.numCards);
+      tracker.pushInt(obj.numCards);
     }
     return tracker;
   },
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<Player> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
-      id: tracker.nextBoolean() ? _.parseString(tracker) : _.NO_DIFF,
-      numCards: tracker.nextBoolean() ? _.parseInt(tracker) : _.NO_DIFF,
+      id: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
+      numCards: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
     };
   },
   applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
@@ -230,11 +230,11 @@ export const PlayerState = {
     const tracker = track ?? new _.Tracker();
     _.writeArray(tracker, obj.hand, (x) => Card.encode(x, tracker));
     _.writeArray(tracker, obj.players, (x) => Player.encode(x, tracker));
-    _.writeOptional(tracker, obj.turn, (x) => _.writeString(tracker, x));
+    _.writeOptional(tracker, obj.turn, (x) => tracker.pushString(x));
     _.writeOptional(tracker, obj.pile, (x) => Card.encode(x, tracker));
-    _.writeOptional(tracker, obj.winner, (x) => _.writeString(tracker, x));
-    _.writeArray(tracker, obj.intArray, (x) => _.writeInt(tracker, x));
-    _.writeOptional(tracker, obj.intOptional, (x) => _.writeInt(tracker, x));
+    _.writeOptional(tracker, obj.winner, (x) => tracker.pushString(x));
+    _.writeArray(tracker, obj.intArray, (x) => tracker.pushInt(x));
+    _.writeOptional(tracker, obj.intOptional, (x) => tracker.pushInt(x));
     return tracker;
   },
   decode(input: Uint8Array | _.Tracker): PlayerState {
@@ -242,11 +242,11 @@ export const PlayerState = {
     return {
       hand: _.parseArray(tracker, () => Card.decode(tracker)),
       players: _.parseArray(tracker, () => Player.decode(tracker)),
-      turn: _.parseOptional(tracker, () => _.parseString(tracker)),
+      turn: _.parseOptional(tracker, () => tracker.nextString()),
       pile: _.parseOptional(tracker, () => Card.decode(tracker)),
-      winner: _.parseOptional(tracker, () => _.parseString(tracker)),
-      intArray: _.parseArray(tracker, () => _.parseInt(tracker)),
-      intOptional: _.parseOptional(tracker, () => _.parseInt(tracker)),
+      winner: _.parseOptional(tracker, () => tracker.nextString()),
+      intArray: _.parseArray(tracker, () => tracker.nextInt()),
+      intOptional: _.parseOptional(tracker, () => tracker.nextInt()),
     };
   },
   computeDiff(a: PlayerState, b: PlayerState): _.DeepPartial<PlayerState> | typeof _.NO_DIFF {
@@ -273,7 +273,7 @@ export const PlayerState = {
     }
     tracker.pushBoolean(obj.turn !== _.NO_DIFF);
     if (obj.turn !== _.NO_DIFF) {
-      _.writeOptionalDiff<UserId>(tracker, obj.turn!, (x) => _.writeString(tracker, x), (x) => _.writeString(tracker, x));
+      _.writeOptionalDiff<UserId>(tracker, obj.turn!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.pile !== _.NO_DIFF);
     if (obj.pile !== _.NO_DIFF) {
@@ -281,15 +281,15 @@ export const PlayerState = {
     }
     tracker.pushBoolean(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
-      _.writeOptionalDiff<UserId>(tracker, obj.winner!, (x) => _.writeString(tracker, x), (x) => _.writeString(tracker, x));
+      _.writeOptionalDiff<UserId>(tracker, obj.winner!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.intArray !== _.NO_DIFF);
     if (obj.intArray !== _.NO_DIFF) {
-      _.writeArrayDiff<number>(tracker, obj.intArray, (x) => _.writeInt(tracker, x), (x) => _.writeInt(tracker, x));
+      _.writeArrayDiff<number>(tracker, obj.intArray, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.intOptional !== _.NO_DIFF);
     if (obj.intOptional !== _.NO_DIFF) {
-      _.writeOptionalDiff<number>(tracker, obj.intOptional!, (x) => _.writeInt(tracker, x), (x) => _.writeInt(tracker, x));
+      _.writeOptionalDiff<number>(tracker, obj.intOptional!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
     }
     return tracker;
   },
@@ -298,11 +298,11 @@ export const PlayerState = {
     return {
       hand: tracker.nextBoolean() ? _.parseArrayDiff<Card>(tracker, () => Card.decode(tracker), () => Card.decodeDiff(tracker)) : _.NO_DIFF,
       players: tracker.nextBoolean() ? _.parseArrayDiff<Player>(tracker, () => Player.decode(tracker), () => Player.decodeDiff(tracker)) : _.NO_DIFF,
-      turn: tracker.nextBoolean() ? _.parseOptionalDiff<UserId>(tracker, () => _.parseString(tracker), () => _.parseString(tracker)) : _.NO_DIFF,
+      turn: tracker.nextBoolean() ? _.parseOptionalDiff<UserId>(tracker, () => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
       pile: tracker.nextBoolean() ? _.parseOptionalDiff<Card>(tracker, () => Card.decode(tracker), () => Card.decodeDiff(tracker)) : _.NO_DIFF,
-      winner: tracker.nextBoolean() ? _.parseOptionalDiff<UserId>(tracker, () => _.parseString(tracker), () => _.parseString(tracker)) : _.NO_DIFF,
-      intArray: tracker.nextBoolean() ? _.parseArrayDiff<number>(tracker, () => _.parseInt(tracker), () => _.parseInt(tracker)) : _.NO_DIFF,
-      intOptional: tracker.nextBoolean() ? _.parseOptionalDiff<number>(tracker, () => _.parseInt(tracker), () => _.parseInt(tracker)) : _.NO_DIFF,
+      winner: tracker.nextBoolean() ? _.parseOptionalDiff<UserId>(tracker, () => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      intArray: tracker.nextBoolean() ? _.parseArrayDiff<number>(tracker, () => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
+      intOptional: tracker.nextBoolean() ? _.parseOptionalDiff<number>(tracker, () => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
     };
   },
   applyDiff(obj: PlayerState, diff: _.DeepPartial<PlayerState> | typeof _.NO_DIFF): PlayerState {
@@ -359,27 +359,27 @@ export const UnionTest = {
   encode(obj: UnionTest, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     if (obj.type === "UserId") {
-      _.writeUInt8(tracker, 0);
-      _.writeString(tracker, obj.val);
+      tracker.pushUInt(0);
+      tracker.pushString(obj.val);
     }
     else if (obj.type === "Color") {
-      _.writeUInt8(tracker, 1);
-      _.writeUInt8(tracker, obj.val);
+      tracker.pushUInt(1);
+      tracker.pushUInt(obj.val);
     }
     else if (obj.type === "Card") {
-      _.writeUInt8(tracker, 2);
+      tracker.pushUInt(2);
       Card.encode(obj.val, tracker);
     }
     return tracker;
   },
   decode(input: Uint8Array | _.Tracker): UnionTest {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
-    const type = _.parseUInt8(tracker);
+    const type = tracker.nextUInt();
     if (type === 0) {
-      return { type: "UserId", val: _.parseString(tracker) };
+      return { type: "UserId", val: tracker.nextString() };
     }
     else if (type === 1) {
-      return { type: "Color", val: _.parseUInt8(tracker) };
+      return { type: "Color", val: tracker.nextUInt() };
     }
     else if (type === 2) {
       return { type: "Card", val: Card.decode(tracker) };
@@ -389,22 +389,22 @@ export const UnionTest = {
   encodeDiff(obj: _.DeepPartial<UnionTest>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     if (obj.type === "UserId") {
-      _.writeUInt8(tracker, 0);
-      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
+      tracker.pushUInt(0);
+      tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
-       _.writeString(tracker, obj.val);
+       tracker.pushString(obj.val);
       }
     }
     else if (obj.type === "Color") {
-      _.writeUInt8(tracker, 1);
-      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
+      tracker.pushUInt(1);
+      tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
-       _.writeUInt8(tracker, obj.val);
+       tracker.pushUInt(obj.val);
       }
     }
     else if (obj.type === "Card") {
-      _.writeUInt8(tracker, 2);
-      _.writeBoolean(tracker, obj.val !== _.NO_DIFF);
+      tracker.pushUInt(2);
+      tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
        Card.encodeDiff(obj.val, tracker);
       }
@@ -413,15 +413,15 @@ export const UnionTest = {
   },
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<UnionTest> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
-    const type = _.parseUInt8(tracker);
+    const type = tracker.nextUInt();
     if (type === 0) {
-      return { type: "UserId", val: _.parseBoolean(tracker) ? _.parseString(tracker) : _.NO_DIFF };
+      return { type: "UserId", val: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF };
     }
     else if (type === 1) {
-      return { type: "Color", val: _.parseBoolean(tracker) ? _.parseUInt8(tracker) : _.NO_DIFF };
+      return { type: "Color", val: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF };
     }
     else if (type === 2) {
-      return { type: "Card", val: _.parseBoolean(tracker) ? Card.decodeDiff(tracker) : _.NO_DIFF };
+      return { type: "Card", val: tracker.nextBoolean() ? Card.decodeDiff(tracker) : _.NO_DIFF };
     }
     throw new Error("Invalid union");
   },
