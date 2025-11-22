@@ -22,7 +22,7 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : never;
 
 type PrimitiveValue =
-  | { type: "string"; val: string }
+  | { type: "string"; idx: number }
   | { type: "int"; val: number }
   | { type: "uint"; val: number }
   | { type: "float"; val: number };
@@ -30,14 +30,33 @@ type PrimitiveValue =
 export class Tracker {
   private bitsIdx = 0;
   private data: PrimitiveValue[] = [];
-  constructor(private bits: boolean[] = [], private reader: Reader = new Reader(new Uint8Array())) {}
+  constructor(
+    private bits: boolean[] = [],
+    private dict: string[] = [],
+    private reader: Reader = new Reader(new Uint8Array())
+  ) {}
   static parse(buf: Uint8Array) {
     const reader = new Reader(buf);
-    const rleBits = reader.readBits(reader.readUVarint());
-    return new Tracker(rleDecode(rleBits), reader);
+
+    const numBits = reader.readUVarint();
+    const rleBits = reader.readBits(numBits);
+    const bits = rleDecode(rleBits);
+
+    const dictSize = reader.readUVarint();
+    const dict = new Array<string>(dictSize);
+    for (let i = 0; i < dictSize; i++) {
+      dict[i] = reader.readString();
+    }
+
+    return new Tracker(bits, dict, reader);
   }
   pushString(val: string) {
-    this.data.push({ type: "string", val });
+    let idx = this.dict.indexOf(val);
+    if (idx < 0) {
+      idx = this.dict.length;
+      this.dict.push(val);
+    }
+    this.data.push({ type: "string", idx });
   }
   pushInt(val: number) {
     this.data.push({ type: "int", val });
@@ -52,7 +71,8 @@ export class Tracker {
     this.bits.push(val);
   }
   nextString() {
-    return this.reader.readString();
+    const idx = this.reader.readUVarint();
+    return this.dict[idx];
   }
   nextInt() {
     return this.reader.readVarint();
@@ -73,9 +93,14 @@ export class Tracker {
     buf.writeUVarint(rleBits.length);
     buf.writeBits(rleBits);
 
+    buf.writeUVarint(this.dict.length);
+    this.dict.forEach((s) => {
+      buf.writeString(s);
+    });
+
     this.data.forEach((x) => {
       if (x.type === "string") {
-        buf.writeString(x.val);
+        buf.writeUVarint(x.idx);
       } else if (x.type === "int") {
         buf.writeVarint(x.val);
       } else if (x.type === "uint") {

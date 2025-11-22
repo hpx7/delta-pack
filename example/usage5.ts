@@ -33,7 +33,7 @@ const state1: GameState = {
 
 const encoded = GameState.encode(state1).toBuffer();
 console.log("encoded", encoded);
-// Uint8Array(45)
+// Uint8Array(50)
 
 const decoded = GameState.decode(encoded);
 assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
@@ -93,7 +93,7 @@ const state2: GameState = {
 const diff = GameState.computeDiff(state1, state2);
 console.log(
   "diff",
-  JSON.stringify(diff, (k, v) => (v instanceof Map ? [...v] : v), 2),
+  JSON.stringify(diff, (k, v) => (v instanceof Map ? Object.fromEntries(v) : v), 2),
 );
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 if (diff === NO_DIFF) {
@@ -101,7 +101,7 @@ if (diff === NO_DIFF) {
 }
 const encodedDiff = GameState.encodeDiff(diff).toBuffer();
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(224)
+// Uint8Array(198)
 
 const decodedDiff = GameState.decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);
