@@ -50,11 +50,10 @@ export class Tracker {
       this.data.push({ type: "int", val: 0 });
       return;
     }
-    let idx = this.dict.indexOf(val);
+    const idx = this.dict.indexOf(val);
     if (idx < 0) {
       this.dict.push(val);
       const len = utf8Size(val);
-      this.data.push({ type: "int", val: len });
       this.data.push({ type: "string", val, len });
     } else {
       this.data.push({ type: "int", val: -idx - 1 });
@@ -105,6 +104,7 @@ export class Tracker {
 
     this.data.forEach((x) => {
       if (x.type === "string") {
+        buf.writeVarint(x.len);
         buf.writeStringUtf8(x.val, x.len);
       } else if (x.type === "int") {
         buf.writeVarint(x.val);
