@@ -29,12 +29,12 @@ const state1: GameState = {
 
 const encoded = GameState.encode(state1).toBuffer();
 console.log("encoded", encoded);
-// Uint8Array(43) [
-//    10, 147,   2,   2,   5,  83, 119, 111, 114, 100,
-//     3,  66, 111, 119, 129, 112,   2,   2,   0,   0,
-//   189,  66, 154, 153, 204,  66, 129,  72,   0,  50,
-//     4, 154, 153,  88,  67, 154,  25,  70,  67, 129,
-//    72,   1,  30
+// Uint8Array(40) [
+//    10, 147,   2, 129, 112,  2,   2,   0,   0,
+//   189,  66, 154, 153, 204, 66, 129,  72,  10,
+//    83, 119, 111, 114, 100, 50,   4, 154, 153,
+//    88,  67, 154,  25,  70, 67, 129,  72,   6,
+//    66, 111, 119,  30
 // ]
 
 const decoded = GameState.decode(encoded);
@@ -69,11 +69,11 @@ if (diff === NO_DIFF) {
 }
 const encodedDiff = GameState.encodeDiff(diff).toBuffer();
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(29) [
-//    13, 215, 20,   1,  3, 65, 120, 101, 120,
-//     1,   2,  1,   6,  0,  0, 150,  67,   0,
-//     0, 150, 67, 129, 72,  0,  60,   1,   4,
-//   129,  32
+// Uint8Array(27) [
+//    13, 215,  20, 120,   1,   2,   1,  6,
+//     0,   0, 150,  67,   0,   0, 150, 67,
+//   129,  72,   6,  65, 120, 101,  60,  1,
+//     4, 129,  32
 // ]
 
 const decodedDiff = GameState.decodeDiff(encodedDiff);

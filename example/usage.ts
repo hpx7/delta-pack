@@ -7,7 +7,7 @@ const state1: PlayerState = {
 };
 
 console.log(PlayerState.encode(state1).toBuffer());
-// Uint8Array(6)[(4, 14, 0, 0, 0, 0)];
+// Uint8Array(5) [ 4, 14, 0, 0, 0 ]
 
 const state2: PlayerState = {
   hand: [
@@ -24,9 +24,8 @@ const state2: PlayerState = {
 };
 
 console.log(PlayerState.encode(state2).toBuffer());
-// Uint8Array(26) [
-//    10, 211, 0, 2, 2, 112, 49, 2,
-//   112,  50, 2, 2, 1,   4,  0, 2,
-//     0,   4, 1, 6, 0,   3,  2, 4,
-//     6,   1
+// Uint8Array(23) [
+//   10, 211,   0,  2, 2, 1,   4,  0,
+//    2,   4, 112, 49, 4, 4, 112, 50,
+//    6,   1,   3,  2, 4, 6,   1
 // ]

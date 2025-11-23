@@ -1,4 +1,5 @@
 import { Writer, Reader } from "bin-serde";
+import utf8Size from "utf8-buffer-size";
 import { rleDecode, rleEncode } from "./rle";
 
 export const NO_DIFF = Symbol("NODIFF");
@@ -22,17 +23,17 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : never;
 
 type PrimitiveValue =
-  | { type: "string"; idx: number }
+  | { type: "string"; val: string; len: number }
   | { type: "int"; val: number }
   | { type: "uint"; val: number }
   | { type: "float"; val: number };
 
 export class Tracker {
   private bitsIdx = 0;
+  private dict: string[] = [];
   private data: PrimitiveValue[] = [];
   constructor(
     private bits: boolean[] = [],
-    private dict: string[] = [],
     private reader: Reader = new Reader(new Uint8Array())
   ) {}
   static parse(buf: Uint8Array) {
@@ -42,21 +43,22 @@ export class Tracker {
     const rleBits = reader.readBits(numBits);
     const bits = rleDecode(rleBits);
 
-    const dictSize = reader.readUVarint();
-    const dict = new Array<string>(dictSize);
-    for (let i = 0; i < dictSize; i++) {
-      dict[i] = reader.readString();
-    }
-
-    return new Tracker(bits, dict, reader);
+    return new Tracker(bits, reader);
   }
   pushString(val: string) {
+    if (val === "") {
+      this.data.push({ type: "int", val: 0 });
+      return;
+    }
     let idx = this.dict.indexOf(val);
     if (idx < 0) {
-      idx = this.dict.length;
       this.dict.push(val);
+      const len = utf8Size(val);
+      this.data.push({ type: "int", val: len });
+      this.data.push({ type: "string", val, len });
+    } else {
+      this.data.push({ type: "int", val: -idx - 1 });
     }
-    this.data.push({ type: "string", idx });
   }
   pushInt(val: number) {
     this.data.push({ type: "int", val });
@@ -71,8 +73,16 @@ export class Tracker {
     this.bits.push(val);
   }
   nextString() {
-    const idx = this.reader.readUVarint();
-    return this.dict[idx];
+    const lenOrIdx = this.reader.readVarint();
+    if (lenOrIdx === 0) {
+      return "";
+    }
+    if (lenOrIdx > 0) {
+      const str = this.reader.readStringUtf8(lenOrIdx);
+      this.dict.push(str);
+      return str;
+    }
+    return this.dict[-lenOrIdx - 1];
   }
   nextInt() {
     return this.reader.readVarint();
@@ -93,14 +103,9 @@ export class Tracker {
     buf.writeUVarint(rleBits.length);
     buf.writeBits(rleBits);
 
-    buf.writeUVarint(this.dict.length);
-    this.dict.forEach((s) => {
-      buf.writeString(s);
-    });
-
     this.data.forEach((x) => {
       if (x.type === "string") {
-        buf.writeUVarint(x.idx);
+        buf.writeStringUtf8(x.val, x.len);
       } else if (x.type === "int") {
         buf.writeVarint(x.val);
       } else if (x.type === "uint") {

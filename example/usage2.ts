@@ -20,11 +20,11 @@ function runBenchmark() {
   });
 
   console.log(`Average Encoding Time: ${(totalEncodeTime / testData.length).toFixed(3)}ms`);
-  // Average Encoding Time: 0.014ms
+  // Average Encoding Time: 0.015ms
   console.log(`Average Decoding Time: ${(totalDecodeTime / testData.length).toFixed(3)}ms`);
-  // Average Decoding Time: 0.007ms
+  // Average Decoding Time: 0.008ms
   console.log(`Average Size per Encoded Message: ${(totalSize / testData.length).toFixed(0)} bytes`);
-  // Average Size per Encoded Message: 524 bytes
+  // Average Size per Encoded Message: 512 bytes
 }
 
 runBenchmark();
