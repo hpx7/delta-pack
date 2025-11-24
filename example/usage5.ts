@@ -101,7 +101,7 @@ if (diff === NO_DIFF) {
 }
 const encodedDiff = GameState.encodeDiff(diff).toBuffer();
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(183)
+// Uint8Array(171)
 
 const decodedDiff = GameState.decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);

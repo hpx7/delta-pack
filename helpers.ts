@@ -10,7 +10,7 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : T extends { type: string; val: any }
   ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
   : T extends Map<infer K, infer V>
-  ? { deletions: Set<K>; additions: Map<K, V>; updates: Map<K, DeepPartial<V>> }
+  ? { deletions: Set<number>; additions: Map<K, V>; updates: Map<number, DeepPartial<V>> }
   : T extends Object
   ? {
       [K in keyof T]: undefined extends T[K]
@@ -228,7 +228,7 @@ export function writeRecordDiff<K, T>(
 ) {
   tracker.pushUInt(x.deletions.size);
   for (const key of x.deletions) {
-    innerKeyWrite(key);
+    tracker.pushUInt(key);
   }
   tracker.pushUInt(x.additions.size);
   for (const [key, val] of x.additions) {
@@ -237,7 +237,7 @@ export function writeRecordDiff<K, T>(
   }
   tracker.pushUInt(x.updates.size);
   for (const [key, val] of x.updates) {
-    innerKeyWrite(key);
+    tracker.pushUInt(key);
     innerValUpdateWrite(val);
   }
 }
@@ -298,7 +298,7 @@ export function parseRecordDiff<K, T>(
   const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
   const numDeleted = tracker.nextUInt();
   for (let i = 0; i < numDeleted; i++) {
-    obj.deletions.add(innerKeyParse());
+    obj.deletions.add(tracker.nextUInt());
   }
   const numAdded = tracker.nextUInt();
   for (let i = 0; i < numAdded; i++) {
@@ -306,7 +306,7 @@ export function parseRecordDiff<K, T>(
   }
   const numUpdated = tracker.nextUInt();
   for (let i = 0; i < numUpdated; i++) {
-    obj.updates.set(innerKeyParse(), innerValUpdateParse());
+    obj.updates.set(tracker.nextUInt(), innerValUpdateParse());
   }
   return obj;
 }
@@ -349,6 +349,7 @@ export function diffRecord<K, T>(
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
 ): DeepPartial<Map<K, T>> | typeof NO_DIFF {
   const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
+  const aOrderedKeys = Array.from(a.keys()).sort();
   for (const [bKey, bVal] of b) {
     const aVal = a.get(bKey);
     if (aVal == null) {
@@ -356,15 +357,16 @@ export function diffRecord<K, T>(
     } else {
       const diff = innerDiff(aVal, bVal);
       if (diff !== NO_DIFF) {
-        obj.updates.set(bKey, diff);
+        const idx = aOrderedKeys.indexOf(bKey);
+        obj.updates.set(idx, diff);
       }
     }
   }
-  for (const aKey of a.keys()) {
+  aOrderedKeys.forEach((aKey, idx) => {
     if (!b.has(aKey)) {
-      obj.deletions.add(aKey);
+      obj.deletions.add(idx);
     }
-  }
+  });
   return obj.deletions.size + obj.additions.size + obj.updates.size > 0 ? obj : NO_DIFF;
 }
 
@@ -410,14 +412,19 @@ export function patchRecord<K, T>(
   if (patch === NO_DIFF) {
     return obj;
   }
-  for (const key of patch.deletions) {
-    obj.delete(key);
+  if (patch.deletions.size > 0 || patch.updates.size > 0) {
+    const objOrderedKeys = Array.from(obj.keys()).sort();
+    for (const idx of patch.deletions) {
+      const key = objOrderedKeys[idx];
+      obj.delete(key);
+    }
+    for (const [idx, patchVal] of patch.updates) {
+      const key = objOrderedKeys[idx];
+      obj.set(key, innerPatch(obj.get(key)!, patchVal));
+    }
   }
   for (const [key, patchVal] of patch.additions) {
     obj.set(key, patchVal);
-  }
-  for (const [key, patchVal] of patch.updates) {
-    obj.set(key, innerPatch(obj.get(key)!, patchVal));
   }
   return obj;
 }
