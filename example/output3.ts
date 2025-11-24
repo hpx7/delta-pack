@@ -26,20 +26,10 @@ export type Size3D = {
 };
 export type Size1D = number;
 
-export enum EntityEvent {
-  DESTROYED,
-}
+export type EntityEvent = "DESTROYED";
     
 
-export enum EntityState {
-  IDLE,
-  WALK,
-  RUN,
-  JUMP,
-  ATTACK,
-  FALL,
-  DEATH,
-}
+export type EntityState = "IDLE" | "WALK" | "RUN" | "JUMP" | "ATTACK" | "FALL" | "DEATH";
     
 export type Component = { type: "Color"; val: Color } | { type: "Position"; val: Position } | { type: "Rotation"; val: Rotation } | { type: "Size3D"; val: Size3D } | { type: "Size1D"; val: Size1D } | { type: "EntityEvent"; val: EntityEvent } | { type: "EntityState"; val: EntityState } | { type: "ChatList"; val: ChatList };
 export type Entity = {
@@ -460,7 +450,27 @@ export const Size3D = {
 };
 
 
+const EntityEvent = {
+  0: "DESTROYED",
+  DESTROYED: 0,
+};
 
+const EntityState = {
+  0: "IDLE",
+  1: "WALK",
+  2: "RUN",
+  3: "JUMP",
+  4: "ATTACK",
+  5: "FALL",
+  6: "DEATH",
+  IDLE: 0,
+  WALK: 1,
+  RUN: 2,
+  JUMP: 3,
+  ATTACK: 4,
+  FALL: 5,
+  DEATH: 6,
+};
 
 export const Component = {
   default(): Component {
@@ -557,11 +567,11 @@ export const Component = {
     }
     else if (obj.type === "EntityEvent") {
       tracker.pushUInt(5);
-      tracker.pushUInt(obj.val);
+      tracker.pushUInt(EntityEvent[obj.val]);
     }
     else if (obj.type === "EntityState") {
       tracker.pushUInt(6);
-      tracker.pushUInt(obj.val);
+      tracker.pushUInt(EntityState[obj.val]);
     }
     else if (obj.type === "ChatList") {
       tracker.pushUInt(7);
@@ -588,10 +598,10 @@ export const Component = {
       return { type: "Size1D", val: tracker.nextFloat() };
     }
     else if (type === 5) {
-      return { type: "EntityEvent", val: tracker.nextUInt() };
+      return { type: "EntityEvent", val: EntityEvent[tracker.nextUInt()] };
     }
     else if (type === 6) {
-      return { type: "EntityState", val: tracker.nextUInt() };
+      return { type: "EntityState", val: EntityState[tracker.nextUInt()] };
     }
     else if (type === 7) {
       return { type: "ChatList", val: ChatList.decode(tracker) };
@@ -639,14 +649,14 @@ export const Component = {
       tracker.pushUInt(5);
       tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
-       tracker.pushUInt(obj.val);
+       tracker.pushUInt(EntityEvent[obj.val]);
       }
     }
     else if (obj.type === "EntityState") {
       tracker.pushUInt(6);
       tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
-       tracker.pushUInt(obj.val);
+       tracker.pushUInt(EntityState[obj.val]);
       }
     }
     else if (obj.type === "ChatList") {
@@ -677,10 +687,10 @@ export const Component = {
       return { type: "Size1D", val: tracker.nextBoolean() ? tracker.nextFloat() : _.NO_DIFF };
     }
     else if (type === 5) {
-      return { type: "EntityEvent", val: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF };
+      return { type: "EntityEvent", val: tracker.nextBoolean() ? EntityEvent[tracker.nextUInt()] : _.NO_DIFF };
     }
     else if (type === 6) {
-      return { type: "EntityState", val: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF };
+      return { type: "EntityState", val: tracker.nextBoolean() ? EntityState[tracker.nextUInt()] : _.NO_DIFF };
     }
     else if (type === 7) {
       return { type: "ChatList", val: tracker.nextBoolean() ? ChatList.decodeDiff(tracker) : _.NO_DIFF };

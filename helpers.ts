@@ -123,7 +123,7 @@ export function validatePrimitive(isValid: boolean, errorMessage: string) {
   return isValid ? [] : [errorMessage];
 }
 export function validateOptional<T>(val: T | undefined, innerValidate: (x: T) => string[]) {
-  if (val !== undefined) {
+  if (val != null) {
     return innerValidate(val);
   }
   return [];
@@ -162,8 +162,8 @@ export function validateRecord<K, T>(
 }
 
 export function writeOptional<T>(tracker: Tracker, x: T | undefined, innerWrite: (x: T) => void) {
-  tracker.pushBoolean(x !== undefined);
-  if (x !== undefined) {
+  tracker.pushBoolean(x != null);
+  if (x != null) {
     innerWrite(x);
   }
 }
@@ -195,8 +195,8 @@ export function writeOptionalDiff<T>(
   if (x.type === "partial") {
     innerPartialWrite(x.val);
   } else {
-    tracker.pushBoolean(x.val !== undefined);
-    if (x.val !== undefined) {
+    tracker.pushBoolean(x.val != null);
+    if (x.val != null) {
       innerFullWrite(x.val);
     }
   }
@@ -322,7 +322,7 @@ export function diffOptional<T>(
   b: T | undefined,
   innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
 ): typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined } {
-  if (a !== undefined && b !== undefined) {
+  if (a != null && b != null) {
     const diff = innerDiff(a, b);
     return diff === NO_DIFF ? NO_DIFF : { type: "partial", val: diff };
   }
@@ -351,7 +351,7 @@ export function diffRecord<K, T>(
   const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
   for (const [bKey, bVal] of b) {
     const aVal = a.get(bKey);
-    if (aVal === undefined) {
+    if (aVal == null) {
       obj.additions.set(bKey, bVal);
     } else {
       const diff = innerDiff(aVal, bVal);

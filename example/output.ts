@@ -2,12 +2,7 @@ import * as _ from "../helpers.ts";
 
 export type UserId = string;
 
-export enum Color {
-  RED,
-  BLUE,
-  GREEN,
-  YELLOW,
-}
+export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
     
 export type Card = {
   value: number;
@@ -30,12 +25,22 @@ export type UnionTest = { type: "UserId"; val: UserId } | { type: "Color"; val: 
 
 
 
+const Color = {
+  0: "RED",
+  1: "BLUE",
+  2: "GREEN",
+  3: "YELLOW",
+  RED: 0,
+  BLUE: 1,
+  GREEN: 2,
+  YELLOW: 3,
+};
 
 export const Card = {
   default(): Card {
     return {
       value: 0,
-      color: 0,
+      color: "RED",
     };
   },
   validate(obj: Card) {
@@ -58,14 +63,14 @@ export const Card = {
   encode(obj: Card, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     tracker.pushInt(obj.value);
-    tracker.pushUInt(obj.color);
+    tracker.pushUInt(Color[obj.color]);
     return tracker;
   },
   decode(input: Uint8Array | _.Tracker): Card {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
       value: tracker.nextInt(),
-      color: tracker.nextUInt(),
+      color: Color[tracker.nextUInt()],
     };
   },
   computeDiff(a: Card, b: Card): _.DeepPartial<Card> | typeof _.NO_DIFF {
@@ -83,7 +88,7 @@ export const Card = {
     }
     tracker.pushBoolean(obj.color !== _.NO_DIFF);
     if (obj.color !== _.NO_DIFF) {
-      tracker.pushUInt(obj.color);
+      tracker.pushUInt(Color[obj.color]);
     }
     return tracker;
   },
@@ -91,7 +96,7 @@ export const Card = {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     return {
       value: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
-      color: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF,
+      color: tracker.nextBoolean() ? Color[tracker.nextUInt()] : _.NO_DIFF,
     };
   },
   applyDiff(obj: Card, diff: _.DeepPartial<Card> | typeof _.NO_DIFF): Card {
@@ -364,7 +369,7 @@ export const UnionTest = {
     }
     else if (obj.type === "Color") {
       tracker.pushUInt(1);
-      tracker.pushUInt(obj.val);
+      tracker.pushUInt(Color[obj.val]);
     }
     else if (obj.type === "Card") {
       tracker.pushUInt(2);
@@ -379,7 +384,7 @@ export const UnionTest = {
       return { type: "UserId", val: tracker.nextString() };
     }
     else if (type === 1) {
-      return { type: "Color", val: tracker.nextUInt() };
+      return { type: "Color", val: Color[tracker.nextUInt()] };
     }
     else if (type === 2) {
       return { type: "Card", val: Card.decode(tracker) };
@@ -399,7 +404,7 @@ export const UnionTest = {
       tracker.pushUInt(1);
       tracker.pushBoolean(obj.val !== _.NO_DIFF);
       if (obj.val !== _.NO_DIFF) {
-       tracker.pushUInt(obj.val);
+       tracker.pushUInt(Color[obj.val]);
       }
     }
     else if (obj.type === "Card") {
@@ -418,7 +423,7 @@ export const UnionTest = {
       return { type: "UserId", val: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF };
     }
     else if (type === 1) {
-      return { type: "Color", val: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF };
+      return { type: "Color", val: tracker.nextBoolean() ? Color[tracker.nextUInt()] : _.NO_DIFF };
     }
     else if (type === 2) {
       return { type: "Card", val: tracker.nextBoolean() ? Card.decodeDiff(tracker) : _.NO_DIFF };

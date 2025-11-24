@@ -6,7 +6,7 @@
   "main": "dist/generator.js",
   "types": "dist/generator.d.ts",
   "scripts": {
-    "build": "tsc && cp template.hbs dist",
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

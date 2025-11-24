@@ -1,5 +1,5 @@
 import util from "util";
-import { EntityEvent, EntityState, Snapshot } from "./output3.ts";
+import { Snapshot } from "./output3.ts";
 
 const snashot: Snapshot = {
   entities: [
@@ -11,8 +11,8 @@ const snashot: Snapshot = {
         { type: "Rotation", val: { x: 0, y: 0, z: 0, w: 0 } },
         { type: "Size3D", val: { width: 1, height: 1, depth: 1 } },
         { type: "Size1D", val: 1 },
-        { type: "EntityEvent", val: EntityEvent.DESTROYED },
-        { type: "EntityState", val: EntityState.IDLE },
+        { type: "EntityEvent", val: "DESTROYED" },
+        { type: "EntityState", val: "IDLE" },
       ],
     },
     {

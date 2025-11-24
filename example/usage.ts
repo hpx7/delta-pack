@@ -11,8 +11,8 @@ console.log(PlayerState.encode(state1).toBuffer());
 
 const state2: PlayerState = {
   hand: [
-    { value: 1, color: Color.BLUE },
-    { value: 2, color: Color.RED },
+    { value: 1, color: "BLUE" },
+    { value: 2, color: "RED" },
   ],
   players: [
     { id: "p1", numCards: 2 },

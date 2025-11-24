@@ -7,9 +7,7 @@ ${Object.entries(doc)
   .map(([name, type]) => {
     if (type.type === "enum") {
       return `
-export enum ${name} {
-  ${type.options.map((option) => `${option},`).join("\n  ")}
-}
+export type ${name} = ${type.options.map((option) => `"${option}"`).join(" | ")};
     `;
     } else {
       return `export type ${name} = ${renderTypeArg(type)};`;
@@ -19,7 +17,13 @@ export enum ${name} {
 
 ${Object.entries(doc)
   .map(([name, type]) => {
-    if (type.type === "object") {
+    if (type.type === "enum") {
+      return `
+const ${name} = {
+  ${type.options.map((option, i) => `${i}: "${option}",`).join("\n  ")}
+  ${type.options.map((option, i) => `${option}: ${i},`).join("\n  ")}
+};`;
+    } if (type.type === "object") {
       return `
 export const ${name} = {
   default(): ${name} {
@@ -266,7 +270,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return "false";
     } else if (type.type === "enum") {
-      return "0";
+      return `"${type.options[0]}"`;
     }
     return `${name}.default()`;
   }
@@ -320,7 +324,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `tracker.pushBoolean(${key})`;
     } else if (type.type === "enum") {
-      return `tracker.pushUInt(${key})`;
+      return `tracker.pushUInt(${name}[${key}])`;
     }
     return `${name}.encode(${key}, tracker)`;
   }
@@ -347,7 +351,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `tracker.nextBoolean()`;
     } else if (type.type === "enum") {
-      return `tracker.nextUInt()`;
+      return `${name}[tracker.nextUInt()]`;
     }
     return `${name}.decode(tracker)`;
   }
@@ -411,7 +415,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `tracker.pushBoolean(${key})`;
     } else if (type.type === "enum") {
-      return `tracker.pushUInt(${key})`;
+      return `tracker.pushUInt(${name}[${key}])`;
     }
     return `${name}.encodeDiff(${key}, tracker)`;
   }
@@ -447,7 +451,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `tracker.nextBoolean()`;
     } else if (type.type === "enum") {
-      return `tracker.nextUInt()`;
+      return `${name}[tracker.nextUInt()]`;
     }
     return `${name}.decodeDiff(tracker)`;
   }
