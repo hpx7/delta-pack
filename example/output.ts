@@ -408,19 +408,19 @@ export const UnionTest = {
   },
   computeDiff(a: UnionTest, b: UnionTest): _.DeepPartial<UnionTest> | typeof _.NO_DIFF {
     if (a.type !== b.type) {
-      return b;
+      return { partial: false, ...b };
     }
     if (a.type === "UserId" && b.type === "UserId") {
       const valDiff = _.diffPrimitive(a.val, b.val);
-      return valDiff === _.NO_DIFF ? _.NO_DIFF : { type: a.type, val: valDiff };
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
     }
     else if (a.type === "Color" && b.type === "Color") {
       const valDiff = _.diffPrimitive(a.val, b.val);
-      return valDiff === _.NO_DIFF ? _.NO_DIFF : { type: a.type, val: valDiff };
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
     }
     else if (a.type === "Card" && b.type === "Card") {
       const valDiff = Card.computeDiff(a.val, b.val);
-      return valDiff === _.NO_DIFF ? _.NO_DIFF : { type: a.type, val: valDiff };
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
     }
     throw new Error("Invalid union");
   },
@@ -428,23 +428,29 @@ export const UnionTest = {
     const tracker = track ?? new _.Tracker();
     if (obj.type === "UserId") {
       tracker.pushUInt(0);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       tracker.pushString(obj.val);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        tracker.pushString(obj.val);
+      } else {
+        tracker.pushString(obj.val);
       }
     }
     else if (obj.type === "Color") {
       tracker.pushUInt(1);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       tracker.pushUInt(Color[obj.val]);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        tracker.pushUInt(Color[obj.val]);
+      } else {
+        tracker.pushUInt(Color[obj.val]);
       }
     }
     else if (obj.type === "Card") {
       tracker.pushUInt(2);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       Card.encodeDiff(obj.val, tracker);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        Card.encodeDiff(obj.val, tracker);
+      } else {
+        Card.encode(obj.val, tracker);
       }
     }
     return tracker;
@@ -452,14 +458,27 @@ export const UnionTest = {
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<UnionTest> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     const type = tracker.nextUInt();
+    const partial = tracker.nextBoolean();
     if (type === 0) {
-      return { type: "UserId", val: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "UserId", val: tracker.nextString() };
+      } else {
+        return { partial, type: "UserId", val: tracker.nextString() };
+      }
     }
     else if (type === 1) {
-      return { type: "Color", val: tracker.nextBoolean() ? Color[tracker.nextUInt()] : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Color", val: Color[tracker.nextUInt()] };
+      } else {
+        return { partial, type: "Color", val: Color[tracker.nextUInt()] };
+      }
     }
     else if (type === 2) {
-      return { type: "Card", val: tracker.nextBoolean() ? Card.decodeDiff(tracker) : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Card", val: Card.decodeDiff(tracker) };
+      } else {
+        return { partial, type: "Card", val: Card.decode(tracker) };
+      }
     }
     throw new Error("Invalid union");
   },
@@ -467,17 +486,17 @@ export const UnionTest = {
     if (diff === _.NO_DIFF) {
       return obj;
     }
-    if (obj.type !== diff.type) {
-      return diff as UnionTest;
+    if (!diff.partial) {
+      return diff;
     }
     if (obj.type === "UserId" && diff.type === "UserId") {
-      obj.val = diff.val === _.NO_DIFF ? obj.val : diff.val;
+      obj.val = diff.val;
     }
     else if (obj.type === "Color" && diff.type === "Color") {
-      obj.val = diff.val === _.NO_DIFF ? obj.val : diff.val;
+      obj.val = diff.val;
     }
     else if (obj.type === "Card" && diff.type === "Card") {
-      obj.val = diff.val === _.NO_DIFF ? obj.val : Card.applyDiff(obj.val, diff.val);
+      obj.val = Card.applyDiff(obj.val, diff.val);
     }
     return obj;
   },
