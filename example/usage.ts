@@ -9,7 +9,7 @@ const state1: PlayerState = {
   union: { type: "Card", val: { value: 1, color: "BLUE" } },
 };
 
-console.log(PlayerState.encode(state1).toBuffer());
+console.log(PlayerState.encode(state1));
 // Uint8Array(8) [
 //   4, 14, 0, 0,
 //   0,  2, 2, 1
@@ -30,7 +30,7 @@ const state2: PlayerState = {
   union: { type: "Card", val: { value: 1, color: "BLUE" } },
 };
 
-console.log(PlayerState.encode(state2).toBuffer());
+console.log(PlayerState.encode(state2));
 // Uint8Array(26) [
 //   10, 211,   0,  2, 2, 1,   4,  0,
 //    2,   4, 112, 49, 4, 4, 112, 50,
@@ -43,10 +43,7 @@ console.log(
   "diff",
   JSON.stringify(diff, (k, v) => (v instanceof Map ? Object.fromEntries(v) : v), 2),
 );
-if (diff === NO_DIFF) {
-  assert.fail("diff === NO_DIFF");
-}
-const encodedDiff = PlayerState.encodeDiff(diff).toBuffer();
+const encodedDiff = PlayerState.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(28) [
 //   25, 151, 180, 73, 0,   2,  2, 1,

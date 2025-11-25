@@ -10,7 +10,7 @@ function runBenchmark() {
 
   testData.forEach((snapshot) => {
     let startEncode = performance.now();
-    let encoded = State.encode(snapshot).toBuffer();
+    let encoded = State.encode(snapshot);
     totalEncodeTime += performance.now() - startEncode;
     totalSize += encoded.length;
 

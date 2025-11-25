@@ -33,7 +33,7 @@ const state1: Snapshot = {
   ],
 };
 
-console.log(Snapshot.encode(state1).toBuffer());
+console.log(Snapshot.encode(state1));
 // Uint8Array(101)
 
 const state2: Snapshot = {
@@ -67,7 +67,7 @@ const state2: Snapshot = {
   ],
 };
 
-console.log(Snapshot.encode(state2).toBuffer());
+console.log(Snapshot.encode(state2));
 // Uint8Array(102);
 
 const diff = Snapshot.computeDiff(state1, state2);
@@ -75,10 +75,7 @@ console.log(
   "diff",
   JSON.stringify(diff, (k, v) => (v instanceof Map ? Object.fromEntries(v) : v), 2),
 );
-if (diff === NO_DIFF) {
-  assert.fail("diff === NO_DIFF");
-}
-const encodedDiff = Snapshot.encodeDiff(diff).toBuffer();
+const encodedDiff = Snapshot.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(46) [
 //   37, 27, 181, 157, 158,  6, 0, 2,  0,  7,  0,
@@ -90,4 +87,5 @@ console.log("encodedDiff", encodedDiff);
 
 const decodedDiff = Snapshot.decodeDiff(encodedDiff);
 const applied = Snapshot.applyDiff(state1, decodedDiff);
+assert.notEqual(state1, applied);
 assert.equal(Snapshot.computeDiff(applied, state2), NO_DIFF);

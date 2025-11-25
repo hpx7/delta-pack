@@ -775,7 +775,7 @@ const state1: GameState = {
   debugBodies: [],
 };
 
-const encoded = GameState.encode(state1).toBuffer();
+const encoded = GameState.encode(state1);
 console.log("encoded", encoded);
 // Uint8Array(953)
 
@@ -1565,10 +1565,7 @@ console.log(
   JSON.stringify(diff, (k, v) => (v instanceof Map || v instanceof Set ? [...v] : v), 2),
 );
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
-if (diff === NO_DIFF) {
-  assert.fail("diff === NO_DIFF");
-}
-const encodedDiff = GameState.encodeDiff(diff).toBuffer();
+const encodedDiff = GameState.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(169)
 
