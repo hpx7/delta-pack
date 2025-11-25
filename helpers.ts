@@ -8,7 +8,9 @@ export type DeepPartial<T> = T extends string | number | boolean | undefined
   : T extends Array<infer V>
   ? { additions: Array<V>; updates: Array<DeepPartial<V> | typeof NO_DIFF> }
   : T extends { type: string; val: any }
-  ? { type: T["type"]; val: DeepPartial<T["val"] | typeof NO_DIFF> }
+  ?
+    | { partial: true; type: T["type"]; val: DeepPartial<T["val"]> }
+    | { partial: false; type: T["type"]; val: T["val"] }
   : T extends Map<infer K, infer V>
   ? { deletions: Set<number>; additions: Map<K, V>; updates: Map<number, DeepPartial<V>> }
   : T extends Object

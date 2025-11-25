@@ -608,62 +608,116 @@ export const Component = {
     }
     throw new Error("Invalid union");
   },
+  computeDiff(a: Component, b: Component): _.DeepPartial<Component> | typeof _.NO_DIFF {
+    if (a.type !== b.type) {
+      return { partial: false, ...b };
+    }
+    if (a.type === "Color" && b.type === "Color") {
+      const valDiff = _.diffPrimitive(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "Position" && b.type === "Position") {
+      const valDiff = Position.computeDiff(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "Rotation" && b.type === "Rotation") {
+      const valDiff = Rotation.computeDiff(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "Size3D" && b.type === "Size3D") {
+      const valDiff = Size3D.computeDiff(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "Size1D" && b.type === "Size1D") {
+      const valDiff = _.diffFloat(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "EntityEvent" && b.type === "EntityEvent") {
+      const valDiff = _.diffPrimitive(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "EntityState" && b.type === "EntityState") {
+      const valDiff = _.diffPrimitive(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    else if (a.type === "ChatList" && b.type === "ChatList") {
+      const valDiff = ChatList.computeDiff(a.val, b.val);
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }
+    throw new Error("Invalid union");
+  },
   encodeDiff(obj: _.DeepPartial<Component>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     if (obj.type === "Color") {
       tracker.pushUInt(0);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       tracker.pushString(obj.val);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        tracker.pushString(obj.val);
+      } else {
+        tracker.pushString(obj.val);
       }
     }
     else if (obj.type === "Position") {
       tracker.pushUInt(1);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       Position.encodeDiff(obj.val, tracker);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        Position.encodeDiff(obj.val, tracker);
+      } else {
+        Position.encode(obj.val, tracker);
       }
     }
     else if (obj.type === "Rotation") {
       tracker.pushUInt(2);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       Rotation.encodeDiff(obj.val, tracker);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        Rotation.encodeDiff(obj.val, tracker);
+      } else {
+        Rotation.encode(obj.val, tracker);
       }
     }
     else if (obj.type === "Size3D") {
       tracker.pushUInt(3);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       Size3D.encodeDiff(obj.val, tracker);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        Size3D.encodeDiff(obj.val, tracker);
+      } else {
+        Size3D.encode(obj.val, tracker);
       }
     }
     else if (obj.type === "Size1D") {
       tracker.pushUInt(4);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       tracker.pushFloat(obj.val);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        tracker.pushFloat(obj.val);
+      } else {
+        tracker.pushFloat(obj.val);
       }
     }
     else if (obj.type === "EntityEvent") {
       tracker.pushUInt(5);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       tracker.pushUInt(EntityEvent[obj.val]);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        tracker.pushUInt(EntityEvent[obj.val]);
+      } else {
+        tracker.pushUInt(EntityEvent[obj.val]);
       }
     }
     else if (obj.type === "EntityState") {
       tracker.pushUInt(6);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       tracker.pushUInt(EntityState[obj.val]);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        tracker.pushUInt(EntityState[obj.val]);
+      } else {
+        tracker.pushUInt(EntityState[obj.val]);
       }
     }
     else if (obj.type === "ChatList") {
       tracker.pushUInt(7);
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       ChatList.encodeDiff(obj.val, tracker);
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        ChatList.encodeDiff(obj.val, tracker);
+      } else {
+        ChatList.encode(obj.val, tracker);
       }
     }
     return tracker;
@@ -671,31 +725,97 @@ export const Component = {
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<Component> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     const type = tracker.nextUInt();
+    const partial = tracker.nextBoolean();
     if (type === 0) {
-      return { type: "Color", val: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Color", val: tracker.nextString() };
+      } else {
+        return { partial, type: "Color", val: tracker.nextString() };
+      }
     }
     else if (type === 1) {
-      return { type: "Position", val: tracker.nextBoolean() ? Position.decodeDiff(tracker) : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Position", val: Position.decodeDiff(tracker) };
+      } else {
+        return { partial, type: "Position", val: Position.decode(tracker) };
+      }
     }
     else if (type === 2) {
-      return { type: "Rotation", val: tracker.nextBoolean() ? Rotation.decodeDiff(tracker) : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Rotation", val: Rotation.decodeDiff(tracker) };
+      } else {
+        return { partial, type: "Rotation", val: Rotation.decode(tracker) };
+      }
     }
     else if (type === 3) {
-      return { type: "Size3D", val: tracker.nextBoolean() ? Size3D.decodeDiff(tracker) : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Size3D", val: Size3D.decodeDiff(tracker) };
+      } else {
+        return { partial, type: "Size3D", val: Size3D.decode(tracker) };
+      }
     }
     else if (type === 4) {
-      return { type: "Size1D", val: tracker.nextBoolean() ? tracker.nextFloat() : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "Size1D", val: tracker.nextFloat() };
+      } else {
+        return { partial, type: "Size1D", val: tracker.nextFloat() };
+      }
     }
     else if (type === 5) {
-      return { type: "EntityEvent", val: tracker.nextBoolean() ? EntityEvent[tracker.nextUInt()] : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "EntityEvent", val: EntityEvent[tracker.nextUInt()] };
+      } else {
+        return { partial, type: "EntityEvent", val: EntityEvent[tracker.nextUInt()] };
+      }
     }
     else if (type === 6) {
-      return { type: "EntityState", val: tracker.nextBoolean() ? EntityState[tracker.nextUInt()] : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "EntityState", val: EntityState[tracker.nextUInt()] };
+      } else {
+        return { partial, type: "EntityState", val: EntityState[tracker.nextUInt()] };
+      }
     }
     else if (type === 7) {
-      return { type: "ChatList", val: tracker.nextBoolean() ? ChatList.decodeDiff(tracker) : _.NO_DIFF };
+      if (partial) {
+        return { partial, type: "ChatList", val: ChatList.decodeDiff(tracker) };
+      } else {
+        return { partial, type: "ChatList", val: ChatList.decode(tracker) };
+      }
     }
     throw new Error("Invalid union");
+  },
+  applyDiff(obj: Component, diff: _.DeepPartial<Component> | typeof _.NO_DIFF): Component {
+    if (diff === _.NO_DIFF) {
+      return obj;
+    }
+    if (!diff.partial) {
+      return diff;
+    }
+    if (obj.type === "Color" && diff.type === "Color") {
+      obj.val = diff.val;
+    }
+    else if (obj.type === "Position" && diff.type === "Position") {
+      obj.val = Position.applyDiff(obj.val, diff.val);
+    }
+    else if (obj.type === "Rotation" && diff.type === "Rotation") {
+      obj.val = Rotation.applyDiff(obj.val, diff.val);
+    }
+    else if (obj.type === "Size3D" && diff.type === "Size3D") {
+      obj.val = Size3D.applyDiff(obj.val, diff.val);
+    }
+    else if (obj.type === "Size1D" && diff.type === "Size1D") {
+      obj.val = diff.val;
+    }
+    else if (obj.type === "EntityEvent" && diff.type === "EntityEvent") {
+      obj.val = diff.val;
+    }
+    else if (obj.type === "EntityState" && diff.type === "EntityState") {
+      obj.val = diff.val;
+    }
+    else if (obj.type === "ChatList" && diff.type === "ChatList") {
+      obj.val = ChatList.applyDiff(obj.val, diff.val);
+    }
+    return obj;
   },
 }
 

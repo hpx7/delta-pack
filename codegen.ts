@@ -178,15 +178,31 @@ export const ${name} = {
       .join("\n    ")}
     throw new Error("Invalid union");
   },
+  computeDiff(a: ${name}, b: ${name}): _.DeepPartial<${name}> | typeof _.NO_DIFF {
+    if (a.type !== b.type) {
+      return { partial: false, ...b };
+    }
+    ${Object.entries(type.options)
+      .map(([childName, reference], i) => {
+        return `${i > 0 ? "else " : ""}if (a.type === "${lookup(reference)}" && b.type === "${lookup(reference)}") {
+      const valDiff = ${renderComputeDiff(reference, lookup(reference), "a.val", "b.val")};
+      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
+    }`;
+      })
+      .join("\n    ")}
+    throw new Error("Invalid union");
+  },
   encodeDiff(obj: _.DeepPartial<${name}>, track?: _.Tracker) {
     const tracker = track ?? new _.Tracker();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
       tracker.pushUInt(${i});
-      tracker.pushBoolean(obj.val !== _.NO_DIFF);
-      if (obj.val !== _.NO_DIFF) {
-       ${renderEncodeDiff(reference, lookup(reference), "obj.val")};
+      tracker.pushBoolean(obj.partial);
+      if (obj.partial) {
+        ${renderEncodeDiff(reference, lookup(reference), "obj.val")};
+      } else {
+        ${renderEncode(reference, lookup(reference), "obj.val")};
       }
     }`;
       })
@@ -196,18 +212,41 @@ export const ${name} = {
   decodeDiff(input: Uint8Array | _.Tracker): _.DeepPartial<${name}> {
     const tracker = input instanceof Uint8Array ? _.Tracker.parse(input) : input;
     const type = tracker.nextUInt();
+    const partial = tracker.nextBoolean();
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${lookup(reference)}", val: tracker.nextBoolean() ? ${renderDecodeDiff(
+      if (partial) {
+        return { partial, type: "${lookup(reference)}", val: ${renderDecodeDiff(
           reference,
           lookup(reference),
           "obj.val",
-        )} : _.NO_DIFF };
+        )} };
+      } else {
+        return { partial, type: "${lookup(reference)}", val: ${renderDecode(reference, lookup(reference), "obj.val")} };
+      }
     }`;
       })
       .join("\n    ")}
     throw new Error("Invalid union");
+  },
+  applyDiff(obj: ${name}, diff: _.DeepPartial<${name}> | typeof _.NO_DIFF): ${name} {
+    if (diff === _.NO_DIFF) {
+      return obj;
+    }
+    if (!diff.partial) {
+      return diff;
+    }
+    ${Object.entries(type.options)
+      .map(([childName, reference], i) => {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}" && diff.type === "${lookup(
+          reference,
+        )}") {
+      obj.val = ${renderApplyDiff(reference, lookup(reference), "obj.val", "diff.val")};
+    }`;
+      })
+      .join("\n    ")}
+    return obj;
   },
 }`;
     }

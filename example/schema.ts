@@ -24,6 +24,8 @@ const Player = ObjectType({
   numCards: IntType(),
 });
 
+const UnionTest = UnionType([ReferenceType(UserId), ReferenceType(Color), ReferenceType(Card)]);
+
 const PlayerState = ObjectType({
   hand: ArrayType(ReferenceType(Card)),
   players: ArrayType(ReferenceType(Player)),
@@ -32,9 +34,9 @@ const PlayerState = ObjectType({
   winner: OptionalType(ReferenceType(UserId)),
   intArray: ArrayType(IntType()),
   intOptional: OptionalType(IntType()),
+  union: ReferenceType(UnionTest),
 });
 
-const UnionTest = UnionType([ReferenceType(UserId), ReferenceType(Color), ReferenceType(Card)]);
 
 console.log(
   codegenTypescript({
