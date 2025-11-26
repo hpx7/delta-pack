@@ -777,7 +777,7 @@ const state1: GameState = {
 
 const encoded = GameState.encode(state1);
 console.log("encoded", encoded);
-// Uint8Array(953)
+// Uint8Array(955)
 
 const decoded = GameState.decode(encoded);
 assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
@@ -1567,7 +1567,7 @@ console.log(
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = GameState.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(164)
+// Uint8Array(167)
 
 const decodedDiff = GameState.decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);

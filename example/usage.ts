@@ -11,10 +11,7 @@ const state1: PlayerState = {
 
 const encodedState1 = PlayerState.encode(state1);
 console.log(encodedState1);
-// Uint8Array(8) [
-//   4, 14, 0, 0,
-//   0,  2, 2, 1
-// ]
+// Uint8Array(8)
 const decodedState1 = PlayerState.decode(encodedState1);
 assert.equal(PlayerState.computeDiff(state1, decodedState1), NO_DIFF);
 
@@ -35,12 +32,7 @@ const state2: PlayerState = {
 
 const encodedState2 = PlayerState.encode(state2);
 console.log(encodedState2);
-// Uint8Array(26) [
-//   10, 211,   0,  2, 2, 1,   4,  0,
-//    2,   4, 112, 49, 4, 4, 112, 50,
-//    6,   1,   3,  2, 4, 6,   1,  2,
-//    2,   1
-// ]
+// Uint8Array(25)
 const decodedState2 = PlayerState.decode(encodedState2);
 assert.equal(PlayerState.computeDiff(state2, decodedState2), NO_DIFF);
 
@@ -51,12 +43,7 @@ console.log(
 );
 const encodedDiff = PlayerState.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(26) [
-//   13, 223, 5,   2,  2, 1, 4,   0,
-//    0,   2, 4, 112, 49, 4, 4, 112,
-//   50,   6, 0,   1,  3, 2, 4,   6,
-//    0,   1
-// ]
+// Uint8Array(26)
 
 const decodedDiff = PlayerState.decodeDiff(encodedDiff);
 const applied = PlayerState.applyDiff(state1, decodedDiff);

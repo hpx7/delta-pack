@@ -34,7 +34,7 @@ const state1: Snapshot = {
 };
 
 console.log(Snapshot.encode(state1));
-// Uint8Array(101)
+// Uint8Array(100)
 
 const state2: Snapshot = {
   entities: [
@@ -68,7 +68,7 @@ const state2: Snapshot = {
 };
 
 console.log(Snapshot.encode(state2));
-// Uint8Array(102);
+// Uint8Array(101);
 
 const diff = Snapshot.computeDiff(state1, state2);
 console.log(
@@ -77,13 +77,7 @@ console.log(
 );
 const encodedDiff = Snapshot.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(46) [
-//   37, 27, 181, 157, 158,  6, 0, 2,  0,  7,  0,
-//    8, 98, 108, 117, 101,  1, 0, 0, 32, 65,  2,
-//    0,  0, 128,  63,   3,  0, 0, 0, 64,  0,  0,
-//    0, 64,   0,   0,   0, 64, 4, 0,  0,  0, 64,
-//    6,  1
-// ]
+// Uint8Array(45)
 
 const decodedDiff = Snapshot.decodeDiff(encodedDiff);
 const applied = Snapshot.applyDiff(state1, decodedDiff);
