@@ -107,6 +107,16 @@ export class Tracker {
       }
     }
   }
+  pushOptionalDiffPrimitive<T>(
+    val: { type: "full"; val: T | undefined } | { type: "partial"; val: T },
+    innerWrite: (x: T) => void,
+  ) {
+    this.pushBoolean(val.val == null);
+    if (val.val == null) {
+      return;
+    }
+    innerWrite(val.val);
+  }
   pushArrayDiff<T>(
     val: DeepPartial<T[]>,
     innerWrite: (x: T) => void,
@@ -197,6 +207,11 @@ export class Tracker {
       return { type: "partial", val: innerPartialRead() };
     }
     return { type: "full", val: this.nextBoolean() ? innerFullRead() : undefined };
+  }
+  nextOptionalDiffPrimitive<T>(
+    innerRead: () => T,
+  ): typeof NO_DIFF | { type: "full"; val: T | undefined } | { type: "partial"; val: T } {
+    return { type: "full", val: this.nextBoolean() ? undefined : innerRead() };
   }
   nextArrayDiff<T>(
     innerRead: () => T,

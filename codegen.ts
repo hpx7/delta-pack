@@ -1,5 +1,22 @@
 import type { ReferenceType, Type } from "./generator";
 
+function isPrimitiveType(type: Type, doc: Record<string, Type>): boolean {
+  // Resolve references
+  if (type.type === "reference") {
+    return isPrimitiveType(type.reference, doc);
+  }
+
+  // Check if the type itself is primitive
+  return (
+    type.type === "string" ||
+    type.type === "int" ||
+    type.type === "uint" ||
+    type.type === "float" ||
+    type.type === "boolean" ||
+    type.type === "enum"
+  );
+}
+
 export function renderDoc(doc: Record<string, Type>) {
   return `import * as _ from "../helpers.ts";
 
@@ -457,6 +474,9 @@ export const ${name} = {
       const valueType = renderTypeArg(type.value);
       const fullFn = renderEncode(type.value, name, "x");
       const partialFn = renderEncodeDiff(type.value, name, "x");
+      if (isPrimitiveType(type.value, doc)) {
+        return `tracker.pushOptionalDiffPrimitive<${valueType}>(${key}!, (x) => ${fullFn})`;
+      }
       return `tracker.pushOptionalDiff<${valueType}>(${key}!, (x) => ${fullFn}, (x) => ${partialFn})`;
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key);
@@ -493,6 +513,9 @@ export const ${name} = {
       const valueType = renderTypeArg(type.value);
       const fullFn = renderDecode(type.value, name, "x");
       const partialFn = renderDecodeDiff(type.value, name, "x");
+      if (isPrimitiveType(type.value, doc)) {
+        return `tracker.nextOptionalDiffPrimitive<${valueType}>(() => ${fullFn})`;
+      }
       return `tracker.nextOptionalDiff<${valueType}>(() => ${fullFn}, () => ${partialFn})`;
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key);

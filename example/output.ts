@@ -326,7 +326,7 @@ export const PlayerState = {
     }
     tracker.pushBoolean(obj.turn !== _.NO_DIFF);
     if (obj.turn !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<UserId>(obj.turn!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<UserId>(obj.turn!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.pile !== _.NO_DIFF);
     if (obj.pile !== _.NO_DIFF) {
@@ -334,7 +334,7 @@ export const PlayerState = {
     }
     tracker.pushBoolean(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<UserId>(obj.winner!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<UserId>(obj.winner!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.intArray !== _.NO_DIFF);
     if (obj.intArray !== _.NO_DIFF) {
@@ -342,7 +342,7 @@ export const PlayerState = {
     }
     tracker.pushBoolean(obj.intOptional !== _.NO_DIFF);
     if (obj.intOptional !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.intOptional!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.intOptional!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.union !== _.NO_DIFF);
     if (obj.union !== _.NO_DIFF) {
@@ -360,11 +360,11 @@ export const PlayerState = {
     return {
       hand: tracker.nextBoolean() ? tracker.nextArrayDiff<Card>(() => Card._decode(tracker), () => Card._decodeDiff(tracker)) : _.NO_DIFF,
       players: tracker.nextBoolean() ? tracker.nextArrayDiff<Player>(() => Player._decode(tracker), () => Player._decodeDiff(tracker)) : _.NO_DIFF,
-      turn: tracker.nextBoolean() ? tracker.nextOptionalDiff<UserId>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      turn: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<UserId>(() => tracker.nextString()) : _.NO_DIFF,
       pile: tracker.nextBoolean() ? tracker.nextOptionalDiff<Card>(() => Card._decode(tracker), () => Card._decodeDiff(tracker)) : _.NO_DIFF,
-      winner: tracker.nextBoolean() ? tracker.nextOptionalDiff<UserId>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      winner: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<UserId>(() => tracker.nextString()) : _.NO_DIFF,
       intArray: tracker.nextBoolean() ? tracker.nextArrayDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      intOptional: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
+      intOptional: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
       union: tracker.nextBoolean() ? UnionTest._decodeDiff(tracker) : _.NO_DIFF,
     };
   },

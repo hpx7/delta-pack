@@ -98,7 +98,7 @@ console.log(
 // console.log("diff", util.inspect(diff, { depth: null, colors: true }));
 const encodedDiff = GameState.encodeDiff(diff);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(171)
+// Uint8Array(169)
 
 const decodedDiff = GameState.decodeDiff(encodedDiff);
 const applied = GameState.applyDiff(state1, decodedDiff);

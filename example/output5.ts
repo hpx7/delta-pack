@@ -377,7 +377,7 @@ export const CreatureState = {
     }
     tracker.pushBoolean(obj.equippedItemType !== _.NO_DIFF);
     if (obj.equippedItemType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.equippedItemType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.equippedItemType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.health !== _.NO_DIFF);
     if (obj.health !== _.NO_DIFF) {
@@ -405,27 +405,27 @@ export const CreatureState = {
     }
     tracker.pushBoolean(obj.moveTargetX !== _.NO_DIFF);
     if (obj.moveTargetX !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.moveTargetX!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.moveTargetX!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.moveTargetY !== _.NO_DIFF);
     if (obj.moveTargetY !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.moveTargetY!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.moveTargetY!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.enemyTargetX !== _.NO_DIFF);
     if (obj.enemyTargetX !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.enemyTargetX!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.enemyTargetX!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.enemyTargetY !== _.NO_DIFF);
     if (obj.enemyTargetY !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.enemyTargetY!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.enemyTargetY!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.using !== _.NO_DIFF);
     if (obj.using !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.using!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.using!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.useDirection !== _.NO_DIFF);
     if (obj.useDirection !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.useDirection!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.useDirection!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.takingDamage !== _.NO_DIFF);
     if (obj.takingDamage !== _.NO_DIFF) {
@@ -437,7 +437,7 @@ export const CreatureState = {
     }
     tracker.pushBoolean(obj.statusEffect !== _.NO_DIFF);
     if (obj.statusEffect !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.statusEffect!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.statusEffect!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -460,22 +460,22 @@ export const CreatureState = {
       team: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
       hero: tracker.nextBoolean() ? tracker.nextBoolean() : _.NO_DIFF,
       creatureType: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      equippedItemType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      equippedItemType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
       health: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF,
       maxHealth: tracker.nextBoolean() ? tracker.nextUInt() : _.NO_DIFF,
       visible: tracker.nextBoolean() ? tracker.nextBoolean() : _.NO_DIFF,
       facing: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
       moving: tracker.nextBoolean() ? tracker.nextBoolean() : _.NO_DIFF,
       moveType: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      moveTargetX: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      moveTargetY: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      enemyTargetX: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      enemyTargetY: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      using: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      useDirection: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      moveTargetX: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      moveTargetY: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      enemyTargetX: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      enemyTargetY: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      using: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      useDirection: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
       takingDamage: tracker.nextBoolean() ? tracker.nextBoolean() : _.NO_DIFF,
       frozen: tracker.nextBoolean() ? tracker.nextBoolean() : _.NO_DIFF,
-      statusEffect: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      statusEffect: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
       x: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
       y: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
     };
@@ -595,11 +595,11 @@ export const ItemState = {
     }
     tracker.pushBoolean(obj.potionType !== _.NO_DIFF);
     if (obj.potionType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.potionType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.potionType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.weaponType !== _.NO_DIFF);
     if (obj.weaponType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.weaponType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.weaponType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -620,8 +620,8 @@ export const ItemState = {
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<ItemState> {
     return {
       itemType: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      potionType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      weaponType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      potionType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      weaponType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
       x: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
       y: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
     };
@@ -809,7 +809,7 @@ export const EffectState = {
   _encodeDiff(obj: _.DeepPartial<EffectState>, tracker: _.Tracker) {
     tracker.pushBoolean(obj.creatureId !== _.NO_DIFF);
     if (obj.creatureId !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.creatureId!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.creatureId!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.effectType !== _.NO_DIFF);
     if (obj.effectType !== _.NO_DIFF) {
@@ -817,47 +817,47 @@ export const EffectState = {
     }
     tracker.pushBoolean(obj.triggerType !== _.NO_DIFF);
     if (obj.triggerType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.triggerType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.triggerType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.ellipseEffectType !== _.NO_DIFF);
     if (obj.ellipseEffectType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.ellipseEffectType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.ellipseEffectType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.weaponEffectType !== _.NO_DIFF);
     if (obj.weaponEffectType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.weaponEffectType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.weaponEffectType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.projectileType !== _.NO_DIFF);
     if (obj.projectileType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.projectileType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.projectileType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.visualEffectType !== _.NO_DIFF);
     if (obj.visualEffectType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.visualEffectType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.visualEffectType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.swingType !== _.NO_DIFF);
     if (obj.swingType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.swingType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.swingType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.thrustType !== _.NO_DIFF);
     if (obj.thrustType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.thrustType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.thrustType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.weaponType !== _.NO_DIFF);
     if (obj.weaponType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.weaponType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.weaponType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.direction !== _.NO_DIFF);
     if (obj.direction !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.direction!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.direction!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.angle !== _.NO_DIFF);
     if (obj.angle !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.angle!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.angle!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.radius !== _.NO_DIFF);
     if (obj.radius !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.radius!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.radius!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -869,7 +869,7 @@ export const EffectState = {
     }
     tracker.pushBoolean(obj.z !== _.NO_DIFF);
     if (obj.z !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.z!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.z!, (x) => tracker.pushInt(x));
     }
     return tracker;
   },
@@ -881,22 +881,22 @@ export const EffectState = {
   },
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<EffectState> {
     return {
-      creatureId: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
+      creatureId: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
       effectType: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      triggerType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      ellipseEffectType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      weaponEffectType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      projectileType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      visualEffectType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      swingType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      thrustType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      weaponType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      direction: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      angle: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      radius: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
+      triggerType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      ellipseEffectType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      weaponEffectType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      projectileType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      visualEffectType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      swingType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      thrustType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      weaponType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      direction: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      angle: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      radius: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
       x: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
       y: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
-      z: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
+      z: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
     };
   },
   applyDiff(obj: EffectState, diff: _.DeepPartial<EffectState> | typeof _.NO_DIFF): EffectState {
@@ -1077,7 +1077,7 @@ export const ObjectState = {
   _encodeDiff(obj: _.DeepPartial<ObjectState>, tracker: _.Tracker) {
     tracker.pushBoolean(obj.team !== _.NO_DIFF);
     if (obj.team !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.team!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.team!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.objectType !== _.NO_DIFF);
     if (obj.objectType !== _.NO_DIFF) {
@@ -1085,43 +1085,43 @@ export const ObjectState = {
     }
     tracker.pushBoolean(obj.destructibleObjectType !== _.NO_DIFF);
     if (obj.destructibleObjectType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.destructibleObjectType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.destructibleObjectType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.environmentObjectType !== _.NO_DIFF);
     if (obj.environmentObjectType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.environmentObjectType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.environmentObjectType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.interactiveObjectType !== _.NO_DIFF);
     if (obj.interactiveObjectType !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.interactiveObjectType!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.interactiveObjectType!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.active !== _.NO_DIFF);
     if (obj.active !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<boolean>(obj.active!, (x) => tracker.pushBoolean(x), (x) => tracker.pushBoolean(x));
+      tracker.pushOptionalDiffPrimitive<boolean>(obj.active!, (x) => tracker.pushBoolean(x));
     }
     tracker.pushBoolean(obj.towerName !== _.NO_DIFF);
     if (obj.towerName !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.towerName!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.towerName!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.width !== _.NO_DIFF);
     if (obj.width !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.width!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.width!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.height !== _.NO_DIFF);
     if (obj.height !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.height!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.height!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.angle !== _.NO_DIFF);
     if (obj.angle !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.angle!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.angle!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.durability !== _.NO_DIFF);
     if (obj.durability !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.durability!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.durability!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.maxDurability !== _.NO_DIFF);
     if (obj.maxDurability !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.maxDurability!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.maxDurability!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.x !== _.NO_DIFF);
     if (obj.x !== _.NO_DIFF) {
@@ -1141,18 +1141,18 @@ export const ObjectState = {
   },
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<ObjectState> {
     return {
-      team: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      team: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
       objectType: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      destructibleObjectType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      environmentObjectType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      interactiveObjectType: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      active: tracker.nextBoolean() ? tracker.nextOptionalDiff<boolean>(() => tracker.nextBoolean(), () => tracker.nextBoolean()) : _.NO_DIFF,
-      towerName: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      width: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
-      height: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
-      angle: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      durability: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
-      maxDurability: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
+      destructibleObjectType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      environmentObjectType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      interactiveObjectType: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      active: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<boolean>(() => tracker.nextBoolean()) : _.NO_DIFF,
+      towerName: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      width: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
+      height: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
+      angle: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      durability: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
+      maxDurability: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
       x: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
       y: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
     };
@@ -1297,15 +1297,15 @@ export const PlayerState = {
     }
     tracker.pushBoolean(obj.team !== _.NO_DIFF);
     if (obj.team !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.team!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.team!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.hero !== _.NO_DIFF);
     if (obj.hero !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.hero!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.hero!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.cents !== _.NO_DIFF);
     if (obj.cents !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.cents!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.cents!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.deck !== _.NO_DIFF);
     if (obj.deck !== _.NO_DIFF) {
@@ -1338,9 +1338,9 @@ export const PlayerState = {
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<PlayerState> {
     return {
       name: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      team: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      hero: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
-      cents: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
+      team: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      hero: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
+      cents: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
       deck: tracker.nextBoolean() ? tracker.nextOptionalDiff<DeckState>(() => DeckState._decode(tracker), () => DeckState._decodeDiff(tracker)) : _.NO_DIFF,
       randomSlots: tracker.nextBoolean() ? tracker.nextArrayDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
       hand: tracker.nextBoolean() ? tracker.nextOptionalDiff<HandState>(() => HandState._decode(tracker), () => HandState._decodeDiff(tracker)) : _.NO_DIFF,
@@ -1545,35 +1545,35 @@ export const DeckState = {
   _encodeDiff(obj: _.DeepPartial<DeckState>, tracker: _.Tracker) {
     tracker.pushBoolean(obj.card1 !== _.NO_DIFF);
     if (obj.card1 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card1!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card1!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card2 !== _.NO_DIFF);
     if (obj.card2 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card2!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card2!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card3 !== _.NO_DIFF);
     if (obj.card3 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card3!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card3!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card4 !== _.NO_DIFF);
     if (obj.card4 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card4!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card4!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card5 !== _.NO_DIFF);
     if (obj.card5 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card5!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card5!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card6 !== _.NO_DIFF);
     if (obj.card6 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card6!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card6!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card7 !== _.NO_DIFF);
     if (obj.card7 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card7!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card7!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card8 !== _.NO_DIFF);
     if (obj.card8 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card8!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card8!, (x) => tracker.pushString(x));
     }
     return tracker;
   },
@@ -1585,14 +1585,14 @@ export const DeckState = {
   },
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<DeckState> {
     return {
-      card1: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card2: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card3: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card4: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card5: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card6: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card7: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card8: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      card1: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card2: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card3: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card4: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card5: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card6: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card7: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card8: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
     };
   },
   applyDiff(obj: DeckState, diff: _.DeepPartial<DeckState> | typeof _.NO_DIFF): DeckState {
@@ -1685,19 +1685,19 @@ export const HandState = {
   _encodeDiff(obj: _.DeepPartial<HandState>, tracker: _.Tracker) {
     tracker.pushBoolean(obj.slot1 !== _.NO_DIFF);
     if (obj.slot1 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.slot1!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.slot1!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.slot2 !== _.NO_DIFF);
     if (obj.slot2 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.slot2!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.slot2!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.slot3 !== _.NO_DIFF);
     if (obj.slot3 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.slot3!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.slot3!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.slot4 !== _.NO_DIFF);
     if (obj.slot4 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.slot4!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.slot4!, (x) => tracker.pushString(x));
     }
     return tracker;
   },
@@ -1709,10 +1709,10 @@ export const HandState = {
   },
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<HandState> {
     return {
-      slot1: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      slot2: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      slot3: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      slot4: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      slot1: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      slot2: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      slot3: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      slot4: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
     };
   },
   applyDiff(obj: HandState, diff: _.DeepPartial<HandState> | typeof _.NO_DIFF): HandState {
@@ -2041,23 +2041,23 @@ export const GameInfo = {
   _encodeDiff(obj: _.DeepPartial<GameInfo>, tracker: _.Tracker) {
     tracker.pushBoolean(obj.mode !== _.NO_DIFF);
     if (obj.mode !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.mode!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.mode!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.timeLimit !== _.NO_DIFF);
     if (obj.timeLimit !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.timeLimit!, (x) => tracker.pushUInt(x), (x) => tracker.pushUInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.timeLimit!, (x) => tracker.pushUInt(x));
     }
     tracker.pushBoolean(obj.timeElapsed !== _.NO_DIFF);
     if (obj.timeElapsed !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<number>(obj.timeElapsed!, (x) => tracker.pushInt(x), (x) => tracker.pushInt(x));
+      tracker.pushOptionalDiffPrimitive<number>(obj.timeElapsed!, (x) => tracker.pushInt(x));
     }
     tracker.pushBoolean(obj.suddenDeath !== _.NO_DIFF);
     if (obj.suddenDeath !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<boolean>(obj.suddenDeath!, (x) => tracker.pushBoolean(x), (x) => tracker.pushBoolean(x));
+      tracker.pushOptionalDiffPrimitive<boolean>(obj.suddenDeath!, (x) => tracker.pushBoolean(x));
     }
     tracker.pushBoolean(obj.winner !== _.NO_DIFF);
     if (obj.winner !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.winner!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.winner!, (x) => tracker.pushString(x));
     }
     return tracker;
   },
@@ -2069,11 +2069,11 @@ export const GameInfo = {
   },
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<GameInfo> {
     return {
-      mode: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      timeLimit: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextUInt(), () => tracker.nextUInt()) : _.NO_DIFF,
-      timeElapsed: tracker.nextBoolean() ? tracker.nextOptionalDiff<number>(() => tracker.nextInt(), () => tracker.nextInt()) : _.NO_DIFF,
-      suddenDeath: tracker.nextBoolean() ? tracker.nextOptionalDiff<boolean>(() => tracker.nextBoolean(), () => tracker.nextBoolean()) : _.NO_DIFF,
-      winner: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      mode: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      timeLimit: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextUInt()) : _.NO_DIFF,
+      timeElapsed: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<number>(() => tracker.nextInt()) : _.NO_DIFF,
+      suddenDeath: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<boolean>(() => tracker.nextBoolean()) : _.NO_DIFF,
+      winner: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
     };
   },
   applyDiff(obj: GameInfo, diff: _.DeepPartial<GameInfo> | typeof _.NO_DIFF): GameInfo {
@@ -2309,35 +2309,35 @@ export const DraftDeckState = {
     }
     tracker.pushBoolean(obj.card1 !== _.NO_DIFF);
     if (obj.card1 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card1!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card1!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card2 !== _.NO_DIFF);
     if (obj.card2 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card2!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card2!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card3 !== _.NO_DIFF);
     if (obj.card3 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card3!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card3!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card4 !== _.NO_DIFF);
     if (obj.card4 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card4!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card4!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card5 !== _.NO_DIFF);
     if (obj.card5 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card5!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card5!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card6 !== _.NO_DIFF);
     if (obj.card6 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card6!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card6!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card7 !== _.NO_DIFF);
     if (obj.card7 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card7!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card7!, (x) => tracker.pushString(x));
     }
     tracker.pushBoolean(obj.card8 !== _.NO_DIFF);
     if (obj.card8 !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<string>(obj.card8!, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
+      tracker.pushOptionalDiffPrimitive<string>(obj.card8!, (x) => tracker.pushString(x));
     }
     return tracker;
   },
@@ -2350,14 +2350,14 @@ export const DraftDeckState = {
   _decodeDiff(tracker: _.Tracker): _.DeepPartial<DraftDeckState> {
     return {
       playerId: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      card1: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card2: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card3: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card4: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card5: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card6: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card7: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
-      card8: tracker.nextBoolean() ? tracker.nextOptionalDiff<string>(() => tracker.nextString(), () => tracker.nextString()) : _.NO_DIFF,
+      card1: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card2: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card3: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card4: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card5: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card6: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card7: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
+      card8: tracker.nextBoolean() ? tracker.nextOptionalDiffPrimitive<string>(() => tracker.nextString()) : _.NO_DIFF,
     };
   },
   applyDiff(obj: DraftDeckState, diff: _.DeepPartial<DraftDeckState> | typeof _.NO_DIFF): DraftDeckState {
