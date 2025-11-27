@@ -1,6 +1,5 @@
 import assert from "assert";
 import { GameState } from "./output5.ts";
-import { NO_DIFF } from "../helpers.ts";
 
 const state1: GameState = {
   creatures: new Map(),
@@ -36,7 +35,7 @@ console.log("encoded", encoded);
 // Uint8Array(45)
 
 const decoded = GameState.decode(encoded);
-assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
+assert(GameState.equals(decoded, state1));
 
 const state2: GameState = {
   creatures: new Map(),
@@ -90,16 +89,9 @@ const state2: GameState = {
   debugBodies: [],
 };
 
-const diff = GameState.computeDiff(state1, state2);
-console.log(
-  "diff",
-  JSON.stringify(diff, (k, v) => (v instanceof Map ? Object.fromEntries(v) : v), 2),
-);
-// console.log("diff", util.inspect(diff, { depth: null, colors: true }));
-const encodedDiff = GameState.encodeDiff(diff);
+const encodedDiff = GameState.encodeDiff(state1, state2);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(169)
+// Uint8Array(168)
 
-const decodedDiff = GameState.decodeDiff(encodedDiff);
-const applied = GameState.applyDiff(state1, decodedDiff);
-assert.equal(GameState.computeDiff(applied, state2), NO_DIFF);
+const decodedDiff = GameState.decodeDiff(state1, encodedDiff);
+assert(GameState.equals(decodedDiff, state2));

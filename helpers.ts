@@ -2,28 +2,6 @@ import { Writer, Reader } from "bin-serde";
 import utf8Size from "utf8-buffer-size";
 import { rleDecode, rleEncode } from "./rle";
 
-export const NO_DIFF = Symbol("NODIFF");
-export type DeepPartial<T> = T extends string | number | boolean | undefined
-  ? T
-  : T extends Array<infer V>
-  ? { additions: Array<V>; updates: Array<DeepPartial<V> | typeof NO_DIFF> }
-  : T extends { type: string; val: any }
-  ?
-    | { partial: true; type: T["type"]; val: DeepPartial<T["val"]> }
-    | { partial: false; type: T["type"]; val: T["val"] }
-  : T extends Map<infer K, infer V>
-  ? { deletions: Set<number>; additions: Map<K, V>; updates: Map<number, DeepPartial<V>> }
-  : T extends Object
-  ? {
-      [K in keyof T]: undefined extends T[K]
-        ?
-            | { type: "partial"; val: NonNullable<DeepPartial<T[K]>> }
-            | { type: "full"; val: T[K] | undefined }
-            | typeof NO_DIFF
-        : DeepPartial<T[K]> | typeof NO_DIFF;
-    }
-  : never;
-
 type PrimitiveValue =
   | { type: "string"; val: string; len: number }
   | { type: "int"; val: number }
@@ -34,10 +12,7 @@ export class Tracker {
   private bitsIdx = 0;
   private dict: string[] = [];
   private data: PrimitiveValue[] = [];
-  constructor(
-    private bits: boolean[] = [],
-    private reader: Reader = new Reader(new Uint8Array())
-  ) {}
+  constructor(private bits: boolean[] = [], private reader: Reader = new Reader(new Uint8Array())) {}
   static parse(buf: Uint8Array) {
     const reader = new Reader(buf);
 
@@ -92,68 +67,155 @@ export class Tracker {
       innerValWrite(value);
     }
   }
-  pushOptionalDiff<T>(
-    val: { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined },
-    innerFullWrite: (x: T) => void,
-    innerPartialWrite: (x: DeepPartial<T>) => void,
-  ) {
-    this.pushBoolean(val.type === "partial");
-    if (val.type === "partial") {
-      innerPartialWrite(val.val);
-    } else {
-      this.pushBoolean(val.val != null);
-      if (val.val != null) {
-        innerFullWrite(val.val);
-      }
+  pushStringDiff(a: string, b: string) {
+    this.pushBoolean(a !== b);
+    if (a !== b) {
+      this.pushString(b);
     }
+  }
+  pushIntDiff(a: number, b: number) {
+    this.pushBoolean(a !== b);
+    if (a !== b) {
+      this.pushInt(b);
+    }
+  }
+  pushUIntDiff(a: number, b: number) {
+    this.pushBoolean(a !== b);
+    if (a !== b) {
+      this.pushUInt(b);
+    }
+  }
+  pushFloatDiff(a: number, b: number) {
+    const changed = Math.abs(a - b) > 0.00001;
+    this.pushBoolean(changed);
+    if (changed) {
+      this.pushFloat(b);
+    }
+  }
+  pushBooleanDiff(a: boolean, b: boolean) {
+    this.pushBoolean(a !== b);
   }
   pushOptionalDiffPrimitive<T>(
-    val: { type: "full"; val: T | undefined } | { type: "partial"; val: T },
-    innerWrite: (x: T) => void,
+    a: T | undefined,
+    b: T | undefined,
+    encode: (x: T) => void,
   ) {
-    this.pushBoolean(val.val == null);
-    if (val.val == null) {
-      return;
+    if (a == null) {
+      this.pushBoolean(b != null);
+      if (b != null) {
+        // null → value
+        encode(b);
+      }
+      // else null → null
+    } else {
+      const changed = b == null || a !== b;
+      this.pushBoolean(changed);
+      if (changed) {
+        this.pushBoolean(b != null);
+        if (b != null) {
+          // value → value
+          encode(b);
+        }
+        // else value → null
+      }
     }
-    innerWrite(val.val);
+  }
+  pushOptionalDiff<T>(
+    a: T | undefined,
+    b: T | undefined,
+    encode: (x: T) => void,
+    encodeDiff: (a: T, b: T) => void,
+  ) {
+    if (a == null) {
+      this.pushBoolean(b != null);
+      if (b != null) {
+        // null → value
+        encode(b);
+      }
+      // else null → null
+    } else {
+      this.pushBoolean(b != null);
+      if (b != null) {
+        // value → value
+        encodeDiff(a, b);
+      }
+      // else value → null
+    }
   }
   pushArrayDiff<T>(
-    val: DeepPartial<T[]>,
-    innerWrite: (x: T) => void,
-    innerUpdateWrite: (x: DeepPartial<T>) => void,
+    a: T[],
+    b: T[],
+    equals: (x: T, y: T) => boolean,
+    encode: (x: T) => void,
+    encodeDiff: (a: T, b: T) => void,
   ) {
-    this.pushUInt(val.additions.length);
-    val.additions.forEach((item) => {
-      innerWrite(item);
-    });
-    this.pushUInt(val.updates.length);
-    val.updates.forEach((item) => {
-      this.pushBoolean(item !== NO_DIFF);
-      if (item !== NO_DIFF) {
-        innerUpdateWrite(item);
+    const changed = a.length !== b.length || !equalsArray(a, b, equals);
+    this.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+
+    this.pushUInt(b.length);
+    const minLen = Math.min(a.length, b.length);
+    for (let i = 0; i < minLen; i++) {
+      this.pushBoolean(!equals(a[i], b[i]));
+      if (!equals(a[i], b[i])) {
+        encodeDiff(a[i], b[i]);
       }
-    });
+    }
+    for (let i = a.length; i < b.length; i++) {
+      encode(b[i]);
+    }
   }
   pushRecordDiff<K, T>(
-    val: DeepPartial<Map<K, T>>,
-    innerKeyWrite: (x: K) => void,
-    innerValWrite: (x: T) => void,
-    innerValUpdateWrite: (x: DeepPartial<T>) => void,
+    a: Map<K, T>,
+    b: Map<K, T>,
+    equals: (x: T, y: T) => boolean,
+    encodeKey: (x: K) => void,
+    encodeVal: (x: T) => void,
+    encodeDiff: (a: T, b: T) => void,
   ) {
-    this.pushUInt(val.deletions.size);
-    for (const key of val.deletions) {
-      this.pushUInt(key);
+    const changed = a.size !== b.size || !equalsRecord(a, b, (x, y) => x === y, equals);
+    this.pushBoolean(changed);
+    if (!changed) {
+      return;
     }
-    this.pushUInt(val.additions.size);
-    for (const [key, value] of val.additions) {
-      innerKeyWrite(key);
-      innerValWrite(value);
-    }
-    this.pushUInt(val.updates.size);
-    for (const [key, value] of val.updates) {
-      this.pushUInt(key);
-      innerValUpdateWrite(value);
-    }
+
+    const orderedKeys = [...a.keys()].sort();
+
+    const updates: number[] = [];
+    const deletions: number[] = [];
+    orderedKeys.forEach((aKey, i) => {
+      if (b.has(aKey)) {
+        if (!equals(a.get(aKey)!, b.get(aKey)!)) {
+          updates.push(i);
+        }
+      } else {
+        deletions.push(i);
+      }
+    });
+    this.pushUInt(updates.length);
+    updates.forEach((idx) => {
+      this.pushUInt(idx);
+      const key = orderedKeys[idx];
+      encodeDiff(a.get(key)!, b.get(key)!);
+    });
+    this.pushUInt(deletions.length);
+    deletions.forEach((idx) => {
+      this.pushUInt(idx);
+    });
+
+    const additions: [K, T][] = [];
+    b.forEach((bVal, bKey) => {
+      if (!a.has(bKey)) {
+        additions.push([bKey, bVal]);
+      }
+    });
+    this.pushUInt(additions.length);
+    additions.forEach(([key, val]) => {
+      encodeKey(key);
+      encodeVal(val);
+    });
   }
   nextString() {
     const lenOrIdx = this.reader.readVarint();
@@ -198,56 +260,111 @@ export class Tracker {
     }
     return obj;
   }
-  nextOptionalDiff<T>(
-    innerFullRead: () => T,
-    innerPartialRead: () => DeepPartial<T>,
-  ): typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined } {
-    const isPartial = this.nextBoolean();
-    if (isPartial) {
-      return { type: "partial", val: innerPartialRead() };
-    }
-    return { type: "full", val: this.nextBoolean() ? innerFullRead() : undefined };
+  nextStringDiff(a: string) {
+    const changed = this.nextBoolean();
+    return changed ? this.nextString() : a;
+  }
+  nextIntDiff(a: number) {
+    const changed = this.nextBoolean();
+    return changed ? this.nextInt() : a;
+  }
+  nextUIntDiff(a: number) {
+    const changed = this.nextBoolean();
+    return changed ? this.nextUInt() : a;
+  }
+  nextFloatDiff(a: number) {
+    const changed = this.nextBoolean();
+    return changed ? this.nextFloat() : a;
+  }
+  nextBooleanDiff(a: boolean) {
+    const changed = this.nextBoolean();
+    return changed ? !a : a;
   }
   nextOptionalDiffPrimitive<T>(
-    innerRead: () => T,
-  ): typeof NO_DIFF | { type: "full"; val: T | undefined } | { type: "partial"; val: T } {
-    return { type: "full", val: this.nextBoolean() ? undefined : innerRead() };
+    obj: T | undefined,
+    decode: () => T,
+  ): T | undefined {
+    if (obj == null) {
+      const present = this.nextBoolean();
+      return present ? decode() : undefined;
+    } else {
+      const changed = this.nextBoolean();
+      if (!changed) {
+        return obj;
+      }
+      const present = this.nextBoolean();
+      return present ? decode() : undefined;
+    }
+  }
+  nextOptionalDiff<T>(
+    obj: T | undefined,
+    decode: () => T,
+    decodeDiff: (a: T) => T,
+  ): T | undefined {
+    if (obj == null) {
+      const present = this.nextBoolean();
+      return present ? decode() : undefined;
+    } else {
+      const present = this.nextBoolean();
+      return present ? decodeDiff(obj) : undefined;
+    }
   }
   nextArrayDiff<T>(
-    innerRead: () => T,
-    innerUpdateRead: () => DeepPartial<T>,
-  ): DeepPartial<T[]> {
-    const numAdditions = this.nextUInt();
-    const additions = new Array<T>(numAdditions);
-    for (let i = 0; i < numAdditions; i++) {
-      additions[i] = innerRead();
+    arr: T[],
+    decode: () => T,
+    decodeDiff: (a: T) => T,
+  ): T[] {
+    const changed = this.nextBoolean();
+    if (!changed) {
+      return arr;
     }
-    const numUpdates = this.nextUInt();
-    const updates = new Array<DeepPartial<T> | typeof NO_DIFF>(numUpdates);
-    for (let i = 0; i < numUpdates; i++) {
-      updates[i] = this.nextBoolean() ? innerUpdateRead() : NO_DIFF;
+
+    const newLen = this.nextUInt();
+    const newArr: T[] = new Array<T>(newLen);
+    const minLen = Math.min(arr.length, newLen);
+    for (let i = 0; i < minLen; i++) {
+      const changed = this.nextBoolean();
+      newArr[i] = changed ? decodeDiff(arr[i]) : arr[i];
     }
-    return { additions, updates };
+    for (let i = arr.length; i < newLen; i++) {
+      newArr[i] = decode();
+    }
+    return newArr;
   }
   nextRecordDiff<K, T>(
-    innerKeyRead: () => K,
-    innerValRead: () => T,
-    innerValUpdateRead: () => DeepPartial<T>,
-  ): DeepPartial<Map<K, T>> {
-    const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
-    const numDeleted = this.nextUInt();
-    for (let i = 0; i < numDeleted; i++) {
-      obj.deletions.add(this.nextUInt());
+    obj: Map<K, T>,
+    decodeKey: () => K,
+    decodeVal: () => T,
+    decodeDiff: (a: T) => T,
+  ): Map<K, T> {
+    const changed = this.nextBoolean();
+    if (!changed) {
+      return obj;
     }
-    const numAdded = this.nextUInt();
-    for (let i = 0; i < numAdded; i++) {
-      obj.additions.set(innerKeyRead(), innerValRead());
+
+    const result: Map<K, T> = new Map(obj);
+    const orderedKeys = [...obj.keys()].sort();
+
+    const numUpdates = this.nextUInt();
+    for (let i = 0; i < numUpdates; i++) {
+      const key = orderedKeys[this.nextUInt()];
+      result.set(key, decodeDiff(result.get(key)!));
     }
-    const numUpdated = this.nextUInt();
-    for (let i = 0; i < numUpdated; i++) {
-      obj.updates.set(this.nextUInt(), innerValUpdateRead());
+
+    const numDeletions = this.nextUInt();
+    for (let i = 0; i < numDeletions; i++) {
+      const key = orderedKeys[this.nextUInt()];
+      result.delete(key);
     }
-    return obj;
+
+    const numAdditions = this.nextUInt();
+    for (let i = 0; i < numAdditions; i++) {
+      const key = decodeKey();
+      const val = decodeVal();
+      result.set(key, val);
+    }
+
+    return result;
   }
   toBuffer() {
     const buf = new Writer();
@@ -315,123 +432,49 @@ export function validateRecord<K, T>(
   return [];
 }
 
-export function diffPrimitive<T>(a: T, b: T) {
-  return a === b ? NO_DIFF : b;
-}
-export function diffFloat(a: number, b: number) {
-  return Math.abs(a - b) < 0.00001 ? NO_DIFF : b;
-}
-export function diffOptional<T>(
-  a: T | undefined,
-  b: T | undefined,
-  innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
-): typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined } {
+export function equalsOptional<T>(a: T | undefined, b: T | undefined, equals: (x: T, y: T) => boolean) {
+  if (a == null && b == null) {
+    return true;
+  }
   if (a != null && b != null) {
-    const diff = innerDiff(a, b);
-    return diff === NO_DIFF ? NO_DIFF : { type: "partial", val: diff };
+    return equals(a, b);
   }
-  return a === b ? NO_DIFF : { type: "full", val: b };
+  return false;
 }
-export function diffArray<T>(
-  a: T[],
-  b: T[],
-  innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
-): DeepPartial<T[]> | typeof NO_DIFF {
-  const additions = b.slice(a.length);
-  const updates: (DeepPartial<T> | typeof NO_DIFF)[] = [];
-  let changed = additions.length > 0 || a.length !== b.length;
-  for (let i = 0; i < a.length && i < b.length; i++) {
-    const diff = innerDiff(a[i], b[i]);
-    updates.push(diff);
-    changed ||= diff !== NO_DIFF;
+export function equalsArray<T>(a: T[], b: T[], equals: (x: T, y: T) => boolean) {
+  if (a.length !== b.length) {
+    return false;
   }
-  return changed ? { additions, updates } : NO_DIFF;
+  for (let i = 0; i < a.length; i++) {
+    if (!equals(a[i], b[i])) {
+      return false;
+    }
+  }
+  return true;
 }
-export function diffRecord<K, T>(
+export function equalsRecord<K, T>(
   a: Map<K, T>,
   b: Map<K, T>,
-  innerDiff: (x: T, y: T) => DeepPartial<T> | typeof NO_DIFF,
-): DeepPartial<Map<K, T>> | typeof NO_DIFF {
-  const obj: DeepPartial<Map<K, T>> = { deletions: new Set(), additions: new Map(), updates: new Map() };
-  const aOrderedKeys = Array.from(a.keys()).sort();
-  for (const [bKey, bVal] of b) {
-    const aVal = a.get(bKey);
-    if (aVal == null) {
-      obj.additions.set(bKey, bVal);
-    } else {
-      const diff = innerDiff(aVal, bVal);
-      if (diff !== NO_DIFF) {
-        const idx = aOrderedKeys.indexOf(bKey);
-        obj.updates.set(idx, diff);
+  keyEquals: (x: K, y: K) => boolean,
+  valueEquals: (x: T, y: T) => boolean,
+) {
+  if (a.size !== b.size) {
+    return false;
+  }
+  for (const [aKey, aVal] of a) {
+    let found = false;
+    for (const [bKey, bVal] of b) {
+      if (keyEquals(aKey, bKey)) {
+        if (!valueEquals(aVal, bVal)) {
+          return false;
+        }
+        found = true;
+        break;
       }
     }
-  }
-  aOrderedKeys.forEach((aKey, idx) => {
-    if (!b.has(aKey)) {
-      obj.deletions.add(idx);
-    }
-  });
-  return obj.deletions.size + obj.additions.size + obj.updates.size > 0 ? obj : NO_DIFF;
-}
-
-export function patchOptional<T>(
-  obj: T | undefined,
-  patch: typeof NO_DIFF | { type: "partial"; val: DeepPartial<T> } | { type: "full"; val: T | undefined },
-  innerPatch: (a: T, b: DeepPartial<T>) => T,
-): T | undefined {
-  if (patch === NO_DIFF) {
-    return obj;
-  } else if (patch.type === "full") {
-    return patch.val;
-  }
-  return innerPatch(obj!, patch.val);
-}
-export function patchArray<T>(
-  arr: T[],
-  patch: DeepPartial<T[]> | typeof NO_DIFF,
-  innerPatch: (a: T, b: DeepPartial<T>) => T,
-): T[] {
-  if (patch === NO_DIFF) {
-    return arr;
-  }
-  const result: T[] = [];
-  for (let i = 0; i < patch.updates.length; i++) {
-    const val = patch.updates[i];
-    if (val !== NO_DIFF) {
-      result.push(innerPatch(arr[i], val));
-    } else {
-      result.push(arr[i]);
+    if (!found) {
+      return false;
     }
   }
-  patch.additions.forEach((val) => {
-    result.push(val);
-  });
-  return result;
-}
-export function patchRecord<K, T>(
-  obj: Map<K, T>,
-  patch: DeepPartial<Map<K, T>> | typeof NO_DIFF,
-  innerPatch: (a: T, b: DeepPartial<T>) => T,
-): Map<K, T> {
-  if (patch === NO_DIFF) {
-    return obj;
-  }
-  const result = new Map<K, T>();
-  const sortedKeys = [...obj.keys()].sort();
-  sortedKeys.forEach((key, idx) => {
-    if (patch.deletions.has(idx)) {
-      return
-    }
-    const objVal = obj.get(key)!;
-    const patchVal = patch.updates.get(idx);
-    if (patchVal != null) {
-      result.set(key, innerPatch(objVal, patchVal));
-    } else {
-      result.set(key, objVal);
-    }
-  });
-  for (const [key, patchVal] of patch.additions) {
-    result.set(key, patchVal);
-  }
-  return result;
+  return true;
 }

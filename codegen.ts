@@ -69,16 +69,43 @@ export const ${name} = {
 
     return validationErrors;
   },
-  encode(obj: ${name}) {
-    return ${name}._encode(obj, new _.Tracker()).toBuffer();
+  equals(a: ${name}, b: ${name}): boolean {
+    return (
+      ${Object.entries(type.properties)
+        .map(([childName, childType]) => {
+          return renderEquals(childType, name, `a.${childName}`, `b.${childName}`);
+        })
+        .join(" &&\n      ")}
+    );
   },
-  _encode(obj: ${name}, tracker: _.Tracker) {
+  encode(obj: ${name}): Uint8Array {
+    const tracker = new _.Tracker();
+    ${name}._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: ${name}, tracker: _.Tracker): void {
     ${Object.entries(type.properties)
       .map(([childName, childType]) => {
         return `${renderEncode(childType, name, `obj.${childName}`)};`;
       })
       .join("\n    ")}
-    return tracker;
+  },
+  encodeDiff(a: ${name}, b: ${name}): Uint8Array {
+    const tracker = new _.Tracker();
+    ${name}._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: ${name}, b: ${name}, tracker: _.Tracker): void {
+    const changed = !${name}.equals(a, b);
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    ${Object.entries(type.properties)
+      .map(([childName, childType]) => {
+        return `${renderEncodeDiff(childType, name, `a.${childName}`, `b.${childName}`)};`;
+      })
+      .join("\n    ")}
   },
   decode(input: Uint8Array): ${name} {
     return ${name}._decode(_.Tracker.parse(input));
@@ -92,67 +119,19 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  computeDiff(a: ${name}, b: ${name}): _.DeepPartial<${name}> | typeof _.NO_DIFF {
-    const diff: _.DeepPartial<${name}> =  {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: ${renderComputeDiff(childType, name, `a.${childName}`, `b.${childName}`)},`;
-        })
-        .join("\n      ")}
-    };
-    return ${Object.keys(type.properties)
-      .map((childName) => `diff.${childName} === _.NO_DIFF`)
-      .join(" && ")} ? _.NO_DIFF : diff;
+  decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
+    const tracker = _.Tracker.parse(input);
+    return ${name}._decodeDiff(obj, tracker);
   },
-  encodeDiff(obj: _.DeepPartial<${name}> | typeof _.NO_DIFF) {
-    if (obj === _.NO_DIFF) {
-      return new Uint8Array(0);
-    }
-    return ${name}._encodeDiff(obj, new _.Tracker()).toBuffer();
-  },
-  _encodeDiff(obj: _.DeepPartial<${name}>, tracker: _.Tracker) {
-    ${Object.entries(type.properties)
-      .map(([childName, childType]) => {
-        return `tracker.pushBoolean(obj.${childName} !== _.NO_DIFF);
-    if (obj.${childName} !== _.NO_DIFF) {
-      ${renderEncodeDiff(childType, name, `obj.${childName}`)};
-    }`;
-      })
-      .join("\n    ")}
-    return tracker;
-  },
-  decodeDiff(input: Uint8Array): _.DeepPartial<${name}> | typeof _.NO_DIFF {
-    if (input.length === 0) {
-      return _.NO_DIFF;
-    }
-    return ${name}._decodeDiff(_.Tracker.parse(input));
-  },
-  _decodeDiff(tracker: _.Tracker): _.DeepPartial<${name}> {
-    return {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: tracker.nextBoolean() ? ${renderDecodeDiff(
-            childType,
-            name,
-            `obj.${childName}`,
-          )} : _.NO_DIFF,`;
-        })
-        .join("\n      ")}
-    };
-  },
-  applyDiff(obj: ${name}, diff: _.DeepPartial<${name}> | typeof _.NO_DIFF): ${name} {
-    if (diff === _.NO_DIFF) {
+  _decodeDiff(obj: ${name}, tracker: _.Tracker): ${name} {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
       return obj;
     }
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
-          return `${childName}: diff.${childName} === _.NO_DIFF ? obj.${childName} : ${renderApplyDiff(
-            childType,
-            name,
-            `obj.${childName}`,
-            `diff.${childName}`,
-          )},`;
+          return `${childName}: ${renderDecodeDiff(childType, name, `obj.${childName}`)},`;
         })
         .join("\n      ")}
     };
@@ -186,10 +165,22 @@ export const ${name} = {
       return [\`Invalid ${name} union: \${obj}\`];
     }
   },
-  encode(obj: ${name}) {
-    return ${name}._encode(obj, new _.Tracker()).toBuffer();
+  equals(a: ${name}, b: ${name}): boolean {
+    ${Object.entries(type.options)
+      .map(([childName, reference], i) => {
+        return `${i > 0 ? "else " : ""}if (a.type === "${lookup(reference)}" && b.type === "${lookup(reference)}") {
+      return ${renderEquals(reference, lookup(reference), "a.val", "b.val")};
+    }`;
+      })
+      .join("\n    ")}
+    return false;
   },
-  _encode(obj: ${name}, tracker: _.Tracker) {
+  encode(obj: ${name}): Uint8Array {
+    const tracker = new _.Tracker();
+    ${name}._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: ${name}, tracker: _.Tracker): void {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
@@ -198,7 +189,26 @@ export const ${name} = {
     }`;
       })
       .join("\n    ")}
-    return tracker;
+  },
+  encodeDiff(a: ${name}, b: ${name}): Uint8Array {
+    const tracker = new _.Tracker();
+    ${name}._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: ${name}, b: ${name}, tracker: _.Tracker): void {
+    ${Object.entries(type.options)
+      .map(([childName, reference], i) => {
+        return `${i > 0 ? "else " : ""}if (b.type === "${lookup(reference)}") {
+      tracker.pushBoolean(a.type === "${lookup(reference)}");
+      if (a.type === "${lookup(reference)}") {
+        ${renderEncodeDiff(reference, lookup(reference), "a.val", "b.val")};
+      } else {
+        tracker.pushUInt(${i});
+        ${renderEncode(reference, lookup(reference), "b.val")};
+      }
+    }`;
+      })
+      .join("\n    ")}
   },
   decode(input: Uint8Array): ${name} {
     return ${name}._decode(_.Tracker.parse(input));
@@ -214,86 +224,36 @@ export const ${name} = {
       .join("\n    ")}
     throw new Error("Invalid union");
   },
-  computeDiff(a: ${name}, b: ${name}): _.DeepPartial<${name}> | typeof _.NO_DIFF {
-    if (a.type !== b.type) {
-      return { partial: false, ...b };
+  decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
+    const tracker = _.Tracker.parse(input);
+    return ${name}._decodeDiff(obj, tracker);
+  },
+  _decodeDiff(obj: ${name}, tracker: _.Tracker): ${name} {
+    const isSameType = tracker.nextBoolean();
+    if (isSameType) {
+      ${Object.entries(type.options)
+        .map(([childName, reference], i) => {
+          return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
+        return {
+          type: "${lookup(reference)}",
+          val: ${renderDecodeDiff(reference, lookup(reference), "obj.val")},
+        };
+      }`;
+        })
+        .join("\n      ")}
+      throw new Error("Invalid union diff");
+    } else {
+      const type = tracker.nextUInt();
+      ${Object.entries(type.options)
+        .map(([childName, reference], i) => {
+          return `${i > 0 ? "else " : ""}if (type === ${i}) {
+        return { type: "${lookup(reference)}", val: ${renderDecode(reference, lookup(reference), "obj.val")} };
+      }`;
+        })
+        .join("\n      ")}
+      throw new Error("Invalid union diff");
     }
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (a.type === "${lookup(reference)}" && b.type === "${lookup(reference)}") {
-      const valDiff = ${renderComputeDiff(reference, lookup(reference), "a.val", "b.val")};
-      return valDiff === _.NO_DIFF ? _.NO_DIFF : { partial: true, type: a.type, val: valDiff };
-    }`;
-      })
-      .join("\n    ")}
-    throw new Error("Invalid union");
-  },
-  encodeDiff(obj: _.DeepPartial<${name}> | typeof _.NO_DIFF) {
-    if (obj === _.NO_DIFF) {
-      return new Uint8Array(0);
-    }
-    return ${name}._encodeDiff(obj, new _.Tracker()).toBuffer();
-  },
-  _encodeDiff(obj: _.DeepPartial<${name}>, tracker: _.Tracker) {
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
-      tracker.pushUInt(${i});
-      tracker.pushBoolean(obj.partial);
-      if (obj.partial) {
-        ${renderEncodeDiff(reference, lookup(reference), "obj.val")};
-      } else {
-        ${renderEncode(reference, lookup(reference), "obj.val")};
-      }
-    }`;
-      })
-      .join("\n    ")}
-    return tracker;
-  },
-  decodeDiff(input: Uint8Array): _.DeepPartial<${name}> | typeof _.NO_DIFF {
-    if (input.length === 0) {
-      return _.NO_DIFF;
-    }
-    return ${name}._decodeDiff(_.Tracker.parse(input));
-  },
-  _decodeDiff(tracker: _.Tracker): _.DeepPartial<${name}> {
-    const type = tracker.nextUInt();
-    const partial = tracker.nextBoolean();
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      if (partial) {
-        return { partial, type: "${lookup(reference)}", val: ${renderDecodeDiff(
-          reference,
-          lookup(reference),
-          "obj.val",
-        )} };
-      } else {
-        return { partial, type: "${lookup(reference)}", val: ${renderDecode(reference, lookup(reference), "obj.val")} };
-      }
-    }`;
-      })
-      .join("\n    ")}
-    throw new Error("Invalid union");
-  },
-  applyDiff(obj: ${name}, diff: _.DeepPartial<${name}> | typeof _.NO_DIFF): ${name} {
-    if (diff === _.NO_DIFF) {
-      return obj;
-    }
-    if (!diff.partial) {
-      return diff;
-    }
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}" && diff.type === "${lookup(
-          reference,
-        )}") {
-      return { type: obj.type, val: ${renderApplyDiff(reference, lookup(reference), "obj.val", "diff.val")} };
-    }`;
-      })
-      .join("\n    ")}
-    throw new Error("Invalid union");
-  },
+  }
 }`;
     }
   })
@@ -387,6 +347,30 @@ export const ${name} = {
     return `${name}.validate(${key})`;
   }
 
+  function renderEquals(type: Type, name: string, keyA: string, keyB: string): string {
+    if (type.type === "array") {
+      return `_.equalsArray(${keyA}, ${keyB}, (x, y) => ${renderEquals(type.value, name, "x", "y")})`;
+    } else if (type.type === "optional") {
+      return `_.equalsOptional(${keyA}, ${keyB}, (x, y) => ${renderEquals(type.value, name, "x", "y")})`;
+    } else if (type.type === "record") {
+      const keyEquals = renderEquals(type.key, name, "x", "y");
+      const valueEquals = renderEquals(type.value, name, "x", "y");
+      return `_.equalsRecord(${keyA}, ${keyB}, (x, y) => ${keyEquals}, (x, y) => ${valueEquals})`;
+    } else if (type.type === "reference") {
+      return renderEquals(type.reference, lookup(type), keyA, keyB);
+    } else if (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "uint" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    ) {
+      return `${keyA} === ${keyB}`;
+    }
+    return `${name}.equals(${keyA}, ${keyB})`;
+  }
+
   function renderEncode(type: Type, name: string, key: string): string {
     if (type.type === "array") {
       return `tracker.pushArray(${key}, (x) => ${renderEncode(type.value, name, "x")})`;
@@ -441,143 +425,123 @@ export const ${name} = {
     return `${name}._decode(tracker)`;
   }
 
-  function renderComputeDiff(type: Type, name: string, keyA: string, keyB: string): string {
-    if (type.type === "array") {
-      return `_.diffArray(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
-    } else if (type.type === "optional") {
-      return `_.diffOptional(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
-    } else if (type.type === "record") {
-      return `_.diffRecord(${keyA}, ${keyB}, (x, y) => ${renderComputeDiff(type.value, name, "x", "y")})`;
-    } else if (type.type === "reference") {
-      return renderComputeDiff(type.reference, lookup(type), keyA, keyB);
-    } else if (type.type === "float") {
-      return `_.diffFloat(${keyA}, ${keyB})`;
-    } else if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "uint" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
-      return `_.diffPrimitive(${keyA}, ${keyB})`;
-    }
-    return `${name}.computeDiff(${keyA}, ${keyB})`;
-  }
-
-  function renderEncodeDiff(type: Type, name: string, key: string): string {
+  function renderEncodeDiff(type: Type, name: string, keyA: string, keyB: string): string {
     if (type.type === "array") {
       const valueType = renderTypeArg(type.value);
-      const valueFn = renderEncode(type.value, name, "x");
-      const valueUpdateFn = renderEncodeDiff(type.value, name, "x");
-      return `tracker.pushArrayDiff<${valueType}>(${key}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
+      const equalsFn = renderEquals(type.value, name, "x", "y");
+      const encodeFn = renderEncode(type.value, name, "x");
+      const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
+      return `tracker.pushArrayDiff<${valueType}>(
+      ${keyA},
+      ${keyB},
+      (x, y) => ${equalsFn},
+      (x) => ${encodeFn},
+      (x, y) => ${encodeDiffFn}
+    )`;
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value);
-      const fullFn = renderEncode(type.value, name, "x");
-      const partialFn = renderEncodeDiff(type.value, name, "x");
+      const encodeFn = renderEncode(type.value, name, "x");
       if (isPrimitiveType(type.value, doc)) {
-        return `tracker.pushOptionalDiffPrimitive<${valueType}>(${key}!, (x) => ${fullFn})`;
+        return `tracker.pushOptionalDiffPrimitive<${valueType}>(
+      ${keyA},
+      ${keyB},
+      (x) => ${encodeFn}
+    )`;
+      } else {
+        const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
+        return `tracker.pushOptionalDiff<${valueType}>(
+      ${keyA},
+      ${keyB},
+      (x) => ${encodeFn},
+      (x, y) => ${encodeDiffFn}
+    )`;
       }
-      return `tracker.pushOptionalDiff<${valueType}>(${key}!, (x) => ${fullFn}, (x) => ${partialFn})`;
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key);
       const valueType = renderTypeArg(type.value);
-      const keyFn = renderEncodeDiff(type.key, name, "x");
-      const valueFn = renderEncode(type.value, name, "x");
-      const valueUpdateFn = renderEncodeDiff(type.value, name, "x");
-      return `tracker.pushRecordDiff<${keyType}, ${valueType}>(${key}, (x) => ${keyFn}, (x) => ${valueFn}, (x) => ${valueUpdateFn})`;
+      const equalsFn = renderEquals(type.value, name, "x", "y");
+      const encodeKeyFn = renderEncode(type.key, name, "x");
+      const encodeValFn = renderEncode(type.value, name, "x");
+      const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
+      return `tracker.pushRecordDiff<${keyType}, ${valueType}>(
+      ${keyA},
+      ${keyB},
+      (x, y) => ${equalsFn},
+      (x) => ${encodeKeyFn},
+      (x) => ${encodeValFn},
+      (x, y) => ${encodeDiffFn}
+    )`;
     } else if (type.type === "reference") {
-      return renderEncodeDiff(type.reference, lookup(type), key);
+      return renderEncodeDiff(type.reference, lookup(type), keyA, keyB);
     } else if (type.type === "string") {
-      return `tracker.pushString(${key})`;
+      return `tracker.pushStringDiff(${keyA}, ${keyB})`;
     } else if (type.type === "int") {
-      return `tracker.pushInt(${key})`;
+      return `tracker.pushIntDiff(${keyA}, ${keyB})`;
     } else if (type.type === "uint") {
-      return `tracker.pushUInt(${key})`;
+      return `tracker.pushUIntDiff(${keyA}, ${keyB})`;
     } else if (type.type === "float") {
-      return `tracker.pushFloat(${key})`;
+      return `tracker.pushFloatDiff(${keyA}, ${keyB})`;
     } else if (type.type === "boolean") {
-      return `tracker.pushBoolean(${key})`;
+      return `tracker.pushBooleanDiff(${keyA}, ${keyB})`;
     } else if (type.type === "enum") {
-      return `tracker.pushUInt(${name}[${key}])`;
+      return `tracker.pushUIntDiff(${name}[${keyA}], ${name}[${keyB}])`;
     }
-    return `${name}._encodeDiff(${key}, tracker)`;
+    return `${name}._encodeDiff(${keyA}, ${keyB}, tracker)`;
   }
 
   function renderDecodeDiff(type: Type, name: string, key: string): string {
     if (type.type === "array") {
       const valueType = renderTypeArg(type.value);
-      const valueFn = renderDecode(type.value, name, "x");
-      const valueUpdateFn = renderDecodeDiff(type.value, name, "x");
-      return `tracker.nextArrayDiff<${valueType}>(() => ${valueFn}, () => ${valueUpdateFn})`;
+      const decodeFn = renderDecode(type.value, name, "x");
+      const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
+      return `tracker.nextArrayDiff<${valueType}>(
+        ${key},
+        () => ${decodeFn},
+        (x) => ${decodeDiffFn}
+      )`;
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value);
-      const fullFn = renderDecode(type.value, name, "x");
-      const partialFn = renderDecodeDiff(type.value, name, "x");
+      const decodeFn = renderDecode(type.value, name, "x");
       if (isPrimitiveType(type.value, doc)) {
-        return `tracker.nextOptionalDiffPrimitive<${valueType}>(() => ${fullFn})`;
+        return `tracker.nextOptionalDiffPrimitive<${valueType}>(
+        ${key},
+        () => ${decodeFn}
+      )`;
+      } else {
+        const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
+        return `tracker.nextOptionalDiff<${valueType}>(
+        ${key},
+        () => ${decodeFn},
+        (x) => ${decodeDiffFn}
+      )`;
       }
-      return `tracker.nextOptionalDiff<${valueType}>(() => ${fullFn}, () => ${partialFn})`;
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key);
       const valueType = renderTypeArg(type.value);
-      const keyFn = renderDecodeDiff(type.key, name, "x");
-      const valueFn = renderDecode(type.value, name, "x");
-      const valueUpdateFn = renderDecodeDiff(type.value, name, "x");
-      return `tracker.nextRecordDiff<${keyType}, ${valueType}>(() => ${keyFn}, () => ${valueFn}, () => ${valueUpdateFn})`;
+      const decodeKeyFn = renderDecode(type.key, name, "x");
+      const decodeValueFn = renderDecode(type.value, name, "x");
+      const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
+      return `tracker.nextRecordDiff<${keyType}, ${valueType}>(
+        ${key},
+        () => ${decodeKeyFn},
+        () => ${decodeValueFn},
+        (x) => ${decodeDiffFn}
+      )`;
     } else if (type.type === "reference") {
       return renderDecodeDiff(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `tracker.nextString()`;
+      return `tracker.nextStringDiff(${key})`;
     } else if (type.type === "int") {
-      return `tracker.nextInt()`;
+      return `tracker.nextIntDiff(${key})`;
     } else if (type.type === "uint") {
-      return `tracker.nextUInt()`;
+      return `tracker.nextUIntDiff(${key})`;
     } else if (type.type === "float") {
-      return `tracker.nextFloat()`;
+      return `tracker.nextFloatDiff(${key})`;
     } else if (type.type === "boolean") {
-      return `tracker.nextBoolean()`;
+      return `tracker.nextBooleanDiff(${key})`;
     } else if (type.type === "enum") {
-      return `${name}[tracker.nextUInt()]`;
+      return `${name}[tracker.nextUIntDiff(${name}[${key}])]`;
     }
-    return `${name}._decodeDiff(tracker)`;
-  }
-
-  function renderApplyDiff(type: Type, name: string, key: string, diff: string): string {
-    if (type.type === "array") {
-      return `_.patchArray<${renderTypeArg(type.value)}>(${key}, ${diff}, (a, b) => ${renderApplyDiff(
-        type.value,
-        name,
-        "a",
-        "b",
-      )})`;
-    } else if (type.type === "optional") {
-      return `_.patchOptional<${renderTypeArg(type.value)}>(${key}, ${diff}!, (a, b) => ${renderApplyDiff(
-        type.value,
-        name,
-        "a",
-        "b",
-      )})`;
-    } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key);
-      const valueType = renderTypeArg(type.value);
-      return `_.patchRecord<${keyType}, ${valueType}>(${key}, ${diff}, (a, b) => ${renderApplyDiff(
-        type.value,
-        name,
-        "a",
-        "b",
-      )})`;
-    } else if (type.type === "reference") {
-      return renderApplyDiff(type.reference, lookup(type), key, diff);
-    } else if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "uint" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
-      return diff;
-    }
-    return `${name}.applyDiff(${key}, ${diff})`;
+    return `${name}._decodeDiff(${key}, tracker)`;
   }
 }

@@ -1,6 +1,5 @@
-import { Snapshot } from "./output3.ts";
 import assert from "assert";
-import { NO_DIFF } from "../helpers.ts";
+import { Snapshot } from "./output3.ts";
 
 const state1: Snapshot = {
   entities: [
@@ -34,7 +33,7 @@ const state1: Snapshot = {
 };
 
 console.log(Snapshot.encode(state1));
-// Uint8Array(100)
+// Uint8Array(101)
 
 const state2: Snapshot = {
   entities: [
@@ -68,18 +67,12 @@ const state2: Snapshot = {
 };
 
 console.log(Snapshot.encode(state2));
-// Uint8Array(101);
+// Uint8Array(102);
 
-const diff = Snapshot.computeDiff(state1, state2);
-console.log(
-  "diff",
-  JSON.stringify(diff, (k, v) => (v instanceof Map ? Object.fromEntries(v) : v), 2),
-);
-const encodedDiff = Snapshot.encodeDiff(diff);
+const encodedDiff = Snapshot.encodeDiff(state1, state2);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(45)
+// Uint8Array(38)
 
-const decodedDiff = Snapshot.decodeDiff(encodedDiff);
-const applied = Snapshot.applyDiff(state1, decodedDiff);
-assert.notEqual(state1, applied);
-assert.equal(Snapshot.computeDiff(applied, state2), NO_DIFF);
+const decodedDiff = Snapshot.decodeDiff(state1, encodedDiff);
+assert.notEqual(state1, decodedDiff);
+assert.deepEqual(state2, decodedDiff);

@@ -44,13 +44,34 @@ export const Position = {
 
     return validationErrors;
   },
-  encode(obj: Position) {
-    return Position._encode(obj, new _.Tracker()).toBuffer();
+  equals(a: Position, b: Position): boolean {
+    return (
+      a.x === b.x &&
+      a.y === b.y
+    );
   },
-  _encode(obj: Position, tracker: _.Tracker) {
+  encode(obj: Position): Uint8Array {
+    const tracker = new _.Tracker();
+    Position._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: Position, tracker: _.Tracker): void {
     tracker.pushFloat(obj.x);
     tracker.pushFloat(obj.y);
-    return tracker;
+  },
+  encodeDiff(a: Position, b: Position): Uint8Array {
+    const tracker = new _.Tracker();
+    Position._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: Position, b: Position, tracker: _.Tracker): void {
+    const changed = !Position.equals(a, b);
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    tracker.pushFloatDiff(a.x, b.x);
+    tracker.pushFloatDiff(a.y, b.y);
   },
   decode(input: Uint8Array): Position {
     return Position._decode(_.Tracker.parse(input));
@@ -61,49 +82,18 @@ export const Position = {
       y: tracker.nextFloat(),
     };
   },
-  computeDiff(a: Position, b: Position): _.DeepPartial<Position> | typeof _.NO_DIFF {
-    const diff: _.DeepPartial<Position> =  {
-      x: _.diffFloat(a.x, b.x),
-      y: _.diffFloat(a.y, b.y),
-    };
-    return diff.x === _.NO_DIFF && diff.y === _.NO_DIFF ? _.NO_DIFF : diff;
+  decodeDiff(obj: Position, input: Uint8Array): Position {
+    const tracker = _.Tracker.parse(input);
+    return Position._decodeDiff(obj, tracker);
   },
-  encodeDiff(obj: _.DeepPartial<Position> | typeof _.NO_DIFF) {
-    if (obj === _.NO_DIFF) {
-      return new Uint8Array(0);
-    }
-    return Position._encodeDiff(obj, new _.Tracker()).toBuffer();
-  },
-  _encodeDiff(obj: _.DeepPartial<Position>, tracker: _.Tracker) {
-    tracker.pushBoolean(obj.x !== _.NO_DIFF);
-    if (obj.x !== _.NO_DIFF) {
-      tracker.pushFloat(obj.x);
-    }
-    tracker.pushBoolean(obj.y !== _.NO_DIFF);
-    if (obj.y !== _.NO_DIFF) {
-      tracker.pushFloat(obj.y);
-    }
-    return tracker;
-  },
-  decodeDiff(input: Uint8Array): _.DeepPartial<Position> | typeof _.NO_DIFF {
-    if (input.length === 0) {
-      return _.NO_DIFF;
-    }
-    return Position._decodeDiff(_.Tracker.parse(input));
-  },
-  _decodeDiff(tracker: _.Tracker): _.DeepPartial<Position> {
-    return {
-      x: tracker.nextBoolean() ? tracker.nextFloat() : _.NO_DIFF,
-      y: tracker.nextBoolean() ? tracker.nextFloat() : _.NO_DIFF,
-    };
-  },
-  applyDiff(obj: Position, diff: _.DeepPartial<Position> | typeof _.NO_DIFF): Position {
-    if (diff === _.NO_DIFF) {
+  _decodeDiff(obj: Position, tracker: _.Tracker): Position {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
       return obj;
     }
     return {
-      x: diff.x === _.NO_DIFF ? obj.x : diff.x,
-      y: diff.y === _.NO_DIFF ? obj.y : diff.y,
+      x: tracker.nextFloatDiff(obj.x),
+      y: tracker.nextFloatDiff(obj.y),
     };
   },
 };
@@ -132,13 +122,34 @@ export const Weapon = {
 
     return validationErrors;
   },
-  encode(obj: Weapon) {
-    return Weapon._encode(obj, new _.Tracker()).toBuffer();
+  equals(a: Weapon, b: Weapon): boolean {
+    return (
+      a.name === b.name &&
+      a.damage === b.damage
+    );
   },
-  _encode(obj: Weapon, tracker: _.Tracker) {
+  encode(obj: Weapon): Uint8Array {
+    const tracker = new _.Tracker();
+    Weapon._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: Weapon, tracker: _.Tracker): void {
     tracker.pushString(obj.name);
     tracker.pushInt(obj.damage);
-    return tracker;
+  },
+  encodeDiff(a: Weapon, b: Weapon): Uint8Array {
+    const tracker = new _.Tracker();
+    Weapon._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: Weapon, b: Weapon, tracker: _.Tracker): void {
+    const changed = !Weapon.equals(a, b);
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    tracker.pushStringDiff(a.name, b.name);
+    tracker.pushIntDiff(a.damage, b.damage);
   },
   decode(input: Uint8Array): Weapon {
     return Weapon._decode(_.Tracker.parse(input));
@@ -149,49 +160,18 @@ export const Weapon = {
       damage: tracker.nextInt(),
     };
   },
-  computeDiff(a: Weapon, b: Weapon): _.DeepPartial<Weapon> | typeof _.NO_DIFF {
-    const diff: _.DeepPartial<Weapon> =  {
-      name: _.diffPrimitive(a.name, b.name),
-      damage: _.diffPrimitive(a.damage, b.damage),
-    };
-    return diff.name === _.NO_DIFF && diff.damage === _.NO_DIFF ? _.NO_DIFF : diff;
+  decodeDiff(obj: Weapon, input: Uint8Array): Weapon {
+    const tracker = _.Tracker.parse(input);
+    return Weapon._decodeDiff(obj, tracker);
   },
-  encodeDiff(obj: _.DeepPartial<Weapon> | typeof _.NO_DIFF) {
-    if (obj === _.NO_DIFF) {
-      return new Uint8Array(0);
-    }
-    return Weapon._encodeDiff(obj, new _.Tracker()).toBuffer();
-  },
-  _encodeDiff(obj: _.DeepPartial<Weapon>, tracker: _.Tracker) {
-    tracker.pushBoolean(obj.name !== _.NO_DIFF);
-    if (obj.name !== _.NO_DIFF) {
-      tracker.pushString(obj.name);
-    }
-    tracker.pushBoolean(obj.damage !== _.NO_DIFF);
-    if (obj.damage !== _.NO_DIFF) {
-      tracker.pushInt(obj.damage);
-    }
-    return tracker;
-  },
-  decodeDiff(input: Uint8Array): _.DeepPartial<Weapon> | typeof _.NO_DIFF {
-    if (input.length === 0) {
-      return _.NO_DIFF;
-    }
-    return Weapon._decodeDiff(_.Tracker.parse(input));
-  },
-  _decodeDiff(tracker: _.Tracker): _.DeepPartial<Weapon> {
-    return {
-      name: tracker.nextBoolean() ? tracker.nextString() : _.NO_DIFF,
-      damage: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
-    };
-  },
-  applyDiff(obj: Weapon, diff: _.DeepPartial<Weapon> | typeof _.NO_DIFF): Weapon {
-    if (diff === _.NO_DIFF) {
+  _decodeDiff(obj: Weapon, tracker: _.Tracker): Weapon {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
       return obj;
     }
     return {
-      name: diff.name === _.NO_DIFF ? obj.name : diff.name,
-      damage: diff.damage === _.NO_DIFF ? obj.damage : diff.damage,
+      name: tracker.nextStringDiff(obj.name),
+      damage: tracker.nextIntDiff(obj.damage),
     };
   },
 };
@@ -230,15 +210,45 @@ export const Player = {
 
     return validationErrors;
   },
-  encode(obj: Player) {
-    return Player._encode(obj, new _.Tracker()).toBuffer();
+  equals(a: Player, b: Player): boolean {
+    return (
+      Position.equals(a.position, b.position) &&
+      a.health === b.health &&
+      _.equalsOptional(a.weapon, b.weapon, (x, y) => Weapon.equals(x, y)) &&
+      a.stealth === b.stealth
+    );
   },
-  _encode(obj: Player, tracker: _.Tracker) {
+  encode(obj: Player): Uint8Array {
+    const tracker = new _.Tracker();
+    Player._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: Player, tracker: _.Tracker): void {
     Position._encode(obj.position, tracker);
     tracker.pushInt(obj.health);
     tracker.pushOptional(obj.weapon, (x) => Weapon._encode(x, tracker));
     tracker.pushBoolean(obj.stealth);
-    return tracker;
+  },
+  encodeDiff(a: Player, b: Player): Uint8Array {
+    const tracker = new _.Tracker();
+    Player._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: Player, b: Player, tracker: _.Tracker): void {
+    const changed = !Player.equals(a, b);
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    Position._encodeDiff(a.position, b.position, tracker);
+    tracker.pushIntDiff(a.health, b.health);
+    tracker.pushOptionalDiff<Weapon>(
+      a.weapon,
+      b.weapon,
+      (x) => Weapon._encode(x, tracker),
+      (x, y) => Weapon._encodeDiff(x, y, tracker)
+    );
+    tracker.pushBooleanDiff(a.stealth, b.stealth);
   },
   decode(input: Uint8Array): Player {
     return Player._decode(_.Tracker.parse(input));
@@ -251,63 +261,24 @@ export const Player = {
       stealth: tracker.nextBoolean(),
     };
   },
-  computeDiff(a: Player, b: Player): _.DeepPartial<Player> | typeof _.NO_DIFF {
-    const diff: _.DeepPartial<Player> =  {
-      position: Position.computeDiff(a.position, b.position),
-      health: _.diffPrimitive(a.health, b.health),
-      weapon: _.diffOptional(a.weapon, b.weapon, (x, y) => Weapon.computeDiff(x, y)),
-      stealth: _.diffPrimitive(a.stealth, b.stealth),
-    };
-    return diff.position === _.NO_DIFF && diff.health === _.NO_DIFF && diff.weapon === _.NO_DIFF && diff.stealth === _.NO_DIFF ? _.NO_DIFF : diff;
+  decodeDiff(obj: Player, input: Uint8Array): Player {
+    const tracker = _.Tracker.parse(input);
+    return Player._decodeDiff(obj, tracker);
   },
-  encodeDiff(obj: _.DeepPartial<Player> | typeof _.NO_DIFF) {
-    if (obj === _.NO_DIFF) {
-      return new Uint8Array(0);
-    }
-    return Player._encodeDiff(obj, new _.Tracker()).toBuffer();
-  },
-  _encodeDiff(obj: _.DeepPartial<Player>, tracker: _.Tracker) {
-    tracker.pushBoolean(obj.position !== _.NO_DIFF);
-    if (obj.position !== _.NO_DIFF) {
-      Position._encodeDiff(obj.position, tracker);
-    }
-    tracker.pushBoolean(obj.health !== _.NO_DIFF);
-    if (obj.health !== _.NO_DIFF) {
-      tracker.pushInt(obj.health);
-    }
-    tracker.pushBoolean(obj.weapon !== _.NO_DIFF);
-    if (obj.weapon !== _.NO_DIFF) {
-      tracker.pushOptionalDiff<Weapon>(obj.weapon!, (x) => Weapon._encode(x, tracker), (x) => Weapon._encodeDiff(x, tracker));
-    }
-    tracker.pushBoolean(obj.stealth !== _.NO_DIFF);
-    if (obj.stealth !== _.NO_DIFF) {
-      tracker.pushBoolean(obj.stealth);
-    }
-    return tracker;
-  },
-  decodeDiff(input: Uint8Array): _.DeepPartial<Player> | typeof _.NO_DIFF {
-    if (input.length === 0) {
-      return _.NO_DIFF;
-    }
-    return Player._decodeDiff(_.Tracker.parse(input));
-  },
-  _decodeDiff(tracker: _.Tracker): _.DeepPartial<Player> {
-    return {
-      position: tracker.nextBoolean() ? Position._decodeDiff(tracker) : _.NO_DIFF,
-      health: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
-      weapon: tracker.nextBoolean() ? tracker.nextOptionalDiff<Weapon>(() => Weapon._decode(tracker), () => Weapon._decodeDiff(tracker)) : _.NO_DIFF,
-      stealth: tracker.nextBoolean() ? tracker.nextBoolean() : _.NO_DIFF,
-    };
-  },
-  applyDiff(obj: Player, diff: _.DeepPartial<Player> | typeof _.NO_DIFF): Player {
-    if (diff === _.NO_DIFF) {
+  _decodeDiff(obj: Player, tracker: _.Tracker): Player {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
       return obj;
     }
     return {
-      position: diff.position === _.NO_DIFF ? obj.position : Position.applyDiff(obj.position, diff.position),
-      health: diff.health === _.NO_DIFF ? obj.health : diff.health,
-      weapon: diff.weapon === _.NO_DIFF ? obj.weapon : _.patchOptional<Weapon>(obj.weapon, diff.weapon!, (a, b) => Weapon.applyDiff(a, b)),
-      stealth: diff.stealth === _.NO_DIFF ? obj.stealth : diff.stealth,
+      position: Position._decodeDiff(obj.position, tracker),
+      health: tracker.nextIntDiff(obj.health),
+      weapon: tracker.nextOptionalDiff<Weapon>(
+        obj.weapon,
+        () => Weapon._decode(tracker),
+        (x) => Weapon._decodeDiff(x, tracker)
+      ),
+      stealth: tracker.nextBooleanDiff(obj.stealth),
     };
   },
 };
@@ -336,13 +307,41 @@ export const GameState = {
 
     return validationErrors;
   },
-  encode(obj: GameState) {
-    return GameState._encode(obj, new _.Tracker()).toBuffer();
+  equals(a: GameState, b: GameState): boolean {
+    return (
+      a.timeRemaining === b.timeRemaining &&
+      _.equalsRecord(a.players, b.players, (x, y) => x === y, (x, y) => Player.equals(x, y))
+    );
   },
-  _encode(obj: GameState, tracker: _.Tracker) {
+  encode(obj: GameState): Uint8Array {
+    const tracker = new _.Tracker();
+    GameState._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: GameState, tracker: _.Tracker): void {
     tracker.pushInt(obj.timeRemaining);
     tracker.pushRecord(obj.players, (x) => tracker.pushInt(x), (x) => Player._encode(x, tracker));
-    return tracker;
+  },
+  encodeDiff(a: GameState, b: GameState): Uint8Array {
+    const tracker = new _.Tracker();
+    GameState._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: GameState, b: GameState, tracker: _.Tracker): void {
+    const changed = !GameState.equals(a, b);
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    tracker.pushIntDiff(a.timeRemaining, b.timeRemaining);
+    tracker.pushRecordDiff<number, Player>(
+      a.players,
+      b.players,
+      (x, y) => Player.equals(x, y),
+      (x) => tracker.pushInt(x),
+      (x) => Player._encode(x, tracker),
+      (x, y) => Player._encodeDiff(x, y, tracker)
+    );
   },
   decode(input: Uint8Array): GameState {
     return GameState._decode(_.Tracker.parse(input));
@@ -353,49 +352,23 @@ export const GameState = {
       players: tracker.nextRecord(() => tracker.nextInt(), () => Player._decode(tracker)),
     };
   },
-  computeDiff(a: GameState, b: GameState): _.DeepPartial<GameState> | typeof _.NO_DIFF {
-    const diff: _.DeepPartial<GameState> =  {
-      timeRemaining: _.diffPrimitive(a.timeRemaining, b.timeRemaining),
-      players: _.diffRecord(a.players, b.players, (x, y) => Player.computeDiff(x, y)),
-    };
-    return diff.timeRemaining === _.NO_DIFF && diff.players === _.NO_DIFF ? _.NO_DIFF : diff;
+  decodeDiff(obj: GameState, input: Uint8Array): GameState {
+    const tracker = _.Tracker.parse(input);
+    return GameState._decodeDiff(obj, tracker);
   },
-  encodeDiff(obj: _.DeepPartial<GameState> | typeof _.NO_DIFF) {
-    if (obj === _.NO_DIFF) {
-      return new Uint8Array(0);
-    }
-    return GameState._encodeDiff(obj, new _.Tracker()).toBuffer();
-  },
-  _encodeDiff(obj: _.DeepPartial<GameState>, tracker: _.Tracker) {
-    tracker.pushBoolean(obj.timeRemaining !== _.NO_DIFF);
-    if (obj.timeRemaining !== _.NO_DIFF) {
-      tracker.pushInt(obj.timeRemaining);
-    }
-    tracker.pushBoolean(obj.players !== _.NO_DIFF);
-    if (obj.players !== _.NO_DIFF) {
-      tracker.pushRecordDiff<number, Player>(obj.players, (x) => tracker.pushInt(x), (x) => Player._encode(x, tracker), (x) => Player._encodeDiff(x, tracker));
-    }
-    return tracker;
-  },
-  decodeDiff(input: Uint8Array): _.DeepPartial<GameState> | typeof _.NO_DIFF {
-    if (input.length === 0) {
-      return _.NO_DIFF;
-    }
-    return GameState._decodeDiff(_.Tracker.parse(input));
-  },
-  _decodeDiff(tracker: _.Tracker): _.DeepPartial<GameState> {
-    return {
-      timeRemaining: tracker.nextBoolean() ? tracker.nextInt() : _.NO_DIFF,
-      players: tracker.nextBoolean() ? tracker.nextRecordDiff<number, Player>(() => tracker.nextInt(), () => Player._decode(tracker), () => Player._decodeDiff(tracker)) : _.NO_DIFF,
-    };
-  },
-  applyDiff(obj: GameState, diff: _.DeepPartial<GameState> | typeof _.NO_DIFF): GameState {
-    if (diff === _.NO_DIFF) {
+  _decodeDiff(obj: GameState, tracker: _.Tracker): GameState {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
       return obj;
     }
     return {
-      timeRemaining: diff.timeRemaining === _.NO_DIFF ? obj.timeRemaining : diff.timeRemaining,
-      players: diff.players === _.NO_DIFF ? obj.players : _.patchRecord<number, Player>(obj.players, diff.players, (a, b) => Player.applyDiff(a, b)),
+      timeRemaining: tracker.nextIntDiff(obj.timeRemaining),
+      players: tracker.nextRecordDiff<number, Player>(
+        obj.players,
+        () => tracker.nextInt(),
+        () => Player._decode(tracker),
+        (x) => Player._decodeDiff(x, tracker)
+      ),
     };
   },
 };

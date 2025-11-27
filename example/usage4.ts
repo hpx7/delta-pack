@@ -1,7 +1,6 @@
 import util from "util";
 import assert from "assert";
 import { GameState } from "./output4.ts";
-import { NO_DIFF } from "../helpers.ts";
 
 const state1: GameState = {
   timeRemaining: 120,
@@ -33,7 +32,7 @@ console.log("encoded", encoded);
 
 const decoded = GameState.decode(encoded);
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
-assert.equal(GameState.computeDiff(state1, decoded), NO_DIFF);
+assert(GameState.equals(decoded, state1));
 
 const state2: GameState = {
   timeRemaining: 60,
@@ -56,13 +55,11 @@ const state2: GameState = {
     ],
   ]),
 };
-const diff = GameState.computeDiff(state1, state2);
-console.log("diff", util.inspect(diff, { depth: null, colors: true }));
-const encodedDiff = GameState.encodeDiff(diff);
+
+const encodedDiff = GameState.encodeDiff(state1, state2);
 console.log("encodedDiff", encodedDiff);
 // Uint8Array(27)
 
-const decodedDiff = GameState.decodeDiff(encodedDiff);
-const applied = GameState.applyDiff(state1, decodedDiff);
-console.log("applied", util.inspect(applied, { depth: null, colors: true }));
-assert.equal(GameState.computeDiff(applied, state2), NO_DIFF);
+const decodedDiff = GameState.decodeDiff(state1, encodedDiff);
+console.log("decodedDiff", util.inspect(decodedDiff, { depth: null, colors: true }));
+assert(GameState.equals(decodedDiff, state2));

@@ -1,5 +1,4 @@
 import assert from "assert";
-import { NO_DIFF } from "../helpers.ts";
 import { PlayerState } from "./output.ts";
 
 const state1: PlayerState = {
@@ -13,7 +12,7 @@ const encodedState1 = PlayerState.encode(state1);
 console.log(encodedState1);
 // Uint8Array(8)
 const decodedState1 = PlayerState.decode(encodedState1);
-assert.equal(PlayerState.computeDiff(state1, decodedState1), NO_DIFF);
+assert(PlayerState.equals(decodedState1, state1));
 
 const state2: PlayerState = {
   hand: [
@@ -34,17 +33,12 @@ const encodedState2 = PlayerState.encode(state2);
 console.log(encodedState2);
 // Uint8Array(25)
 const decodedState2 = PlayerState.decode(encodedState2);
-assert.equal(PlayerState.computeDiff(state2, decodedState2), NO_DIFF);
+assert(PlayerState.equals(decodedState2, state2));
 
-const diff = PlayerState.computeDiff(state1, state2);
-console.log(
-  "diff",
-  JSON.stringify(diff, (k, v) => (v instanceof Map ? Object.fromEntries(v) : v), 2),
-);
-const encodedDiff = PlayerState.encodeDiff(diff);
+const encodedDiff = PlayerState.encodeDiff(state1, state2);
 console.log("encodedDiff", encodedDiff);
-// Uint8Array(26)
+// Uint8Array(23)
 
-const decodedDiff = PlayerState.decodeDiff(encodedDiff);
-const applied = PlayerState.applyDiff(state1, decodedDiff);
-assert.equal(PlayerState.computeDiff(applied, state2), NO_DIFF);
+const decodedDiff = PlayerState.decodeDiff(state1, encodedDiff);
+console.log("decodedDiff", decodedDiff);
+assert(PlayerState.equals(decodedDiff, state2));
