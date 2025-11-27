@@ -46,8 +46,8 @@ export const Position = {
   },
   equals(a: Position, b: Position): boolean {
     return (
-      a.x === b.x &&
-      a.y === b.y
+      Math.abs(a.x - b.x) < 0.00001 &&
+      Math.abs(a.y - b.y) < 0.00001
     );
   },
   encode(obj: Position): Uint8Array {

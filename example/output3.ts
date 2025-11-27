@@ -229,9 +229,9 @@ export const Position = {
   },
   equals(a: Position, b: Position): boolean {
     return (
-      a.x === b.x &&
-      a.y === b.y &&
-      a.z === b.z
+      Math.abs(a.x - b.x) < 0.00001 &&
+      Math.abs(a.y - b.y) < 0.00001 &&
+      Math.abs(a.z - b.z) < 0.00001
     );
   },
   encode(obj: Position): Uint8Array {
@@ -322,10 +322,10 @@ export const Rotation = {
   },
   equals(a: Rotation, b: Rotation): boolean {
     return (
-      a.x === b.x &&
-      a.y === b.y &&
-      a.z === b.z &&
-      a.w === b.w
+      Math.abs(a.x - b.x) < 0.00001 &&
+      Math.abs(a.y - b.y) < 0.00001 &&
+      Math.abs(a.z - b.z) < 0.00001 &&
+      Math.abs(a.w - b.w) < 0.00001
     );
   },
   encode(obj: Rotation): Uint8Array {
@@ -415,9 +415,9 @@ export const Size3D = {
   },
   equals(a: Size3D, b: Size3D): boolean {
     return (
-      a.width === b.width &&
-      a.height === b.height &&
-      a.depth === b.depth
+      Math.abs(a.width - b.width) < 0.00001 &&
+      Math.abs(a.height - b.height) < 0.00001 &&
+      Math.abs(a.depth - b.depth) < 0.00001
     );
   },
   encode(obj: Size3D): Uint8Array {
@@ -580,7 +580,7 @@ export const Component = {
       return Size3D.equals(a.val, b.val);
     }
     else if (a.type === "Size1D" && b.type === "Size1D") {
-      return a.val === b.val;
+      return Math.abs(a.val - b.val) < 0.00001;
     }
     else if (a.type === "EntityEvent" && b.type === "EntityEvent") {
       return a.val === b.val;

@@ -358,11 +358,12 @@ export const ${name} = {
       return `_.equalsRecord(${keyA}, ${keyB}, (x, y) => ${keyEquals}, (x, y) => ${valueEquals})`;
     } else if (type.type === "reference") {
       return renderEquals(type.reference, lookup(type), keyA, keyB);
+    } else if (type.type === "float") {
+      return `Math.abs(${keyA} - ${keyB}) < 0.00001`;
     } else if (
       type.type === "string" ||
       type.type === "int" ||
       type.type === "uint" ||
-      type.type === "float" ||
       type.type === "boolean" ||
       type.type === "enum"
     ) {
