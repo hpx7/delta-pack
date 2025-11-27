@@ -68,6 +68,9 @@ export class Tracker {
     }
   }
   pushStringDiff(a: string, b: string) {
+    if (!this.dict.includes(a)) {
+      this.dict.push(a);
+    }
     this.pushBoolean(a !== b);
     if (a !== b) {
       this.pushString(b);
@@ -194,22 +197,24 @@ export class Tracker {
         deletions.push(i);
       }
     });
-    this.pushUInt(updates.length);
-    updates.forEach((idx) => {
-      this.pushUInt(idx);
-      const key = orderedKeys[idx];
-      encodeDiff(a.get(key)!, b.get(key)!);
-    });
-    this.pushUInt(deletions.length);
-    deletions.forEach((idx) => {
-      this.pushUInt(idx);
-    });
-
     const additions: [K, T][] = [];
     b.forEach((bVal, bKey) => {
       if (!a.has(bKey)) {
         additions.push([bKey, bVal]);
       }
+    });
+
+    if (a.size > 0) {
+      this.pushUInt(deletions.length);
+      deletions.forEach((idx) => {
+        this.pushUInt(idx);
+      });
+    }
+    this.pushUInt(updates.length);
+    updates.forEach((idx) => {
+      this.pushUInt(idx);
+      const key = orderedKeys[idx];
+      encodeDiff(a.get(key)!, b.get(key)!);
     });
     this.pushUInt(additions.length);
     additions.forEach(([key, val]) => {
@@ -261,6 +266,9 @@ export class Tracker {
     return obj;
   }
   nextStringDiff(a: string) {
+    if (!this.dict.includes(a)) {
+      this.dict.push(a);
+    }
     const changed = this.nextBoolean();
     return changed ? this.nextString() : a;
   }
@@ -345,18 +353,18 @@ export class Tracker {
     const result: Map<K, T> = new Map(obj);
     const orderedKeys = [...obj.keys()].sort();
 
+    if (obj.size > 0) {
+      const numDeletions = this.nextUInt();
+      for (let i = 0; i < numDeletions; i++) {
+        const key = orderedKeys[this.nextUInt()];
+        result.delete(key);
+      }
+    }
     const numUpdates = this.nextUInt();
     for (let i = 0; i < numUpdates; i++) {
       const key = orderedKeys[this.nextUInt()];
       result.set(key, decodeDiff(result.get(key)!));
     }
-
-    const numDeletions = this.nextUInt();
-    for (let i = 0; i < numDeletions; i++) {
-      const key = orderedKeys[this.nextUInt()];
-      result.delete(key);
-    }
-
     const numAdditions = this.nextUInt();
     for (let i = 0; i < numAdditions; i++) {
       const key = decodeKey();
