@@ -18,7 +18,7 @@ function isPrimitiveType(type: Type, doc: Record<string, Type>): boolean {
 }
 
 export function renderDoc(doc: Record<string, Type>) {
-  return `import * as _ from "../helpers.ts";
+  return `import * as _ from "@hathora/delta-pack/helpers";
 
 ${Object.entries(doc)
   .map(([name, type]) => {

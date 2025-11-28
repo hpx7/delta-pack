@@ -1,5 +1,5 @@
 import assert from "assert";
-import { GameState } from "./output5.ts";
+import { GameState } from "./output5.js";
 
 const state1: GameState = {
   creatures: new Map([

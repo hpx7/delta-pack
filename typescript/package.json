@@ -1,0 +1,36 @@
+{
+  "name": "@hathora/delta-pack",
+  "version": "0.0.12",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/generator.js",
+  "types": "dist/generator.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/generator.d.ts",
+      "default": "./dist/generator.js"
+    },
+    "./helpers": {
+      "types": "./dist/helpers.d.ts",
+      "default": "./dist/helpers.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test:gen": "tsx test/schema.ts",
+    "test": "npm run test:gen && vitest run"
+  },
+  "dependencies": {
+    "bin-serde": "^1.4.2",
+    "utf8-buffer-size": "^0.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@vitest/coverage-v8": "^4.0.13",
+    "@vitest/ui": "^4.0.13",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.13"
+  }
+}

@@ -1,5 +1,5 @@
 import assert from "assert";
-import { PlayerState } from "./output.ts";
+import { PlayerState } from "./output.js";
 
 const state1: PlayerState = {
   hand: [],

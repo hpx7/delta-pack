@@ -1,6 +1,6 @@
 import util from "util";
 import assert from "assert";
-import { GameState } from "./output4.ts";
+import { GameState } from "./output4.js";
 
 const state1: GameState = {
   timeRemaining: 120,

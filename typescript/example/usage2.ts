@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { State } from "./output2.ts";
+import { State } from "./output2.js";
 
 function runBenchmark() {
   let testData = JSON.parse(fs.readFileSync("example/states.json", "utf8")) as State[];

@@ -1,6 +1,6 @@
 import assert from "assert";
-import { GameState } from "./output6.ts";
-import type { Player, Enemy, Projectile, DroppedLoot } from "./output6.ts";
+import { GameState } from "./output6.js";
+import type { Player, Enemy, Projectile, DroppedLoot } from "./output6.js";
 
 console.log("=== Multiplayer Game State Synchronization Demo ===\n");
 

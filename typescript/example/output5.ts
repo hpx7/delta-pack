@@ -1,4 +1,4 @@
-import * as _ from "../helpers.ts";
+import * as _ from "@hathora/delta-pack/helpers";
 
 export type CreatureState = {
   team: string;

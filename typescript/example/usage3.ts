@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Snapshot } from "./output3.ts";
+import { Snapshot } from "./output3.js";
 
 const state1: Snapshot = {
   entities: [

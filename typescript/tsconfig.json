@@ -1,5 +1,5 @@
 {
-  "include": ["generator.ts"],
+  "include": ["src"],
   "compilerOptions": {
     "strict": true,
     "declaration": true,
@@ -11,6 +11,11 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@hathora/delta-pack": ["./src/generator.ts"],
+      "@hathora/delta-pack/helpers": ["./src/helpers.ts"]
+    }
   }
 }

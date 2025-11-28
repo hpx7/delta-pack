@@ -8,7 +8,7 @@ import {
   StringType,
   UnionType,
   codegenTypescript,
-} from "../generator";
+} from "@hathora/delta-pack";
 
 const UserId = StringType();
 
