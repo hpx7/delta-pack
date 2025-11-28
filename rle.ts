@@ -9,17 +9,18 @@ export function rleEncode(bits: boolean[]): boolean[] {
       // Variable-length unary coding for run lengths
       if (count === 1) {
         rleBits.push(false);
-      } else if (count === 2) {
+      } else if (count <= 3) {
         rleBits.push(true, false);
-      } else if (count <= 4) {
+        rleBits.push(...uintToBits(count - 2, 1)); // 0-1 for values 2-3
+      } else if (count <= 5) {
         rleBits.push(true, true, false);
-        rleBits.push(...uintToBits(count - 3, 1)); // 0-1 for values 3-4
-      } else if (count <= 12) {
+        rleBits.push(...uintToBits(count - 4, 1)); // 0-1 for values 4-5
+      } else if (count <= 13) {
         rleBits.push(true, true, true, false);
-        rleBits.push(...uintToBits(count - 5, 3)); // 0-7 for values 5-12
-      } else if (count <= 268) {
+        rleBits.push(...uintToBits(count - 6, 3)); // 0-7 for values 6-13
+      } else if (count <= 269) {
         rleBits.push(true, true, true, true);
-        rleBits.push(...uintToBits(count - 13, 8)); // 0-255 for values 13-268
+        rleBits.push(...uintToBits(count - 14, 8)); // 0-255 for values 14-269
       } else {
         throw new Error("RLE count too large: " + count);
       }
@@ -31,7 +32,6 @@ export function rleEncode(bits: boolean[]): boolean[] {
 }
 
 export function rleDecode(rleBits: boolean[]): boolean[] {
-  // RLE encoding - decode starting from index 1
   const bits: boolean[] = [];
   let idx = 0;
   let last = rleBits[idx++];
@@ -41,24 +41,25 @@ export function rleDecode(rleBits: boolean[]): boolean[] {
       // '0' = run of 1
       bits.push(last);
     } else if (!rleBits[idx++]) {
-      // '10' = run of 2
-      for (let i = 0; i < 2; i++) {
-        bits.push(last);
-      }
-    } else if (!rleBits[idx++]) {
-      // '110' + 1 bit = run of 3-4
-      const count = bitsToUint([rleBits[idx++]]) + 3;
+      // '10' + 1 bit = run of 2-3
+      const count = bitsToUint([rleBits[idx++]]) + 2;
       for (let i = 0; i < count; i++) {
         bits.push(last);
       }
     } else if (!rleBits[idx++]) {
-      // '1110' + 3 bits = run of 5-12
-      const count = bitsToUint([rleBits[idx++], rleBits[idx++], rleBits[idx++]]) + 5;
+      // '110' + 1 bit = run of 4-5
+      const count = bitsToUint([rleBits[idx++]]) + 4;
+      for (let i = 0; i < count; i++) {
+        bits.push(last);
+      }
+    } else if (!rleBits[idx++]) {
+      // '1110' + 3 bits = run of 6-13
+      const count = bitsToUint([rleBits[idx++], rleBits[idx++], rleBits[idx++]]) + 6;
       for (let i = 0; i < count; i++) {
         bits.push(last);
       }
     } else {
-      // '1111' + 8 bits = run of 13-268
+      // '1111' + 8 bits = run of 14-269
       const count =
         bitsToUint([
           rleBits[idx++],
@@ -69,7 +70,7 @@ export function rleDecode(rleBits: boolean[]): boolean[] {
           rleBits[idx++],
           rleBits[idx++],
           rleBits[idx++],
-        ]) + 13;
+        ]) + 14;
       for (let i = 0; i < count; i++) {
         bits.push(last);
       }

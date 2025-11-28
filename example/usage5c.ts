@@ -688,7 +688,7 @@ const state1: GameState = {
 
 const encoded = GameState.encode(state1);
 console.log("encoded", encoded);
-// Uint8Array(1045)
+// Uint8Array(1042)
 
 const decoded = GameState.decode(encoded);
 assert(GameState.equals(decoded, state1));
