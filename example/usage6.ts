@@ -390,7 +390,7 @@ tick600.worldObjects = new Map([
 ]);
 
 const diff600 = GameState.encodeDiff(tick120, tick600);
-console.log(`Tick 600 (10 seconds, mid-game): ${diff600.length} bytes`);
+console.log(`Tick 600 (10 seconds, mid-game): ${diff600.length} bytes`); // 526
 console.log(`  - 4 new players joined (total: 8)`);
 console.log(`  - Players have inventory and equipment`);
 console.log(`  - 2 more enemies (total: 3)`);
@@ -419,7 +419,7 @@ tick601.enemies.get("enemy2")!.position.x += 0.08;
 tick601.enemies.get("enemy3")!.position.y += 0.05;
 
 const diff601 = GameState.encodeDiff(tick600, tick601);
-console.log(`Tick 601 (typical frame, minimal changes): ${diff601.length} bytes`);
+console.log(`Tick 601 (typical frame, minimal changes): ${diff601.length} bytes`); // 44
 console.log(`  - Only position updates for moving entities`);
 console.log(`  - Server time and tick incremented`);
 console.log(`  - This represents a typical server tick in a game loop`);

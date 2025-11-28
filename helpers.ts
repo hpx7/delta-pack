@@ -209,13 +209,13 @@ export class Tracker {
       deletions.forEach((idx) => {
         this.pushUInt(idx);
       });
+      this.pushUInt(updates.length);
+      updates.forEach((idx) => {
+        this.pushUInt(idx);
+        const key = orderedKeys[idx];
+        encodeDiff(a.get(key)!, b.get(key)!);
+      });
     }
-    this.pushUInt(updates.length);
-    updates.forEach((idx) => {
-      this.pushUInt(idx);
-      const key = orderedKeys[idx];
-      encodeDiff(a.get(key)!, b.get(key)!);
-    });
     this.pushUInt(additions.length);
     additions.forEach(([key, val]) => {
       encodeKey(key);
@@ -359,11 +359,11 @@ export class Tracker {
         const key = orderedKeys[this.nextUInt()];
         result.delete(key);
       }
-    }
-    const numUpdates = this.nextUInt();
-    for (let i = 0; i < numUpdates; i++) {
-      const key = orderedKeys[this.nextUInt()];
-      result.set(key, decodeDiff(result.get(key)!));
+      const numUpdates = this.nextUInt();
+      for (let i = 0; i < numUpdates; i++) {
+        const key = orderedKeys[this.nextUInt()];
+        result.set(key, decodeDiff(result.get(key)!));
+      }
     }
     const numAdditions = this.nextUInt();
     for (let i = 0; i < numAdditions; i++) {
