@@ -359,6 +359,9 @@ export const ${name} = {
     } else if (type.type === "reference") {
       return renderEquals(type.reference, lookup(type), keyA, keyB);
     } else if (type.type === "float") {
+      if (type.precision) {
+        return `Math.round(${keyA} / ${type.precision}) === Math.round(${keyB} / ${type.precision})`;
+      }
       return `Math.abs(${keyA} - ${keyB}) < 0.00001`;
     } else if (
       type.type === "string" ||
@@ -390,6 +393,9 @@ export const ${name} = {
     } else if (type.type === "uint") {
       return `tracker.pushUInt(${key})`;
     } else if (type.type === "float") {
+      if (type.precision) {
+        return `tracker.pushInt(Math.round(${key} / ${type.precision}))`;
+      }
       return `tracker.pushFloat(${key})`;
     } else if (type.type === "boolean") {
       return `tracker.pushBoolean(${key})`;
@@ -417,6 +423,9 @@ export const ${name} = {
     } else if (type.type === "uint") {
       return `tracker.nextUInt()`;
     } else if (type.type === "float") {
+      if (type.precision) {
+        return `tracker.nextInt() * ${type.precision}`;
+      }
       return `tracker.nextFloat()`;
     } else if (type.type === "boolean") {
       return `tracker.nextBoolean()`;
@@ -481,6 +490,9 @@ export const ${name} = {
     } else if (type.type === "uint") {
       return `tracker.pushUIntDiff(${keyA}, ${keyB})`;
     } else if (type.type === "float") {
+      if (type.precision) {
+        return `tracker.pushIntDiff(Math.round(${keyA} / ${type.precision}), Math.round(${keyB} / ${type.precision}))`;
+      }
       return `tracker.pushFloatDiff(${keyA}, ${keyB})`;
     } else if (type.type === "boolean") {
       return `tracker.pushBooleanDiff(${keyA}, ${keyB})`;
@@ -537,6 +549,9 @@ export const ${name} = {
     } else if (type.type === "uint") {
       return `tracker.nextUIntDiff(${key})`;
     } else if (type.type === "float") {
+      if (type.precision) {
+        return `tracker.nextIntDiff(Math.round(${key} / ${type.precision})) * ${type.precision}`;
+      }
       return `tracker.nextFloatDiff(${key})`;
     } else if (type.type === "boolean") {
       return `tracker.nextBooleanDiff(${key})`;

@@ -43,6 +43,7 @@ interface UIntType {
 }
 interface FloatType {
   type: "float";
+  precision?: number;
 }
 interface BooleanType {
   type: "boolean";
@@ -91,8 +92,8 @@ export function UIntType(): UIntType {
   return { type: "uint" };
 }
 
-export function FloatType(): FloatType {
-  return { type: "float" };
+export function FloatType(options?: { precision?: number }): FloatType {
+  return { type: "float", precision: options?.precision };
 }
 
 export function BooleanType(): BooleanType {
