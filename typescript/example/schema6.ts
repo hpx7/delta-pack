@@ -11,7 +11,7 @@ import {
   EnumType,
   ReferenceType,
   codegenTypescript,
-} from '../generator';
+} from '@hathora/delta-pack';
 
 // Enums for game constants
 const Team = EnumType(['RED', 'BLUE', 'GREEN', 'YELLOW']);

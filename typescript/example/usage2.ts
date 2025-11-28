@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import * as fs from "node:fs";
 import { State } from "./output2.js";
 
 function runBenchmark() {

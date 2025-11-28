@@ -8,7 +8,7 @@ import {
   StringType,
   UnionType,
   codegenTypescript,
-} from "../generator";
+} from "@hathora/delta-pack";
 
 const ChatMessage = ObjectType({
   author: StringType(),

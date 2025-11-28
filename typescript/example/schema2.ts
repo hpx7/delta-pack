@@ -6,7 +6,7 @@ import {
   StringType,
   codegenTypescript,
   ReferenceType,
-} from "../generator";
+} from "@hathora/delta-pack";
 
 const Position = ObjectType({
   x: UIntType(),

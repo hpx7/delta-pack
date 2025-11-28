@@ -9,7 +9,7 @@ import {
   StringType,
   UIntType,
   codegenTypescript,
-} from "../generator";
+} from "@hathora/delta-pack";
 
 const Point = ObjectType({
   x: IntType(),

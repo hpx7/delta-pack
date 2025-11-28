@@ -8,7 +8,7 @@ import {
   ReferenceType,
   StringType,
   codegenTypescript,
-} from "../generator";
+} from "@hathora/delta-pack";
 
 const Position = ObjectType({
   x: FloatType(),
