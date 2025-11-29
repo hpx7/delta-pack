@@ -1,0 +1,7 @@
+{
+  "stringField": "updated string",
+  "signedIntField": -43,
+  "unsignedIntField": 43,
+  "floatField": 3.15,
+  "booleanField": false
+}

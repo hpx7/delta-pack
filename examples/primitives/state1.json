@@ -1,0 +1,7 @@
+{
+  "stringField": "example string",
+  "signedIntField": -42,
+  "unsignedIntField": 42,
+  "floatField": 3.14,
+  "booleanField": true
+}

@@ -1,0 +1,14 @@
+{
+  "id": "user_12345",
+  "name": "John Doe",
+  "age": 30,
+  "weight": 175.5,
+  "married": true,
+  "hairColor": "BROWN",
+  "address": {
+    "street": "123 Main St",
+    "zip": "12345",
+    "state": "CA"
+  },
+  "children": ["user_67890", "user_54321"]
+}

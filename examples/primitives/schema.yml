@@ -1,0 +1,6 @@
+ExampleObject:
+  stringField: string
+  signedIntField: int
+  unsignedIntField: uint
+  floatField: float
+  booleanField: boolean
