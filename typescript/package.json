@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "bin-serde": "^1.4.2",
-    "utf8-buffer-size": "^0.0.4"
+    "utf8-buffer-size": "^0.0.4",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
