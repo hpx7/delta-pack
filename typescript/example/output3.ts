@@ -732,10 +732,10 @@ export const Component = {
       return { type: "Size1D", val: tracker.nextFloat() };
     }
     else if (type === 5) {
-      return { type: "EntityEvent", val: EntityEvent[tracker.nextUInt()] };
+      return { type: "EntityEvent", val: (EntityEvent as any)[tracker.nextUInt()] };
     }
     else if (type === 6) {
-      return { type: "EntityState", val: EntityState[tracker.nextUInt()] };
+      return { type: "EntityState", val: (EntityState as any)[tracker.nextUInt()] };
     }
     else if (type === 7) {
       return { type: "ChatList", val: ChatList._decode(tracker) };
@@ -782,13 +782,13 @@ export const Component = {
       else if (obj.type === "EntityEvent") {
         return {
           type: "EntityEvent",
-          val: EntityEvent[tracker.nextUIntDiff(EntityEvent[obj.val])],
+          val: (EntityEvent as any)[tracker.nextUIntDiff((EntityEvent as any)[obj.val])],
         };
       }
       else if (obj.type === "EntityState") {
         return {
           type: "EntityState",
-          val: EntityState[tracker.nextUIntDiff(EntityState[obj.val])],
+          val: (EntityState as any)[tracker.nextUIntDiff((EntityState as any)[obj.val])],
         };
       }
       else if (obj.type === "ChatList") {
@@ -816,10 +816,10 @@ export const Component = {
         return { type: "Size1D", val: tracker.nextFloat() };
       }
       else if (type === 5) {
-        return { type: "EntityEvent", val: EntityEvent[tracker.nextUInt()] };
+        return { type: "EntityEvent", val: (EntityEvent as any)[tracker.nextUInt()] };
       }
       else if (type === 6) {
-        return { type: "EntityState", val: EntityState[tracker.nextUInt()] };
+        return { type: "EntityState", val: (EntityState as any)[tracker.nextUInt()] };
       }
       else if (type === 7) {
         return { type: "ChatList", val: ChatList._decode(tracker) };

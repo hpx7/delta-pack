@@ -430,7 +430,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `tracker.nextBoolean()`;
     } else if (type.type === "enum") {
-      return `${name}[tracker.nextUInt()]`;
+      return `(${name} as any)[tracker.nextUInt()]`;
     }
     return `${name}._decode(tracker)`;
   }
@@ -556,7 +556,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `tracker.nextBooleanDiff(${key})`;
     } else if (type.type === "enum") {
-      return `${name}[tracker.nextUIntDiff(${name}[${key}])]`;
+      return `(${name} as any)[tracker.nextUIntDiff((${name} as any)[${key}])]`;
     }
     return `${name}._decodeDiff(${key}, tracker)`;
   }

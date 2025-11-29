@@ -96,7 +96,7 @@ export const Card = {
   _decode(tracker: _.Tracker): Card {
     return {
       value: tracker.nextInt(),
-      color: Color[tracker.nextUInt()],
+      color: (Color as any)[tracker.nextUInt()],
     };
   },
   decodeDiff(obj: Card, input: Uint8Array): Card {
@@ -110,7 +110,7 @@ export const Card = {
     }
     return {
       value: tracker.nextIntDiff(obj.value),
-      color: Color[tracker.nextUIntDiff(Color[obj.color])],
+      color: (Color as any)[tracker.nextUIntDiff((Color as any)[obj.color])],
     };
   },
 };
@@ -501,7 +501,7 @@ export const UnionTest = {
       return { type: "UserId", val: tracker.nextString() };
     }
     else if (type === 1) {
-      return { type: "Color", val: Color[tracker.nextUInt()] };
+      return { type: "Color", val: (Color as any)[tracker.nextUInt()] };
     }
     else if (type === 2) {
       return { type: "Card", val: Card._decode(tracker) };
@@ -524,7 +524,7 @@ export const UnionTest = {
       else if (obj.type === "Color") {
         return {
           type: "Color",
-          val: Color[tracker.nextUIntDiff(Color[obj.val])],
+          val: (Color as any)[tracker.nextUIntDiff((Color as any)[obj.val])],
         };
       }
       else if (obj.type === "Card") {
@@ -540,7 +540,7 @@ export const UnionTest = {
         return { type: "UserId", val: tracker.nextString() };
       }
       else if (type === 1) {
-        return { type: "Color", val: Color[tracker.nextUInt()] };
+        return { type: "Color", val: (Color as any)[tracker.nextUInt()] };
       }
       else if (type === 2) {
         return { type: "Card", val: Card._decode(tracker) };

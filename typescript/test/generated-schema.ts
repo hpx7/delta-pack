@@ -725,7 +725,7 @@ export const GameState = {
       currentPlayer: tracker.nextOptional(() => tracker.nextString()),
       round: tracker.nextUInt(),
       metadata: tracker.nextRecord(() => tracker.nextString(), () => tracker.nextString()),
-      winningColor: tracker.nextOptional(() => Color[tracker.nextUInt()]),
+      winningColor: tracker.nextOptional(() => (Color as any)[tracker.nextUInt()]),
       lastAction: tracker.nextOptional(() => GameAction._decode(tracker)),
     };
   },
@@ -757,7 +757,7 @@ export const GameState = {
       ),
       winningColor: tracker.nextOptionalDiffPrimitive<Color>(
         obj.winningColor,
-        () => Color[tracker.nextUInt()]
+        () => (Color as any)[tracker.nextUInt()]
       ),
       lastAction: tracker.nextOptionalDiff<GameAction>(
         obj.lastAction,

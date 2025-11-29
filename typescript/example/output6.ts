@@ -506,7 +506,7 @@ export const InventoryItem = {
       itemId: tracker.nextString(),
       name: tracker.nextString(),
       quantity: tracker.nextUInt(),
-      rarity: ItemRarity[tracker.nextUInt()],
+      rarity: (ItemRarity as any)[tracker.nextUInt()],
       durability: tracker.nextOptional(() => tracker.nextUInt()),
       enchantmentLevel: tracker.nextOptional(() => tracker.nextUInt()),
     };
@@ -524,7 +524,7 @@ export const InventoryItem = {
       itemId: tracker.nextStringDiff(obj.itemId),
       name: tracker.nextStringDiff(obj.name),
       quantity: tracker.nextUIntDiff(obj.quantity),
-      rarity: ItemRarity[tracker.nextUIntDiff(ItemRarity[obj.rarity])],
+      rarity: (ItemRarity as any)[tracker.nextUIntDiff((ItemRarity as any)[obj.rarity])],
       durability: tracker.nextOptionalDiffPrimitive<number>(
         obj.durability,
         () => tracker.nextUInt()
@@ -627,7 +627,7 @@ export const Equipment = {
   },
   _decode(tracker: _.Tracker): Equipment {
     return {
-      weapon: tracker.nextOptional(() => WeaponType[tracker.nextUInt()]),
+      weapon: tracker.nextOptional(() => (WeaponType as any)[tracker.nextUInt()]),
       armor: tracker.nextOptional(() => tracker.nextString()),
       accessory1: tracker.nextOptional(() => tracker.nextString()),
       accessory2: tracker.nextOptional(() => tracker.nextString()),
@@ -645,7 +645,7 @@ export const Equipment = {
     return {
       weapon: tracker.nextOptionalDiffPrimitive<WeaponType>(
         obj.weapon,
-        () => WeaponType[tracker.nextUInt()]
+        () => (WeaponType as any)[tracker.nextUInt()]
       ),
       armor: tracker.nextOptionalDiffPrimitive<string>(
         obj.armor,
@@ -915,7 +915,7 @@ export const ActiveEffect = {
   },
   _decode(tracker: _.Tracker): ActiveEffect {
     return {
-      effectType: EffectType[tracker.nextUInt()],
+      effectType: (EffectType as any)[tracker.nextUInt()],
       duration: tracker.nextInt() * 0.1,
       strength: tracker.nextUInt(),
       stackCount: tracker.nextUInt(),
@@ -931,7 +931,7 @@ export const ActiveEffect = {
       return obj;
     }
     return {
-      effectType: EffectType[tracker.nextUIntDiff(EffectType[obj.effectType])],
+      effectType: (EffectType as any)[tracker.nextUIntDiff((EffectType as any)[obj.effectType])],
       duration: tracker.nextIntDiff(Math.round(obj.duration / 0.1)) * 0.1,
       strength: tracker.nextUIntDiff(obj.strength),
       stackCount: tracker.nextUIntDiff(obj.stackCount),
@@ -1006,7 +1006,7 @@ export const AbilityCooldown = {
   _decode(tracker: _.Tracker): AbilityCooldown {
     return {
       abilityId: tracker.nextString(),
-      abilityType: AbilityType[tracker.nextUInt()],
+      abilityType: (AbilityType as any)[tracker.nextUInt()],
       remainingCooldown: tracker.nextInt() * 0.1,
     };
   },
@@ -1021,7 +1021,7 @@ export const AbilityCooldown = {
     }
     return {
       abilityId: tracker.nextStringDiff(obj.abilityId),
-      abilityType: AbilityType[tracker.nextUIntDiff(AbilityType[obj.abilityType])],
+      abilityType: (AbilityType as any)[tracker.nextUIntDiff((AbilityType as any)[obj.abilityType])],
       remainingCooldown: tracker.nextIntDiff(Math.round(obj.remainingCooldown / 0.1)) * 0.1,
     };
   },
@@ -1285,8 +1285,8 @@ export const Player = {
     return {
       playerId: tracker.nextString(),
       username: tracker.nextString(),
-      team: tracker.nextOptional(() => Team[tracker.nextUInt()]),
-      status: PlayerStatus[tracker.nextUInt()],
+      team: tracker.nextOptional(() => (Team as any)[tracker.nextUInt()]),
+      status: (PlayerStatus as any)[tracker.nextUInt()],
       position: Position._decode(tracker),
       velocity: Velocity._decode(tracker),
       rotation: tracker.nextInt() * 0.01,
@@ -1322,9 +1322,9 @@ export const Player = {
       username: tracker.nextStringDiff(obj.username),
       team: tracker.nextOptionalDiffPrimitive<Team>(
         obj.team,
-        () => Team[tracker.nextUInt()]
+        () => (Team as any)[tracker.nextUInt()]
       ),
-      status: PlayerStatus[tracker.nextUIntDiff(PlayerStatus[obj.status])],
+      status: (PlayerStatus as any)[tracker.nextUIntDiff((PlayerStatus as any)[obj.status])],
       position: Position._decodeDiff(obj.position, tracker),
       velocity: Velocity._decodeDiff(obj.velocity, tracker),
       rotation: tracker.nextIntDiff(Math.round(obj.rotation / 0.01)) * 0.01,
@@ -2128,7 +2128,7 @@ export const TeamScore = {
   },
   _decode(tracker: _.Tracker): TeamScore {
     return {
-      team: Team[tracker.nextUInt()],
+      team: (Team as any)[tracker.nextUInt()],
       score: tracker.nextUInt(),
       kills: tracker.nextUInt(),
       objectivesCaptured: tracker.nextUInt(),
@@ -2144,7 +2144,7 @@ export const TeamScore = {
       return obj;
     }
     return {
-      team: Team[tracker.nextUIntDiff(Team[obj.team])],
+      team: (Team as any)[tracker.nextUIntDiff((Team as any)[obj.team])],
       score: tracker.nextUIntDiff(obj.score),
       kills: tracker.nextUIntDiff(obj.kills),
       objectivesCaptured: tracker.nextUIntDiff(obj.objectivesCaptured),
@@ -2507,7 +2507,7 @@ export const GameState = {
       teamScores: tracker.nextArray(() => TeamScore._decode(tracker)),
       matchStats: MatchStats._decode(tracker),
       settings: GameSettings._decode(tracker),
-      winningTeam: tracker.nextOptional(() => Team[tracker.nextUInt()]),
+      winningTeam: tracker.nextOptional(() => (Team as any)[tracker.nextUInt()]),
       mapName: tracker.nextString(),
       weatherIntensity: tracker.nextInt() * 0.01,
     };
@@ -2567,7 +2567,7 @@ export const GameState = {
       settings: GameSettings._decodeDiff(obj.settings, tracker),
       winningTeam: tracker.nextOptionalDiffPrimitive<Team>(
         obj.winningTeam,
-        () => Team[tracker.nextUInt()]
+        () => (Team as any)[tracker.nextUInt()]
       ),
       mapName: tracker.nextStringDiff(obj.mapName),
       weatherIntensity: tracker.nextIntDiff(Math.round(obj.weatherIntensity / 0.01)) * 0.01,
