@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://delta-pack.dev/schema.json",
+  "title": "Delta-Pack Schema",
+  "description": "Schema definition for delta-pack binary serialization format",
+  "type": "object",
+  "patternProperties": {
+    "^[A-Z][a-zA-Z0-9]*$": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "Type alias or field type definition",
+          "pattern": "^(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*(\\[\\]|\\?|,[a-zA-Z0-9]+)?)$"
+        },
+        {
+          "type": "array",
+          "description": "Enum values or Union type variants",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][a-zA-Z0-9_]*$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        {
+          "type": "object",
+          "description": "Object type with fields",
+          "patternProperties": {
+            "^[a-z][a-zA-Z0-9]*$": {
+              "type": "string",
+              "description": "Field type (primitive, reference, array, optional, or map)",
+              "pattern": "^(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?)|((,[a-zA-Z0-9\\[\\]]+)))?$"
+            }
+          },
+          "additionalProperties": false,
+          "minProperties": 1
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "primitiveType": {
+      "type": "string",
+      "enum": ["string", "int", "uint", "float", "boolean"]
+    },
+    "typeReference": {
+      "type": "string",
+      "pattern": "^[A-Z][a-zA-Z0-9]*$",
+      "description": "Reference to another type in the schema"
+    },
+    "arrayType": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]+\\[\\]$",
+      "description": "Array type using [] suffix"
+    },
+    "optionalType": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9]+\\?$",
+      "description": "Optional type using ? suffix"
+    },
+    "mapType": {
+      "type": "string",
+      "pattern": "^(string|int|uint|[A-Z][a-zA-Z0-9]*),([a-zA-Z0-9\\[\\]]+)$",
+      "description": "Map type using comma syntax: KeyType,ValueType"
+    }
+  },
+  "examples": [
+    {
+      "UserId": "string",
+      "Color": [
+        "RED",
+        "GREEN",
+        "BLUE"
+      ],
+      "Position": {
+        "x": "float",
+        "y": "float"
+      },
+      "EmailContact": {
+        "email": "string"
+      },
+      "PhoneContact": {
+        "phone": "string"
+      },
+      "Contact": [
+        "EmailContact",
+        "PhoneContact"
+      ],
+      "Player": {
+        "id": "UserId",
+        "name": "string",
+        "score": "int",
+        "position": "Position",
+        "color": "Color?",
+        "tags": "string[]",
+        "metadata": "string,string",
+        "contact": "Contact?"
+      }
+    }
+  ]
+}
