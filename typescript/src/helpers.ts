@@ -480,8 +480,14 @@ export function parseRecord<K, T>(
   innerKeyParse: (y: unknown) => K,
   innerValParse: (y: unknown) => T,
 ): Map<K, T> {
-  if (!(x instanceof Map)) {
+  if (typeof x !== "object" || x == null || Array.isArray(x)) {
     throw new Error(`Invalid record: ${x}`);
+  }
+  if (!(x instanceof Map)) {
+    x = new Map(Object.entries(x));
+  }
+  if (!(x instanceof Map)) {
+    throw new Error(`Invalid record: ${JSON.stringify(x)}`);
   }
   const result: Map<K, T> = new Map();
   for (const [key, val] of x) {

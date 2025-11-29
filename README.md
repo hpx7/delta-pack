@@ -98,12 +98,22 @@ User:
 
 ### Maps (Records)
 
-Maps are defined as object types (not yet supported in YAML schema, but available in code):
+Maps use comma syntax `KeyType,ValueType`:
 
 ```yaml
-# Maps are represented as objects in the generated code
-# Record<string, Player> becomes Map<string, Player>
+User:
+  name: string
+  metadata: string,string             # Map<string, string>
+  scores: string,int                  # Map<string, int>
+  playerPositions: PlayerId,Position  # Map<PlayerId, Position>
 ```
+
+**Key Type Restrictions:**
+- Map keys must be `string`, `int`, or `uint`
+- Map values can be any type (primitives, objects, arrays, etc.)
+
+**Encoding:**
+Maps are encoded as key-value pairs in binary format.
 
 ## Core API
 

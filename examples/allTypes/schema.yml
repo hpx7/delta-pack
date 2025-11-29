@@ -22,3 +22,4 @@ User:
   hairColor: HairColor
   address: Address?
   children: UserId[]
+  metadata: string,string

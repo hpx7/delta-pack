@@ -1,5 +1,5 @@
 import yaml from "yaml";
-import { ArrayType, BooleanType, ContainerType, EnumType, FloatType, IntType, ObjectType, OptionalType, PrimitiveType, ReferenceType, StringType, Type, UIntType } from "./generator";
+import { ArrayType, BooleanType, ContainerType, EnumType, FloatType, IntType, ObjectType, OptionalType, PrimitiveType, RecordType, ReferenceType, StringType, Type, UIntType } from "./generator";
 
 export function parseSchemaYml(yamlContent: string): Record<string, Type> {
   const parsedSchema: Record<string, any> = yaml.parse(yamlContent);
@@ -22,11 +22,21 @@ function parseType(schema: Record<string, any>, value: any): Type {
     return ObjectType(properties);
   }
   if (typeof value === "string") {
+    if (value.includes(",")) {
+      const parts = value.split(",").map(s => s.trim());
+      if (parts.length !== 2) {
+        throw new Error(`Map type must have exactly 2 types, got: ${value}`);
+      }
+      const [keyTypeStr, valueTypeStr] = parts;
+      const keyType = parseType(schema, keyTypeStr) as { type: "string" | "int" | "uint" };
+      const valueType = parseType(schema, valueTypeStr) as PrimitiveType | ContainerType | ReferenceType;
+      return RecordType(keyType, valueType);
+    }
     if (value.endsWith("[]")) {
       const itemTypeStr = value.slice(0, -2);
       const childType = parseType(schema, itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
       return ArrayType(childType);
-    } 
+    }
     if (value.endsWith("?")) {
       const itemTypeStr = value.slice(0, -1);
       const childType = parseType(schema, itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;

@@ -10,5 +10,9 @@
     "zip": "12345",
     "state": "CA"
   },
-  "children": ["user_67890", "user_54321"]
+  "children": ["user_67890", "user_54321"],
+  "metadata": {
+    "role": "admin",
+    "department": "engineering"
+  }
 }
