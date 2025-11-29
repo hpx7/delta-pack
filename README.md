@@ -147,7 +147,8 @@ Enable schema validation and autocompletion in your IDE:
 **VS Code:**
 Add this comment at the top of your schema file:
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/hathora/delta-pack/main/schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+
 
 UserId: string
 # ... rest of schema
@@ -155,13 +156,15 @@ UserId: string
 
 **IntelliJ/WebStorm:**
 1. Go to Preferences → Languages & Frameworks → Schemas and DTDs → JSON Schema Mappings
-2. Add new mapping with URL: `https://raw.githubusercontent.com/hathora/delta-pack/main/schema.json`
+2. Add new mapping with URL: `https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+`
 3. Map to file pattern: `*.schema.yml` or specific files
 
 **Using the schema:**
 All example schema files include the schema reference at the top. Just copy the first line when creating your own schemas:
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/hathora/delta-pack/main/schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+
 ```
 
 For local development, you can also reference the schema file directly:
