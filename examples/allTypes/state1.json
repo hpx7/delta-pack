@@ -14,5 +14,11 @@
   "metadata": {
     "role": "admin",
     "department": "engineering"
+  },
+  "preferredContact": {
+    "type": "EmailContact",
+    "val": {
+      "email": "john.doe@example.com"
+    }
   }
 }

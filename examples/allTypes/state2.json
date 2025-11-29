@@ -15,5 +15,12 @@
     "role": "admin",
     "department": "engineering",
     "level": "senior"
+  },
+  "preferredContact": {
+    "type": "PhoneContact",
+    "val": {
+      "phone": "+1-555-0123",
+      "extension": 42
+    }
   }
 }

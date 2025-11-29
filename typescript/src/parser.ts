@@ -1,5 +1,5 @@
 import yaml from "yaml";
-import { ArrayType, BooleanType, ContainerType, EnumType, FloatType, IntType, ObjectType, OptionalType, PrimitiveType, RecordType, ReferenceType, StringType, Type, UIntType } from "./generator";
+import { ArrayType, BooleanType, ContainerType, EnumType, FloatType, IntType, ObjectType, OptionalType, PrimitiveType, RecordType, ReferenceType, StringType, Type, UIntType, UnionType } from "./generator";
 
 export function parseSchemaYml(yamlContent: string): Record<string, Type> {
   const parsedSchema: Record<string, any> = yaml.parse(yamlContent);
@@ -12,7 +12,11 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
 
 function parseType(schema: Record<string, any>, value: any): Type {
   if (Array.isArray(value)) {
-    return EnumType(value as string[]);
+    const values = value as string[];
+    if (values.every((v) => v in schema)) {
+      return UnionType(values.map((v) => ReferenceType(v)));
+    }
+    return EnumType(values);
   }
   if (typeof value === "object") {
     const properties: Record<string, PrimitiveType | ContainerType | ReferenceType> = {};

@@ -57,6 +57,31 @@ Player:
 
 Enums are encoded as variable-length unsigned integers (0, 1, 2, etc.).
 
+### Union Types
+
+Define union types by listing type names that exist in the schema:
+
+```yaml
+EmailContact:
+  email: string
+
+PhoneContact:
+  phone: string
+  extension: uint?
+
+Contact:
+  - EmailContact
+  - PhoneContact
+
+User:
+  preferredContact: Contact?
+```
+
+**How it works:**
+- If an array contains only type names defined in the schema, it's treated as a union type
+- If an array contains literal strings not in the schema, it's treated as an enum
+- Union values are encoded with a discriminator (type tag) plus the variant data
+
 ### Objects
 
 Nested object types:

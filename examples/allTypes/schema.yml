@@ -13,6 +13,17 @@ Address:
   zip: string
   state: string
 
+EmailContact:
+  email: string
+
+PhoneContact:
+  phone: string
+  extension: uint?
+
+Contact:
+  - EmailContact
+  - PhoneContact
+
 User:
   id: UserId
   name: string
@@ -23,3 +34,4 @@ User:
   address: Address?
   children: UserId[]
   metadata: string,string
+  preferredContact: Contact?
