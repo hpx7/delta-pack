@@ -2,23 +2,26 @@ import yaml from "yaml";
 import { ArrayType, BooleanType, ContainerType, EnumType, FloatType, IntType, ObjectType, OptionalType, PrimitiveType, RecordType, ReferenceType, StringType, Type, UIntType, UnionType } from "./generator";
 
 export function parseSchemaYml(yamlContent: string): Record<string, Type> {
+  // the yaml schema is a mapping from type names to type definitions
   const parsedSchema: Record<string, any> = yaml.parse(yamlContent);
-  const result: Record<string, Type> = {};
-  for (const [key, value] of Object.entries(parsedSchema)) {
-    result[key] = parseType(parsedSchema, value);
-  }
-  return result;
+
+  // parse the type definitions
+  return mapValues(parsedSchema, (value) => parseType(parsedSchema, value));
 }
 
 function parseType(schema: Record<string, any>, value: any): Type {
   if (Array.isArray(value)) {
+    // could be a union type or an enum type
     const values = value as string[];
+    // it's a union type if all values are references to other types in the schema
     if (values.every((v) => v in schema)) {
       return UnionType(values.map((v) => ReferenceType(v)));
     }
+    // otherwise, it's an enum type
     return EnumType(values);
   }
   if (typeof value === "object") {
+    // object type
     const properties: Record<string, PrimitiveType | ContainerType | ReferenceType> = {};
     for (const [propKey, propValue] of Object.entries(value)) {
       properties[propKey] = parseType(schema, propValue) as PrimitiveType | ContainerType | ReferenceType;
@@ -26,8 +29,10 @@ function parseType(schema: Record<string, any>, value: any): Type {
     return ObjectType(properties);
   }
   if (typeof value === "string") {
+    // map type, array type, optional type, reference type, or primitive type
     if (value.includes(",")) {
-      const parts = value.split(",").map(s => s.trim());
+      // map type
+      const parts = value.split(",").map((s) => s.trim());
       if (parts.length !== 2) {
         throw new Error(`Map type must have exactly 2 types, got: ${value}`);
       }
@@ -37,15 +42,22 @@ function parseType(schema: Record<string, any>, value: any): Type {
       return RecordType(keyType, valueType);
     }
     if (value.endsWith("[]")) {
+      // array type
       const itemTypeStr = value.slice(0, -2);
       const childType = parseType(schema, itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
       return ArrayType(childType);
     }
     if (value.endsWith("?")) {
+      // optional type
       const itemTypeStr = value.slice(0, -1);
       const childType = parseType(schema, itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
       return OptionalType(childType);
     }
+    if (value in schema) {
+      // reference type
+      return ReferenceType(value);
+    }
+    // primitive type
     if (value === "string") {
       return StringType();
     } else if (value === "int") {
@@ -56,9 +68,11 @@ function parseType(schema: Record<string, any>, value: any): Type {
       return FloatType();
     } else if (value === "boolean") {
       return BooleanType();
-    } else {
-      return ReferenceType(value);
     }
   }
   throw new Error(`Unsupported type format: ${value}`);
+}
+
+function mapValues<T, U>(obj: Record<string, T>, fn: (value: T) => U): Record<string, U> {
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, fn(value)]));
 }
