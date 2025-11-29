@@ -32,8 +32,8 @@ export const Position = {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
-      x: _.parseFloat(obj.x),
-      y: _.parseFloat(obj.y),
+      x: _.tryParseField(() => _.parseFloat(obj.x), "Position.x"),
+      y: _.tryParseField(() => _.parseFloat(obj.y), "Position.y"),
     };
   },
   equals(a: Position, b: Position): boolean {
@@ -102,8 +102,8 @@ export const Weapon = {
       throw new Error(`Invalid Weapon: ${obj}`);
     }
     return {
-      name: _.parseString(obj.name),
-      damage: _.parseInt(obj.damage),
+      name: _.tryParseField(() => _.parseString(obj.name), "Weapon.name"),
+      damage: _.tryParseField(() => _.parseInt(obj.damage), "Weapon.damage"),
     };
   },
   equals(a: Weapon, b: Weapon): boolean {
@@ -174,10 +174,10 @@ export const Player = {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
-      position: Position.parse(obj.position as Position),
-      health: _.parseInt(obj.health),
-      weapon: _.parseOptional(obj.weapon, (x) => Weapon.parse(x as Weapon)),
-      stealth: _.parseBoolean(obj.stealth),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "Player.position"),
+      health: _.tryParseField(() => _.parseInt(obj.health), "Player.health"),
+      weapon: _.tryParseField(() => _.parseOptional(obj.weapon, (x) => Weapon.parse(x as Weapon)), "Player.weapon"),
+      stealth: _.tryParseField(() => _.parseBoolean(obj.stealth), "Player.stealth"),
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -265,8 +265,8 @@ export const GameState = {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {
-      timeRemaining: _.parseInt(obj.timeRemaining),
-      players: _.parseRecord(obj.players, (x) => _.parseInt(x), (x) => Player.parse(x as Player)),
+      timeRemaining: _.tryParseField(() => _.parseInt(obj.timeRemaining), "GameState.timeRemaining"),
+      players: _.tryParseField(() => _.parseRecord(obj.players, (x) => _.parseInt(x), (x) => Player.parse(x as Player)), "GameState.players"),
     };
   },
   equals(a: GameState, b: GameState): boolean {

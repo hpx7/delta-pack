@@ -21,15 +21,15 @@ const Weapon = ObjectType({
 });
 
 const Player = ObjectType({
-  position: ReferenceType(Position),
+  position: ReferenceType("Position"),
   health: IntType(),
-  weapon: OptionalType(ReferenceType(Weapon)),
+  weapon: OptionalType(ReferenceType("Weapon")),
   stealth: BooleanType(),
 });
 
 const GameState = ObjectType({
   timeRemaining: IntType(),
-  players: RecordType(IntType(), ReferenceType(Player)),
+  players: RecordType(IntType(), ReferenceType("Player")),
 });
 
 console.log(

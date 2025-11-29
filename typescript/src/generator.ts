@@ -1,11 +1,11 @@
 import { renderDoc } from "./codegen";
 
-type PrimitiveType = EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
-type ContainerType = ArrayType | OptionalType | RecordType;
+export type PrimitiveType = EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
+export type ContainerType = ArrayType | OptionalType | RecordType;
 export type Type = ReferenceType | ObjectType | UnionType | ContainerType | PrimitiveType;
 export type ReferenceType = {
   type: "reference";
-  reference: Type;
+  reference: string;
 };
 interface ObjectType {
   type: "object";
@@ -49,7 +49,7 @@ interface BooleanType {
   type: "boolean";
 }
 
-export function ReferenceType(reference: Type): ReferenceType {
+export function ReferenceType(reference: string): ReferenceType {
   return { type: "reference", reference };
 }
 

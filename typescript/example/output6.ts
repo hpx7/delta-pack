@@ -261,8 +261,8 @@ export const Position = {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
-      x: _.parseFloat(obj.x),
-      y: _.parseFloat(obj.y),
+      x: _.tryParseField(() => _.parseFloat(obj.x), "Position.x"),
+      y: _.tryParseField(() => _.parseFloat(obj.y), "Position.y"),
     };
   },
   equals(a: Position, b: Position): boolean {
@@ -331,8 +331,8 @@ export const Velocity = {
       throw new Error(`Invalid Velocity: ${obj}`);
     }
     return {
-      vx: _.parseFloat(obj.vx),
-      vy: _.parseFloat(obj.vy),
+      vx: _.tryParseField(() => _.parseFloat(obj.vx), "Velocity.vx"),
+      vy: _.tryParseField(() => _.parseFloat(obj.vy), "Velocity.vy"),
     };
   },
   equals(a: Velocity, b: Velocity): boolean {
@@ -405,12 +405,12 @@ export const InventoryItem = {
       throw new Error(`Invalid InventoryItem: ${obj}`);
     }
     return {
-      itemId: _.parseString(obj.itemId),
-      name: _.parseString(obj.name),
-      quantity: _.parseUInt(obj.quantity),
-      rarity: _.parseEnum(obj.rarity, ItemRarity),
-      durability: _.parseOptional(obj.durability, (x) => _.parseUInt(x)),
-      enchantmentLevel: _.parseOptional(obj.enchantmentLevel, (x) => _.parseUInt(x)),
+      itemId: _.tryParseField(() => _.parseString(obj.itemId), "InventoryItem.itemId"),
+      name: _.tryParseField(() => _.parseString(obj.name), "InventoryItem.name"),
+      quantity: _.tryParseField(() => _.parseUInt(obj.quantity), "InventoryItem.quantity"),
+      rarity: _.tryParseField(() => _.parseEnum(obj.rarity, ItemRarity), "InventoryItem.rarity"),
+      durability: _.tryParseField(() => _.parseOptional(obj.durability, (x) => _.parseUInt(x)), "InventoryItem.durability"),
+      enchantmentLevel: _.tryParseField(() => _.parseOptional(obj.enchantmentLevel, (x) => _.parseUInt(x)), "InventoryItem.enchantmentLevel"),
     };
   },
   equals(a: InventoryItem, b: InventoryItem): boolean {
@@ -515,10 +515,10 @@ export const Equipment = {
       throw new Error(`Invalid Equipment: ${obj}`);
     }
     return {
-      weapon: _.parseOptional(obj.weapon, (x) => _.parseEnum(x, WeaponType)),
-      armor: _.parseOptional(obj.armor, (x) => _.parseString(x)),
-      accessory1: _.parseOptional(obj.accessory1, (x) => _.parseString(x)),
-      accessory2: _.parseOptional(obj.accessory2, (x) => _.parseString(x)),
+      weapon: _.tryParseField(() => _.parseOptional(obj.weapon, (x) => _.parseEnum(x, WeaponType)), "Equipment.weapon"),
+      armor: _.tryParseField(() => _.parseOptional(obj.armor, (x) => _.parseString(x)), "Equipment.armor"),
+      accessory1: _.tryParseField(() => _.parseOptional(obj.accessory1, (x) => _.parseString(x)), "Equipment.accessory1"),
+      accessory2: _.tryParseField(() => _.parseOptional(obj.accessory2, (x) => _.parseString(x)), "Equipment.accessory2"),
     };
   },
   equals(a: Equipment, b: Equipment): boolean {
@@ -635,18 +635,18 @@ export const PlayerStats = {
       throw new Error(`Invalid PlayerStats: ${obj}`);
     }
     return {
-      health: _.parseUInt(obj.health),
-      maxHealth: _.parseUInt(obj.maxHealth),
-      mana: _.parseUInt(obj.mana),
-      maxMana: _.parseUInt(obj.maxMana),
-      stamina: _.parseUInt(obj.stamina),
-      maxStamina: _.parseUInt(obj.maxStamina),
-      level: _.parseUInt(obj.level),
-      experience: _.parseUInt(obj.experience),
-      strength: _.parseUInt(obj.strength),
-      agility: _.parseUInt(obj.agility),
-      intelligence: _.parseUInt(obj.intelligence),
-      defense: _.parseUInt(obj.defense),
+      health: _.tryParseField(() => _.parseUInt(obj.health), "PlayerStats.health"),
+      maxHealth: _.tryParseField(() => _.parseUInt(obj.maxHealth), "PlayerStats.maxHealth"),
+      mana: _.tryParseField(() => _.parseUInt(obj.mana), "PlayerStats.mana"),
+      maxMana: _.tryParseField(() => _.parseUInt(obj.maxMana), "PlayerStats.maxMana"),
+      stamina: _.tryParseField(() => _.parseUInt(obj.stamina), "PlayerStats.stamina"),
+      maxStamina: _.tryParseField(() => _.parseUInt(obj.maxStamina), "PlayerStats.maxStamina"),
+      level: _.tryParseField(() => _.parseUInt(obj.level), "PlayerStats.level"),
+      experience: _.tryParseField(() => _.parseUInt(obj.experience), "PlayerStats.experience"),
+      strength: _.tryParseField(() => _.parseUInt(obj.strength), "PlayerStats.strength"),
+      agility: _.tryParseField(() => _.parseUInt(obj.agility), "PlayerStats.agility"),
+      intelligence: _.tryParseField(() => _.parseUInt(obj.intelligence), "PlayerStats.intelligence"),
+      defense: _.tryParseField(() => _.parseUInt(obj.defense), "PlayerStats.defense"),
     };
   },
   equals(a: PlayerStats, b: PlayerStats): boolean {
@@ -767,10 +767,10 @@ export const ActiveEffect = {
       throw new Error(`Invalid ActiveEffect: ${obj}`);
     }
     return {
-      effectType: _.parseEnum(obj.effectType, EffectType),
-      duration: _.parseFloat(obj.duration),
-      strength: _.parseUInt(obj.strength),
-      stackCount: _.parseUInt(obj.stackCount),
+      effectType: _.tryParseField(() => _.parseEnum(obj.effectType, EffectType), "ActiveEffect.effectType"),
+      duration: _.tryParseField(() => _.parseFloat(obj.duration), "ActiveEffect.duration"),
+      strength: _.tryParseField(() => _.parseUInt(obj.strength), "ActiveEffect.strength"),
+      stackCount: _.tryParseField(() => _.parseUInt(obj.stackCount), "ActiveEffect.stackCount"),
     };
   },
   equals(a: ActiveEffect, b: ActiveEffect): boolean {
@@ -850,9 +850,9 @@ export const AbilityCooldown = {
       throw new Error(`Invalid AbilityCooldown: ${obj}`);
     }
     return {
-      abilityId: _.parseString(obj.abilityId),
-      abilityType: _.parseEnum(obj.abilityType, AbilityType),
-      remainingCooldown: _.parseFloat(obj.remainingCooldown),
+      abilityId: _.tryParseField(() => _.parseString(obj.abilityId), "AbilityCooldown.abilityId"),
+      abilityType: _.tryParseField(() => _.parseEnum(obj.abilityType, AbilityType), "AbilityCooldown.abilityType"),
+      remainingCooldown: _.tryParseField(() => _.parseFloat(obj.remainingCooldown), "AbilityCooldown.remainingCooldown"),
     };
   },
   equals(a: AbilityCooldown, b: AbilityCooldown): boolean {
@@ -947,29 +947,29 @@ export const Player = {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
-      playerId: _.parseString(obj.playerId),
-      username: _.parseString(obj.username),
-      team: _.parseOptional(obj.team, (x) => _.parseEnum(x, Team)),
-      status: _.parseEnum(obj.status, PlayerStatus),
-      position: Position.parse(obj.position as Position),
-      velocity: Velocity.parse(obj.velocity as Velocity),
-      rotation: _.parseFloat(obj.rotation),
-      stats: PlayerStats.parse(obj.stats as PlayerStats),
-      inventory: _.parseArray(obj.inventory, (x) => InventoryItem.parse(x as InventoryItem)),
-      equipment: Equipment.parse(obj.equipment as Equipment),
-      activeEffects: _.parseArray(obj.activeEffects, (x) => ActiveEffect.parse(x as ActiveEffect)),
-      abilityCooldowns: _.parseArray(obj.abilityCooldowns, (x) => AbilityCooldown.parse(x as AbilityCooldown)),
-      kills: _.parseUInt(obj.kills),
-      deaths: _.parseUInt(obj.deaths),
-      assists: _.parseUInt(obj.assists),
-      gold: _.parseUInt(obj.gold),
-      score: _.parseInt(obj.score),
-      ping: _.parseUInt(obj.ping),
-      isJumping: _.parseBoolean(obj.isJumping),
-      isCrouching: _.parseBoolean(obj.isCrouching),
-      isAiming: _.parseBoolean(obj.isAiming),
-      lastDamageTime: _.parseOptional(obj.lastDamageTime, (x) => _.parseFloat(x)),
-      respawnTime: _.parseOptional(obj.respawnTime, (x) => _.parseFloat(x)),
+      playerId: _.tryParseField(() => _.parseString(obj.playerId), "Player.playerId"),
+      username: _.tryParseField(() => _.parseString(obj.username), "Player.username"),
+      team: _.tryParseField(() => _.parseOptional(obj.team, (x) => _.parseEnum(x, Team)), "Player.team"),
+      status: _.tryParseField(() => _.parseEnum(obj.status, PlayerStatus), "Player.status"),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "Player.position"),
+      velocity: _.tryParseField(() => Velocity.parse(obj.velocity as Velocity), "Player.velocity"),
+      rotation: _.tryParseField(() => _.parseFloat(obj.rotation), "Player.rotation"),
+      stats: _.tryParseField(() => PlayerStats.parse(obj.stats as PlayerStats), "Player.stats"),
+      inventory: _.tryParseField(() => _.parseArray(obj.inventory, (x) => InventoryItem.parse(x as InventoryItem)), "Player.inventory"),
+      equipment: _.tryParseField(() => Equipment.parse(obj.equipment as Equipment), "Player.equipment"),
+      activeEffects: _.tryParseField(() => _.parseArray(obj.activeEffects, (x) => ActiveEffect.parse(x as ActiveEffect)), "Player.activeEffects"),
+      abilityCooldowns: _.tryParseField(() => _.parseArray(obj.abilityCooldowns, (x) => AbilityCooldown.parse(x as AbilityCooldown)), "Player.abilityCooldowns"),
+      kills: _.tryParseField(() => _.parseUInt(obj.kills), "Player.kills"),
+      deaths: _.tryParseField(() => _.parseUInt(obj.deaths), "Player.deaths"),
+      assists: _.tryParseField(() => _.parseUInt(obj.assists), "Player.assists"),
+      gold: _.tryParseField(() => _.parseUInt(obj.gold), "Player.gold"),
+      score: _.tryParseField(() => _.parseInt(obj.score), "Player.score"),
+      ping: _.tryParseField(() => _.parseUInt(obj.ping), "Player.ping"),
+      isJumping: _.tryParseField(() => _.parseBoolean(obj.isJumping), "Player.isJumping"),
+      isCrouching: _.tryParseField(() => _.parseBoolean(obj.isCrouching), "Player.isCrouching"),
+      isAiming: _.tryParseField(() => _.parseBoolean(obj.isAiming), "Player.isAiming"),
+      lastDamageTime: _.tryParseField(() => _.parseOptional(obj.lastDamageTime, (x) => _.parseFloat(x)), "Player.lastDamageTime"),
+      respawnTime: _.tryParseField(() => _.parseOptional(obj.respawnTime, (x) => _.parseFloat(x)), "Player.respawnTime"),
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -1203,17 +1203,17 @@ export const Enemy = {
       throw new Error(`Invalid Enemy: ${obj}`);
     }
     return {
-      enemyId: _.parseString(obj.enemyId),
-      name: _.parseString(obj.name),
-      position: Position.parse(obj.position as Position),
-      velocity: Velocity.parse(obj.velocity as Velocity),
-      health: _.parseUInt(obj.health),
-      maxHealth: _.parseUInt(obj.maxHealth),
-      level: _.parseUInt(obj.level),
-      isAggro: _.parseBoolean(obj.isAggro),
-      targetPlayerId: _.parseOptional(obj.targetPlayerId, (x) => _.parseString(x)),
-      lastAttackTime: _.parseFloat(obj.lastAttackTime),
-      lootTableId: _.parseOptional(obj.lootTableId, (x) => _.parseString(x)),
+      enemyId: _.tryParseField(() => _.parseString(obj.enemyId), "Enemy.enemyId"),
+      name: _.tryParseField(() => _.parseString(obj.name), "Enemy.name"),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "Enemy.position"),
+      velocity: _.tryParseField(() => Velocity.parse(obj.velocity as Velocity), "Enemy.velocity"),
+      health: _.tryParseField(() => _.parseUInt(obj.health), "Enemy.health"),
+      maxHealth: _.tryParseField(() => _.parseUInt(obj.maxHealth), "Enemy.maxHealth"),
+      level: _.tryParseField(() => _.parseUInt(obj.level), "Enemy.level"),
+      isAggro: _.tryParseField(() => _.parseBoolean(obj.isAggro), "Enemy.isAggro"),
+      targetPlayerId: _.tryParseField(() => _.parseOptional(obj.targetPlayerId, (x) => _.parseString(x)), "Enemy.targetPlayerId"),
+      lastAttackTime: _.tryParseField(() => _.parseFloat(obj.lastAttackTime), "Enemy.lastAttackTime"),
+      lootTableId: _.tryParseField(() => _.parseOptional(obj.lootTableId, (x) => _.parseString(x)), "Enemy.lootTableId"),
     };
   },
   equals(a: Enemy, b: Enemy): boolean {
@@ -1347,14 +1347,14 @@ export const Projectile = {
       throw new Error(`Invalid Projectile: ${obj}`);
     }
     return {
-      projectileId: _.parseString(obj.projectileId),
-      ownerId: _.parseString(obj.ownerId),
-      position: Position.parse(obj.position as Position),
-      velocity: Velocity.parse(obj.velocity as Velocity),
-      damage: _.parseUInt(obj.damage),
-      penetration: _.parseUInt(obj.penetration),
-      timeToLive: _.parseFloat(obj.timeToLive),
-      hitPlayers: _.parseArray(obj.hitPlayers, (x) => _.parseString(x)),
+      projectileId: _.tryParseField(() => _.parseString(obj.projectileId), "Projectile.projectileId"),
+      ownerId: _.tryParseField(() => _.parseString(obj.ownerId), "Projectile.ownerId"),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "Projectile.position"),
+      velocity: _.tryParseField(() => Velocity.parse(obj.velocity as Velocity), "Projectile.velocity"),
+      damage: _.tryParseField(() => _.parseUInt(obj.damage), "Projectile.damage"),
+      penetration: _.tryParseField(() => _.parseUInt(obj.penetration), "Projectile.penetration"),
+      timeToLive: _.tryParseField(() => _.parseFloat(obj.timeToLive), "Projectile.timeToLive"),
+      hitPlayers: _.tryParseField(() => _.parseArray(obj.hitPlayers, (x) => _.parseString(x)), "Projectile.hitPlayers"),
     };
   },
   equals(a: Projectile, b: Projectile): boolean {
@@ -1465,10 +1465,10 @@ export const DroppedLoot = {
       throw new Error(`Invalid DroppedLoot: ${obj}`);
     }
     return {
-      lootId: _.parseString(obj.lootId),
-      position: Position.parse(obj.position as Position),
-      item: InventoryItem.parse(obj.item as InventoryItem),
-      despawnTime: _.parseFloat(obj.despawnTime),
+      lootId: _.tryParseField(() => _.parseString(obj.lootId), "DroppedLoot.lootId"),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "DroppedLoot.position"),
+      item: _.tryParseField(() => InventoryItem.parse(obj.item as InventoryItem), "DroppedLoot.item"),
+      despawnTime: _.tryParseField(() => _.parseFloat(obj.despawnTime), "DroppedLoot.despawnTime"),
     };
   },
   equals(a: DroppedLoot, b: DroppedLoot): boolean {
@@ -1552,13 +1552,13 @@ export const WorldObject = {
       throw new Error(`Invalid WorldObject: ${obj}`);
     }
     return {
-      objectId: _.parseString(obj.objectId),
-      objectType: _.parseString(obj.objectType),
-      position: Position.parse(obj.position as Position),
-      health: _.parseOptional(obj.health, (x) => _.parseUInt(x)),
-      isDestroyed: _.parseBoolean(obj.isDestroyed),
-      isInteractable: _.parseBoolean(obj.isInteractable),
-      interactedBy: _.parseOptional(obj.interactedBy, (x) => _.parseString(x)),
+      objectId: _.tryParseField(() => _.parseString(obj.objectId), "WorldObject.objectId"),
+      objectType: _.tryParseField(() => _.parseString(obj.objectType), "WorldObject.objectType"),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "WorldObject.position"),
+      health: _.tryParseField(() => _.parseOptional(obj.health, (x) => _.parseUInt(x)), "WorldObject.health"),
+      isDestroyed: _.tryParseField(() => _.parseBoolean(obj.isDestroyed), "WorldObject.isDestroyed"),
+      isInteractable: _.tryParseField(() => _.parseBoolean(obj.isInteractable), "WorldObject.isInteractable"),
+      interactedBy: _.tryParseField(() => _.parseOptional(obj.interactedBy, (x) => _.parseString(x)), "WorldObject.interactedBy"),
     };
   },
   equals(a: WorldObject, b: WorldObject): boolean {
@@ -1670,12 +1670,12 @@ export const MatchStats = {
       throw new Error(`Invalid MatchStats: ${obj}`);
     }
     return {
-      totalKills: _.parseUInt(obj.totalKills),
-      totalDeaths: _.parseUInt(obj.totalDeaths),
-      totalDamageDealt: _.parseUInt(obj.totalDamageDealt),
-      totalHealingDone: _.parseUInt(obj.totalHealingDone),
-      longestKillStreak: _.parseUInt(obj.longestKillStreak),
-      matchDuration: _.parseFloat(obj.matchDuration),
+      totalKills: _.tryParseField(() => _.parseUInt(obj.totalKills), "MatchStats.totalKills"),
+      totalDeaths: _.tryParseField(() => _.parseUInt(obj.totalDeaths), "MatchStats.totalDeaths"),
+      totalDamageDealt: _.tryParseField(() => _.parseUInt(obj.totalDamageDealt), "MatchStats.totalDamageDealt"),
+      totalHealingDone: _.tryParseField(() => _.parseUInt(obj.totalHealingDone), "MatchStats.totalHealingDone"),
+      longestKillStreak: _.tryParseField(() => _.parseUInt(obj.longestKillStreak), "MatchStats.longestKillStreak"),
+      matchDuration: _.tryParseField(() => _.parseFloat(obj.matchDuration), "MatchStats.matchDuration"),
     };
   },
   equals(a: MatchStats, b: MatchStats): boolean {
@@ -1766,10 +1766,10 @@ export const TeamScore = {
       throw new Error(`Invalid TeamScore: ${obj}`);
     }
     return {
-      team: _.parseEnum(obj.team, Team),
-      score: _.parseUInt(obj.score),
-      kills: _.parseUInt(obj.kills),
-      objectivesCaptured: _.parseUInt(obj.objectivesCaptured),
+      team: _.tryParseField(() => _.parseEnum(obj.team, Team), "TeamScore.team"),
+      score: _.tryParseField(() => _.parseUInt(obj.score), "TeamScore.score"),
+      kills: _.tryParseField(() => _.parseUInt(obj.kills), "TeamScore.kills"),
+      objectivesCaptured: _.tryParseField(() => _.parseUInt(obj.objectivesCaptured), "TeamScore.objectivesCaptured"),
     };
   },
   equals(a: TeamScore, b: TeamScore): boolean {
@@ -1852,12 +1852,12 @@ export const GameSettings = {
       throw new Error(`Invalid GameSettings: ${obj}`);
     }
     return {
-      maxPlayers: _.parseUInt(obj.maxPlayers),
-      friendlyFire: _.parseBoolean(obj.friendlyFire),
-      respawnDelay: _.parseFloat(obj.respawnDelay),
-      roundTimeLimit: _.parseUInt(obj.roundTimeLimit),
-      startingGold: _.parseUInt(obj.startingGold),
-      gravityMultiplier: _.parseFloat(obj.gravityMultiplier),
+      maxPlayers: _.tryParseField(() => _.parseUInt(obj.maxPlayers), "GameSettings.maxPlayers"),
+      friendlyFire: _.tryParseField(() => _.parseBoolean(obj.friendlyFire), "GameSettings.friendlyFire"),
+      respawnDelay: _.tryParseField(() => _.parseFloat(obj.respawnDelay), "GameSettings.respawnDelay"),
+      roundTimeLimit: _.tryParseField(() => _.parseUInt(obj.roundTimeLimit), "GameSettings.roundTimeLimit"),
+      startingGold: _.tryParseField(() => _.parseUInt(obj.startingGold), "GameSettings.startingGold"),
+      gravityMultiplier: _.tryParseField(() => _.parseFloat(obj.gravityMultiplier), "GameSettings.gravityMultiplier"),
     };
   },
   equals(a: GameSettings, b: GameSettings): boolean {
@@ -1961,23 +1961,23 @@ export const GameState = {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {
-      gameId: _.parseString(obj.gameId),
-      serverTime: _.parseFloat(obj.serverTime),
-      tickNumber: _.parseUInt(obj.tickNumber),
-      round: _.parseUInt(obj.round),
-      phase: _.parseString(obj.phase),
-      timeRemaining: _.parseFloat(obj.timeRemaining),
-      players: _.parseRecord(obj.players, (x) => _.parseString(x), (x) => Player.parse(x as Player)),
-      enemies: _.parseRecord(obj.enemies, (x) => _.parseString(x), (x) => Enemy.parse(x as Enemy)),
-      projectiles: _.parseRecord(obj.projectiles, (x) => _.parseString(x), (x) => Projectile.parse(x as Projectile)),
-      droppedLoot: _.parseRecord(obj.droppedLoot, (x) => _.parseString(x), (x) => DroppedLoot.parse(x as DroppedLoot)),
-      worldObjects: _.parseRecord(obj.worldObjects, (x) => _.parseString(x), (x) => WorldObject.parse(x as WorldObject)),
-      teamScores: _.parseArray(obj.teamScores, (x) => TeamScore.parse(x as TeamScore)),
-      matchStats: MatchStats.parse(obj.matchStats as MatchStats),
-      settings: GameSettings.parse(obj.settings as GameSettings),
-      winningTeam: _.parseOptional(obj.winningTeam, (x) => _.parseEnum(x, Team)),
-      mapName: _.parseString(obj.mapName),
-      weatherIntensity: _.parseFloat(obj.weatherIntensity),
+      gameId: _.tryParseField(() => _.parseString(obj.gameId), "GameState.gameId"),
+      serverTime: _.tryParseField(() => _.parseFloat(obj.serverTime), "GameState.serverTime"),
+      tickNumber: _.tryParseField(() => _.parseUInt(obj.tickNumber), "GameState.tickNumber"),
+      round: _.tryParseField(() => _.parseUInt(obj.round), "GameState.round"),
+      phase: _.tryParseField(() => _.parseString(obj.phase), "GameState.phase"),
+      timeRemaining: _.tryParseField(() => _.parseFloat(obj.timeRemaining), "GameState.timeRemaining"),
+      players: _.tryParseField(() => _.parseRecord(obj.players, (x) => _.parseString(x), (x) => Player.parse(x as Player)), "GameState.players"),
+      enemies: _.tryParseField(() => _.parseRecord(obj.enemies, (x) => _.parseString(x), (x) => Enemy.parse(x as Enemy)), "GameState.enemies"),
+      projectiles: _.tryParseField(() => _.parseRecord(obj.projectiles, (x) => _.parseString(x), (x) => Projectile.parse(x as Projectile)), "GameState.projectiles"),
+      droppedLoot: _.tryParseField(() => _.parseRecord(obj.droppedLoot, (x) => _.parseString(x), (x) => DroppedLoot.parse(x as DroppedLoot)), "GameState.droppedLoot"),
+      worldObjects: _.tryParseField(() => _.parseRecord(obj.worldObjects, (x) => _.parseString(x), (x) => WorldObject.parse(x as WorldObject)), "GameState.worldObjects"),
+      teamScores: _.tryParseField(() => _.parseArray(obj.teamScores, (x) => TeamScore.parse(x as TeamScore)), "GameState.teamScores"),
+      matchStats: _.tryParseField(() => MatchStats.parse(obj.matchStats as MatchStats), "GameState.matchStats"),
+      settings: _.tryParseField(() => GameSettings.parse(obj.settings as GameSettings), "GameState.settings"),
+      winningTeam: _.tryParseField(() => _.parseOptional(obj.winningTeam, (x) => _.parseEnum(x, Team)), "GameState.winningTeam"),
+      mapName: _.tryParseField(() => _.parseString(obj.mapName), "GameState.mapName"),
+      weatherIntensity: _.tryParseField(() => _.parseFloat(obj.weatherIntensity), "GameState.weatherIntensity"),
     };
   },
   equals(a: GameState, b: GameState): boolean {

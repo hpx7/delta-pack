@@ -187,27 +187,27 @@ export const CreatureState = {
       throw new Error(`Invalid CreatureState: ${obj}`);
     }
     return {
-      team: _.parseString(obj.team),
-      hero: _.parseBoolean(obj.hero),
-      creatureType: _.parseString(obj.creatureType),
-      equippedItemType: _.parseOptional(obj.equippedItemType, (x) => _.parseString(x)),
-      health: _.parseUInt(obj.health),
-      maxHealth: _.parseUInt(obj.maxHealth),
-      visible: _.parseBoolean(obj.visible),
-      facing: _.parseString(obj.facing),
-      moving: _.parseBoolean(obj.moving),
-      moveType: _.parseString(obj.moveType),
-      moveTargetX: _.parseOptional(obj.moveTargetX, (x) => _.parseInt(x)),
-      moveTargetY: _.parseOptional(obj.moveTargetY, (x) => _.parseInt(x)),
-      enemyTargetX: _.parseOptional(obj.enemyTargetX, (x) => _.parseInt(x)),
-      enemyTargetY: _.parseOptional(obj.enemyTargetY, (x) => _.parseInt(x)),
-      using: _.parseOptional(obj.using, (x) => _.parseString(x)),
-      useDirection: _.parseOptional(obj.useDirection, (x) => _.parseString(x)),
-      takingDamage: _.parseBoolean(obj.takingDamage),
-      frozen: _.parseBoolean(obj.frozen),
-      statusEffect: _.parseOptional(obj.statusEffect, (x) => _.parseString(x)),
-      x: _.parseInt(obj.x),
-      y: _.parseInt(obj.y),
+      team: _.tryParseField(() => _.parseString(obj.team), "CreatureState.team"),
+      hero: _.tryParseField(() => _.parseBoolean(obj.hero), "CreatureState.hero"),
+      creatureType: _.tryParseField(() => _.parseString(obj.creatureType), "CreatureState.creatureType"),
+      equippedItemType: _.tryParseField(() => _.parseOptional(obj.equippedItemType, (x) => _.parseString(x)), "CreatureState.equippedItemType"),
+      health: _.tryParseField(() => _.parseUInt(obj.health), "CreatureState.health"),
+      maxHealth: _.tryParseField(() => _.parseUInt(obj.maxHealth), "CreatureState.maxHealth"),
+      visible: _.tryParseField(() => _.parseBoolean(obj.visible), "CreatureState.visible"),
+      facing: _.tryParseField(() => _.parseString(obj.facing), "CreatureState.facing"),
+      moving: _.tryParseField(() => _.parseBoolean(obj.moving), "CreatureState.moving"),
+      moveType: _.tryParseField(() => _.parseString(obj.moveType), "CreatureState.moveType"),
+      moveTargetX: _.tryParseField(() => _.parseOptional(obj.moveTargetX, (x) => _.parseInt(x)), "CreatureState.moveTargetX"),
+      moveTargetY: _.tryParseField(() => _.parseOptional(obj.moveTargetY, (x) => _.parseInt(x)), "CreatureState.moveTargetY"),
+      enemyTargetX: _.tryParseField(() => _.parseOptional(obj.enemyTargetX, (x) => _.parseInt(x)), "CreatureState.enemyTargetX"),
+      enemyTargetY: _.tryParseField(() => _.parseOptional(obj.enemyTargetY, (x) => _.parseInt(x)), "CreatureState.enemyTargetY"),
+      using: _.tryParseField(() => _.parseOptional(obj.using, (x) => _.parseString(x)), "CreatureState.using"),
+      useDirection: _.tryParseField(() => _.parseOptional(obj.useDirection, (x) => _.parseString(x)), "CreatureState.useDirection"),
+      takingDamage: _.tryParseField(() => _.parseBoolean(obj.takingDamage), "CreatureState.takingDamage"),
+      frozen: _.tryParseField(() => _.parseBoolean(obj.frozen), "CreatureState.frozen"),
+      statusEffect: _.tryParseField(() => _.parseOptional(obj.statusEffect, (x) => _.parseString(x)), "CreatureState.statusEffect"),
+      x: _.tryParseField(() => _.parseInt(obj.x), "CreatureState.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "CreatureState.y"),
     };
   },
   equals(a: CreatureState, b: CreatureState): boolean {
@@ -430,11 +430,11 @@ export const ItemState = {
       throw new Error(`Invalid ItemState: ${obj}`);
     }
     return {
-      itemType: _.parseString(obj.itemType),
-      potionType: _.parseOptional(obj.potionType, (x) => _.parseString(x)),
-      weaponType: _.parseOptional(obj.weaponType, (x) => _.parseString(x)),
-      x: _.parseInt(obj.x),
-      y: _.parseInt(obj.y),
+      itemType: _.tryParseField(() => _.parseString(obj.itemType), "ItemState.itemType"),
+      potionType: _.tryParseField(() => _.parseOptional(obj.potionType, (x) => _.parseString(x)), "ItemState.potionType"),
+      weaponType: _.tryParseField(() => _.parseOptional(obj.weaponType, (x) => _.parseString(x)), "ItemState.weaponType"),
+      x: _.tryParseField(() => _.parseInt(obj.x), "ItemState.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "ItemState.y"),
     };
   },
   equals(a: ItemState, b: ItemState): boolean {
@@ -546,22 +546,22 @@ export const EffectState = {
       throw new Error(`Invalid EffectState: ${obj}`);
     }
     return {
-      creatureId: _.parseOptional(obj.creatureId, (x) => _.parseInt(x)),
-      effectType: _.parseString(obj.effectType),
-      triggerType: _.parseOptional(obj.triggerType, (x) => _.parseString(x)),
-      ellipseEffectType: _.parseOptional(obj.ellipseEffectType, (x) => _.parseString(x)),
-      weaponEffectType: _.parseOptional(obj.weaponEffectType, (x) => _.parseString(x)),
-      projectileType: _.parseOptional(obj.projectileType, (x) => _.parseString(x)),
-      visualEffectType: _.parseOptional(obj.visualEffectType, (x) => _.parseString(x)),
-      swingType: _.parseOptional(obj.swingType, (x) => _.parseString(x)),
-      thrustType: _.parseOptional(obj.thrustType, (x) => _.parseString(x)),
-      weaponType: _.parseOptional(obj.weaponType, (x) => _.parseString(x)),
-      direction: _.parseOptional(obj.direction, (x) => _.parseString(x)),
-      angle: _.parseOptional(obj.angle, (x) => _.parseInt(x)),
-      radius: _.parseOptional(obj.radius, (x) => _.parseUInt(x)),
-      x: _.parseInt(obj.x),
-      y: _.parseInt(obj.y),
-      z: _.parseOptional(obj.z, (x) => _.parseInt(x)),
+      creatureId: _.tryParseField(() => _.parseOptional(obj.creatureId, (x) => _.parseInt(x)), "EffectState.creatureId"),
+      effectType: _.tryParseField(() => _.parseString(obj.effectType), "EffectState.effectType"),
+      triggerType: _.tryParseField(() => _.parseOptional(obj.triggerType, (x) => _.parseString(x)), "EffectState.triggerType"),
+      ellipseEffectType: _.tryParseField(() => _.parseOptional(obj.ellipseEffectType, (x) => _.parseString(x)), "EffectState.ellipseEffectType"),
+      weaponEffectType: _.tryParseField(() => _.parseOptional(obj.weaponEffectType, (x) => _.parseString(x)), "EffectState.weaponEffectType"),
+      projectileType: _.tryParseField(() => _.parseOptional(obj.projectileType, (x) => _.parseString(x)), "EffectState.projectileType"),
+      visualEffectType: _.tryParseField(() => _.parseOptional(obj.visualEffectType, (x) => _.parseString(x)), "EffectState.visualEffectType"),
+      swingType: _.tryParseField(() => _.parseOptional(obj.swingType, (x) => _.parseString(x)), "EffectState.swingType"),
+      thrustType: _.tryParseField(() => _.parseOptional(obj.thrustType, (x) => _.parseString(x)), "EffectState.thrustType"),
+      weaponType: _.tryParseField(() => _.parseOptional(obj.weaponType, (x) => _.parseString(x)), "EffectState.weaponType"),
+      direction: _.tryParseField(() => _.parseOptional(obj.direction, (x) => _.parseString(x)), "EffectState.direction"),
+      angle: _.tryParseField(() => _.parseOptional(obj.angle, (x) => _.parseInt(x)), "EffectState.angle"),
+      radius: _.tryParseField(() => _.parseOptional(obj.radius, (x) => _.parseUInt(x)), "EffectState.radius"),
+      x: _.tryParseField(() => _.parseInt(obj.x), "EffectState.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "EffectState.y"),
+      z: _.tryParseField(() => _.parseOptional(obj.z, (x) => _.parseInt(x)), "EffectState.z"),
     };
   },
   equals(a: EffectState, b: EffectState): boolean {
@@ -803,20 +803,20 @@ export const ObjectState = {
       throw new Error(`Invalid ObjectState: ${obj}`);
     }
     return {
-      team: _.parseOptional(obj.team, (x) => _.parseString(x)),
-      objectType: _.parseString(obj.objectType),
-      destructibleObjectType: _.parseOptional(obj.destructibleObjectType, (x) => _.parseString(x)),
-      environmentObjectType: _.parseOptional(obj.environmentObjectType, (x) => _.parseString(x)),
-      interactiveObjectType: _.parseOptional(obj.interactiveObjectType, (x) => _.parseString(x)),
-      active: _.parseOptional(obj.active, (x) => _.parseBoolean(x)),
-      towerName: _.parseOptional(obj.towerName, (x) => _.parseString(x)),
-      width: _.parseOptional(obj.width, (x) => _.parseUInt(x)),
-      height: _.parseOptional(obj.height, (x) => _.parseUInt(x)),
-      angle: _.parseOptional(obj.angle, (x) => _.parseInt(x)),
-      durability: _.parseOptional(obj.durability, (x) => _.parseUInt(x)),
-      maxDurability: _.parseOptional(obj.maxDurability, (x) => _.parseUInt(x)),
-      x: _.parseInt(obj.x),
-      y: _.parseInt(obj.y),
+      team: _.tryParseField(() => _.parseOptional(obj.team, (x) => _.parseString(x)), "ObjectState.team"),
+      objectType: _.tryParseField(() => _.parseString(obj.objectType), "ObjectState.objectType"),
+      destructibleObjectType: _.tryParseField(() => _.parseOptional(obj.destructibleObjectType, (x) => _.parseString(x)), "ObjectState.destructibleObjectType"),
+      environmentObjectType: _.tryParseField(() => _.parseOptional(obj.environmentObjectType, (x) => _.parseString(x)), "ObjectState.environmentObjectType"),
+      interactiveObjectType: _.tryParseField(() => _.parseOptional(obj.interactiveObjectType, (x) => _.parseString(x)), "ObjectState.interactiveObjectType"),
+      active: _.tryParseField(() => _.parseOptional(obj.active, (x) => _.parseBoolean(x)), "ObjectState.active"),
+      towerName: _.tryParseField(() => _.parseOptional(obj.towerName, (x) => _.parseString(x)), "ObjectState.towerName"),
+      width: _.tryParseField(() => _.parseOptional(obj.width, (x) => _.parseUInt(x)), "ObjectState.width"),
+      height: _.tryParseField(() => _.parseOptional(obj.height, (x) => _.parseUInt(x)), "ObjectState.height"),
+      angle: _.tryParseField(() => _.parseOptional(obj.angle, (x) => _.parseInt(x)), "ObjectState.angle"),
+      durability: _.tryParseField(() => _.parseOptional(obj.durability, (x) => _.parseUInt(x)), "ObjectState.durability"),
+      maxDurability: _.tryParseField(() => _.parseOptional(obj.maxDurability, (x) => _.parseUInt(x)), "ObjectState.maxDurability"),
+      x: _.tryParseField(() => _.parseInt(obj.x), "ObjectState.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "ObjectState.y"),
     };
   },
   equals(a: ObjectState, b: ObjectState): boolean {
@@ -1029,15 +1029,15 @@ export const PlayerState = {
       throw new Error(`Invalid PlayerState: ${obj}`);
     }
     return {
-      name: _.parseString(obj.name),
-      team: _.parseOptional(obj.team, (x) => _.parseString(x)),
-      hero: _.parseOptional(obj.hero, (x) => _.parseUInt(x)),
-      cents: _.parseOptional(obj.cents, (x) => _.parseUInt(x)),
-      deck: _.parseOptional(obj.deck, (x) => DeckState.parse(x as DeckState)),
-      randomSlots: _.parseArray(obj.randomSlots, (x) => _.parseString(x)),
-      hand: _.parseOptional(obj.hand, (x) => HandState.parse(x as HandState)),
-      skills: _.parseOptional(obj.skills, (x) => SkillsState.parse(x as SkillsState)),
-      restrictionZones: _.parseString(obj.restrictionZones),
+      name: _.tryParseField(() => _.parseString(obj.name), "PlayerState.name"),
+      team: _.tryParseField(() => _.parseOptional(obj.team, (x) => _.parseString(x)), "PlayerState.team"),
+      hero: _.tryParseField(() => _.parseOptional(obj.hero, (x) => _.parseUInt(x)), "PlayerState.hero"),
+      cents: _.tryParseField(() => _.parseOptional(obj.cents, (x) => _.parseUInt(x)), "PlayerState.cents"),
+      deck: _.tryParseField(() => _.parseOptional(obj.deck, (x) => DeckState.parse(x as DeckState)), "PlayerState.deck"),
+      randomSlots: _.tryParseField(() => _.parseArray(obj.randomSlots, (x) => _.parseString(x)), "PlayerState.randomSlots"),
+      hand: _.tryParseField(() => _.parseOptional(obj.hand, (x) => HandState.parse(x as HandState)), "PlayerState.hand"),
+      skills: _.tryParseField(() => _.parseOptional(obj.skills, (x) => SkillsState.parse(x as SkillsState)), "PlayerState.skills"),
+      restrictionZones: _.tryParseField(() => _.parseString(obj.restrictionZones), "PlayerState.restrictionZones"),
     };
   },
   equals(a: PlayerState, b: PlayerState): boolean {
@@ -1198,7 +1198,7 @@ export const SpectatorState = {
       throw new Error(`Invalid SpectatorState: ${obj}`);
     }
     return {
-      name: _.parseString(obj.name),
+      name: _.tryParseField(() => _.parseString(obj.name), "SpectatorState.name"),
     };
   },
   equals(a: SpectatorState, b: SpectatorState): boolean {
@@ -1268,14 +1268,14 @@ export const DeckState = {
       throw new Error(`Invalid DeckState: ${obj}`);
     }
     return {
-      card1: _.parseOptional(obj.card1, (x) => _.parseString(x)),
-      card2: _.parseOptional(obj.card2, (x) => _.parseString(x)),
-      card3: _.parseOptional(obj.card3, (x) => _.parseString(x)),
-      card4: _.parseOptional(obj.card4, (x) => _.parseString(x)),
-      card5: _.parseOptional(obj.card5, (x) => _.parseString(x)),
-      card6: _.parseOptional(obj.card6, (x) => _.parseString(x)),
-      card7: _.parseOptional(obj.card7, (x) => _.parseString(x)),
-      card8: _.parseOptional(obj.card8, (x) => _.parseString(x)),
+      card1: _.tryParseField(() => _.parseOptional(obj.card1, (x) => _.parseString(x)), "DeckState.card1"),
+      card2: _.tryParseField(() => _.parseOptional(obj.card2, (x) => _.parseString(x)), "DeckState.card2"),
+      card3: _.tryParseField(() => _.parseOptional(obj.card3, (x) => _.parseString(x)), "DeckState.card3"),
+      card4: _.tryParseField(() => _.parseOptional(obj.card4, (x) => _.parseString(x)), "DeckState.card4"),
+      card5: _.tryParseField(() => _.parseOptional(obj.card5, (x) => _.parseString(x)), "DeckState.card5"),
+      card6: _.tryParseField(() => _.parseOptional(obj.card6, (x) => _.parseString(x)), "DeckState.card6"),
+      card7: _.tryParseField(() => _.parseOptional(obj.card7, (x) => _.parseString(x)), "DeckState.card7"),
+      card8: _.tryParseField(() => _.parseOptional(obj.card8, (x) => _.parseString(x)), "DeckState.card8"),
     };
   },
   equals(a: DeckState, b: DeckState): boolean {
@@ -1432,10 +1432,10 @@ export const HandState = {
       throw new Error(`Invalid HandState: ${obj}`);
     }
     return {
-      slot1: _.parseOptional(obj.slot1, (x) => _.parseString(x)),
-      slot2: _.parseOptional(obj.slot2, (x) => _.parseString(x)),
-      slot3: _.parseOptional(obj.slot3, (x) => _.parseString(x)),
-      slot4: _.parseOptional(obj.slot4, (x) => _.parseString(x)),
+      slot1: _.tryParseField(() => _.parseOptional(obj.slot1, (x) => _.parseString(x)), "HandState.slot1"),
+      slot2: _.tryParseField(() => _.parseOptional(obj.slot2, (x) => _.parseString(x)), "HandState.slot2"),
+      slot3: _.tryParseField(() => _.parseOptional(obj.slot3, (x) => _.parseString(x)), "HandState.slot3"),
+      slot4: _.tryParseField(() => _.parseOptional(obj.slot4, (x) => _.parseString(x)), "HandState.slot4"),
     };
   },
   equals(a: HandState, b: HandState): boolean {
@@ -1544,10 +1544,10 @@ export const SkillsState = {
       throw new Error(`Invalid SkillsState: ${obj}`);
     }
     return {
-      slot1: _.parseOptional(obj.slot1, (x) => SkillState.parse(x as SkillState)),
-      slot2: _.parseOptional(obj.slot2, (x) => SkillState.parse(x as SkillState)),
-      slot3: _.parseOptional(obj.slot3, (x) => SkillState.parse(x as SkillState)),
-      slot4: _.parseOptional(obj.slot4, (x) => SkillState.parse(x as SkillState)),
+      slot1: _.tryParseField(() => _.parseOptional(obj.slot1, (x) => SkillState.parse(x as SkillState)), "SkillsState.slot1"),
+      slot2: _.tryParseField(() => _.parseOptional(obj.slot2, (x) => SkillState.parse(x as SkillState)), "SkillsState.slot2"),
+      slot3: _.tryParseField(() => _.parseOptional(obj.slot3, (x) => SkillState.parse(x as SkillState)), "SkillsState.slot3"),
+      slot4: _.tryParseField(() => _.parseOptional(obj.slot4, (x) => SkillState.parse(x as SkillState)), "SkillsState.slot4"),
     };
   },
   equals(a: SkillsState, b: SkillsState): boolean {
@@ -1664,10 +1664,10 @@ export const SkillState = {
       throw new Error(`Invalid SkillState: ${obj}`);
     }
     return {
-      type: _.parseString(obj.type),
-      inUse: _.parseBoolean(obj.inUse),
-      cooldown: _.parseUInt(obj.cooldown),
-      cooldownTotal: _.parseUInt(obj.cooldownTotal),
+      type: _.tryParseField(() => _.parseString(obj.type), "SkillState.type"),
+      inUse: _.tryParseField(() => _.parseBoolean(obj.inUse), "SkillState.inUse"),
+      cooldown: _.tryParseField(() => _.parseUInt(obj.cooldown), "SkillState.cooldown"),
+      cooldownTotal: _.tryParseField(() => _.parseUInt(obj.cooldownTotal), "SkillState.cooldownTotal"),
     };
   },
   equals(a: SkillState, b: SkillState): boolean {
@@ -1749,11 +1749,11 @@ export const GameInfo = {
       throw new Error(`Invalid GameInfo: ${obj}`);
     }
     return {
-      mode: _.parseOptional(obj.mode, (x) => _.parseString(x)),
-      timeLimit: _.parseOptional(obj.timeLimit, (x) => _.parseUInt(x)),
-      timeElapsed: _.parseOptional(obj.timeElapsed, (x) => _.parseInt(x)),
-      suddenDeath: _.parseOptional(obj.suddenDeath, (x) => _.parseBoolean(x)),
-      winner: _.parseOptional(obj.winner, (x) => _.parseString(x)),
+      mode: _.tryParseField(() => _.parseOptional(obj.mode, (x) => _.parseString(x)), "GameInfo.mode"),
+      timeLimit: _.tryParseField(() => _.parseOptional(obj.timeLimit, (x) => _.parseUInt(x)), "GameInfo.timeLimit"),
+      timeElapsed: _.tryParseField(() => _.parseOptional(obj.timeElapsed, (x) => _.parseInt(x)), "GameInfo.timeElapsed"),
+      suddenDeath: _.tryParseField(() => _.parseOptional(obj.suddenDeath, (x) => _.parseBoolean(x)), "GameInfo.suddenDeath"),
+      winner: _.tryParseField(() => _.parseOptional(obj.winner, (x) => _.parseString(x)), "GameInfo.winner"),
     };
   },
   equals(a: GameInfo, b: GameInfo): boolean {
@@ -1873,9 +1873,9 @@ export const DraftState = {
       throw new Error(`Invalid DraftState: ${obj}`);
     }
     return {
-      timeRemaining: _.parseUInt(obj.timeRemaining),
-      decks: _.parseArray(obj.decks, (x) => DraftDeckState.parse(x as DraftDeckState)),
-      pairs: _.parseArray(obj.pairs, (x) => CardPairState.parse(x as CardPairState)),
+      timeRemaining: _.tryParseField(() => _.parseUInt(obj.timeRemaining), "DraftState.timeRemaining"),
+      decks: _.tryParseField(() => _.parseArray(obj.decks, (x) => DraftDeckState.parse(x as DraftDeckState)), "DraftState.decks"),
+      pairs: _.tryParseField(() => _.parseArray(obj.pairs, (x) => CardPairState.parse(x as CardPairState)), "DraftState.pairs"),
     };
   },
   equals(a: DraftState, b: DraftState): boolean {
@@ -1976,15 +1976,15 @@ export const DraftDeckState = {
       throw new Error(`Invalid DraftDeckState: ${obj}`);
     }
     return {
-      playerId: _.parseString(obj.playerId),
-      card1: _.parseOptional(obj.card1, (x) => _.parseString(x)),
-      card2: _.parseOptional(obj.card2, (x) => _.parseString(x)),
-      card3: _.parseOptional(obj.card3, (x) => _.parseString(x)),
-      card4: _.parseOptional(obj.card4, (x) => _.parseString(x)),
-      card5: _.parseOptional(obj.card5, (x) => _.parseString(x)),
-      card6: _.parseOptional(obj.card6, (x) => _.parseString(x)),
-      card7: _.parseOptional(obj.card7, (x) => _.parseString(x)),
-      card8: _.parseOptional(obj.card8, (x) => _.parseString(x)),
+      playerId: _.tryParseField(() => _.parseString(obj.playerId), "DraftDeckState.playerId"),
+      card1: _.tryParseField(() => _.parseOptional(obj.card1, (x) => _.parseString(x)), "DraftDeckState.card1"),
+      card2: _.tryParseField(() => _.parseOptional(obj.card2, (x) => _.parseString(x)), "DraftDeckState.card2"),
+      card3: _.tryParseField(() => _.parseOptional(obj.card3, (x) => _.parseString(x)), "DraftDeckState.card3"),
+      card4: _.tryParseField(() => _.parseOptional(obj.card4, (x) => _.parseString(x)), "DraftDeckState.card4"),
+      card5: _.tryParseField(() => _.parseOptional(obj.card5, (x) => _.parseString(x)), "DraftDeckState.card5"),
+      card6: _.tryParseField(() => _.parseOptional(obj.card6, (x) => _.parseString(x)), "DraftDeckState.card6"),
+      card7: _.tryParseField(() => _.parseOptional(obj.card7, (x) => _.parseString(x)), "DraftDeckState.card7"),
+      card8: _.tryParseField(() => _.parseOptional(obj.card8, (x) => _.parseString(x)), "DraftDeckState.card8"),
     };
   },
   equals(a: DraftDeckState, b: DraftDeckState): boolean {
@@ -2145,9 +2145,9 @@ export const CardPairState = {
       throw new Error(`Invalid CardPairState: ${obj}`);
     }
     return {
-      playerId: _.parseString(obj.playerId),
-      slot1: _.parseString(obj.slot1),
-      slot2: _.parseString(obj.slot2),
+      playerId: _.tryParseField(() => _.parseString(obj.playerId), "CardPairState.playerId"),
+      slot1: _.tryParseField(() => _.parseString(obj.slot1), "CardPairState.slot1"),
+      slot2: _.tryParseField(() => _.parseString(obj.slot2), "CardPairState.slot2"),
     };
   },
   equals(a: CardPairState, b: CardPairState): boolean {
@@ -2222,9 +2222,9 @@ export const DebugBodyState = {
       throw new Error(`Invalid DebugBodyState: ${obj}`);
     }
     return {
-      x: _.parseInt(obj.x),
-      y: _.parseInt(obj.y),
-      points: _.parseArray(obj.points, (x) => Point.parse(x as Point)),
+      x: _.tryParseField(() => _.parseInt(obj.x), "DebugBodyState.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "DebugBodyState.y"),
+      points: _.tryParseField(() => _.parseArray(obj.points, (x) => Point.parse(x as Point)), "DebugBodyState.points"),
     };
   },
   equals(a: DebugBodyState, b: DebugBodyState): boolean {
@@ -2308,8 +2308,8 @@ export const Point = {
       throw new Error(`Invalid Point: ${obj}`);
     }
     return {
-      x: _.parseInt(obj.x),
-      y: _.parseInt(obj.y),
+      x: _.tryParseField(() => _.parseInt(obj.x), "Point.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "Point.y"),
     };
   },
   equals(a: Point, b: Point): boolean {
@@ -2385,15 +2385,15 @@ export const GameState = {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {
-      creatures: _.parseRecord(obj.creatures, (x) => _.parseUInt(x), (x) => CreatureState.parse(x as CreatureState)),
-      items: _.parseRecord(obj.items, (x) => _.parseUInt(x), (x) => ItemState.parse(x as ItemState)),
-      effects: _.parseRecord(obj.effects, (x) => _.parseUInt(x), (x) => EffectState.parse(x as EffectState)),
-      objects: _.parseRecord(obj.objects, (x) => _.parseUInt(x), (x) => ObjectState.parse(x as ObjectState)),
-      players: _.parseRecord(obj.players, (x) => _.parseString(x), (x) => PlayerState.parse(x as PlayerState)),
-      spectators: _.parseRecord(obj.spectators, (x) => _.parseString(x), (x) => SpectatorState.parse(x as SpectatorState)),
-      info: GameInfo.parse(obj.info as GameInfo),
-      draft: _.parseOptional(obj.draft, (x) => DraftState.parse(x as DraftState)),
-      debugBodies: _.parseOptional(obj.debugBodies, (x) => _.parseArray(x, (x) => DebugBodyState.parse(x as DebugBodyState))),
+      creatures: _.tryParseField(() => _.parseRecord(obj.creatures, (x) => _.parseUInt(x), (x) => CreatureState.parse(x as CreatureState)), "GameState.creatures"),
+      items: _.tryParseField(() => _.parseRecord(obj.items, (x) => _.parseUInt(x), (x) => ItemState.parse(x as ItemState)), "GameState.items"),
+      effects: _.tryParseField(() => _.parseRecord(obj.effects, (x) => _.parseUInt(x), (x) => EffectState.parse(x as EffectState)), "GameState.effects"),
+      objects: _.tryParseField(() => _.parseRecord(obj.objects, (x) => _.parseUInt(x), (x) => ObjectState.parse(x as ObjectState)), "GameState.objects"),
+      players: _.tryParseField(() => _.parseRecord(obj.players, (x) => _.parseString(x), (x) => PlayerState.parse(x as PlayerState)), "GameState.players"),
+      spectators: _.tryParseField(() => _.parseRecord(obj.spectators, (x) => _.parseString(x), (x) => SpectatorState.parse(x as SpectatorState)), "GameState.spectators"),
+      info: _.tryParseField(() => GameInfo.parse(obj.info as GameInfo), "GameState.info"),
+      draft: _.tryParseField(() => _.parseOptional(obj.draft, (x) => DraftState.parse(x as DraftState)), "GameState.draft"),
+      debugBodies: _.tryParseField(() => _.parseOptional(obj.debugBodies, (x) => _.parseArray(x, (x) => DebugBodyState.parse(x as DebugBodyState))), "GameState.debugBodies"),
     };
   },
   equals(a: GameState, b: GameState): boolean {

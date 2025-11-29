@@ -49,8 +49,8 @@ export const Card = {
       throw new Error(`Invalid Card: ${obj}`);
     }
     return {
-      value: _.parseInt(obj.value),
-      color: _.parseEnum(obj.color, Color),
+      value: _.tryParseField(() => _.parseInt(obj.value), "Card.value"),
+      color: _.tryParseField(() => _.parseEnum(obj.color, Color), "Card.color"),
     };
   },
   equals(a: Card, b: Card): boolean {
@@ -119,8 +119,8 @@ export const Player = {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
-      id: _.parseString(obj.id),
-      numCards: _.parseInt(obj.numCards),
+      id: _.tryParseField(() => _.parseString(obj.id), "Player.id"),
+      numCards: _.tryParseField(() => _.parseInt(obj.numCards), "Player.numCards"),
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -195,14 +195,14 @@ export const PlayerState = {
       throw new Error(`Invalid PlayerState: ${obj}`);
     }
     return {
-      hand: _.parseArray(obj.hand, (x) => Card.parse(x as Card)),
-      players: _.parseArray(obj.players, (x) => Player.parse(x as Player)),
-      turn: _.parseOptional(obj.turn, (x) => _.parseString(x)),
-      pile: _.parseOptional(obj.pile, (x) => Card.parse(x as Card)),
-      winner: _.parseOptional(obj.winner, (x) => _.parseString(x)),
-      intArray: _.parseArray(obj.intArray, (x) => _.parseInt(x)),
-      intOptional: _.parseOptional(obj.intOptional, (x) => _.parseInt(x)),
-      union: UnionTest.parse(obj.union as UnionTest),
+      hand: _.tryParseField(() => _.parseArray(obj.hand, (x) => Card.parse(x as Card)), "PlayerState.hand"),
+      players: _.tryParseField(() => _.parseArray(obj.players, (x) => Player.parse(x as Player)), "PlayerState.players"),
+      turn: _.tryParseField(() => _.parseOptional(obj.turn, (x) => _.parseString(x)), "PlayerState.turn"),
+      pile: _.tryParseField(() => _.parseOptional(obj.pile, (x) => Card.parse(x as Card)), "PlayerState.pile"),
+      winner: _.tryParseField(() => _.parseOptional(obj.winner, (x) => _.parseString(x)), "PlayerState.winner"),
+      intArray: _.tryParseField(() => _.parseArray(obj.intArray, (x) => _.parseInt(x)), "PlayerState.intArray"),
+      intOptional: _.tryParseField(() => _.parseOptional(obj.intOptional, (x) => _.parseInt(x)), "PlayerState.intOptional"),
+      union: _.tryParseField(() => UnionTest.parse(obj.union as UnionTest), "PlayerState.union"),
     };
   },
   equals(a: PlayerState, b: PlayerState): boolean {

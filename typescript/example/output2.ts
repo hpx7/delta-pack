@@ -46,8 +46,8 @@ export const Position = {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
-      x: _.parseUInt(obj.x),
-      y: _.parseUInt(obj.y),
+      x: _.tryParseField(() => _.parseUInt(obj.x), "Position.x"),
+      y: _.tryParseField(() => _.parseUInt(obj.y), "Position.y"),
     };
   },
   equals(a: Position, b: Position): boolean {
@@ -116,8 +116,8 @@ export const Velocity = {
       throw new Error(`Invalid Velocity: ${obj}`);
     }
     return {
-      x: _.parseUInt(obj.x),
-      y: _.parseUInt(obj.y),
+      x: _.tryParseField(() => _.parseUInt(obj.x), "Velocity.x"),
+      y: _.tryParseField(() => _.parseUInt(obj.y), "Velocity.y"),
     };
   },
   equals(a: Velocity, b: Velocity): boolean {
@@ -202,24 +202,24 @@ export const Player = {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
-      id: _.parseUInt(obj.id),
-      name: _.parseString(obj.name),
-      type: _.parseString(obj.type),
-      position: Position.parse(obj.position as Position),
-      velocity: Velocity.parse(obj.velocity as Velocity),
-      width: _.parseUInt(obj.width),
-      height: _.parseUInt(obj.height),
-      rotation: _.parseUInt(obj.rotation),
-      mass: _.parseUInt(obj.mass),
-      health: _.parseUInt(obj.health),
-      depth: _.parseUInt(obj.depth),
-      lifetime: _.parseUInt(obj.lifetime),
-      radius: _.parseUInt(obj.radius),
-      isSensor: _.parseBoolean(obj.isSensor),
-      isStatic: _.parseBoolean(obj.isStatic),
-      destroyed: _.parseBoolean(obj.destroyed),
-      owner: _.parseUInt(obj.owner),
-      maxSpeed: _.parseUInt(obj.maxSpeed),
+      id: _.tryParseField(() => _.parseUInt(obj.id), "Player.id"),
+      name: _.tryParseField(() => _.parseString(obj.name), "Player.name"),
+      type: _.tryParseField(() => _.parseString(obj.type), "Player.type"),
+      position: _.tryParseField(() => Position.parse(obj.position as Position), "Player.position"),
+      velocity: _.tryParseField(() => Velocity.parse(obj.velocity as Velocity), "Player.velocity"),
+      width: _.tryParseField(() => _.parseUInt(obj.width), "Player.width"),
+      height: _.tryParseField(() => _.parseUInt(obj.height), "Player.height"),
+      rotation: _.tryParseField(() => _.parseUInt(obj.rotation), "Player.rotation"),
+      mass: _.tryParseField(() => _.parseUInt(obj.mass), "Player.mass"),
+      health: _.tryParseField(() => _.parseUInt(obj.health), "Player.health"),
+      depth: _.tryParseField(() => _.parseUInt(obj.depth), "Player.depth"),
+      lifetime: _.tryParseField(() => _.parseUInt(obj.lifetime), "Player.lifetime"),
+      radius: _.tryParseField(() => _.parseUInt(obj.radius), "Player.radius"),
+      isSensor: _.tryParseField(() => _.parseBoolean(obj.isSensor), "Player.isSensor"),
+      isStatic: _.tryParseField(() => _.parseBoolean(obj.isStatic), "Player.isStatic"),
+      destroyed: _.tryParseField(() => _.parseBoolean(obj.destroyed), "Player.destroyed"),
+      owner: _.tryParseField(() => _.parseUInt(obj.owner), "Player.owner"),
+      maxSpeed: _.tryParseField(() => _.parseUInt(obj.maxSpeed), "Player.maxSpeed"),
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -368,8 +368,8 @@ export const State = {
       throw new Error(`Invalid State: ${obj}`);
     }
     return {
-      id: _.parseUInt(obj.id),
-      state: _.parseArray(obj.state, (x) => Player.parse(x as Player)),
+      id: _.tryParseField(() => _.parseUInt(obj.id), "State.id"),
+      state: _.tryParseField(() => _.parseArray(obj.state, (x) => Player.parse(x as Player)), "State.state"),
     };
   },
   equals(a: State, b: State): boolean {

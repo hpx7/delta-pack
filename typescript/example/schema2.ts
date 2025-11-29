@@ -22,8 +22,8 @@ const Player = ObjectType({
   id: UIntType(),
   name: StringType(),
   type: StringType(),
-  position: ReferenceType(Position),
-  velocity: ReferenceType(Velocity),
+  position: ReferenceType("Position"),
+  velocity: ReferenceType("Velocity"),
   width: UIntType(),
   height: UIntType(),
   rotation: UIntType(),
@@ -41,7 +41,7 @@ const Player = ObjectType({
 
 const State = ObjectType({
   id: UIntType(),
-  state: ArrayType(ReferenceType(Player)),
+  state: ArrayType(ReferenceType("Player")),
 });
 
 console.log(

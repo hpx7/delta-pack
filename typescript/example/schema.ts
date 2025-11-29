@@ -16,27 +16,26 @@ const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
 const Card = ObjectType({
   value: IntType(),
-  color: ReferenceType(Color),
+  color: ReferenceType("Color"),
 });
 
 const Player = ObjectType({
-  id: ReferenceType(UserId),
+  id: ReferenceType("UserId"),
   numCards: IntType(),
 });
 
-const UnionTest = UnionType([ReferenceType(UserId), ReferenceType(Color), ReferenceType(Card)]);
+const UnionTest = UnionType([ReferenceType("UserId"), ReferenceType("Color"), ReferenceType("Card")]);
 
 const PlayerState = ObjectType({
-  hand: ArrayType(ReferenceType(Card)),
-  players: ArrayType(ReferenceType(Player)),
-  turn: OptionalType(ReferenceType(UserId)),
-  pile: OptionalType(ReferenceType(Card)),
-  winner: OptionalType(ReferenceType(UserId)),
+  hand: ArrayType(ReferenceType("Card")),
+  players: ArrayType(ReferenceType("Player")),
+  turn: OptionalType(ReferenceType("UserId")),
+  pile: OptionalType(ReferenceType("Card")),
+  winner: OptionalType(ReferenceType("UserId")),
   intArray: ArrayType(IntType()),
   intOptional: OptionalType(IntType()),
-  union: ReferenceType(UnionTest),
+  union: ReferenceType("UnionTest"),
 });
-
 
 console.log(
   codegenTypescript({

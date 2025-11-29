@@ -38,14 +38,14 @@ const InventoryItem = ObjectType({
   itemId: StringType(),
   name: StringType(),
   quantity: UIntType(),
-  rarity: ReferenceType(ItemRarity),
+  rarity: ReferenceType("ItemRarity"),
   durability: OptionalType(UIntType()),
   enchantmentLevel: OptionalType(UIntType()),
 });
 
 // Equipment slot
 const Equipment = ObjectType({
-  weapon: OptionalType(ReferenceType(WeaponType)),
+  weapon: OptionalType(ReferenceType("WeaponType")),
   armor: OptionalType(StringType()),
   accessory1: OptionalType(StringType()),
   accessory2: OptionalType(StringType()),
@@ -69,7 +69,7 @@ const PlayerStats = ObjectType({
 
 // Active effect on player
 const ActiveEffect = ObjectType({
-  effectType: ReferenceType(EffectType),
+  effectType: ReferenceType("EffectType"),
   duration: FloatType({ precision: 0.1 }),
   strength: UIntType(),
   stackCount: UIntType(),
@@ -78,7 +78,7 @@ const ActiveEffect = ObjectType({
 // Ability cooldown tracking
 const AbilityCooldown = ObjectType({
   abilityId: StringType(),
-  abilityType: ReferenceType(AbilityType),
+  abilityType: ReferenceType("AbilityType"),
   remainingCooldown: FloatType({ precision: 0.1 }),
 });
 
@@ -86,16 +86,16 @@ const AbilityCooldown = ObjectType({
 const Player = ObjectType({
   playerId: StringType(),
   username: StringType(),
-  team: OptionalType(ReferenceType(Team)),
-  status: ReferenceType(PlayerStatus),
-  position: ReferenceType(Position),
-  velocity: ReferenceType(Velocity),
+  team: OptionalType(ReferenceType("Team")),
+  status: ReferenceType("PlayerStatus"),
+  position: ReferenceType("Position"),
+  velocity: ReferenceType("Velocity"),
   rotation: FloatType({ precision: 0.01 }), // angle in radians, 0.01 rad ~= 0.57 degrees
-  stats: ReferenceType(PlayerStats),
-  inventory: ArrayType(ReferenceType(InventoryItem)),
-  equipment: ReferenceType(Equipment),
-  activeEffects: ArrayType(ReferenceType(ActiveEffect)),
-  abilityCooldowns: ArrayType(ReferenceType(AbilityCooldown)),
+  stats: ReferenceType("PlayerStats"),
+  inventory: ArrayType(ReferenceType("InventoryItem")),
+  equipment: ReferenceType("Equipment"),
+  activeEffects: ArrayType(ReferenceType("ActiveEffect")),
+  abilityCooldowns: ArrayType(ReferenceType("AbilityCooldown")),
   kills: UIntType(),
   deaths: UIntType(),
   assists: UIntType(),
@@ -113,8 +113,8 @@ const Player = ObjectType({
 const Enemy = ObjectType({
   enemyId: StringType(),
   name: StringType(),
-  position: ReferenceType(Position),
-  velocity: ReferenceType(Velocity),
+  position: ReferenceType("Position"),
+  velocity: ReferenceType("Velocity"),
   health: UIntType(),
   maxHealth: UIntType(),
   level: UIntType(),
@@ -128,8 +128,8 @@ const Enemy = ObjectType({
 const Projectile = ObjectType({
   projectileId: StringType(),
   ownerId: StringType(),
-  position: ReferenceType(Position),
-  velocity: ReferenceType(Velocity),
+  position: ReferenceType("Position"),
+  velocity: ReferenceType("Velocity"),
   damage: UIntType(),
   penetration: UIntType(),
   timeToLive: FloatType({ precision: 0.1 }),
@@ -139,8 +139,8 @@ const Projectile = ObjectType({
 // Dropped loot
 const DroppedLoot = ObjectType({
   lootId: StringType(),
-  position: ReferenceType(Position),
-  item: ReferenceType(InventoryItem),
+  position: ReferenceType("Position"),
+  item: ReferenceType("InventoryItem"),
   despawnTime: FloatType({ precision: 0.1 }),
 });
 
@@ -148,7 +148,7 @@ const DroppedLoot = ObjectType({
 const WorldObject = ObjectType({
   objectId: StringType(),
   objectType: StringType(),
-  position: ReferenceType(Position),
+  position: ReferenceType("Position"),
   health: OptionalType(UIntType()),
   isDestroyed: BooleanType(),
   isInteractable: BooleanType(),
@@ -167,7 +167,7 @@ const MatchStats = ObjectType({
 
 // Team score
 const TeamScore = ObjectType({
-  team: ReferenceType(Team),
+  team: ReferenceType("Team"),
   score: UIntType(),
   kills: UIntType(),
   objectivesCaptured: UIntType(),
@@ -191,15 +191,15 @@ const GameState = ObjectType({
   round: UIntType(),
   phase: StringType(), // "LOBBY", "STARTING", "ACTIVE", "ENDED"
   timeRemaining: FloatType({ precision: 0.1 }),
-  players: RecordType(StringType(), ReferenceType(Player)),
-  enemies: RecordType(StringType(), ReferenceType(Enemy)),
-  projectiles: RecordType(StringType(), ReferenceType(Projectile)),
-  droppedLoot: RecordType(StringType(), ReferenceType(DroppedLoot)),
-  worldObjects: RecordType(StringType(), ReferenceType(WorldObject)),
-  teamScores: ArrayType(ReferenceType(TeamScore)),
-  matchStats: ReferenceType(MatchStats),
-  settings: ReferenceType(GameSettings),
-  winningTeam: OptionalType(ReferenceType(Team)),
+  players: RecordType(StringType(), ReferenceType("Player")),
+  enemies: RecordType(StringType(), ReferenceType("Enemy")),
+  projectiles: RecordType(StringType(), ReferenceType("Projectile")),
+  droppedLoot: RecordType(StringType(), ReferenceType("DroppedLoot")),
+  worldObjects: RecordType(StringType(), ReferenceType("WorldObject")),
+  teamScores: ArrayType(ReferenceType("TeamScore")),
+  matchStats: ReferenceType("MatchStats"),
+  settings: ReferenceType("GameSettings"),
+  winningTeam: OptionalType(ReferenceType("Team")),
   mapName: StringType(),
   weatherIntensity: FloatType({ precision: 0.01 }),
 });

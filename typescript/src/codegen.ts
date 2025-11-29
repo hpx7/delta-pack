@@ -1,22 +1,5 @@
 import type { ReferenceType, Type } from "./generator";
 
-function isPrimitiveType(type: Type, doc: Record<string, Type>): boolean {
-  // Resolve references
-  if (type.type === "reference") {
-    return isPrimitiveType(type.reference, doc);
-  }
-
-  // Check if the type itself is primitive
-  return (
-    type.type === "string" ||
-    type.type === "int" ||
-    type.type === "uint" ||
-    type.type === "float" ||
-    type.type === "boolean" ||
-    type.type === "enum"
-  );
-}
-
 export function renderDoc(doc: Record<string, Type>) {
   return `import * as _ from "@hathora/delta-pack/helpers";
 
@@ -137,12 +120,12 @@ export const ${name} = {
 export const ${name} = {
   default(): ${name} {
     return {
-      type: "${lookup(type.options[0])}",
-      val: ${renderDefault(type.options[0], lookup(type.options[0]))},
+      type: "${type.options[0].reference}",
+      val: ${renderDefault(type.options[0], type.options[0].reference)},
     };
   },
   values() {
-    return [${type.options.map((option) => `"${lookup(option)}"`).join(", ")}];
+    return [${type.options.map((option) => `"${option.reference}"`).join(", ")}];
   },
   parse(obj: ${name}): ${name} {
     if (typeof obj !== "object" || obj?.type == null) {
@@ -150,10 +133,10 @@ export const ${name} = {
     }
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
       return {
-        type: "${lookup(reference)}",
-        val: ${renderParse(reference, lookup(reference), "obj.val")},
+        type: "${reference.reference}",
+        val: ${renderParse(reference, reference.reference, "obj.val")},
       };
     }`;
       })
@@ -165,8 +148,8 @@ export const ${name} = {
   equals(a: ${name}, b: ${name}): boolean {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (a.type === "${lookup(reference)}" && b.type === "${lookup(reference)}") {
-      return ${renderEquals(reference, lookup(reference), "a.val", "b.val")};
+        return `${i > 0 ? "else " : ""}if (a.type === "${reference.reference}" && b.type === "${reference.reference}") {
+      return ${renderEquals(reference, reference.reference, "a.val", "b.val")};
     }`;
       })
       .join("\n    ")}
@@ -180,9 +163,9 @@ export const ${name} = {
   _encode(obj: ${name}, tracker: _.Tracker): void {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
       tracker.pushUInt(${childName});
-      ${renderEncode(reference, lookup(reference), "obj.val")};
+      ${renderEncode(reference, reference.reference, "obj.val")};
     }`;
       })
       .join("\n    ")}
@@ -195,13 +178,13 @@ export const ${name} = {
   _encodeDiff(a: ${name}, b: ${name}, tracker: _.Tracker): void {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (b.type === "${lookup(reference)}") {
-      tracker.pushBoolean(a.type === "${lookup(reference)}");
-      if (a.type === "${lookup(reference)}") {
-        ${renderEncodeDiff(reference, lookup(reference), "a.val", "b.val")};
+        return `${i > 0 ? "else " : ""}if (b.type === "${reference.reference}") {
+      tracker.pushBoolean(a.type === "${reference.reference}");
+      if (a.type === "${reference.reference}") {
+        ${renderEncodeDiff(reference, reference.reference, "a.val", "b.val")};
       } else {
         tracker.pushUInt(${i});
-        ${renderEncode(reference, lookup(reference), "b.val")};
+        ${renderEncode(reference, reference.reference, "b.val")};
       }
     }`;
       })
@@ -215,7 +198,7 @@ export const ${name} = {
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${lookup(reference)}", val: ${renderDecode(reference, lookup(reference), "obj.val")} };
+      return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
     }`;
       })
       .join("\n    ")}
@@ -230,10 +213,10 @@ export const ${name} = {
     if (isSameType) {
       ${Object.entries(type.options)
         .map(([childName, reference], i) => {
-          return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
+          return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
         return {
-          type: "${lookup(reference)}",
-          val: ${renderDecodeDiff(reference, lookup(reference), "obj.val")},
+          type: "${reference.reference}",
+          val: ${renderDecodeDiff(reference, reference.reference, "obj.val")},
         };
       }`;
         })
@@ -244,7 +227,7 @@ export const ${name} = {
       ${Object.entries(type.options)
         .map(([childName, reference], i) => {
           return `${i > 0 ? "else " : ""}if (type === ${i}) {
-        return { type: "${lookup(reference)}", val: ${renderDecode(reference, lookup(reference), "obj.val")} };
+        return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
       }`;
         })
         .join("\n      ")}
@@ -256,11 +239,26 @@ export const ${name} = {
   })
   .join("\n")}`;
 
-  function lookup(type: ReferenceType) {
-    for (const [name, value] of Object.entries(doc)) {
-      if (value === type.reference) {
-        return name;
-      }
+  function isPrimitiveType(type: Type, doc: Record<string, Type>): boolean {
+    // Resolve references
+    if (type.type === "reference") {
+      return isPrimitiveType(lookup(type), doc);
+    }
+
+    // Check if the type itself is primitive
+    return (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "uint" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    );
+  }
+
+  function lookup(type: ReferenceType): Type {
+    if (type.reference in doc) {
+      return doc[type.reference];
     }
     throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(doc)}`);
   }
@@ -285,7 +283,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return `Map<${renderTypeArg(type.key)}, ${renderTypeArg(type.value)}>`;
     } else if (type.type === "reference") {
-      return lookup(type);
+      return type.reference;
     } else if (type.type === "int" || type.type === "uint" || type.type === "float") {
       return "number";
     }
@@ -300,7 +298,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return "new Map()";
     } else if (type.type === "reference") {
-      return renderDefault(type.reference, lookup(type));
+      return renderDefault(lookup(type), type.reference);
     } else if (type.type === "string") {
       return '""';
     } else if (type.type === "int") {
@@ -327,7 +325,7 @@ export const ${name} = {
       const valueFn = renderParse(type.value, name, "x");
       return `_.parseRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderParse(type.reference, lookup(type), key);
+      return renderParse(lookup(type), type.reference, key);
     } else if (type.type === "string") {
       return `_.parseString(${key})`;
     } else if (type.type === "int") {
@@ -354,7 +352,7 @@ export const ${name} = {
       const valueEquals = renderEquals(type.value, name, "x", "y");
       return `_.equalsRecord(${keyA}, ${keyB}, (x, y) => ${keyEquals}, (x, y) => ${valueEquals})`;
     } else if (type.type === "reference") {
-      return renderEquals(type.reference, lookup(type), keyA, keyB);
+      return renderEquals(lookup(type), type.reference, keyA, keyB);
     } else if (type.type === "float") {
       if (type.precision) {
         return `Math.round(${keyA} / ${type.precision}) === Math.round(${keyB} / ${type.precision})`;
@@ -382,7 +380,7 @@ export const ${name} = {
       const valueFn = renderEncode(type.value, name, "x");
       return `tracker.pushRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderEncode(type.reference, lookup(type), key);
+      return renderEncode(lookup(type), type.reference, key);
     } else if (type.type === "string") {
       return `tracker.pushString(${key})`;
     } else if (type.type === "int") {
@@ -412,7 +410,7 @@ export const ${name} = {
       const valueFn = renderDecode(type.value, name, "x");
       return `tracker.nextRecord(() => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderDecode(type.reference, lookup(type), key);
+      return renderDecode(lookup(type), type.reference, key);
     } else if (type.type === "string") {
       return `tracker.nextString()`;
     } else if (type.type === "int") {
@@ -479,7 +477,7 @@ export const ${name} = {
       (x, y) => ${encodeDiffFn}
     )`;
     } else if (type.type === "reference") {
-      return renderEncodeDiff(type.reference, lookup(type), keyA, keyB);
+      return renderEncodeDiff(lookup(type), type.reference, keyA, keyB);
     } else if (type.type === "string") {
       return `tracker.pushStringDiff(${keyA}, ${keyB})`;
     } else if (type.type === "int") {
@@ -538,7 +536,7 @@ export const ${name} = {
         (x) => ${decodeDiffFn}
       )`;
     } else if (type.type === "reference") {
-      return renderDecodeDiff(type.reference, lookup(type), key);
+      return renderDecodeDiff(lookup(type), type.reference, key);
     } else if (type.type === "string") {
       return `tracker.nextStringDiff(${key})`;
     } else if (type.type === "int") {

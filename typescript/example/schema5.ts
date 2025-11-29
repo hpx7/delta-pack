@@ -87,7 +87,7 @@ const ObjectState = ObjectType({
 const DebugBodyState = ObjectType({
   x: IntType(),
   y: IntType(),
-  points: ArrayType(ReferenceType(Point)),
+  points: ArrayType(ReferenceType("Point")),
 });
 
 const SpectatorState = ObjectType({
@@ -120,10 +120,10 @@ const SkillState = ObjectType({
 });
 
 const SkillsState = ObjectType({
-  slot1: OptionalType(ReferenceType(SkillState)),
-  slot2: OptionalType(ReferenceType(SkillState)),
-  slot3: OptionalType(ReferenceType(SkillState)),
-  slot4: OptionalType(ReferenceType(SkillState)),
+  slot1: OptionalType(ReferenceType("SkillState")),
+  slot2: OptionalType(ReferenceType("SkillState")),
+  slot3: OptionalType(ReferenceType("SkillState")),
+  slot4: OptionalType(ReferenceType("SkillState")),
 });
 
 const PlayerState = ObjectType({
@@ -131,10 +131,10 @@ const PlayerState = ObjectType({
   team: OptionalType(StringType()),
   hero: OptionalType(UIntType()),
   cents: OptionalType(UIntType()),
-  deck: OptionalType(ReferenceType(DeckState)),
+  deck: OptionalType(ReferenceType("DeckState")),
   randomSlots: ArrayType(StringType()),
-  hand: OptionalType(ReferenceType(HandState)),
-  skills: OptionalType(ReferenceType(SkillsState)),
+  hand: OptionalType(ReferenceType("HandState")),
+  skills: OptionalType(ReferenceType("SkillsState")),
   restrictionZones: StringType(),
 });
 
@@ -166,20 +166,20 @@ const CardPairState = ObjectType({
 
 const DraftState = ObjectType({
   timeRemaining: UIntType(),
-  decks: ArrayType(ReferenceType(DraftDeckState)),
-  pairs: ArrayType(ReferenceType(CardPairState)),
+  decks: ArrayType(ReferenceType("DraftDeckState")),
+  pairs: ArrayType(ReferenceType("CardPairState")),
 });
 
 const GameState = ObjectType({
-  creatures: RecordType(UIntType(), ReferenceType(CreatureState)),
-  items: RecordType(UIntType(), ReferenceType(ItemState)),
-  effects: RecordType(UIntType(), ReferenceType(EffectState)),
-  objects: RecordType(UIntType(), ReferenceType(ObjectState)),
-  players: RecordType(StringType(), ReferenceType(PlayerState)),
-  spectators: RecordType(StringType(), ReferenceType(SpectatorState)),
-  info: ReferenceType(GameInfo),
-  draft: OptionalType(ReferenceType(DraftState)),
-  debugBodies: OptionalType(ArrayType(ReferenceType(DebugBodyState))),
+  creatures: RecordType(UIntType(), ReferenceType("CreatureState")),
+  items: RecordType(UIntType(), ReferenceType("ItemState")),
+  effects: RecordType(UIntType(), ReferenceType("EffectState")),
+  objects: RecordType(UIntType(), ReferenceType("ObjectState")),
+  players: RecordType(StringType(), ReferenceType("PlayerState")),
+  spectators: RecordType(StringType(), ReferenceType("SpectatorState")),
+  info: ReferenceType("GameInfo"),
+  draft: OptionalType(ReferenceType("DraftState")),
+  debugBodies: OptionalType(ArrayType(ReferenceType("DebugBodyState"))),
 });
 
 console.log(

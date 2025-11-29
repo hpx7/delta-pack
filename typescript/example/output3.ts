@@ -53,8 +53,8 @@ export const ChatMessage = {
       throw new Error(`Invalid ChatMessage: ${obj}`);
     }
     return {
-      author: _.parseString(obj.author),
-      content: _.parseString(obj.content),
+      author: _.tryParseField(() => _.parseString(obj.author), "ChatMessage.author"),
+      content: _.tryParseField(() => _.parseString(obj.content), "ChatMessage.content"),
     };
   },
   equals(a: ChatMessage, b: ChatMessage): boolean {
@@ -122,7 +122,7 @@ export const ChatList = {
       throw new Error(`Invalid ChatList: ${obj}`);
     }
     return {
-      messages: _.parseArray(obj.messages, (x) => ChatMessage.parse(x as ChatMessage)),
+      messages: _.tryParseField(() => _.parseArray(obj.messages, (x) => ChatMessage.parse(x as ChatMessage)), "ChatList.messages"),
     };
   },
   equals(a: ChatList, b: ChatList): boolean {
@@ -198,9 +198,9 @@ export const Position = {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
-      x: _.parseFloat(obj.x),
-      y: _.parseFloat(obj.y),
-      z: _.parseFloat(obj.z),
+      x: _.tryParseField(() => _.parseFloat(obj.x), "Position.x"),
+      y: _.tryParseField(() => _.parseFloat(obj.y), "Position.y"),
+      z: _.tryParseField(() => _.parseFloat(obj.z), "Position.z"),
     };
   },
   equals(a: Position, b: Position): boolean {
@@ -276,10 +276,10 @@ export const Rotation = {
       throw new Error(`Invalid Rotation: ${obj}`);
     }
     return {
-      x: _.parseFloat(obj.x),
-      y: _.parseFloat(obj.y),
-      z: _.parseFloat(obj.z),
-      w: _.parseFloat(obj.w),
+      x: _.tryParseField(() => _.parseFloat(obj.x), "Rotation.x"),
+      y: _.tryParseField(() => _.parseFloat(obj.y), "Rotation.y"),
+      z: _.tryParseField(() => _.parseFloat(obj.z), "Rotation.z"),
+      w: _.tryParseField(() => _.parseFloat(obj.w), "Rotation.w"),
     };
   },
   equals(a: Rotation, b: Rotation): boolean {
@@ -359,9 +359,9 @@ export const Size3D = {
       throw new Error(`Invalid Size3D: ${obj}`);
     }
     return {
-      width: _.parseFloat(obj.width),
-      height: _.parseFloat(obj.height),
-      depth: _.parseFloat(obj.depth),
+      width: _.tryParseField(() => _.parseFloat(obj.width), "Size3D.width"),
+      height: _.tryParseField(() => _.parseFloat(obj.height), "Size3D.height"),
+      depth: _.tryParseField(() => _.parseFloat(obj.depth), "Size3D.depth"),
     };
   },
   equals(a: Size3D, b: Size3D): boolean {
@@ -787,8 +787,8 @@ export const Entity = {
       throw new Error(`Invalid Entity: ${obj}`);
     }
     return {
-      entityId: _.parseInt(obj.entityId),
-      components: _.parseArray(obj.components, (x) => Component.parse(x as Component)),
+      entityId: _.tryParseField(() => _.parseInt(obj.entityId), "Entity.entityId"),
+      components: _.tryParseField(() => _.parseArray(obj.components, (x) => Component.parse(x as Component)), "Entity.components"),
     };
   },
   equals(a: Entity, b: Entity): boolean {
@@ -866,7 +866,7 @@ export const Snapshot = {
       throw new Error(`Invalid Snapshot: ${obj}`);
     }
     return {
-      entities: _.parseArray(obj.entities, (x) => Entity.parse(x as Entity)),
+      entities: _.tryParseField(() => _.parseArray(obj.entities, (x) => Entity.parse(x as Entity)), "Snapshot.entities"),
     };
   },
   equals(a: Snapshot, b: Snapshot): boolean {
