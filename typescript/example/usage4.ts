@@ -1,8 +1,8 @@
 import util from "util";
 import assert from "assert";
-import { GameState } from "./output4.js";
+import { GameState } from "./output4";
 
-const state1: GameState = {
+const state1 = GameState.parse({
   timeRemaining: 120,
   players: new Map([
     [
@@ -24,7 +24,7 @@ const state1: GameState = {
       },
     ],
   ]),
-};
+});
 
 const encoded = GameState.encode(state1);
 console.log("encoded", encoded);
@@ -34,7 +34,7 @@ const decoded = GameState.decode(encoded);
 console.log("decoded", util.inspect(decoded, { depth: null, colors: true }));
 assert(GameState.equals(decoded, state1));
 
-const state2: GameState = {
+const state2 = GameState.parse({
   timeRemaining: 60,
   players: new Map([
     [
@@ -54,7 +54,7 @@ const state2: GameState = {
       },
     ],
   ]),
-};
+});
 
 const encodedDiff = GameState.encodeDiff(state1, state2);
 console.log("encodedDiff", encodedDiff);

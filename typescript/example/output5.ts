@@ -182,98 +182,33 @@ export const CreatureState = {
       y: 0,
     };
   },
-  validate(obj: CreatureState) {
-    if (typeof obj !== "object") {
-      return [`Invalid CreatureState object: ${obj}`];
+  parse(obj: CreatureState): CreatureState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid CreatureState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.team === "string", `Invalid string: ${obj.team}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.team");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.hero === "boolean", `Invalid boolean: ${obj.hero}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.hero");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.creatureType === "string", `Invalid string: ${obj.creatureType}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.creatureType");
-    }
-    validationErrors = _.validateOptional(obj.equippedItemType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.equippedItemType");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.health) && obj.health >= 0, `Invalid uint: ${obj.health}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.health");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.maxHealth) && obj.maxHealth >= 0, `Invalid uint: ${obj.maxHealth}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.maxHealth");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.visible === "boolean", `Invalid boolean: ${obj.visible}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.visible");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.facing === "string", `Invalid string: ${obj.facing}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.facing");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.moving === "boolean", `Invalid boolean: ${obj.moving}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.moving");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.moveType === "string", `Invalid string: ${obj.moveType}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.moveType");
-    }
-    validationErrors = _.validateOptional(obj.moveTargetX, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.moveTargetX");
-    }
-    validationErrors = _.validateOptional(obj.moveTargetY, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.moveTargetY");
-    }
-    validationErrors = _.validateOptional(obj.enemyTargetX, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.enemyTargetX");
-    }
-    validationErrors = _.validateOptional(obj.enemyTargetY, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.enemyTargetY");
-    }
-    validationErrors = _.validateOptional(obj.using, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.using");
-    }
-    validationErrors = _.validateOptional(obj.useDirection, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.useDirection");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.takingDamage === "boolean", `Invalid boolean: ${obj.takingDamage}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.takingDamage");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.frozen === "boolean", `Invalid boolean: ${obj.frozen}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.frozen");
-    }
-    validationErrors = _.validateOptional(obj.statusEffect, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.statusEffect");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CreatureState.y");
-    }
-
-    return validationErrors;
+    return {
+      team: _.parseString(obj.team),
+      hero: _.parseBoolean(obj.hero),
+      creatureType: _.parseString(obj.creatureType),
+      equippedItemType: _.parseOptional(obj.equippedItemType, (x) => _.parseString(x)),
+      health: _.parseUInt(obj.health),
+      maxHealth: _.parseUInt(obj.maxHealth),
+      visible: _.parseBoolean(obj.visible),
+      facing: _.parseString(obj.facing),
+      moving: _.parseBoolean(obj.moving),
+      moveType: _.parseString(obj.moveType),
+      moveTargetX: _.parseOptional(obj.moveTargetX, (x) => _.parseInt(x)),
+      moveTargetY: _.parseOptional(obj.moveTargetY, (x) => _.parseInt(x)),
+      enemyTargetX: _.parseOptional(obj.enemyTargetX, (x) => _.parseInt(x)),
+      enemyTargetY: _.parseOptional(obj.enemyTargetY, (x) => _.parseInt(x)),
+      using: _.parseOptional(obj.using, (x) => _.parseString(x)),
+      useDirection: _.parseOptional(obj.useDirection, (x) => _.parseString(x)),
+      takingDamage: _.parseBoolean(obj.takingDamage),
+      frozen: _.parseBoolean(obj.frozen),
+      statusEffect: _.parseOptional(obj.statusEffect, (x) => _.parseString(x)),
+      x: _.parseInt(obj.x),
+      y: _.parseInt(obj.y),
+    };
   },
   equals(a: CreatureState, b: CreatureState): boolean {
     return (
@@ -490,34 +425,17 @@ export const ItemState = {
       y: 0,
     };
   },
-  validate(obj: ItemState) {
-    if (typeof obj !== "object") {
-      return [`Invalid ItemState object: ${obj}`];
+  parse(obj: ItemState): ItemState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid ItemState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.itemType === "string", `Invalid string: ${obj.itemType}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ItemState.itemType");
-    }
-    validationErrors = _.validateOptional(obj.potionType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ItemState.potionType");
-    }
-    validationErrors = _.validateOptional(obj.weaponType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ItemState.weaponType");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ItemState.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ItemState.y");
-    }
-
-    return validationErrors;
+    return {
+      itemType: _.parseString(obj.itemType),
+      potionType: _.parseOptional(obj.potionType, (x) => _.parseString(x)),
+      weaponType: _.parseOptional(obj.weaponType, (x) => _.parseString(x)),
+      x: _.parseInt(obj.x),
+      y: _.parseInt(obj.y),
+    };
   },
   equals(a: ItemState, b: ItemState): boolean {
     return (
@@ -623,78 +541,28 @@ export const EffectState = {
       z: undefined,
     };
   },
-  validate(obj: EffectState) {
-    if (typeof obj !== "object") {
-      return [`Invalid EffectState object: ${obj}`];
+  parse(obj: EffectState): EffectState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid EffectState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateOptional(obj.creatureId, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.creatureId");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.effectType === "string", `Invalid string: ${obj.effectType}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.effectType");
-    }
-    validationErrors = _.validateOptional(obj.triggerType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.triggerType");
-    }
-    validationErrors = _.validateOptional(obj.ellipseEffectType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.ellipseEffectType");
-    }
-    validationErrors = _.validateOptional(obj.weaponEffectType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.weaponEffectType");
-    }
-    validationErrors = _.validateOptional(obj.projectileType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.projectileType");
-    }
-    validationErrors = _.validateOptional(obj.visualEffectType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.visualEffectType");
-    }
-    validationErrors = _.validateOptional(obj.swingType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.swingType");
-    }
-    validationErrors = _.validateOptional(obj.thrustType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.thrustType");
-    }
-    validationErrors = _.validateOptional(obj.weaponType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.weaponType");
-    }
-    validationErrors = _.validateOptional(obj.direction, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.direction");
-    }
-    validationErrors = _.validateOptional(obj.angle, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.angle");
-    }
-    validationErrors = _.validateOptional(obj.radius, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.radius");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.y");
-    }
-    validationErrors = _.validateOptional(obj.z, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: EffectState.z");
-    }
-
-    return validationErrors;
+    return {
+      creatureId: _.parseOptional(obj.creatureId, (x) => _.parseInt(x)),
+      effectType: _.parseString(obj.effectType),
+      triggerType: _.parseOptional(obj.triggerType, (x) => _.parseString(x)),
+      ellipseEffectType: _.parseOptional(obj.ellipseEffectType, (x) => _.parseString(x)),
+      weaponEffectType: _.parseOptional(obj.weaponEffectType, (x) => _.parseString(x)),
+      projectileType: _.parseOptional(obj.projectileType, (x) => _.parseString(x)),
+      visualEffectType: _.parseOptional(obj.visualEffectType, (x) => _.parseString(x)),
+      swingType: _.parseOptional(obj.swingType, (x) => _.parseString(x)),
+      thrustType: _.parseOptional(obj.thrustType, (x) => _.parseString(x)),
+      weaponType: _.parseOptional(obj.weaponType, (x) => _.parseString(x)),
+      direction: _.parseOptional(obj.direction, (x) => _.parseString(x)),
+      angle: _.parseOptional(obj.angle, (x) => _.parseInt(x)),
+      radius: _.parseOptional(obj.radius, (x) => _.parseUInt(x)),
+      x: _.parseInt(obj.x),
+      y: _.parseInt(obj.y),
+      z: _.parseOptional(obj.z, (x) => _.parseInt(x)),
+    };
   },
   equals(a: EffectState, b: EffectState): boolean {
     return (
@@ -930,70 +798,26 @@ export const ObjectState = {
       y: 0,
     };
   },
-  validate(obj: ObjectState) {
-    if (typeof obj !== "object") {
-      return [`Invalid ObjectState object: ${obj}`];
+  parse(obj: ObjectState): ObjectState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid ObjectState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateOptional(obj.team, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.team");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.objectType === "string", `Invalid string: ${obj.objectType}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.objectType");
-    }
-    validationErrors = _.validateOptional(obj.destructibleObjectType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.destructibleObjectType");
-    }
-    validationErrors = _.validateOptional(obj.environmentObjectType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.environmentObjectType");
-    }
-    validationErrors = _.validateOptional(obj.interactiveObjectType, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.interactiveObjectType");
-    }
-    validationErrors = _.validateOptional(obj.active, (x) => _.validatePrimitive(typeof x === "boolean", `Invalid boolean: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.active");
-    }
-    validationErrors = _.validateOptional(obj.towerName, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.towerName");
-    }
-    validationErrors = _.validateOptional(obj.width, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.width");
-    }
-    validationErrors = _.validateOptional(obj.height, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.height");
-    }
-    validationErrors = _.validateOptional(obj.angle, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.angle");
-    }
-    validationErrors = _.validateOptional(obj.durability, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.durability");
-    }
-    validationErrors = _.validateOptional(obj.maxDurability, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.maxDurability");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ObjectState.y");
-    }
-
-    return validationErrors;
+    return {
+      team: _.parseOptional(obj.team, (x) => _.parseString(x)),
+      objectType: _.parseString(obj.objectType),
+      destructibleObjectType: _.parseOptional(obj.destructibleObjectType, (x) => _.parseString(x)),
+      environmentObjectType: _.parseOptional(obj.environmentObjectType, (x) => _.parseString(x)),
+      interactiveObjectType: _.parseOptional(obj.interactiveObjectType, (x) => _.parseString(x)),
+      active: _.parseOptional(obj.active, (x) => _.parseBoolean(x)),
+      towerName: _.parseOptional(obj.towerName, (x) => _.parseString(x)),
+      width: _.parseOptional(obj.width, (x) => _.parseUInt(x)),
+      height: _.parseOptional(obj.height, (x) => _.parseUInt(x)),
+      angle: _.parseOptional(obj.angle, (x) => _.parseInt(x)),
+      durability: _.parseOptional(obj.durability, (x) => _.parseUInt(x)),
+      maxDurability: _.parseOptional(obj.maxDurability, (x) => _.parseUInt(x)),
+      x: _.parseInt(obj.x),
+      y: _.parseInt(obj.y),
+    };
   },
   equals(a: ObjectState, b: ObjectState): boolean {
     return (
@@ -1200,50 +1024,21 @@ export const PlayerState = {
       restrictionZones: "",
     };
   },
-  validate(obj: PlayerState) {
-    if (typeof obj !== "object") {
-      return [`Invalid PlayerState object: ${obj}`];
+  parse(obj: PlayerState): PlayerState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid PlayerState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.name");
-    }
-    validationErrors = _.validateOptional(obj.team, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.team");
-    }
-    validationErrors = _.validateOptional(obj.hero, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.hero");
-    }
-    validationErrors = _.validateOptional(obj.cents, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.cents");
-    }
-    validationErrors = _.validateOptional(obj.deck, (x) => DeckState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.deck");
-    }
-    validationErrors = _.validateArray(obj.randomSlots, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.randomSlots");
-    }
-    validationErrors = _.validateOptional(obj.hand, (x) => HandState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.hand");
-    }
-    validationErrors = _.validateOptional(obj.skills, (x) => SkillsState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.skills");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.restrictionZones === "string", `Invalid string: ${obj.restrictionZones}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.restrictionZones");
-    }
-
-    return validationErrors;
+    return {
+      name: _.parseString(obj.name),
+      team: _.parseOptional(obj.team, (x) => _.parseString(x)),
+      hero: _.parseOptional(obj.hero, (x) => _.parseUInt(x)),
+      cents: _.parseOptional(obj.cents, (x) => _.parseUInt(x)),
+      deck: _.parseOptional(obj.deck, (x) => DeckState.parse(x as DeckState)),
+      randomSlots: _.parseArray(obj.randomSlots, (x) => _.parseString(x)),
+      hand: _.parseOptional(obj.hand, (x) => HandState.parse(x as HandState)),
+      skills: _.parseOptional(obj.skills, (x) => SkillsState.parse(x as SkillsState)),
+      restrictionZones: _.parseString(obj.restrictionZones),
+    };
   },
   equals(a: PlayerState, b: PlayerState): boolean {
     return (
@@ -1398,18 +1193,13 @@ export const SpectatorState = {
       name: "",
     };
   },
-  validate(obj: SpectatorState) {
-    if (typeof obj !== "object") {
-      return [`Invalid SpectatorState object: ${obj}`];
+  parse(obj: SpectatorState): SpectatorState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid SpectatorState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SpectatorState.name");
-    }
-
-    return validationErrors;
+    return {
+      name: _.parseString(obj.name),
+    };
   },
   equals(a: SpectatorState, b: SpectatorState): boolean {
     return (
@@ -1473,46 +1263,20 @@ export const DeckState = {
       card8: undefined,
     };
   },
-  validate(obj: DeckState) {
-    if (typeof obj !== "object") {
-      return [`Invalid DeckState object: ${obj}`];
+  parse(obj: DeckState): DeckState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid DeckState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateOptional(obj.card1, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card1");
-    }
-    validationErrors = _.validateOptional(obj.card2, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card2");
-    }
-    validationErrors = _.validateOptional(obj.card3, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card3");
-    }
-    validationErrors = _.validateOptional(obj.card4, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card4");
-    }
-    validationErrors = _.validateOptional(obj.card5, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card5");
-    }
-    validationErrors = _.validateOptional(obj.card6, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card6");
-    }
-    validationErrors = _.validateOptional(obj.card7, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card7");
-    }
-    validationErrors = _.validateOptional(obj.card8, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DeckState.card8");
-    }
-
-    return validationErrors;
+    return {
+      card1: _.parseOptional(obj.card1, (x) => _.parseString(x)),
+      card2: _.parseOptional(obj.card2, (x) => _.parseString(x)),
+      card3: _.parseOptional(obj.card3, (x) => _.parseString(x)),
+      card4: _.parseOptional(obj.card4, (x) => _.parseString(x)),
+      card5: _.parseOptional(obj.card5, (x) => _.parseString(x)),
+      card6: _.parseOptional(obj.card6, (x) => _.parseString(x)),
+      card7: _.parseOptional(obj.card7, (x) => _.parseString(x)),
+      card8: _.parseOptional(obj.card8, (x) => _.parseString(x)),
+    };
   },
   equals(a: DeckState, b: DeckState): boolean {
     return (
@@ -1663,30 +1427,16 @@ export const HandState = {
       slot4: undefined,
     };
   },
-  validate(obj: HandState) {
-    if (typeof obj !== "object") {
-      return [`Invalid HandState object: ${obj}`];
+  parse(obj: HandState): HandState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid HandState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateOptional(obj.slot1, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: HandState.slot1");
-    }
-    validationErrors = _.validateOptional(obj.slot2, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: HandState.slot2");
-    }
-    validationErrors = _.validateOptional(obj.slot3, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: HandState.slot3");
-    }
-    validationErrors = _.validateOptional(obj.slot4, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: HandState.slot4");
-    }
-
-    return validationErrors;
+    return {
+      slot1: _.parseOptional(obj.slot1, (x) => _.parseString(x)),
+      slot2: _.parseOptional(obj.slot2, (x) => _.parseString(x)),
+      slot3: _.parseOptional(obj.slot3, (x) => _.parseString(x)),
+      slot4: _.parseOptional(obj.slot4, (x) => _.parseString(x)),
+    };
   },
   equals(a: HandState, b: HandState): boolean {
     return (
@@ -1789,30 +1539,16 @@ export const SkillsState = {
       slot4: undefined,
     };
   },
-  validate(obj: SkillsState) {
-    if (typeof obj !== "object") {
-      return [`Invalid SkillsState object: ${obj}`];
+  parse(obj: SkillsState): SkillsState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid SkillsState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateOptional(obj.slot1, (x) => SkillState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillsState.slot1");
-    }
-    validationErrors = _.validateOptional(obj.slot2, (x) => SkillState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillsState.slot2");
-    }
-    validationErrors = _.validateOptional(obj.slot3, (x) => SkillState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillsState.slot3");
-    }
-    validationErrors = _.validateOptional(obj.slot4, (x) => SkillState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillsState.slot4");
-    }
-
-    return validationErrors;
+    return {
+      slot1: _.parseOptional(obj.slot1, (x) => SkillState.parse(x as SkillState)),
+      slot2: _.parseOptional(obj.slot2, (x) => SkillState.parse(x as SkillState)),
+      slot3: _.parseOptional(obj.slot3, (x) => SkillState.parse(x as SkillState)),
+      slot4: _.parseOptional(obj.slot4, (x) => SkillState.parse(x as SkillState)),
+    };
   },
   equals(a: SkillsState, b: SkillsState): boolean {
     return (
@@ -1923,30 +1659,16 @@ export const SkillState = {
       cooldownTotal: 0,
     };
   },
-  validate(obj: SkillState) {
-    if (typeof obj !== "object") {
-      return [`Invalid SkillState object: ${obj}`];
+  parse(obj: SkillState): SkillState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid SkillState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.type === "string", `Invalid string: ${obj.type}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillState.type");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.inUse === "boolean", `Invalid boolean: ${obj.inUse}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillState.inUse");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.cooldown) && obj.cooldown >= 0, `Invalid uint: ${obj.cooldown}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillState.cooldown");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.cooldownTotal) && obj.cooldownTotal >= 0, `Invalid uint: ${obj.cooldownTotal}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: SkillState.cooldownTotal");
-    }
-
-    return validationErrors;
+    return {
+      type: _.parseString(obj.type),
+      inUse: _.parseBoolean(obj.inUse),
+      cooldown: _.parseUInt(obj.cooldown),
+      cooldownTotal: _.parseUInt(obj.cooldownTotal),
+    };
   },
   equals(a: SkillState, b: SkillState): boolean {
     return (
@@ -2022,34 +1744,17 @@ export const GameInfo = {
       winner: undefined,
     };
   },
-  validate(obj: GameInfo) {
-    if (typeof obj !== "object") {
-      return [`Invalid GameInfo object: ${obj}`];
+  parse(obj: GameInfo): GameInfo {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid GameInfo: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateOptional(obj.mode, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameInfo.mode");
-    }
-    validationErrors = _.validateOptional(obj.timeLimit, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameInfo.timeLimit");
-    }
-    validationErrors = _.validateOptional(obj.timeElapsed, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameInfo.timeElapsed");
-    }
-    validationErrors = _.validateOptional(obj.suddenDeath, (x) => _.validatePrimitive(typeof x === "boolean", `Invalid boolean: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameInfo.suddenDeath");
-    }
-    validationErrors = _.validateOptional(obj.winner, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameInfo.winner");
-    }
-
-    return validationErrors;
+    return {
+      mode: _.parseOptional(obj.mode, (x) => _.parseString(x)),
+      timeLimit: _.parseOptional(obj.timeLimit, (x) => _.parseUInt(x)),
+      timeElapsed: _.parseOptional(obj.timeElapsed, (x) => _.parseInt(x)),
+      suddenDeath: _.parseOptional(obj.suddenDeath, (x) => _.parseBoolean(x)),
+      winner: _.parseOptional(obj.winner, (x) => _.parseString(x)),
+    };
   },
   equals(a: GameInfo, b: GameInfo): boolean {
     return (
@@ -2163,26 +1868,15 @@ export const DraftState = {
       pairs: [],
     };
   },
-  validate(obj: DraftState) {
-    if (typeof obj !== "object") {
-      return [`Invalid DraftState object: ${obj}`];
+  parse(obj: DraftState): DraftState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid DraftState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.timeRemaining) && obj.timeRemaining >= 0, `Invalid uint: ${obj.timeRemaining}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftState.timeRemaining");
-    }
-    validationErrors = _.validateArray(obj.decks, (x) => DraftDeckState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftState.decks");
-    }
-    validationErrors = _.validateArray(obj.pairs, (x) => CardPairState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftState.pairs");
-    }
-
-    return validationErrors;
+    return {
+      timeRemaining: _.parseUInt(obj.timeRemaining),
+      decks: _.parseArray(obj.decks, (x) => DraftDeckState.parse(x as DraftDeckState)),
+      pairs: _.parseArray(obj.pairs, (x) => CardPairState.parse(x as CardPairState)),
+    };
   },
   equals(a: DraftState, b: DraftState): boolean {
     return (
@@ -2277,50 +1971,21 @@ export const DraftDeckState = {
       card8: undefined,
     };
   },
-  validate(obj: DraftDeckState) {
-    if (typeof obj !== "object") {
-      return [`Invalid DraftDeckState object: ${obj}`];
+  parse(obj: DraftDeckState): DraftDeckState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid DraftDeckState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.playerId === "string", `Invalid string: ${obj.playerId}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.playerId");
-    }
-    validationErrors = _.validateOptional(obj.card1, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card1");
-    }
-    validationErrors = _.validateOptional(obj.card2, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card2");
-    }
-    validationErrors = _.validateOptional(obj.card3, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card3");
-    }
-    validationErrors = _.validateOptional(obj.card4, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card4");
-    }
-    validationErrors = _.validateOptional(obj.card5, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card5");
-    }
-    validationErrors = _.validateOptional(obj.card6, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card6");
-    }
-    validationErrors = _.validateOptional(obj.card7, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card7");
-    }
-    validationErrors = _.validateOptional(obj.card8, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DraftDeckState.card8");
-    }
-
-    return validationErrors;
+    return {
+      playerId: _.parseString(obj.playerId),
+      card1: _.parseOptional(obj.card1, (x) => _.parseString(x)),
+      card2: _.parseOptional(obj.card2, (x) => _.parseString(x)),
+      card3: _.parseOptional(obj.card3, (x) => _.parseString(x)),
+      card4: _.parseOptional(obj.card4, (x) => _.parseString(x)),
+      card5: _.parseOptional(obj.card5, (x) => _.parseString(x)),
+      card6: _.parseOptional(obj.card6, (x) => _.parseString(x)),
+      card7: _.parseOptional(obj.card7, (x) => _.parseString(x)),
+      card8: _.parseOptional(obj.card8, (x) => _.parseString(x)),
+    };
   },
   equals(a: DraftDeckState, b: DraftDeckState): boolean {
     return (
@@ -2475,26 +2140,15 @@ export const CardPairState = {
       slot2: "",
     };
   },
-  validate(obj: CardPairState) {
-    if (typeof obj !== "object") {
-      return [`Invalid CardPairState object: ${obj}`];
+  parse(obj: CardPairState): CardPairState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid CardPairState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.playerId === "string", `Invalid string: ${obj.playerId}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CardPairState.playerId");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.slot1 === "string", `Invalid string: ${obj.slot1}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CardPairState.slot1");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.slot2 === "string", `Invalid string: ${obj.slot2}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: CardPairState.slot2");
-    }
-
-    return validationErrors;
+    return {
+      playerId: _.parseString(obj.playerId),
+      slot1: _.parseString(obj.slot1),
+      slot2: _.parseString(obj.slot2),
+    };
   },
   equals(a: CardPairState, b: CardPairState): boolean {
     return (
@@ -2563,26 +2217,15 @@ export const DebugBodyState = {
       points: [],
     };
   },
-  validate(obj: DebugBodyState) {
-    if (typeof obj !== "object") {
-      return [`Invalid DebugBodyState object: ${obj}`];
+  parse(obj: DebugBodyState): DebugBodyState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid DebugBodyState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DebugBodyState.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DebugBodyState.y");
-    }
-    validationErrors = _.validateArray(obj.points, (x) => Point.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: DebugBodyState.points");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseInt(obj.x),
+      y: _.parseInt(obj.y),
+      points: _.parseArray(obj.points, (x) => Point.parse(x as Point)),
+    };
   },
   equals(a: DebugBodyState, b: DebugBodyState): boolean {
     return (
@@ -2660,22 +2303,14 @@ export const Point = {
       y: 0,
     };
   },
-  validate(obj: Point) {
-    if (typeof obj !== "object") {
-      return [`Invalid Point object: ${obj}`];
+  parse(obj: Point): Point {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Point: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Point.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Point.y");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseInt(obj.x),
+      y: _.parseInt(obj.y),
+    };
   },
   equals(a: Point, b: Point): boolean {
     return (
@@ -2745,50 +2380,21 @@ export const GameState = {
       debugBodies: undefined,
     };
   },
-  validate(obj: GameState) {
-    if (typeof obj !== "object") {
-      return [`Invalid GameState object: ${obj}`];
+  parse(obj: GameState): GameState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid GameState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateRecord(obj.creatures, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`), (x) => CreatureState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.creatures");
-    }
-    validationErrors = _.validateRecord(obj.items, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`), (x) => ItemState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.items");
-    }
-    validationErrors = _.validateRecord(obj.effects, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`), (x) => EffectState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.effects");
-    }
-    validationErrors = _.validateRecord(obj.objects, (x) => _.validatePrimitive(Number.isInteger(x) && x >= 0, `Invalid uint: ${x}`), (x) => ObjectState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.objects");
-    }
-    validationErrors = _.validateRecord(obj.players, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`), (x) => PlayerState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.players");
-    }
-    validationErrors = _.validateRecord(obj.spectators, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`), (x) => SpectatorState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.spectators");
-    }
-    validationErrors = GameInfo.validate(obj.info);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.info");
-    }
-    validationErrors = _.validateOptional(obj.draft, (x) => DraftState.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.draft");
-    }
-    validationErrors = _.validateOptional(obj.debugBodies, (x) => _.validateArray(x, (x) => DebugBodyState.validate(x)));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.debugBodies");
-    }
-
-    return validationErrors;
+    return {
+      creatures: _.parseRecord(obj.creatures, (x) => _.parseUInt(x), (x) => CreatureState.parse(x as CreatureState)),
+      items: _.parseRecord(obj.items, (x) => _.parseUInt(x), (x) => ItemState.parse(x as ItemState)),
+      effects: _.parseRecord(obj.effects, (x) => _.parseUInt(x), (x) => EffectState.parse(x as EffectState)),
+      objects: _.parseRecord(obj.objects, (x) => _.parseUInt(x), (x) => ObjectState.parse(x as ObjectState)),
+      players: _.parseRecord(obj.players, (x) => _.parseString(x), (x) => PlayerState.parse(x as PlayerState)),
+      spectators: _.parseRecord(obj.spectators, (x) => _.parseString(x), (x) => SpectatorState.parse(x as SpectatorState)),
+      info: GameInfo.parse(obj.info as GameInfo),
+      draft: _.parseOptional(obj.draft, (x) => DraftState.parse(x as DraftState)),
+      debugBodies: _.parseOptional(obj.debugBodies, (x) => _.parseArray(x, (x) => DebugBodyState.parse(x as DebugBodyState))),
+    };
   },
   equals(a: GameState, b: GameState): boolean {
     return (

@@ -8,7 +8,7 @@ import {
   AttackAction,
   UseItemAction,
   type Color
-} from './generated-schema.ts';
+} from './generated-schema';
 
 describe('Delta Pack - Unified API', () => {
   describe('Player Type - Basic Operations', () => {
@@ -36,37 +36,28 @@ describe('Delta Pack - Unified API', () => {
       });
     });
 
-    it('should validate correct player data', () => {
-      const errors = Player.validate(player1);
-      expect(errors).toEqual([]);
+    it('should parse correct player data', () => {
+      expect(() => Player.parse(player1)).not.toThrow();
     });
 
     it('should detect validation errors for name', () => {
       const invalidPlayer = { id: 'p1', name: 123, score: 100, isActive: true };
-      const errors = Player.validate(invalidPlayer as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('name'))).toBe(true);
+      expect(() => Player.parse(invalidPlayer as any)).toThrow(/name/);
     });
 
     it('should detect validation errors for id', () => {
       const invalidPlayer = { id: 123, name: 'Alice', score: 100, isActive: true };
-      const errors = Player.validate(invalidPlayer as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('id'))).toBe(true);
+      expect(() => Player.parse(invalidPlayer as any)).toThrow(/id/);
     });
 
     it('should detect validation errors for score', () => {
       const invalidPlayer = { id: 'p1', name: 'Alice', score: 'invalid', isActive: true };
-      const errors = Player.validate(invalidPlayer as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('score'))).toBe(true);
+      expect(() => Player.parse(invalidPlayer as any)).toThrow(/score/);
     });
 
     it('should detect validation errors for isActive', () => {
       const invalidPlayer = { id: 'p1', name: 'Alice', score: 100, isActive: 'invalid' };
-      const errors = Player.validate(invalidPlayer as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('isActive'))).toBe(true);
+      expect(() => Player.parse(invalidPlayer as any)).toThrow(/isActive/);
     });
 
     it('should check equality correctly', () => {
@@ -131,24 +122,19 @@ describe('Delta Pack - Unified API', () => {
       expect(defaultPos).toEqual({ x: 0.0, y: 0.0 });
     });
 
-    it('should validate correct position data', () => {
+    it('should parse correct position data', () => {
       const pos = { x: 123.456, y: 78.912 };
-      const errors = Position.validate(pos);
-      expect(errors).toEqual([]);
+      expect(() => Position.parse(pos)).not.toThrow();
     });
 
     it('should detect validation errors for x', () => {
       const invalidPos = { x: 'invalid', y: 10.0 };
-      const errors = Position.validate(invalidPos as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('x'))).toBe(true);
+      expect(() => Position.parse(invalidPos as any)).toThrow(/x/);
     });
 
     it('should detect validation errors for y', () => {
       const invalidPos = { x: 10.0, y: 'invalid' };
-      const errors = Position.validate(invalidPos as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('y'))).toBe(true);
+      expect(() => Position.parse(invalidPos as any)).toThrow(/y/);
     });
 
     it('should quantize floats on encode/decode (0.1 precision)', () => {
@@ -288,29 +274,23 @@ describe('Delta Pack - Unified API', () => {
       expect(result).toEqual(move);
     });
 
-    it('should validate MoveAction', () => {
+    it('should parse MoveAction', () => {
       const move = { x: 10, y: 20 };
-      expect(MoveAction.validate(move)).toEqual([]);
+      expect(() => MoveAction.parse(move)).not.toThrow();
     });
 
     it('should detect MoveAction validation errors for x', () => {
       const invalidMove = { x: 'invalid', y: 20 };
-      const errors = MoveAction.validate(invalidMove as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('x'))).toBe(true);
+      expect(() => MoveAction.parse(invalidMove as any)).toThrow(/x/);
     });
 
     it('should detect MoveAction validation errors for y', () => {
       const invalidMove = { x: 10, y: 'invalid' };
-      const errors = MoveAction.validate(invalidMove as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('y'))).toBe(true);
+      expect(() => MoveAction.parse(invalidMove as any)).toThrow(/y/);
     });
 
     it('should detect MoveAction validation errors for non-object', () => {
-      const errors = MoveAction.validate('not an object' as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('Invalid MoveAction object');
+      expect(() => MoveAction.parse('not an object' as any)).toThrow(/Invalid MoveAction/);
     });
 
     it('should create default AttackAction', () => {
@@ -348,29 +328,23 @@ describe('Delta Pack - Unified API', () => {
       expect(result).toEqual(attack);
     });
 
-    it('should validate AttackAction', () => {
+    it('should parse AttackAction', () => {
       const attack = { targetId: 'enemy-1', damage: 50 };
-      expect(AttackAction.validate(attack)).toEqual([]);
+      expect(() => AttackAction.parse(attack)).not.toThrow();
     });
 
     it('should detect AttackAction validation errors for targetId', () => {
       const invalid = { targetId: 123, damage: 50 };
-      const errors = AttackAction.validate(invalid as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('targetId'))).toBe(true);
+      expect(() => AttackAction.parse(invalid as any)).toThrow(/targetId/);
     });
 
     it('should detect AttackAction validation errors for damage', () => {
       const invalid = { targetId: 'enemy-1', damage: -10 };
-      const errors = AttackAction.validate(invalid as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('damage'))).toBe(true);
+      expect(() => AttackAction.parse(invalid as any)).toThrow(/damage/);
     });
 
     it('should detect AttackAction validation errors for non-object', () => {
-      const errors = AttackAction.validate('not an object' as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('Invalid AttackAction object');
+      expect(() => AttackAction.parse('not an object' as any)).toThrow(/Invalid AttackAction/);
     });
 
     it('should create default UseItemAction', () => {
@@ -408,22 +382,18 @@ describe('Delta Pack - Unified API', () => {
       expect(result).toEqual(useItem);
     });
 
-    it('should validate UseItemAction', () => {
+    it('should parse UseItemAction', () => {
       const useItem = { itemId: 'potion-1' };
-      expect(UseItemAction.validate(useItem)).toEqual([]);
+      expect(() => UseItemAction.parse(useItem)).not.toThrow();
     });
 
     it('should detect UseItemAction validation errors for itemId', () => {
       const invalid = { itemId: 123 };
-      const errors = UseItemAction.validate(invalid as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('itemId'))).toBe(true);
+      expect(() => UseItemAction.parse(invalid as any)).toThrow(/itemId/);
     });
 
     it('should detect UseItemAction validation errors for non-object', () => {
-      const errors = UseItemAction.validate('not an object' as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('Invalid UseItemAction object');
+      expect(() => UseItemAction.parse('not an object' as any)).toThrow(/Invalid UseItemAction/);
     });
   });
 
@@ -467,51 +437,43 @@ describe('Delta Pack - Unified API', () => {
       expect(GameAction.equals(action1, action3)).toBe(false);
     });
 
-    it('should validate MoveAction in union', () => {
+    it('should parse MoveAction in union', () => {
       const moveAction: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
-      const errors = GameAction.validate(moveAction);
-      expect(errors).toEqual([]);
+      expect(() => GameAction.parse(moveAction)).not.toThrow();
     });
 
-    it('should validate AttackAction in union', () => {
+    it('should parse AttackAction in union', () => {
       const attackAction: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-1', damage: 50 } };
-      const errors = GameAction.validate(attackAction);
-      expect(errors).toEqual([]);
+      expect(() => GameAction.parse(attackAction)).not.toThrow();
     });
 
-    it('should validate UseItemAction in union', () => {
+    it('should parse UseItemAction in union', () => {
       const useItemAction: GameAction = { type: 'UseItemAction', val: { itemId: 'potion-1' } };
-      const errors = GameAction.validate(useItemAction);
-      expect(errors).toEqual([]);
+      expect(() => GameAction.parse(useItemAction)).not.toThrow();
     });
 
     it('should detect GameAction validation errors for invalid type', () => {
       const invalidAction: any = { type: 'InvalidAction', val: {} };
-      const errors = GameAction.validate(invalidAction);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
     it('should detect GameAction validation errors for non-object', () => {
-      const errors = GameAction.validate('not an object' as any);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(() => GameAction.parse('not an object' as any)).toThrow();
     });
 
     it('should detect GameAction validation errors for invalid MoveAction value', () => {
       const invalidAction: any = { type: 'MoveAction', val: { x: 'invalid', y: 20 } };
-      const errors = GameAction.validate(invalidAction);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
     it('should detect GameAction validation errors for invalid AttackAction value', () => {
       const invalidAction: any = { type: 'AttackAction', val: { targetId: 123, damage: 50 } };
-      const errors = GameAction.validate(invalidAction);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
     it('should detect GameAction validation errors for invalid UseItemAction value', () => {
       const invalidAction: any = { type: 'UseItemAction', val: { itemId: false } };
-      const errors = GameAction.validate(invalidAction);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
     it('should encode and decode MoveAction union', () => {
@@ -606,9 +568,8 @@ describe('Delta Pack - Unified API', () => {
       });
     });
 
-    it('should validate correct game state', () => {
-      const errors = GameState.validate(gameState1);
-      expect(errors).toEqual([]);
+    it('should parse correct game state', () => {
+      expect(() => GameState.parse(gameState1)).not.toThrow();
     });
 
     it('should detect validation errors for invalid players', () => {
@@ -620,9 +581,7 @@ describe('Delta Pack - Unified API', () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      const errors = GameState.validate(invalidState as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('players'))).toBe(true);
+      expect(() => GameState.parse(invalidState as any)).toThrow(/players/);
     });
 
     it('should detect validation errors for invalid currentPlayer', () => {
@@ -634,9 +593,7 @@ describe('Delta Pack - Unified API', () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      const errors = GameState.validate(invalidState as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('currentPlayer'))).toBe(true);
+      expect(() => GameState.parse(invalidState as any)).toThrow(/currentPlayer/);
     });
 
     it('should detect validation errors for invalid round', () => {
@@ -648,9 +605,7 @@ describe('Delta Pack - Unified API', () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      const errors = GameState.validate(invalidState as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('round'))).toBe(true);
+      expect(() => GameState.parse(invalidState as any)).toThrow(/round/);
     });
 
     it('should detect validation errors for invalid metadata', () => {
@@ -662,9 +617,7 @@ describe('Delta Pack - Unified API', () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      const errors = GameState.validate(invalidState as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('metadata'))).toBe(true);
+      expect(() => GameState.parse(invalidState as any)).toThrow(/metadata/);
     });
 
     it('should detect validation errors for invalid winningColor', () => {
@@ -676,9 +629,7 @@ describe('Delta Pack - Unified API', () => {
         winningColor: 'INVALID_COLOR',
         lastAction: undefined,
       };
-      const errors = GameState.validate(invalidState as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('winningColor'))).toBe(true);
+      expect(() => GameState.parse(invalidState as any)).toThrow(/winningColor/);
     });
 
     it('should detect validation errors for invalid lastAction', () => {
@@ -690,15 +641,11 @@ describe('Delta Pack - Unified API', () => {
         winningColor: undefined,
         lastAction: { type: 'MoveAction', val: { x: 'invalid', y: 20 } },
       };
-      const errors = GameState.validate(invalidState as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(err => err.includes('lastAction'))).toBe(true);
+      expect(() => GameState.parse(invalidState as any)).toThrow(/lastAction/);
     });
 
     it('should detect validation errors for non-object', () => {
-      const errors = GameState.validate('not an object' as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('Invalid GameState object');
+      expect(() => GameState.parse('not an object' as any)).toThrow(/Invalid GameState/);
     });
 
     it('should check equality correctly', () => {
@@ -1006,14 +953,11 @@ describe('Delta Pack - Unified API', () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle non-object validation', () => {
-      const errors = Player.validate('not an object' as any);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors[0]).toContain('Invalid Player object');
+      expect(() => Player.parse('not an object' as any)).toThrow(/Invalid Player/);
     });
 
     it('should handle undefined values in validation', () => {
-      const errors = Player.validate(undefined as any);
-      expect(errors.length).toBeGreaterThan(0);
+      expect(() => Player.parse(undefined as any)).toThrow();
     });
 
     it('should roundtrip encode/decode multiple times', () => {

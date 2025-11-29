@@ -7,7 +7,6 @@ type PrimitiveValue =
   | { type: "int"; val: number }
   | { type: "uint"; val: number }
   | { type: "float"; val: number };
-
 export class Tracker {
   private bitsIdx = 0;
   private dict: string[] = [];
@@ -398,46 +397,101 @@ export class Tracker {
   }
 }
 
-export function validatePrimitive(isValid: boolean, errorMessage: string) {
-  return isValid ? [] : [errorMessage];
-}
-export function validateOptional<T>(val: T | undefined, innerValidate: (x: T) => string[]) {
-  if (val != null) {
-    return innerValidate(val);
+export function tryParseField<T>(parseFn: () => T, key: string): T {
+  try {
+    return parseFn();
+  } catch (err) {
+    throw new Error(`Invalid field ${key}`, { cause: err });
   }
-  return [];
 }
-export function validateArray<T>(arr: T[], innerValidate: (x: T) => string[]) {
-  if (!Array.isArray(arr)) {
-    return ["Invalid array: " + arr];
+
+export function parseString(x: unknown): string {
+  if (typeof x !== "string") {
+    throw new Error(`Invalid string: ${x}`);
   }
-  for (let i = 0; i < arr.length; i++) {
-    const validationErrors = innerValidate(arr[i]);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid array item at index " + i);
+  return x;
+}
+export function parseInt(x: unknown): number {
+  if (typeof x === "string") {
+    x = Number(x);
+  }
+  if (typeof x !== "number" || !Number.isInteger(x)) {
+    throw new Error(`Invalid int: ${x}`);
+  }
+  return x;
+}
+export function parseUInt(x: unknown): number {
+  if (typeof x === "string") {
+    x = Number(x);
+  }
+  if (typeof x !== "number" || !Number.isInteger(x) || x < 0) {
+    throw new Error(`Invalid uint: ${x}`);
+  }
+  return x;
+}
+export function parseFloat(x: unknown): number {
+  if (typeof x === "string") {
+    x = Number(x);
+  }
+  if (typeof x !== "number" || Number.isNaN(x) || !Number.isFinite(x)) {
+    throw new Error(`Invalid float: ${x}`);
+  }
+  return x;
+}
+export function parseBoolean(x: unknown): boolean {
+  if (x === "true" || x === "false") {
+    x = Boolean(x);
+  }
+  if (typeof x !== "boolean") {
+    throw new Error(`Invalid boolean: ${x}`);
+  }
+  return x;
+}
+export function parseEnum<K, T extends object>(x: unknown, enumObj: T): K {
+  if (typeof x !== "string" || !(x in enumObj)) {
+    throw new Error(`Invalid enum: ${x}`);
+  }
+  return x as K;
+}
+export function parseOptional<T>(x: unknown, innerParse: (y: unknown) => T): T | undefined {
+  if (x == null) {
+    return undefined;
+  }
+  try {
+    return innerParse(x);
+  } catch(err) {
+    throw new Error(`Invalid optional: ${x}`, { cause: err });
+  }
+}
+export function parseArray<T>(x: unknown, innerParse: (y: unknown) => T): T[] {
+  if (!Array.isArray(x)) {
+    throw new Error(`Invalid array: ${x}`);
+  }
+  return x.map((y, i) => {
+    try {
+      return innerParse(y);
+    } catch(err) {
+      throw new Error(`Invalid array element at index ${i}: ${y}`, { cause: err });
+    }
+  });
+}
+export function parseRecord<K, T>(
+  x: unknown,
+  innerKeyParse: (y: unknown) => K,
+  innerValParse: (y: unknown) => T,
+): Map<K, T> {
+  if (!(x instanceof Map)) {
+    throw new Error(`Invalid record: ${x}`);
+  }
+  const result: Map<K, T> = new Map();
+  for (const [key, val] of x) {
+    try {
+      result.set(innerKeyParse(key), innerValParse(val));
+    } catch(err) {
+      throw new Error(`Invalid record element (${key}, ${val})`, { cause: err });
     }
   }
-  return [];
-}
-export function validateRecord<K, T>(
-  obj: Map<K, T>,
-  innerKeyValidate: (x: K) => string[],
-  innerValueValidate: (x: T) => string[],
-) {
-  if (!(obj instanceof Map)) {
-    return ["Invalid record: " + obj];
-  }
-  for (const [key, val] of obj) {
-    const keyValidationErrors = innerKeyValidate(key);
-    if (keyValidationErrors.length > 0) {
-      return keyValidationErrors.concat("Invalid record key " + key);
-    }
-    const valueValidationErrors = innerValueValidate(val);
-    if (valueValidationErrors.length > 0) {
-      return valueValidationErrors.concat("Invalid record value " + val + " for key " + key);
-    }
-  }
-  return [];
+  return result;
 }
 
 export function equalsOptional<T>(a: T | undefined, b: T | undefined, equals: (x: T, y: T) => boolean) {

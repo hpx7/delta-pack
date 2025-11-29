@@ -55,30 +55,16 @@ export const Player = {
       isActive: false,
     };
   },
-  validate(obj: Player) {
-    if (typeof obj !== "object") {
-      return [`Invalid Player object: ${obj}`];
+  parse(obj: Player): Player {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Player: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.id === "string", `Invalid string: ${obj.id}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.id");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.name");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.score), `Invalid int: ${obj.score}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.score");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.isActive === "boolean", `Invalid boolean: ${obj.isActive}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.isActive");
-    }
-
-    return validationErrors;
+    return {
+      id: _.tryParseField(() => _.parseString(obj.id), "Player.id"),
+      name: _.tryParseField(() => _.parseString(obj.name), "Player.name"),
+      score: _.tryParseField(() => _.parseInt(obj.score), "Player.score"),
+      isActive: _.tryParseField(() => _.parseBoolean(obj.isActive), "Player.isActive"),
+    };
   },
   equals(a: Player, b: Player): boolean {
     return (
@@ -151,22 +137,14 @@ export const Position = {
       y: 0.0,
     };
   },
-  validate(obj: Position) {
-    if (typeof obj !== "object") {
-      return [`Invalid Position object: ${obj}`];
+  parse(obj: Position): Position {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Position: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.x");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.y");
-    }
-
-    return validationErrors;
+    return {
+      x: _.tryParseField(() => _.parseFloat(obj.x), "Position.x"),
+      y: _.tryParseField(() => _.parseFloat(obj.y), "Position.y"),
+    };
   },
   equals(a: Position, b: Position): boolean {
     return (
@@ -229,22 +207,14 @@ export const MoveAction = {
       y: 0,
     };
   },
-  validate(obj: MoveAction) {
-    if (typeof obj !== "object") {
-      return [`Invalid MoveAction object: ${obj}`];
+  parse(obj: MoveAction): MoveAction {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid MoveAction: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x), `Invalid int: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: MoveAction.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y), `Invalid int: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: MoveAction.y");
-    }
-
-    return validationErrors;
+    return {
+      x: _.tryParseField(() => _.parseInt(obj.x), "MoveAction.x"),
+      y: _.tryParseField(() => _.parseInt(obj.y), "MoveAction.y"),
+    };
   },
   equals(a: MoveAction, b: MoveAction): boolean {
     return (
@@ -307,22 +277,14 @@ export const AttackAction = {
       damage: 0,
     };
   },
-  validate(obj: AttackAction) {
-    if (typeof obj !== "object") {
-      return [`Invalid AttackAction object: ${obj}`];
+  parse(obj: AttackAction): AttackAction {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid AttackAction: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.targetId === "string", `Invalid string: ${obj.targetId}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: AttackAction.targetId");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.damage) && obj.damage >= 0, `Invalid uint: ${obj.damage}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: AttackAction.damage");
-    }
-
-    return validationErrors;
+    return {
+      targetId: _.tryParseField(() => _.parseString(obj.targetId), "AttackAction.targetId"),
+      damage: _.tryParseField(() => _.parseUInt(obj.damage), "AttackAction.damage"),
+    };
   },
   equals(a: AttackAction, b: AttackAction): boolean {
     return (
@@ -384,18 +346,13 @@ export const UseItemAction = {
       itemId: "",
     };
   },
-  validate(obj: UseItemAction) {
-    if (typeof obj !== "object") {
-      return [`Invalid UseItemAction object: ${obj}`];
+  parse(obj: UseItemAction): UseItemAction {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid UseItemAction: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.itemId === "string", `Invalid string: ${obj.itemId}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: UseItemAction.itemId");
-    }
-
-    return validationErrors;
+    return {
+      itemId: _.tryParseField(() => _.parseString(obj.itemId), "UseItemAction.itemId"),
+    };
   },
   equals(a: UseItemAction, b: UseItemAction): boolean {
     return (
@@ -456,30 +413,30 @@ export const GameAction = {
   values() {
     return ["MoveAction", "AttackAction", "UseItemAction"];
   },
-  validate(obj: GameAction) {
+  parse(obj: GameAction): GameAction {
+    if (typeof obj !== "object" || obj?.type == null) {
+      throw new Error(`Invalid GameAction: ${obj}`);
+    }
     if (obj.type === "MoveAction") {
-      const validationErrors = MoveAction.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: GameAction");
-      }
-      return validationErrors;
+      return {
+        type: "MoveAction",
+        val: MoveAction.parse(obj.val as MoveAction),
+      };
     }
     else if (obj.type === "AttackAction") {
-      const validationErrors = AttackAction.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: GameAction");
-      }
-      return validationErrors;
+      return {
+        type: "AttackAction",
+        val: AttackAction.parse(obj.val as AttackAction),
+      };
     }
     else if (obj.type === "UseItemAction") {
-      const validationErrors = UseItemAction.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: GameAction");
-      }
-      return validationErrors;
+      return {
+        type: "UseItemAction",
+        val: UseItemAction.parse(obj.val as UseItemAction),
+      };
     }
     else {
-      return [`Invalid GameAction union: ${obj}`];
+      throw new Error(`Invalid GameAction: ${obj}`);
     }
   },
   equals(a: GameAction, b: GameAction): boolean {
@@ -616,38 +573,18 @@ export const GameState = {
       lastAction: undefined,
     };
   },
-  validate(obj: GameState) {
-    if (typeof obj !== "object") {
-      return [`Invalid GameState object: ${obj}`];
+  parse(obj: GameState): GameState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid GameState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateArray(obj.players, (x) => Player.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.players");
-    }
-    validationErrors = _.validateOptional(obj.currentPlayer, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.currentPlayer");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.round) && obj.round >= 0, `Invalid uint: ${obj.round}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.round");
-    }
-    validationErrors = _.validateRecord(obj.metadata, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`), (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.metadata");
-    }
-    validationErrors = _.validateOptional(obj.winningColor, (x) => _.validatePrimitive(x in Color, `Invalid Color: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.winningColor");
-    }
-    validationErrors = _.validateOptional(obj.lastAction, (x) => GameAction.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.lastAction");
-    }
-
-    return validationErrors;
+    return {
+      players: _.tryParseField(() => _.parseArray(obj.players, (x) => Player.parse(x as Player)), "GameState.players"),
+      currentPlayer: _.tryParseField(() => _.parseOptional(obj.currentPlayer, (x) => _.parseString(x)), "GameState.currentPlayer"),
+      round: _.tryParseField(() => _.parseUInt(obj.round), "GameState.round"),
+      metadata: _.tryParseField(() => _.parseRecord(obj.metadata, (x) => _.parseString(x), (x) => _.parseString(x)), "GameState.metadata"),
+      winningColor: _.tryParseField(() => _.parseOptional(obj.winningColor, (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
+      lastAction: _.tryParseField(() => _.parseOptional(obj.lastAction, (x) => GameAction.parse(x as GameAction)), "GameState.lastAction"),
+    };
   },
   equals(a: GameState, b: GameState): boolean {
     return (

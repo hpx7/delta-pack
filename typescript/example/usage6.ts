@@ -1,6 +1,4 @@
-import assert from "assert";
-import { GameState } from "./output6.js";
-import type { Player, Enemy, Projectile, DroppedLoot } from "./output6.js";
+import { GameState, Player, Team } from "./output6";
 
 console.log("=== Multiplayer Game State Synchronization Demo ===\n");
 
@@ -10,9 +8,9 @@ function createPlayer(
   username: string,
   x: number,
   y: number,
-  team: "RED" | "BLUE" | "GREEN" | "YELLOW" | undefined
+  team?: Team
 ): Player {
-  return {
+  return Player.parse({
     playerId,
     username,
     team,
@@ -54,7 +52,7 @@ function createPlayer(
     isAiming: false,
     lastDamageTime: undefined,
     respawnTime: undefined,
-  };
+  });
 }
 
 // Initial game state - lobby with 2 players

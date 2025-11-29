@@ -48,22 +48,14 @@ export const ChatMessage = {
       content: "",
     };
   },
-  validate(obj: ChatMessage) {
-    if (typeof obj !== "object") {
-      return [`Invalid ChatMessage object: ${obj}`];
+  parse(obj: ChatMessage): ChatMessage {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid ChatMessage: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.author === "string", `Invalid string: ${obj.author}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ChatMessage.author");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.content === "string", `Invalid string: ${obj.content}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ChatMessage.content");
-    }
-
-    return validationErrors;
+    return {
+      author: _.parseString(obj.author),
+      content: _.parseString(obj.content),
+    };
   },
   equals(a: ChatMessage, b: ChatMessage): boolean {
     return (
@@ -125,18 +117,13 @@ export const ChatList = {
       messages: [],
     };
   },
-  validate(obj: ChatList) {
-    if (typeof obj !== "object") {
-      return [`Invalid ChatList object: ${obj}`];
+  parse(obj: ChatList): ChatList {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid ChatList: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateArray(obj.messages, (x) => ChatMessage.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ChatList.messages");
-    }
-
-    return validationErrors;
+    return {
+      messages: _.parseArray(obj.messages, (x) => ChatMessage.parse(x as ChatMessage)),
+    };
   },
   equals(a: ChatList, b: ChatList): boolean {
     return (
@@ -206,26 +193,15 @@ export const Position = {
       z: 0.0,
     };
   },
-  validate(obj: Position) {
-    if (typeof obj !== "object") {
-      return [`Invalid Position object: ${obj}`];
+  parse(obj: Position): Position {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Position: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.x");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.y");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.z === "number", `Invalid float: ${obj.z}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.z");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseFloat(obj.x),
+      y: _.parseFloat(obj.y),
+      z: _.parseFloat(obj.z),
+    };
   },
   equals(a: Position, b: Position): boolean {
     return (
@@ -295,30 +271,16 @@ export const Rotation = {
       w: 0.0,
     };
   },
-  validate(obj: Rotation) {
-    if (typeof obj !== "object") {
-      return [`Invalid Rotation object: ${obj}`];
+  parse(obj: Rotation): Rotation {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Rotation: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Rotation.x");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Rotation.y");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.z === "number", `Invalid float: ${obj.z}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Rotation.z");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.w === "number", `Invalid float: ${obj.w}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Rotation.w");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseFloat(obj.x),
+      y: _.parseFloat(obj.y),
+      z: _.parseFloat(obj.z),
+      w: _.parseFloat(obj.w),
+    };
   },
   equals(a: Rotation, b: Rotation): boolean {
     return (
@@ -392,26 +354,15 @@ export const Size3D = {
       depth: 0.0,
     };
   },
-  validate(obj: Size3D) {
-    if (typeof obj !== "object") {
-      return [`Invalid Size3D object: ${obj}`];
+  parse(obj: Size3D): Size3D {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Size3D: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.width === "number", `Invalid float: ${obj.width}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Size3D.width");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.height === "number", `Invalid float: ${obj.height}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Size3D.height");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.depth === "number", `Invalid float: ${obj.depth}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Size3D.depth");
-    }
-
-    return validationErrors;
+    return {
+      width: _.parseFloat(obj.width),
+      height: _.parseFloat(obj.height),
+      depth: _.parseFloat(obj.depth),
+    };
   },
   equals(a: Size3D, b: Size3D): boolean {
     return (
@@ -505,65 +456,60 @@ export const Component = {
   values() {
     return ["Color", "Position", "Rotation", "Size3D", "Size1D", "EntityEvent", "EntityState", "ChatList"];
   },
-  validate(obj: Component) {
+  parse(obj: Component): Component {
+    if (typeof obj !== "object" || obj?.type == null) {
+      throw new Error(`Invalid Component: ${obj}`);
+    }
     if (obj.type === "Color") {
-      const validationErrors = _.validatePrimitive(typeof obj.val === "string", `Invalid string: ${obj.val}`);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "Color",
+        val: _.parseString(obj.val),
+      };
     }
     else if (obj.type === "Position") {
-      const validationErrors = Position.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "Position",
+        val: Position.parse(obj.val as Position),
+      };
     }
     else if (obj.type === "Rotation") {
-      const validationErrors = Rotation.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "Rotation",
+        val: Rotation.parse(obj.val as Rotation),
+      };
     }
     else if (obj.type === "Size3D") {
-      const validationErrors = Size3D.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "Size3D",
+        val: Size3D.parse(obj.val as Size3D),
+      };
     }
     else if (obj.type === "Size1D") {
-      const validationErrors = _.validatePrimitive(typeof obj.val === "number", `Invalid float: ${obj.val}`);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "Size1D",
+        val: _.parseFloat(obj.val),
+      };
     }
     else if (obj.type === "EntityEvent") {
-      const validationErrors = _.validatePrimitive(obj.val in EntityEvent, `Invalid EntityEvent: ${obj.val}`);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "EntityEvent",
+        val: _.parseEnum(obj.val, EntityEvent),
+      };
     }
     else if (obj.type === "EntityState") {
-      const validationErrors = _.validatePrimitive(obj.val in EntityState, `Invalid EntityState: ${obj.val}`);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "EntityState",
+        val: _.parseEnum(obj.val, EntityState),
+      };
     }
     else if (obj.type === "ChatList") {
-      const validationErrors = ChatList.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: Component");
-      }
-      return validationErrors;
+      return {
+        type: "ChatList",
+        val: ChatList.parse(obj.val as ChatList),
+      };
     }
     else {
-      return [`Invalid Component union: ${obj}`];
+      throw new Error(`Invalid Component: ${obj}`);
     }
   },
   equals(a: Component, b: Component): boolean {
@@ -836,22 +782,14 @@ export const Entity = {
       components: [],
     };
   },
-  validate(obj: Entity) {
-    if (typeof obj !== "object") {
-      return [`Invalid Entity object: ${obj}`];
+  parse(obj: Entity): Entity {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Entity: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.entityId), `Invalid int: ${obj.entityId}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Entity.entityId");
-    }
-    validationErrors = _.validateArray(obj.components, (x) => Component.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Entity.components");
-    }
-
-    return validationErrors;
+    return {
+      entityId: _.parseInt(obj.entityId),
+      components: _.parseArray(obj.components, (x) => Component.parse(x as Component)),
+    };
   },
   equals(a: Entity, b: Entity): boolean {
     return (
@@ -923,18 +861,13 @@ export const Snapshot = {
       entities: [],
     };
   },
-  validate(obj: Snapshot) {
-    if (typeof obj !== "object") {
-      return [`Invalid Snapshot object: ${obj}`];
+  parse(obj: Snapshot): Snapshot {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Snapshot: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateArray(obj.entities, (x) => Entity.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Snapshot.entities");
-    }
-
-    return validationErrors;
+    return {
+      entities: _.parseArray(obj.entities, (x) => Entity.parse(x as Entity)),
+    };
   },
   equals(a: Snapshot, b: Snapshot): boolean {
     return (

@@ -44,22 +44,14 @@ export const Card = {
       color: "RED",
     };
   },
-  validate(obj: Card) {
-    if (typeof obj !== "object") {
-      return [`Invalid Card object: ${obj}`];
+  parse(obj: Card): Card {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Card: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.value), `Invalid int: ${obj.value}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Card.value");
-    }
-    validationErrors = _.validatePrimitive(obj.color in Color, `Invalid Color: ${obj.color}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Card.color");
-    }
-
-    return validationErrors;
+    return {
+      value: _.parseInt(obj.value),
+      color: _.parseEnum(obj.color, Color),
+    };
   },
   equals(a: Card, b: Card): boolean {
     return (
@@ -122,22 +114,14 @@ export const Player = {
       numCards: 0,
     };
   },
-  validate(obj: Player) {
-    if (typeof obj !== "object") {
-      return [`Invalid Player object: ${obj}`];
+  parse(obj: Player): Player {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Player: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.id === "string", `Invalid string: ${obj.id}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.id");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.numCards), `Invalid int: ${obj.numCards}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.numCards");
-    }
-
-    return validationErrors;
+    return {
+      id: _.parseString(obj.id),
+      numCards: _.parseInt(obj.numCards),
+    };
   },
   equals(a: Player, b: Player): boolean {
     return (
@@ -206,46 +190,20 @@ export const PlayerState = {
       union: UnionTest.default(),
     };
   },
-  validate(obj: PlayerState) {
-    if (typeof obj !== "object") {
-      return [`Invalid PlayerState object: ${obj}`];
+  parse(obj: PlayerState): PlayerState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid PlayerState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validateArray(obj.hand, (x) => Card.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.hand");
-    }
-    validationErrors = _.validateArray(obj.players, (x) => Player.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.players");
-    }
-    validationErrors = _.validateOptional(obj.turn, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.turn");
-    }
-    validationErrors = _.validateOptional(obj.pile, (x) => Card.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.pile");
-    }
-    validationErrors = _.validateOptional(obj.winner, (x) => _.validatePrimitive(typeof x === "string", `Invalid string: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.winner");
-    }
-    validationErrors = _.validateArray(obj.intArray, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.intArray");
-    }
-    validationErrors = _.validateOptional(obj.intOptional, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.intOptional");
-    }
-    validationErrors = UnionTest.validate(obj.union);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: PlayerState.union");
-    }
-
-    return validationErrors;
+    return {
+      hand: _.parseArray(obj.hand, (x) => Card.parse(x as Card)),
+      players: _.parseArray(obj.players, (x) => Player.parse(x as Player)),
+      turn: _.parseOptional(obj.turn, (x) => _.parseString(x)),
+      pile: _.parseOptional(obj.pile, (x) => Card.parse(x as Card)),
+      winner: _.parseOptional(obj.winner, (x) => _.parseString(x)),
+      intArray: _.parseArray(obj.intArray, (x) => _.parseInt(x)),
+      intOptional: _.parseOptional(obj.intOptional, (x) => _.parseInt(x)),
+      union: UnionTest.parse(obj.union as UnionTest),
+    };
   },
   equals(a: PlayerState, b: PlayerState): boolean {
     return (
@@ -401,30 +359,30 @@ export const UnionTest = {
   values() {
     return ["UserId", "Color", "Card"];
   },
-  validate(obj: UnionTest) {
+  parse(obj: UnionTest): UnionTest {
+    if (typeof obj !== "object" || obj?.type == null) {
+      throw new Error(`Invalid UnionTest: ${obj}`);
+    }
     if (obj.type === "UserId") {
-      const validationErrors = _.validatePrimitive(typeof obj.val === "string", `Invalid string: ${obj.val}`);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: UnionTest");
-      }
-      return validationErrors;
+      return {
+        type: "UserId",
+        val: _.parseString(obj.val),
+      };
     }
     else if (obj.type === "Color") {
-      const validationErrors = _.validatePrimitive(obj.val in Color, `Invalid Color: ${obj.val}`);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: UnionTest");
-      }
-      return validationErrors;
+      return {
+        type: "Color",
+        val: _.parseEnum(obj.val, Color),
+      };
     }
     else if (obj.type === "Card") {
-      const validationErrors = Card.validate(obj.val);
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: UnionTest");
-      }
-      return validationErrors;
+      return {
+        type: "Card",
+        val: Card.parse(obj.val as Card),
+      };
     }
     else {
-      return [`Invalid UnionTest union: ${obj}`];
+      throw new Error(`Invalid UnionTest: ${obj}`);
     }
   },
   equals(a: UnionTest, b: UnionTest): boolean {

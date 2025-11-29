@@ -41,22 +41,14 @@ export const Position = {
       y: 0,
     };
   },
-  validate(obj: Position) {
-    if (typeof obj !== "object") {
-      return [`Invalid Position object: ${obj}`];
+  parse(obj: Position): Position {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Position: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x) && obj.x >= 0, `Invalid uint: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y) && obj.y >= 0, `Invalid uint: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.y");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseUInt(obj.x),
+      y: _.parseUInt(obj.y),
+    };
   },
   equals(a: Position, b: Position): boolean {
     return (
@@ -119,22 +111,14 @@ export const Velocity = {
       y: 0,
     };
   },
-  validate(obj: Velocity) {
-    if (typeof obj !== "object") {
-      return [`Invalid Velocity object: ${obj}`];
+  parse(obj: Velocity): Velocity {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Velocity: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.x) && obj.x >= 0, `Invalid uint: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Velocity.x");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.y) && obj.y >= 0, `Invalid uint: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Velocity.y");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseUInt(obj.x),
+      y: _.parseUInt(obj.y),
+    };
   },
   equals(a: Velocity, b: Velocity): boolean {
     return (
@@ -213,86 +197,30 @@ export const Player = {
       maxSpeed: 0,
     };
   },
-  validate(obj: Player) {
-    if (typeof obj !== "object") {
-      return [`Invalid Player object: ${obj}`];
+  parse(obj: Player): Player {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Player: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.id) && obj.id >= 0, `Invalid uint: ${obj.id}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.id");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.name");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.type === "string", `Invalid string: ${obj.type}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.type");
-    }
-    validationErrors = Position.validate(obj.position);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.position");
-    }
-    validationErrors = Velocity.validate(obj.velocity);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.velocity");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.width) && obj.width >= 0, `Invalid uint: ${obj.width}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.width");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.height) && obj.height >= 0, `Invalid uint: ${obj.height}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.height");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.rotation) && obj.rotation >= 0, `Invalid uint: ${obj.rotation}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.rotation");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.mass) && obj.mass >= 0, `Invalid uint: ${obj.mass}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.mass");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.health) && obj.health >= 0, `Invalid uint: ${obj.health}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.health");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.depth) && obj.depth >= 0, `Invalid uint: ${obj.depth}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.depth");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.lifetime) && obj.lifetime >= 0, `Invalid uint: ${obj.lifetime}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.lifetime");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.radius) && obj.radius >= 0, `Invalid uint: ${obj.radius}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.radius");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.isSensor === "boolean", `Invalid boolean: ${obj.isSensor}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.isSensor");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.isStatic === "boolean", `Invalid boolean: ${obj.isStatic}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.isStatic");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.destroyed === "boolean", `Invalid boolean: ${obj.destroyed}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.destroyed");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.owner) && obj.owner >= 0, `Invalid uint: ${obj.owner}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.owner");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.maxSpeed) && obj.maxSpeed >= 0, `Invalid uint: ${obj.maxSpeed}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.maxSpeed");
-    }
-
-    return validationErrors;
+    return {
+      id: _.parseUInt(obj.id),
+      name: _.parseString(obj.name),
+      type: _.parseString(obj.type),
+      position: Position.parse(obj.position as Position),
+      velocity: Velocity.parse(obj.velocity as Velocity),
+      width: _.parseUInt(obj.width),
+      height: _.parseUInt(obj.height),
+      rotation: _.parseUInt(obj.rotation),
+      mass: _.parseUInt(obj.mass),
+      health: _.parseUInt(obj.health),
+      depth: _.parseUInt(obj.depth),
+      lifetime: _.parseUInt(obj.lifetime),
+      radius: _.parseUInt(obj.radius),
+      isSensor: _.parseBoolean(obj.isSensor),
+      isStatic: _.parseBoolean(obj.isStatic),
+      destroyed: _.parseBoolean(obj.destroyed),
+      owner: _.parseUInt(obj.owner),
+      maxSpeed: _.parseUInt(obj.maxSpeed),
+    };
   },
   equals(a: Player, b: Player): boolean {
     return (
@@ -435,22 +363,14 @@ export const State = {
       state: [],
     };
   },
-  validate(obj: State) {
-    if (typeof obj !== "object") {
-      return [`Invalid State object: ${obj}`];
+  parse(obj: State): State {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid State: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.id) && obj.id >= 0, `Invalid uint: ${obj.id}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: State.id");
-    }
-    validationErrors = _.validateArray(obj.state, (x) => Player.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: State.state");
-    }
-
-    return validationErrors;
+    return {
+      id: _.parseUInt(obj.id),
+      state: _.parseArray(obj.state, (x) => Player.parse(x as Player)),
+    };
   },
   equals(a: State, b: State): boolean {
     return (

@@ -1,7 +1,7 @@
 import assert from "assert";
-import { Snapshot } from "./output3.js";
+import { Snapshot } from "./output3";
 
-const state1: Snapshot = {
+const state1 = Snapshot.parse({
   entities: [
     {
       entityId: 0,
@@ -30,12 +30,12 @@ const state1: Snapshot = {
       ],
     },
   ],
-};
+});
 
 console.log(Snapshot.encode(state1));
 // Uint8Array(101)
 
-const state2: Snapshot = {
+const state2 = Snapshot.parse({
   entities: [
     {
       entityId: 0,
@@ -64,7 +64,7 @@ const state2: Snapshot = {
       ],
     },
   ],
-};
+});
 
 console.log(Snapshot.encode(state2));
 // Uint8Array(102);

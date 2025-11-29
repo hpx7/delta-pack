@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
-import { State } from "./output2.js";
+import { State } from "./output2";
 
 function runBenchmark() {
-  let testData = JSON.parse(fs.readFileSync("example/states.json", "utf8")) as State[];
+  let jsonData = JSON.parse(fs.readFileSync("example/states.json", "utf8")) as any[];
+  let testData = jsonData.map((x) => State.parse(x));
 
   let totalEncodeTime = 0;
   let totalDecodeTime = 0;

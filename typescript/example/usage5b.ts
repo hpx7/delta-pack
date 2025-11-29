@@ -1,7 +1,7 @@
 import assert from "assert";
-import { GameState } from "./output5.js";
+import { GameState } from "./output5";
 
-const state1: GameState = {
+const state1 = GameState.parse({
   creatures: new Map([
     [
       64,
@@ -772,7 +772,7 @@ const state1: GameState = {
     timeElapsed: 38,
   },
   debugBodies: [],
-};
+});
 
 const encoded = GameState.encode(state1);
 console.log("encoded", encoded);
@@ -781,7 +781,7 @@ console.log("encoded", encoded);
 const decoded = GameState.decode(encoded);
 assert(GameState.equals(decoded, state1));
 
-const state2: GameState = {
+const state2 = GameState.parse({
   creatures: new Map([
     [
       64,
@@ -1556,7 +1556,7 @@ const state2: GameState = {
     timeElapsed: 38,
   },
   debugBodies: [],
-};
+});
 
 const encodedDiff = GameState.encodeDiff(state1, state2);
 console.log("encodedDiff", encodedDiff);

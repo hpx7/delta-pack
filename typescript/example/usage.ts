@@ -1,12 +1,12 @@
 import assert from "assert";
-import { PlayerState } from "./output.js";
+import { PlayerState } from "./output";
 
-const state1: PlayerState = {
+const state1 = PlayerState.parse({
   hand: [],
   players: [],
   intArray: [],
   union: { type: "Card", val: { value: 1, color: "BLUE" } },
-};
+});
 
 const encodedState1 = PlayerState.encode(state1);
 console.log(encodedState1);
@@ -14,7 +14,7 @@ console.log(encodedState1);
 const decodedState1 = PlayerState.decode(encodedState1);
 assert(PlayerState.equals(decodedState1, state1));
 
-const state2: PlayerState = {
+const state2 = PlayerState.parse({
   hand: [
     { value: 1, color: "BLUE" },
     { value: 2, color: "RED" },
@@ -27,7 +27,7 @@ const state2: PlayerState = {
   intArray: [1, 2, 3],
   intOptional: -1,
   union: { type: "Card", val: { value: 1, color: "BLUE" } },
-};
+});
 
 const encodedState2 = PlayerState.encode(state2);
 console.log(encodedState2);

@@ -27,22 +27,14 @@ export const Position = {
       y: 0.0,
     };
   },
-  validate(obj: Position) {
-    if (typeof obj !== "object") {
-      return [`Invalid Position object: ${obj}`];
+  parse(obj: Position): Position {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Position: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.x === "number", `Invalid float: ${obj.x}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.x");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.y === "number", `Invalid float: ${obj.y}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Position.y");
-    }
-
-    return validationErrors;
+    return {
+      x: _.parseFloat(obj.x),
+      y: _.parseFloat(obj.y),
+    };
   },
   equals(a: Position, b: Position): boolean {
     return (
@@ -105,22 +97,14 @@ export const Weapon = {
       damage: 0,
     };
   },
-  validate(obj: Weapon) {
-    if (typeof obj !== "object") {
-      return [`Invalid Weapon object: ${obj}`];
+  parse(obj: Weapon): Weapon {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Weapon: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(typeof obj.name === "string", `Invalid string: ${obj.name}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Weapon.name");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.damage), `Invalid int: ${obj.damage}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Weapon.damage");
-    }
-
-    return validationErrors;
+    return {
+      name: _.parseString(obj.name),
+      damage: _.parseInt(obj.damage),
+    };
   },
   equals(a: Weapon, b: Weapon): boolean {
     return (
@@ -185,30 +169,16 @@ export const Player = {
       stealth: false,
     };
   },
-  validate(obj: Player) {
-    if (typeof obj !== "object") {
-      return [`Invalid Player object: ${obj}`];
+  parse(obj: Player): Player {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid Player: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = Position.validate(obj.position);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.position");
-    }
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.health), `Invalid int: ${obj.health}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.health");
-    }
-    validationErrors = _.validateOptional(obj.weapon, (x) => Weapon.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.weapon");
-    }
-    validationErrors = _.validatePrimitive(typeof obj.stealth === "boolean", `Invalid boolean: ${obj.stealth}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: Player.stealth");
-    }
-
-    return validationErrors;
+    return {
+      position: Position.parse(obj.position as Position),
+      health: _.parseInt(obj.health),
+      weapon: _.parseOptional(obj.weapon, (x) => Weapon.parse(x as Weapon)),
+      stealth: _.parseBoolean(obj.stealth),
+    };
   },
   equals(a: Player, b: Player): boolean {
     return (
@@ -290,22 +260,14 @@ export const GameState = {
       players: new Map(),
     };
   },
-  validate(obj: GameState) {
-    if (typeof obj !== "object") {
-      return [`Invalid GameState object: ${obj}`];
+  parse(obj: GameState): GameState {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(`Invalid GameState: ${obj}`);
     }
-    let validationErrors: string[] = [];
-
-    validationErrors = _.validatePrimitive(Number.isInteger(obj.timeRemaining), `Invalid int: ${obj.timeRemaining}`);
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.timeRemaining");
-    }
-    validationErrors = _.validateRecord(obj.players, (x) => _.validatePrimitive(Number.isInteger(x), `Invalid int: ${x}`), (x) => Player.validate(x));
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: GameState.players");
-    }
-
-    return validationErrors;
+    return {
+      timeRemaining: _.parseInt(obj.timeRemaining),
+      players: _.parseRecord(obj.players, (x) => _.parseInt(x), (x) => Player.parse(x as Player)),
+    };
   },
   equals(a: GameState, b: GameState): boolean {
     return (

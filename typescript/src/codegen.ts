@@ -52,22 +52,17 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  validate(obj: ${name}) {
-    if (typeof obj !== "object") {
-      return [\`Invalid ${name} object: \${obj}\`];
+  parse(obj: ${name}): ${name} {
+    if (typeof obj !== "object" || obj == null) {
+      throw new Error(\`Invalid ${name}: \${obj}\`);
     }
-    let validationErrors: string[] = [];
-
-    ${Object.entries(type.properties)
-      .map(([childName, childType]) => {
-        return `validationErrors = ${renderValidate(childType, name, `obj.${childName}`)};
-    if (validationErrors.length > 0) {
-      return validationErrors.concat("Invalid key: ${name}.${childName}");
-    }`;
-      })
-      .join("\n    ")}
-
-    return validationErrors;
+    return {
+      ${Object.entries(type.properties)
+        .map(([childName, childType]) => {
+          return `${childName}: _.tryParseField(() => ${renderParse(childType, childName, `obj.${childName}`)}, "${name}.${childName}"),`;
+        })
+        .join("\n      ")}
+    };
   },
   equals(a: ${name}, b: ${name}): boolean {
     return (
@@ -149,20 +144,22 @@ export const ${name} = {
   values() {
     return [${type.options.map((option) => `"${lookup(option)}"`).join(", ")}];
   },
-  validate(obj: ${name}) {
+  parse(obj: ${name}): ${name} {
+    if (typeof obj !== "object" || obj?.type == null) {
+      throw new Error(\`Invalid ${name}: \${obj}\`);
+    }
     ${Object.entries(type.options)
       .map(([childName, reference], i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${lookup(reference)}") {
-      const validationErrors = ${renderValidate(reference, lookup(reference), "obj.val")};
-      if (validationErrors.length > 0) {
-        return validationErrors.concat("Invalid union: ${name}");
-      }
-      return validationErrors;
+      return {
+        type: "${lookup(reference)}",
+        val: ${renderParse(reference, lookup(reference), "obj.val")},
+      };
     }`;
       })
       .join("\n    ")}
     else {
-      return [\`Invalid ${name} union: \${obj}\`];
+      throw new Error(\`Invalid ${name}: \${obj}\`);
     }
   },
   equals(a: ${name}, b: ${name}): boolean {
@@ -320,31 +317,31 @@ export const ${name} = {
     return `${name}.default()`;
   }
 
-  function renderValidate(type: Type, name: string, key: string): string {
+  function renderParse(type: Type, name: string, key: string): string {
     if (type.type === "array") {
-      return `_.validateArray(${key}, (x) => ${renderValidate(type.value, name, "x")})`;
+      return `_.parseArray(${key}, (x) => ${renderParse(type.value, name, "x")})`;
     } else if (type.type === "optional") {
-      return `_.validateOptional(${key}, (x) => ${renderValidate(type.value, name, "x")})`;
+      return `_.parseOptional(${key}, (x) => ${renderParse(type.value, name, "x")})`;
     } else if (type.type === "record") {
-      const keyFn = renderValidate(type.key, name, "x");
-      const valueFn = renderValidate(type.value, name, "x");
-      return `_.validateRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
+      const keyFn = renderParse(type.key, name, "x");
+      const valueFn = renderParse(type.value, name, "x");
+      return `_.parseRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderValidate(type.reference, lookup(type), key);
+      return renderParse(type.reference, lookup(type), key);
     } else if (type.type === "string") {
-      return `_.validatePrimitive(typeof ${key} === "string", \`Invalid string: \${${key}}\`)`;
+      return `_.parseString(${key})`;
     } else if (type.type === "int") {
-      return `_.validatePrimitive(Number.isInteger(${key}), \`Invalid int: \${${key}}\`)`;
+      return `_.parseInt(${key})`;
     } else if (type.type === "uint") {
-      return `_.validatePrimitive(Number.isInteger(${key}) && ${key} >= 0, \`Invalid uint: \${${key}}\`)`;
+      return `_.parseUInt(${key})`;
     } else if (type.type === "float") {
-      return `_.validatePrimitive(typeof ${key} === "number", \`Invalid float: \${${key}}\`)`;
+      return `_.parseFloat(${key})`;
     } else if (type.type === "boolean") {
-      return `_.validatePrimitive(typeof ${key} === "boolean", \`Invalid boolean: \${${key}}\`)`;
+      return `_.parseBoolean(${key})`;
     } else if (type.type === "enum") {
-      return `_.validatePrimitive(${key} in ${name}, \`Invalid ${name}: \${${key}}\`)`;
+      return `_.parseEnum(${key}, ${name})`;
     }
-    return `${name}.validate(${key})`;
+    return `${name}.parse(${key} as ${name})`;
   }
 
   function renderEquals(type: Type, name: string, keyA: string, keyB: string): string {
