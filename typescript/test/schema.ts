@@ -78,10 +78,7 @@ const typeDefinitions = {
   GameState,
 };
 
-let generatedCode = codegenTypescript(typeDefinitions);
-
-// Post-process to add proper exports for ESM
-generatedCode = generatedCode.replace(/\(\{([^}]+)\}\);?$/, 'export { $1 };');
+const generatedCode = codegenTypescript(typeDefinitions);
 
 // Write to output file
 const outputPath = join(__dirname, 'generated-schema.ts');

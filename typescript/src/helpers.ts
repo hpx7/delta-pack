@@ -439,8 +439,11 @@ export function parseFloat(x: unknown): number {
   return x;
 }
 export function parseBoolean(x: unknown): boolean {
-  if (x === "true" || x === "false") {
-    x = Boolean(x);
+  if (x === "true") {
+    return true;
+  }
+  if (x === "false") {
+    return false;
   }
   if (typeof x !== "boolean") {
     throw new Error(`Invalid boolean: ${x}`);
@@ -483,7 +486,8 @@ export function parseRecord<K, T>(
   if (typeof x !== "object" || x == null) {
     throw new Error(`Invalid record, got ${typeof x}`);
   }
-  if (Object.getPrototypeOf(x) === Object.prototype) {
+  const proto = Object.getPrototypeOf(x);
+  if (proto === Object.prototype || proto === null) {
     x = new Map(Object.entries(x));
   }
   if (!(x instanceof Map)) {
