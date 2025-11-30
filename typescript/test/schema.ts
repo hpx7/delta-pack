@@ -12,17 +12,17 @@ import {
   ReferenceType,
   UnionType,
   codegenTypescript,
-} from '@hathora/delta-pack';
-import { defineSchema } from '@hathora/delta-pack/infer';
-import { writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+} from "@hathora/delta-pack";
+import { defineSchema } from "@hathora/delta-pack/infer";
+import { writeFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Define test schema with multiple types
-const Color = EnumType(['RED', 'BLUE', 'GREEN', 'YELLOW']);
+const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
 const Player = ObjectType({
   id: StringType(),
@@ -94,7 +94,7 @@ const typeDefinitions = {
 const generatedCode = codegenTypescript(typeDefinitions);
 
 // Write to output file
-const outputPath = join(__dirname, 'generated-schema.ts');
-writeFileSync(outputPath, generatedCode, 'utf8');
+const outputPath = join(__dirname, "generated-schema.ts");
+writeFileSync(outputPath, generatedCode, "utf8");
 
 console.log(`Generated test schema at ${outputPath}`);

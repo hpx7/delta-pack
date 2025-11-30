@@ -72,7 +72,11 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "array") {
       return _.parseArray(objVal, (elem) => _parse(elem, objType.value));
     } else if (objType.type === "record") {
-      return _.parseRecord(objVal, (key) => _parse(key, objType.key), (val) => _parse(val, objType.value));
+      return _.parseRecord(
+        objVal,
+        (key) => _parse(key, objType.key),
+        (val) => _parse(val, objType.value)
+      );
     } else if (objType.type === "union") {
       const unionType = (objVal as { type: string })?.type;
       if (typeof unionType !== "string") {
@@ -123,10 +127,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
     } else if (objType.type === "array") {
       const arr = objVal as unknown[];
-      tracker.pushArray(
-        arr,
-        (elem) => _encode(elem, objType.value, tracker)
-      );
+      tracker.pushArray(arr, (elem) => _encode(elem, objType.value, tracker));
     } else if (objType.type === "record") {
       const map = objVal as Map<unknown, unknown>;
       tracker.pushRecord(
@@ -144,10 +145,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const refType = schema[unionObj.type];
       _encode(unionObj.val, refType, tracker);
     } else if (objType.type === "optional") {
-      tracker.pushOptional(
-        objVal,
-        (val) => _encode(val, objType.value, tracker)
-      );
+      tracker.pushOptional(objVal, (val) => _encode(val, objType.value, tracker));
     }
   }
 
@@ -354,11 +352,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       // Use pushOptionalDiffPrimitive for primitives (including primitive references like UserId)
       // Use pushOptionalDiff for objects/complex types
       if (isPrimitiveType(valueType)) {
-        tracker.pushOptionalDiffPrimitive(
-          a,
-          b,
-          (x) => _encode(x, valueType, tracker)
-        );
+        tracker.pushOptionalDiffPrimitive(a, b, (x) => _encode(x, valueType, tracker));
       } else {
         tracker.pushOptionalDiff(
           a,
@@ -450,10 +444,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const valueType = objType.value;
       // Use nextOptionalDiffPrimitive for primitives, nextOptionalDiff for complex types
       if (isPrimitiveType(valueType)) {
-        return tracker.nextOptionalDiffPrimitive(
-          a,
-          () => _decode(valueType, tracker)
-        );
+        return tracker.nextOptionalDiffPrimitive(a, () => _decode(valueType, tracker));
       } else {
         return tracker.nextOptionalDiff(
           a,

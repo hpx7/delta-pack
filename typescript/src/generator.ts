@@ -59,9 +59,7 @@ export function ObjectType<const P extends Record<string, PrimitiveType | Contai
   return { type: "object", properties };
 }
 
-export function UnionType<const O extends readonly ReferenceType[]>(
-  options: O
-): { type: "union"; options: O } {
+export function UnionType<const O extends readonly ReferenceType[]>(options: O): { type: "union"; options: O } {
   return { type: "union", options };
 }
 
@@ -79,17 +77,12 @@ export function OptionalType<const V extends PrimitiveType | ContainerType | Ref
 
 export function RecordType<
   const K extends StringType | IntType | UIntType,
-  const V extends PrimitiveType | ContainerType | ReferenceType
->(
-  key: K,
-  value: V,
-): { type: "record"; key: K; value: V } {
+  const V extends PrimitiveType | ContainerType | ReferenceType,
+>(key: K, value: V): { type: "record"; key: K; value: V } {
   return { type: "record", key, value };
 }
 
-export function EnumType<const O extends readonly string[]>(
-  options: O
-): { type: "enum"; options: O } {
+export function EnumType<const O extends readonly string[]>(options: O): { type: "enum"; options: O } {
   return { type: "enum", options };
 }
 

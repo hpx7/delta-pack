@@ -23,7 +23,8 @@ const ${name} = {
   ${type.options.map((option, i) => `${i}: "${option}",`).join("\n  ")}
   ${type.options.map((option, i) => `${option}: ${i},`).join("\n  ")}
 };`;
-    } if (type.type === "object") {
+    }
+    if (type.type === "object") {
       return `
 export const ${name} = {
   default(): ${name} {

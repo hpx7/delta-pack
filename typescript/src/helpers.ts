@@ -11,7 +11,10 @@ export class Tracker {
   private bitsIdx = 0;
   private dict: string[] = [];
   private data: PrimitiveValue[] = [];
-  constructor(private bits: boolean[] = [], private reader: Reader = new Reader(new Uint8Array())) {}
+  constructor(
+    private bits: boolean[] = [],
+    private reader: Reader = new Reader(new Uint8Array())
+  ) {}
   static parse(buf: Uint8Array) {
     const reader = new Reader(buf);
 
@@ -97,11 +100,7 @@ export class Tracker {
   pushBooleanDiff(a: boolean, b: boolean) {
     this.pushBoolean(a !== b);
   }
-  pushOptionalDiffPrimitive<T>(
-    a: T | undefined,
-    b: T | undefined,
-    encode: (x: T) => void,
-  ) {
+  pushOptionalDiffPrimitive<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void) {
     if (a == null) {
       this.pushBoolean(b != null);
       if (b != null) {
@@ -122,12 +121,7 @@ export class Tracker {
       }
     }
   }
-  pushOptionalDiff<T>(
-    a: T | undefined,
-    b: T | undefined,
-    encode: (x: T) => void,
-    encodeDiff: (a: T, b: T) => void,
-  ) {
+  pushOptionalDiff<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void, encodeDiff: (a: T, b: T) => void) {
     if (a == null) {
       this.pushBoolean(b != null);
       if (b != null) {
@@ -149,7 +143,7 @@ export class Tracker {
     b: T[],
     equals: (x: T, y: T) => boolean,
     encode: (x: T) => void,
-    encodeDiff: (a: T, b: T) => void,
+    encodeDiff: (a: T, b: T) => void
   ) {
     const changed = a.length !== b.length || !equalsArray(a, b, equals);
     this.pushBoolean(changed);
@@ -175,7 +169,7 @@ export class Tracker {
     equals: (x: T, y: T) => boolean,
     encodeKey: (x: K) => void,
     encodeVal: (x: T) => void,
-    encodeDiff: (a: T, b: T) => void,
+    encodeDiff: (a: T, b: T) => void
   ) {
     const changed = a.size !== b.size || !equalsRecord(a, b, (x, y) => x === y, equals);
     this.pushBoolean(changed);
@@ -287,10 +281,7 @@ export class Tracker {
     const changed = this.nextBoolean();
     return changed ? !a : a;
   }
-  nextOptionalDiffPrimitive<T>(
-    obj: T | undefined,
-    decode: () => T,
-  ): T | undefined {
+  nextOptionalDiffPrimitive<T>(obj: T | undefined, decode: () => T): T | undefined {
     if (obj == null) {
       const present = this.nextBoolean();
       return present ? decode() : undefined;
@@ -303,11 +294,7 @@ export class Tracker {
       return present ? decode() : undefined;
     }
   }
-  nextOptionalDiff<T>(
-    obj: T | undefined,
-    decode: () => T,
-    decodeDiff: (a: T) => T,
-  ): T | undefined {
+  nextOptionalDiff<T>(obj: T | undefined, decode: () => T, decodeDiff: (a: T) => T): T | undefined {
     if (obj == null) {
       const present = this.nextBoolean();
       return present ? decode() : undefined;
@@ -316,11 +303,7 @@ export class Tracker {
       return present ? decodeDiff(obj) : undefined;
     }
   }
-  nextArrayDiff<T>(
-    arr: T[],
-    decode: () => T,
-    decodeDiff: (a: T) => T,
-  ): T[] {
+  nextArrayDiff<T>(arr: T[], decode: () => T, decodeDiff: (a: T) => T): T[] {
     const changed = this.nextBoolean();
     if (!changed) {
       return arr;
@@ -338,12 +321,7 @@ export class Tracker {
     }
     return newArr;
   }
-  nextRecordDiff<K, T>(
-    obj: Map<K, T>,
-    decodeKey: () => K,
-    decodeVal: () => T,
-    decodeDiff: (a: T) => T,
-  ): Map<K, T> {
+  nextRecordDiff<K, T>(obj: Map<K, T>, decodeKey: () => K, decodeVal: () => T, decodeDiff: (a: T) => T): Map<K, T> {
     const changed = this.nextBoolean();
     if (!changed) {
       return obj;
@@ -462,7 +440,7 @@ export function parseOptional<T>(x: unknown, innerParse: (y: unknown) => T): T |
   }
   try {
     return innerParse(x);
-  } catch(err) {
+  } catch (err) {
     throw new Error(`Invalid optional: ${x}`, { cause: err });
   }
 }
@@ -473,7 +451,7 @@ export function parseArray<T>(x: unknown, innerParse: (y: unknown) => T): T[] {
   return x.map((y, i) => {
     try {
       return innerParse(y);
-    } catch(err) {
+    } catch (err) {
       throw new Error(`Invalid array element at index ${i}: ${y}`, { cause: err });
     }
   });
@@ -481,7 +459,7 @@ export function parseArray<T>(x: unknown, innerParse: (y: unknown) => T): T[] {
 export function parseRecord<K, T>(
   x: unknown,
   innerKeyParse: (y: unknown) => K,
-  innerValParse: (y: unknown) => T,
+  innerValParse: (y: unknown) => T
 ): Map<K, T> {
   if (typeof x !== "object" || x == null) {
     throw new Error(`Invalid record, got ${typeof x}`);
@@ -497,7 +475,7 @@ export function parseRecord<K, T>(
   for (const [key, val] of x) {
     try {
       result.set(innerKeyParse(key), innerValParse(val));
-    } catch(err) {
+    } catch (err) {
       throw new Error(`Invalid record element (${key}, ${val})`, { cause: err });
     }
   }
@@ -528,7 +506,7 @@ export function equalsRecord<K, T>(
   a: Map<K, T>,
   b: Map<K, T>,
   keyEquals: (x: K, y: K) => boolean,
-  valueEquals: (x: T, y: T) => boolean,
+  valueEquals: (x: T, y: T) => boolean
 ) {
   if (a.size !== b.size) {
     return false;

@@ -1,5 +1,21 @@
 import yaml from "yaml";
-import { ArrayType, BooleanType, ContainerType, EnumType, FloatType, IntType, ObjectType, OptionalType, PrimitiveType, RecordType, ReferenceType, StringType, Type, UIntType, UnionType } from "./generator";
+import {
+  ArrayType,
+  BooleanType,
+  ContainerType,
+  EnumType,
+  FloatType,
+  IntType,
+  ObjectType,
+  OptionalType,
+  PrimitiveType,
+  RecordType,
+  ReferenceType,
+  StringType,
+  Type,
+  UIntType,
+  UnionType,
+} from "./generator";
 import { mapValues } from "./helpers";
 
 export function parseSchemaYml(yamlContent: string): Record<string, Type> {

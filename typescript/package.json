@@ -25,7 +25,9 @@
     "test:gen": "tsx test/schema.ts",
     "test": "npm run test:gen && vitest run",
     "test:coverage": "npm run test:gen && vitest run --coverage",
-    "test:ui": "npm run test:gen && vitest --ui"
+    "test:ui": "npm run test:gen && vitest --ui",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\""
   },
   "dependencies": {
     "bin-serde": "^1.4.2",
@@ -36,6 +38,7 @@
     "@types/node": "^20.10.5",
     "@vitest/coverage-v8": "^4.0.13",
     "@vitest/ui": "^4.0.13",
+    "prettier": "^3.7.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.13"

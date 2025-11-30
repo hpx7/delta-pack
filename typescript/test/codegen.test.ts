@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from "vitest";
 import {
   Player,
   Position,
@@ -7,65 +7,65 @@ import {
   MoveAction,
   AttackAction,
   UseItemAction,
-  type Color
-} from './generated-schema';
+  type Color,
+} from "./generated-schema";
 
-describe('Delta Pack Codegen - Unified API', () => {
-  describe('Player Type - Basic Operations', () => {
+describe("Delta Pack Codegen - Unified API", () => {
+  describe("Player Type - Basic Operations", () => {
     const player1: Player = {
-      id: 'player-1',
-      name: 'Alice',
+      id: "player-1",
+      name: "Alice",
       score: 100,
       isActive: true,
     };
 
     const player2: Player = {
-      id: 'player-1',
-      name: 'Alice',
+      id: "player-1",
+      name: "Alice",
       score: 150,
       isActive: false,
     };
 
-    it('should create default player', () => {
+    it("should create default player", () => {
       const defaultPlayer = Player.default();
       expect(defaultPlayer).toEqual({
-        id: '',
-        name: '',
+        id: "",
+        name: "",
         score: 0,
         isActive: false,
       });
     });
 
-    it('should parse correct player data', () => {
+    it("should parse correct player data", () => {
       expect(() => Player.parse(player1)).not.toThrow();
     });
 
-    it('should detect validation errors for name', () => {
-      const invalidPlayer = { id: 'p1', name: 123, score: 100, isActive: true };
+    it("should detect validation errors for name", () => {
+      const invalidPlayer = { id: "p1", name: 123, score: 100, isActive: true };
       expect(() => Player.parse(invalidPlayer as any)).toThrow(/name/);
     });
 
-    it('should detect validation errors for id', () => {
-      const invalidPlayer = { id: 123, name: 'Alice', score: 100, isActive: true };
+    it("should detect validation errors for id", () => {
+      const invalidPlayer = { id: 123, name: "Alice", score: 100, isActive: true };
       expect(() => Player.parse(invalidPlayer as any)).toThrow(/id/);
     });
 
-    it('should detect validation errors for score', () => {
-      const invalidPlayer = { id: 'p1', name: 'Alice', score: 'invalid', isActive: true };
+    it("should detect validation errors for score", () => {
+      const invalidPlayer = { id: "p1", name: "Alice", score: "invalid", isActive: true };
       expect(() => Player.parse(invalidPlayer as any)).toThrow(/score/);
     });
 
-    it('should detect validation errors for isActive', () => {
-      const invalidPlayer = { id: 'p1', name: 'Alice', score: 100, isActive: 'invalid' };
+    it("should detect validation errors for isActive", () => {
+      const invalidPlayer = { id: "p1", name: "Alice", score: 100, isActive: "invalid" };
       expect(() => Player.parse(invalidPlayer as any)).toThrow(/isActive/);
     });
 
-    it('should check equality correctly', () => {
+    it("should check equality correctly", () => {
       expect(Player.equals(player1, player1)).toBe(true);
       expect(Player.equals(player1, player2)).toBe(false);
     });
 
-    it('should encode and decode player data', () => {
+    it("should encode and decode player data", () => {
       const encoded = Player.encode(player1);
       expect(encoded).toBeInstanceOf(Uint8Array);
 
@@ -74,7 +74,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(Player.equals(decoded, player1)).toBe(true);
     });
 
-    it('should encode and decode diff', () => {
+    it("should encode and decode diff", () => {
       const encodedDiff = Player.encodeDiff(player1, player2);
       expect(encodedDiff).toBeInstanceOf(Uint8Array);
 
@@ -83,13 +83,13 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(Player.equals(result, player2)).toBe(true);
     });
 
-    it('should handle identical players (no diff)', () => {
+    it("should handle identical players (no diff)", () => {
       const encodedDiff = Player.encodeDiff(player1, player1);
       const result = Player.decodeDiff(player1, encodedDiff);
       expect(result).toEqual(player1);
     });
 
-    it('should have smaller diff encoding than full encoding', () => {
+    it("should have smaller diff encoding than full encoding", () => {
       const fullEncoded = Player.encode(player2);
       const diffEncoded = Player.encodeDiff(player1, player2);
 
@@ -97,18 +97,18 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(diffEncoded.length).toBeLessThanOrEqual(fullEncoded.length);
     });
 
-    it('should handle all fields changing', () => {
-      const p1 = { id: 'p1', name: 'Alice', score: 100, isActive: true };
-      const p2 = { id: 'p2', name: 'Bob', score: 200, isActive: false };
+    it("should handle all fields changing", () => {
+      const p1 = { id: "p1", name: "Alice", score: 100, isActive: true };
+      const p2 = { id: "p2", name: "Bob", score: 200, isActive: false };
 
       const encodedDiff = Player.encodeDiff(p1, p2);
       const result = Player.decodeDiff(p1, encodedDiff);
       expect(result).toEqual(p2);
     });
 
-    it('should handle only one field changing', () => {
-      const p1 = { id: 'p1', name: 'Alice', score: 100, isActive: true };
-      const p2 = { id: 'p1', name: 'Alice', score: 150, isActive: true };
+    it("should handle only one field changing", () => {
+      const p1 = { id: "p1", name: "Alice", score: 100, isActive: true };
+      const p2 = { id: "p1", name: "Alice", score: 150, isActive: true };
 
       const encodedDiff = Player.encodeDiff(p1, p2);
       const result = Player.decodeDiff(p1, encodedDiff);
@@ -116,28 +116,28 @@ describe('Delta Pack Codegen - Unified API', () => {
     });
   });
 
-  describe('Position Type - Quantized Floats', () => {
-    it('should create default position', () => {
+  describe("Position Type - Quantized Floats", () => {
+    it("should create default position", () => {
       const defaultPos = Position.default();
       expect(defaultPos).toEqual({ x: 0.0, y: 0.0 });
     });
 
-    it('should parse correct position data', () => {
+    it("should parse correct position data", () => {
       const pos = { x: 123.456, y: 78.912 };
       expect(() => Position.parse(pos)).not.toThrow();
     });
 
-    it('should detect validation errors for x', () => {
-      const invalidPos = { x: 'invalid', y: 10.0 };
+    it("should detect validation errors for x", () => {
+      const invalidPos = { x: "invalid", y: 10.0 };
       expect(() => Position.parse(invalidPos as any)).toThrow(/x/);
     });
 
-    it('should detect validation errors for y', () => {
-      const invalidPos = { x: 10.0, y: 'invalid' };
+    it("should detect validation errors for y", () => {
+      const invalidPos = { x: 10.0, y: "invalid" };
       expect(() => Position.parse(invalidPos as any)).toThrow(/y/);
     });
 
-    it('should quantize floats on encode/decode (0.1 precision)', () => {
+    it("should quantize floats on encode/decode (0.1 precision)", () => {
       const pos = { x: 123.456, y: 78.912 };
       const encoded = Position.encode(pos);
       const decoded = Position.decode(encoded);
@@ -147,7 +147,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(decoded.y).toBe(78.9);
     });
 
-    it('should handle exact quantized values', () => {
+    it("should handle exact quantized values", () => {
       const pos = { x: 100.0, y: 200.5 };
       const encoded = Position.encode(pos);
       const decoded = Position.decode(encoded);
@@ -156,7 +156,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(decoded.y).toBe(200.5);
     });
 
-    it('should check equality with quantization tolerance', () => {
+    it("should check equality with quantization tolerance", () => {
       // Values that round to the same quantized value should be equal
       const pos1 = { x: 100.02, y: 200.01 };
       const pos2 = { x: 100.03, y: 200.04 };
@@ -165,7 +165,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(Position.equals(pos1, pos2)).toBe(true);
     });
 
-    it('should detect inequality beyond quantization threshold', () => {
+    it("should detect inequality beyond quantization threshold", () => {
       const pos1 = { x: 100.0, y: 200.0 };
       const pos2 = { x: 100.2, y: 200.0 };
 
@@ -173,7 +173,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(Position.equals(pos1, pos2)).toBe(false);
     });
 
-    it('should encode/decode diff with quantization', () => {
+    it("should encode/decode diff with quantization", () => {
       const pos1 = { x: 100.0, y: 200.0 };
       const pos2 = { x: 100.5, y: 200.3 };
 
@@ -185,7 +185,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(Position.equals(result, pos2)).toBe(true);
     });
 
-    it('should handle no change in diff (within precision)', () => {
+    it("should handle no change in diff (within precision)", () => {
       const pos1 = { x: 100.01, y: 200.02 };
       const pos2 = { x: 100.03, y: 200.03 };
 
@@ -196,7 +196,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(Position.equals(result, pos1)).toBe(true);
     });
 
-    it('should use less bandwidth than full precision for small changes', () => {
+    it("should use less bandwidth than full precision for small changes", () => {
       const pos1 = { x: 100.0, y: 200.0 };
       const pos2 = { x: 100.5, y: 200.3 };
 
@@ -208,7 +208,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(diffEncoded.length).toBeLessThanOrEqual(8);
     });
 
-    it('should handle large position values', () => {
+    it("should handle large position values", () => {
       const pos = { x: 9999.7, y: -8888.3 };
       const encoded = Position.encode(pos);
       const decoded = Position.decode(encoded);
@@ -217,7 +217,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(decoded.y).toBeCloseTo(-8888.3, 1);
     });
 
-    it('should handle negative positions', () => {
+    it("should handle negative positions", () => {
       const pos1 = { x: -50.3, y: -100.7 };
       const pos2 = { x: -50.1, y: -100.9 };
 
@@ -228,7 +228,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.y).toBe(-100.9);
     });
 
-    it('should handle zero positions', () => {
+    it("should handle zero positions", () => {
       const pos = { x: 0.0, y: 0.0 };
       const encoded = Position.encode(pos);
       const decoded = Position.decode(encoded);
@@ -238,13 +238,13 @@ describe('Delta Pack Codegen - Unified API', () => {
     });
   });
 
-  describe('MoveAction, AttackAction, UseItemAction', () => {
-    it('should create default MoveAction', () => {
+  describe("MoveAction, AttackAction, UseItemAction", () => {
+    it("should create default MoveAction", () => {
       const defaultMove = MoveAction.default();
       expect(defaultMove).toEqual({ x: 0, y: 0 });
     });
 
-    it('should check MoveAction equality', () => {
+    it("should check MoveAction equality", () => {
       const move1 = { x: 10, y: 20 };
       const move2 = { x: 10, y: 20 };
       const move3 = { x: 15, y: 20 };
@@ -252,14 +252,14 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(MoveAction.equals(move1, move3)).toBe(false);
     });
 
-    it('should encode/decode MoveAction', () => {
+    it("should encode/decode MoveAction", () => {
       const move = { x: 10, y: 20 };
       const encoded = MoveAction.encode(move);
       const decoded = MoveAction.decode(encoded);
       expect(decoded).toEqual(move);
     });
 
-    it('should encode/decode diff for MoveAction', () => {
+    it("should encode/decode diff for MoveAction", () => {
       const move1 = { x: 10, y: 20 };
       const move2 = { x: 15, y: 25 };
       const encodedDiff = MoveAction.encodeDiff(move1, move2);
@@ -267,274 +267,274 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result).toEqual(move2);
     });
 
-    it('should handle identical MoveActions in diff', () => {
+    it("should handle identical MoveActions in diff", () => {
       const move = { x: 10, y: 20 };
       const encodedDiff = MoveAction.encodeDiff(move, move);
       const result = MoveAction.decodeDiff(move, encodedDiff);
       expect(result).toEqual(move);
     });
 
-    it('should parse MoveAction', () => {
+    it("should parse MoveAction", () => {
       const move = { x: 10, y: 20 };
       expect(() => MoveAction.parse(move)).not.toThrow();
     });
 
-    it('should detect MoveAction validation errors for x', () => {
-      const invalidMove = { x: 'invalid', y: 20 };
+    it("should detect MoveAction validation errors for x", () => {
+      const invalidMove = { x: "invalid", y: 20 };
       expect(() => MoveAction.parse(invalidMove as any)).toThrow(/x/);
     });
 
-    it('should detect MoveAction validation errors for y', () => {
-      const invalidMove = { x: 10, y: 'invalid' };
+    it("should detect MoveAction validation errors for y", () => {
+      const invalidMove = { x: 10, y: "invalid" };
       expect(() => MoveAction.parse(invalidMove as any)).toThrow(/y/);
     });
 
-    it('should detect MoveAction validation errors for non-object', () => {
-      expect(() => MoveAction.parse('not an object' as any)).toThrow(/Invalid MoveAction/);
+    it("should detect MoveAction validation errors for non-object", () => {
+      expect(() => MoveAction.parse("not an object" as any)).toThrow(/Invalid MoveAction/);
     });
 
-    it('should create default AttackAction', () => {
+    it("should create default AttackAction", () => {
       const defaultAttack = AttackAction.default();
-      expect(defaultAttack).toEqual({ targetId: '', damage: 0 });
+      expect(defaultAttack).toEqual({ targetId: "", damage: 0 });
     });
 
-    it('should check AttackAction equality', () => {
-      const attack1 = { targetId: 'enemy-1', damage: 50 };
-      const attack2 = { targetId: 'enemy-1', damage: 50 };
-      const attack3 = { targetId: 'enemy-2', damage: 50 };
+    it("should check AttackAction equality", () => {
+      const attack1 = { targetId: "enemy-1", damage: 50 };
+      const attack2 = { targetId: "enemy-1", damage: 50 };
+      const attack3 = { targetId: "enemy-2", damage: 50 };
       expect(AttackAction.equals(attack1, attack2)).toBe(true);
       expect(AttackAction.equals(attack1, attack3)).toBe(false);
     });
 
-    it('should encode/decode AttackAction', () => {
-      const attack = { targetId: 'enemy-1', damage: 50 };
+    it("should encode/decode AttackAction", () => {
+      const attack = { targetId: "enemy-1", damage: 50 };
       const encoded = AttackAction.encode(attack);
       const decoded = AttackAction.decode(encoded);
       expect(decoded).toEqual(attack);
     });
 
-    it('should encode/decode diff for AttackAction', () => {
-      const attack1 = { targetId: 'enemy-1', damage: 50 };
-      const attack2 = { targetId: 'enemy-2', damage: 75 };
+    it("should encode/decode diff for AttackAction", () => {
+      const attack1 = { targetId: "enemy-1", damage: 50 };
+      const attack2 = { targetId: "enemy-2", damage: 75 };
       const encodedDiff = AttackAction.encodeDiff(attack1, attack2);
       const result = AttackAction.decodeDiff(attack1, encodedDiff);
       expect(result).toEqual(attack2);
     });
 
-    it('should handle identical AttackActions in diff', () => {
-      const attack = { targetId: 'enemy-1', damage: 50 };
+    it("should handle identical AttackActions in diff", () => {
+      const attack = { targetId: "enemy-1", damage: 50 };
       const encodedDiff = AttackAction.encodeDiff(attack, attack);
       const result = AttackAction.decodeDiff(attack, encodedDiff);
       expect(result).toEqual(attack);
     });
 
-    it('should parse AttackAction', () => {
-      const attack = { targetId: 'enemy-1', damage: 50 };
+    it("should parse AttackAction", () => {
+      const attack = { targetId: "enemy-1", damage: 50 };
       expect(() => AttackAction.parse(attack)).not.toThrow();
     });
 
-    it('should detect AttackAction validation errors for targetId', () => {
+    it("should detect AttackAction validation errors for targetId", () => {
       const invalid = { targetId: 123, damage: 50 };
       expect(() => AttackAction.parse(invalid as any)).toThrow(/targetId/);
     });
 
-    it('should detect AttackAction validation errors for damage', () => {
-      const invalid = { targetId: 'enemy-1', damage: -10 };
+    it("should detect AttackAction validation errors for damage", () => {
+      const invalid = { targetId: "enemy-1", damage: -10 };
       expect(() => AttackAction.parse(invalid as any)).toThrow(/damage/);
     });
 
-    it('should detect AttackAction validation errors for non-object', () => {
-      expect(() => AttackAction.parse('not an object' as any)).toThrow(/Invalid AttackAction/);
+    it("should detect AttackAction validation errors for non-object", () => {
+      expect(() => AttackAction.parse("not an object" as any)).toThrow(/Invalid AttackAction/);
     });
 
-    it('should create default UseItemAction', () => {
+    it("should create default UseItemAction", () => {
       const defaultUseItem = UseItemAction.default();
-      expect(defaultUseItem).toEqual({ itemId: '' });
+      expect(defaultUseItem).toEqual({ itemId: "" });
     });
 
-    it('should check UseItemAction equality', () => {
-      const useItem1 = { itemId: 'potion-1' };
-      const useItem2 = { itemId: 'potion-1' };
-      const useItem3 = { itemId: 'potion-2' };
+    it("should check UseItemAction equality", () => {
+      const useItem1 = { itemId: "potion-1" };
+      const useItem2 = { itemId: "potion-1" };
+      const useItem3 = { itemId: "potion-2" };
       expect(UseItemAction.equals(useItem1, useItem2)).toBe(true);
       expect(UseItemAction.equals(useItem1, useItem3)).toBe(false);
     });
 
-    it('should encode/decode UseItemAction', () => {
-      const useItem = { itemId: 'potion-1' };
+    it("should encode/decode UseItemAction", () => {
+      const useItem = { itemId: "potion-1" };
       const encoded = UseItemAction.encode(useItem);
       const decoded = UseItemAction.decode(encoded);
       expect(decoded).toEqual(useItem);
     });
 
-    it('should encode/decode diff for UseItemAction', () => {
-      const useItem1 = { itemId: 'potion-1' };
-      const useItem2 = { itemId: 'sword-1' };
+    it("should encode/decode diff for UseItemAction", () => {
+      const useItem1 = { itemId: "potion-1" };
+      const useItem2 = { itemId: "sword-1" };
       const encodedDiff = UseItemAction.encodeDiff(useItem1, useItem2);
       const result = UseItemAction.decodeDiff(useItem1, encodedDiff);
       expect(result).toEqual(useItem2);
     });
 
-    it('should handle identical UseItemActions in diff', () => {
-      const useItem = { itemId: 'potion-1' };
+    it("should handle identical UseItemActions in diff", () => {
+      const useItem = { itemId: "potion-1" };
       const encodedDiff = UseItemAction.encodeDiff(useItem, useItem);
       const result = UseItemAction.decodeDiff(useItem, encodedDiff);
       expect(result).toEqual(useItem);
     });
 
-    it('should parse UseItemAction', () => {
-      const useItem = { itemId: 'potion-1' };
+    it("should parse UseItemAction", () => {
+      const useItem = { itemId: "potion-1" };
       expect(() => UseItemAction.parse(useItem)).not.toThrow();
     });
 
-    it('should detect UseItemAction validation errors for itemId', () => {
+    it("should detect UseItemAction validation errors for itemId", () => {
       const invalid = { itemId: 123 };
       expect(() => UseItemAction.parse(invalid as any)).toThrow(/itemId/);
     });
 
-    it('should detect UseItemAction validation errors for non-object', () => {
-      expect(() => UseItemAction.parse('not an object' as any)).toThrow(/Invalid UseItemAction/);
+    it("should detect UseItemAction validation errors for non-object", () => {
+      expect(() => UseItemAction.parse("not an object" as any)).toThrow(/Invalid UseItemAction/);
     });
   });
 
-  describe('Union Types - GameAction', () => {
-    it('should create default GameAction', () => {
+  describe("Union Types - GameAction", () => {
+    it("should create default GameAction", () => {
       const defaultAction = GameAction.default();
-      expect(defaultAction.type).toBe('MoveAction');
+      expect(defaultAction.type).toBe("MoveAction");
     });
 
-    it('should check GameAction equality for same type and value', () => {
-      const action1: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
+    it("should check GameAction equality for same type and value", () => {
+      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action2: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
       expect(GameAction.equals(action1, action2)).toBe(true);
     });
 
-    it('should check GameAction equality for same type but different value', () => {
-      const action1: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: 'MoveAction', val: { x: 15, y: 25 } };
+    it("should check GameAction equality for same type but different value", () => {
+      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action2: GameAction = { type: "MoveAction", val: { x: 15, y: 25 } };
       expect(GameAction.equals(action1, action2)).toBe(false);
     });
 
-    it('should check GameAction equality for different types', () => {
-      const action1: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-1', damage: 50 } };
+    it("should check GameAction equality for different types", () => {
+      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action2: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
       expect(GameAction.equals(action1, action2)).toBe(false);
     });
 
-    it('should check GameAction equality for AttackAction', () => {
-      const action1: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-1', damage: 50 } };
-      const action2: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-1', damage: 50 } };
-      const action3: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-2', damage: 50 } };
+    it("should check GameAction equality for AttackAction", () => {
+      const action1: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+      const action2: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+      const action3: GameAction = { type: "AttackAction", val: { targetId: "enemy-2", damage: 50 } };
       expect(GameAction.equals(action1, action2)).toBe(true);
       expect(GameAction.equals(action1, action3)).toBe(false);
     });
 
-    it('should check GameAction equality for UseItemAction', () => {
-      const action1: GameAction = { type: 'UseItemAction', val: { itemId: 'potion-1' } };
-      const action2: GameAction = { type: 'UseItemAction', val: { itemId: 'potion-1' } };
-      const action3: GameAction = { type: 'UseItemAction', val: { itemId: 'potion-2' } };
+    it("should check GameAction equality for UseItemAction", () => {
+      const action1: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
+      const action2: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
+      const action3: GameAction = { type: "UseItemAction", val: { itemId: "potion-2" } };
       expect(GameAction.equals(action1, action2)).toBe(true);
       expect(GameAction.equals(action1, action3)).toBe(false);
     });
 
-    it('should parse MoveAction in union', () => {
-      const moveAction: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
+    it("should parse MoveAction in union", () => {
+      const moveAction: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
       expect(() => GameAction.parse(moveAction)).not.toThrow();
     });
 
-    it('should parse AttackAction in union', () => {
-      const attackAction: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-1', damage: 50 } };
+    it("should parse AttackAction in union", () => {
+      const attackAction: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
       expect(() => GameAction.parse(attackAction)).not.toThrow();
     });
 
-    it('should parse UseItemAction in union', () => {
-      const useItemAction: GameAction = { type: 'UseItemAction', val: { itemId: 'potion-1' } };
+    it("should parse UseItemAction in union", () => {
+      const useItemAction: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
       expect(() => GameAction.parse(useItemAction)).not.toThrow();
     });
 
-    it('should detect GameAction validation errors for invalid type', () => {
-      const invalidAction: any = { type: 'InvalidAction', val: {} };
+    it("should detect GameAction validation errors for invalid type", () => {
+      const invalidAction: any = { type: "InvalidAction", val: {} };
       expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
-    it('should detect GameAction validation errors for non-object', () => {
-      expect(() => GameAction.parse('not an object' as any)).toThrow();
+    it("should detect GameAction validation errors for non-object", () => {
+      expect(() => GameAction.parse("not an object" as any)).toThrow();
     });
 
-    it('should detect GameAction validation errors for invalid MoveAction value', () => {
-      const invalidAction: any = { type: 'MoveAction', val: { x: 'invalid', y: 20 } };
+    it("should detect GameAction validation errors for invalid MoveAction value", () => {
+      const invalidAction: any = { type: "MoveAction", val: { x: "invalid", y: 20 } };
       expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
-    it('should detect GameAction validation errors for invalid AttackAction value', () => {
-      const invalidAction: any = { type: 'AttackAction', val: { targetId: 123, damage: 50 } };
+    it("should detect GameAction validation errors for invalid AttackAction value", () => {
+      const invalidAction: any = { type: "AttackAction", val: { targetId: 123, damage: 50 } };
       expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
-    it('should detect GameAction validation errors for invalid UseItemAction value', () => {
-      const invalidAction: any = { type: 'UseItemAction', val: { itemId: false } };
+    it("should detect GameAction validation errors for invalid UseItemAction value", () => {
+      const invalidAction: any = { type: "UseItemAction", val: { itemId: false } };
       expect(() => GameAction.parse(invalidAction)).toThrow();
     });
 
-    it('should encode and decode MoveAction union', () => {
-      const action: GameAction = { type: 'MoveAction', val: { x: 100, y: 200 } };
+    it("should encode and decode MoveAction union", () => {
+      const action: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
       const encoded = GameAction.encode(action);
       const decoded = GameAction.decode(encoded);
 
-      expect(decoded.type).toBe('MoveAction');
+      expect(decoded.type).toBe("MoveAction");
       expect(decoded.val).toEqual({ x: 100, y: 200 });
     });
 
-    it('should encode and decode AttackAction union', () => {
-      const action: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-5', damage: 75 } };
+    it("should encode and decode AttackAction union", () => {
+      const action: GameAction = { type: "AttackAction", val: { targetId: "enemy-5", damage: 75 } };
       const encoded = GameAction.encode(action);
       const decoded = GameAction.decode(encoded);
 
-      expect(decoded.type).toBe('AttackAction');
-      expect(decoded.val).toEqual({ targetId: 'enemy-5', damage: 75 });
+      expect(decoded.type).toBe("AttackAction");
+      expect(decoded.val).toEqual({ targetId: "enemy-5", damage: 75 });
     });
 
-    it('should handle diff within same union variant', () => {
-      const action1: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: 'MoveAction', val: { x: 15, y: 25 } };
+    it("should handle diff within same union variant", () => {
+      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action2: GameAction = { type: "MoveAction", val: { x: 15, y: 25 } };
 
       const encodedDiff = GameAction.encodeDiff(action1, action2);
       const result = GameAction.decodeDiff(action1, encodedDiff);
 
-      expect(result.type).toBe('MoveAction');
+      expect(result.type).toBe("MoveAction");
       expect(result.val).toEqual({ x: 15, y: 25 });
     });
 
-    it('should handle diff between different union variants', () => {
-      const action1: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: 'AttackAction', val: { targetId: 'enemy-1', damage: 50 } };
+    it("should handle diff between different union variants", () => {
+      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action2: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
 
       const encodedDiff = GameAction.encodeDiff(action1, action2);
       const result = GameAction.decodeDiff(action1, encodedDiff);
 
-      expect(result.type).toBe('AttackAction');
-      expect(result.val).toEqual({ targetId: 'enemy-1', damage: 50 });
+      expect(result.type).toBe("AttackAction");
+      expect(result.val).toEqual({ targetId: "enemy-1", damage: 50 });
     });
 
-    it('should handle identical union values', () => {
-      const action: GameAction = { type: 'MoveAction', val: { x: 10, y: 20 } };
+    it("should handle identical union values", () => {
+      const action: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
       const encodedDiff = GameAction.encodeDiff(action, action);
       const result = GameAction.decodeDiff(action, encodedDiff);
       expect(result).toEqual(action);
     });
   });
 
-  describe('GameState Type - Complex Nested Structure', () => {
+  describe("GameState Type - Complex Nested Structure", () => {
     const gameState1: GameState = {
       players: [
-        { id: 'p1', name: 'Alice', score: 0, isActive: true },
-        { id: 'p2', name: 'Bob', score: 0, isActive: true },
+        { id: "p1", name: "Alice", score: 0, isActive: true },
+        { id: "p2", name: "Bob", score: 0, isActive: true },
       ],
-      currentPlayer: 'p1',
+      currentPlayer: "p1",
       round: 1,
       metadata: new Map([
-        ['mode', 'ranked'],
-        ['difficulty', 'hard'],
+        ["mode", "ranked"],
+        ["difficulty", "hard"],
       ]),
       winningColor: undefined,
       lastAction: undefined,
@@ -542,21 +542,21 @@ describe('Delta Pack Codegen - Unified API', () => {
 
     const gameState2: GameState = {
       players: [
-        { id: 'p1', name: 'Alice', score: 50, isActive: true },
-        { id: 'p2', name: 'Bob', score: 30, isActive: true },
+        { id: "p1", name: "Alice", score: 50, isActive: true },
+        { id: "p2", name: "Bob", score: 30, isActive: true },
       ],
-      currentPlayer: 'p2',
+      currentPlayer: "p2",
       round: 2,
       metadata: new Map([
-        ['mode', 'ranked'],
-        ['difficulty', 'hard'],
-        ['season', 'winter'],
+        ["mode", "ranked"],
+        ["difficulty", "hard"],
+        ["season", "winter"],
       ]),
-      winningColor: 'BLUE',
-      lastAction: { type: 'MoveAction', val: { x: 5, y: 10 } },
+      winningColor: "BLUE",
+      lastAction: { type: "MoveAction", val: { x: 5, y: 10 } },
     };
 
-    it('should create default game state', () => {
+    it("should create default game state", () => {
       const defaultState = GameState.default();
       expect(defaultState).toEqual({
         players: [],
@@ -568,13 +568,13 @@ describe('Delta Pack Codegen - Unified API', () => {
       });
     });
 
-    it('should parse correct game state', () => {
+    it("should parse correct game state", () => {
       expect(() => GameState.parse(gameState1)).not.toThrow();
     });
 
-    it('should detect validation errors for invalid players', () => {
+    it("should detect validation errors for invalid players", () => {
       const invalidState = {
-        players: [{ id: 123, name: 'Invalid', score: 0, isActive: true }],
+        players: [{ id: 123, name: "Invalid", score: 0, isActive: true }],
         currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
@@ -584,7 +584,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(() => GameState.parse(invalidState as any)).toThrow(/players/);
     });
 
-    it('should detect validation errors for invalid currentPlayer', () => {
+    it("should detect validation errors for invalid currentPlayer", () => {
       const invalidState = {
         players: [],
         currentPlayer: 123,
@@ -596,7 +596,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(() => GameState.parse(invalidState as any)).toThrow(/currentPlayer/);
     });
 
-    it('should detect validation errors for invalid round', () => {
+    it("should detect validation errors for invalid round", () => {
       const invalidState = {
         players: [],
         currentPlayer: undefined,
@@ -608,52 +608,52 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(() => GameState.parse(invalidState as any)).toThrow(/round/);
     });
 
-    it('should detect validation errors for invalid metadata', () => {
+    it("should detect validation errors for invalid metadata", () => {
       const invalidState = {
         players: [],
         currentPlayer: undefined,
         round: 0,
-        metadata: 'not a map',
+        metadata: "not a map",
         winningColor: undefined,
         lastAction: undefined,
       };
       expect(() => GameState.parse(invalidState as any)).toThrow(/metadata/);
     });
 
-    it('should detect validation errors for invalid winningColor', () => {
+    it("should detect validation errors for invalid winningColor", () => {
       const invalidState = {
         players: [],
         currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: 'INVALID_COLOR',
+        winningColor: "INVALID_COLOR",
         lastAction: undefined,
       };
       expect(() => GameState.parse(invalidState as any)).toThrow(/winningColor/);
     });
 
-    it('should detect validation errors for invalid lastAction', () => {
+    it("should detect validation errors for invalid lastAction", () => {
       const invalidState = {
         players: [],
         currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
         winningColor: undefined,
-        lastAction: { type: 'MoveAction', val: { x: 'invalid', y: 20 } },
+        lastAction: { type: "MoveAction", val: { x: "invalid", y: 20 } },
       };
       expect(() => GameState.parse(invalidState as any)).toThrow(/lastAction/);
     });
 
-    it('should detect validation errors for non-object', () => {
-      expect(() => GameState.parse('not an object' as any)).toThrow(/Invalid GameState/);
+    it("should detect validation errors for non-object", () => {
+      expect(() => GameState.parse("not an object" as any)).toThrow(/Invalid GameState/);
     });
 
-    it('should check equality correctly', () => {
+    it("should check equality correctly", () => {
       expect(GameState.equals(gameState1, gameState1)).toBe(true);
       expect(GameState.equals(gameState1, gameState2)).toBe(false);
     });
 
-    it('should encode and decode game state', () => {
+    it("should encode and decode game state", () => {
       const encoded = GameState.encode(gameState1);
       const decoded = GameState.decode(encoded);
 
@@ -665,16 +665,16 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(decoded.lastAction).toBe(gameState1.lastAction);
     });
 
-    it('should encode and decode game state with optional fields', () => {
+    it("should encode and decode game state with optional fields", () => {
       const encoded = GameState.encode(gameState2);
       const decoded = GameState.decode(encoded);
 
-      expect(decoded.winningColor).toBe('BLUE');
-      expect(decoded.lastAction).toEqual({ type: 'MoveAction', val: { x: 5, y: 10 } });
+      expect(decoded.winningColor).toBe("BLUE");
+      expect(decoded.lastAction).toEqual({ type: "MoveAction", val: { x: 5, y: 10 } });
       expect(decoded.metadata).toEqual(gameState2.metadata);
     });
 
-    it('should handle diff between game states', () => {
+    it("should handle diff between game states", () => {
       const encodedDiff = GameState.encodeDiff(gameState1, gameState2);
       const result = GameState.decodeDiff(gameState1, encodedDiff);
 
@@ -687,12 +687,12 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.lastAction).toEqual(gameState2.lastAction);
     });
 
-    it('should have smaller diff encoding than full encoding for partial changes', () => {
+    it("should have smaller diff encoding than full encoding for partial changes", () => {
       const state1 = {
-        players: [{ id: 'p1', name: 'Alice', score: 100, isActive: true }],
-        currentPlayer: 'p1' as string | undefined,
+        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
+        currentPlayer: "p1" as string | undefined,
         round: 1,
-        metadata: new Map([['mode', 'ranked']]),
+        metadata: new Map([["mode", "ranked"]]),
         winningColor: undefined as Color | undefined,
         lastAction: undefined as GameAction | undefined,
       };
@@ -708,18 +708,18 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(diffEncoded.length).toBeLessThan(fullEncoded.length);
     });
 
-    it('should handle identical states (no diff)', () => {
+    it("should handle identical states (no diff)", () => {
       const encodedDiff = GameState.encodeDiff(gameState1, gameState1);
       const result = GameState.decodeDiff(gameState1, encodedDiff);
       expect(GameState.equals(result, gameState1)).toBe(true);
     });
   });
 
-  describe('Arrays - Complex Element Diffs', () => {
-    it('should handle array with no changes', () => {
+  describe("Arrays - Complex Element Diffs", () => {
+    it("should handle array with no changes", () => {
       const state = {
-        players: [{ id: 'p1', name: 'Alice', score: 100, isActive: true }],
-        currentPlayer: 'p1' as string | undefined,
+        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
+        currentPlayer: "p1" as string | undefined,
         round: 1,
         metadata: new Map(),
         winningColor: undefined as Color | undefined,
@@ -731,11 +731,11 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.players).toEqual(state.players);
     });
 
-    it('should handle array element field changes', () => {
+    it("should handle array element field changes", () => {
       const state1 = {
         players: [
-          { id: 'p1', name: 'Alice', score: 100, isActive: true },
-          { id: 'p2', name: 'Bob', score: 50, isActive: true },
+          { id: "p1", name: "Alice", score: 100, isActive: true },
+          { id: "p2", name: "Bob", score: 50, isActive: true },
         ],
         currentPlayer: undefined,
         round: 1,
@@ -747,8 +747,8 @@ describe('Delta Pack Codegen - Unified API', () => {
       const state2 = {
         ...state1,
         players: [
-          { id: 'p1', name: 'Alice', score: 150, isActive: true }, // score changed
-          { id: 'p2', name: 'Bob', score: 75, isActive: false }, // score and isActive changed
+          { id: "p1", name: "Alice", score: 150, isActive: true }, // score changed
+          { id: "p2", name: "Bob", score: 75, isActive: false }, // score and isActive changed
         ],
       };
 
@@ -757,9 +757,9 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.players).toEqual(state2.players);
     });
 
-    it('should handle array length changes - adding elements', () => {
+    it("should handle array length changes - adding elements", () => {
       const state1 = {
-        players: [{ id: 'p1', name: 'Alice', score: 100, isActive: true }],
+        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
         currentPlayer: undefined,
         round: 1,
         metadata: new Map(),
@@ -770,8 +770,8 @@ describe('Delta Pack Codegen - Unified API', () => {
       const state2 = {
         ...state1,
         players: [
-          { id: 'p1', name: 'Alice', score: 100, isActive: true },
-          { id: 'p2', name: 'Bob', score: 0, isActive: true },
+          { id: "p1", name: "Alice", score: 100, isActive: true },
+          { id: "p2", name: "Bob", score: 0, isActive: true },
         ],
       };
 
@@ -780,11 +780,11 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.players).toEqual(state2.players);
     });
 
-    it('should handle array length changes - removing elements', () => {
+    it("should handle array length changes - removing elements", () => {
       const state1 = {
         players: [
-          { id: 'p1', name: 'Alice', score: 100, isActive: true },
-          { id: 'p2', name: 'Bob', score: 50, isActive: true },
+          { id: "p1", name: "Alice", score: 100, isActive: true },
+          { id: "p2", name: "Bob", score: 50, isActive: true },
         ],
         currentPlayer: undefined,
         round: 1,
@@ -795,7 +795,7 @@ describe('Delta Pack Codegen - Unified API', () => {
 
       const state2 = {
         ...state1,
-        players: [{ id: 'p1', name: 'Alice', score: 100, isActive: true }],
+        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
       };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
@@ -803,9 +803,9 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.players).toEqual(state2.players);
     });
 
-    it('should handle empty array', () => {
+    it("should handle empty array", () => {
       const state1 = {
-        players: [{ id: 'p1', name: 'Alice', score: 100, isActive: true }],
+        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
         currentPlayer: undefined,
         round: 1,
         metadata: new Map(),
@@ -821,7 +821,7 @@ describe('Delta Pack Codegen - Unified API', () => {
     });
   });
 
-  describe('Optional Fields', () => {
+  describe("Optional Fields", () => {
     const baseState = {
       players: [],
       currentPlayer: undefined,
@@ -831,17 +831,17 @@ describe('Delta Pack Codegen - Unified API', () => {
       lastAction: undefined as GameAction | undefined,
     };
 
-    it('should handle optional field: undefined -> value', () => {
+    it("should handle optional field: undefined -> value", () => {
       const state1 = { ...baseState, currentPlayer: undefined };
-      const state2 = { ...baseState, currentPlayer: 'p1' };
+      const state2 = { ...baseState, currentPlayer: "p1" };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
       const result = GameState.decodeDiff(state1, encodedDiff);
-      expect(result.currentPlayer).toBe('p1');
+      expect(result.currentPlayer).toBe("p1");
     });
 
-    it('should handle optional field: value -> undefined', () => {
-      const state1 = { ...baseState, currentPlayer: 'p1' };
+    it("should handle optional field: value -> undefined", () => {
+      const state1 = { ...baseState, currentPlayer: "p1" };
       const state2 = { ...baseState, currentPlayer: undefined };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
@@ -849,16 +849,16 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.currentPlayer).toBe(undefined);
     });
 
-    it('should handle optional field: value -> different value', () => {
-      const state1 = { ...baseState, currentPlayer: 'p1' };
-      const state2 = { ...baseState, currentPlayer: 'p2' };
+    it("should handle optional field: value -> different value", () => {
+      const state1 = { ...baseState, currentPlayer: "p1" };
+      const state2 = { ...baseState, currentPlayer: "p2" };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
       const result = GameState.decodeDiff(state1, encodedDiff);
-      expect(result.currentPlayer).toBe('p2');
+      expect(result.currentPlayer).toBe("p2");
     });
 
-    it('should handle optional field: undefined -> undefined', () => {
+    it("should handle optional field: undefined -> undefined", () => {
       const state1 = { ...baseState, currentPlayer: undefined };
       const state2 = { ...baseState, currentPlayer: undefined };
 
@@ -867,29 +867,29 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.currentPlayer).toBe(undefined);
     });
 
-    it('should handle optional enum field', () => {
+    it("should handle optional enum field", () => {
       const state1 = { ...baseState, winningColor: undefined };
-      const state2 = { ...baseState, winningColor: 'BLUE' as Color };
+      const state2 = { ...baseState, winningColor: "BLUE" as Color };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
       const result = GameState.decodeDiff(state1, encodedDiff);
-      expect(result.winningColor).toBe('BLUE');
+      expect(result.winningColor).toBe("BLUE");
     });
 
-    it('should handle optional union field', () => {
+    it("should handle optional union field", () => {
       const state1 = { ...baseState, lastAction: undefined };
       const state2 = {
         ...baseState,
-        lastAction: { type: 'MoveAction', val: { x: 10, y: 20 } } as GameAction
+        lastAction: { type: "MoveAction", val: { x: 10, y: 20 } } as GameAction,
       };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
       const result = GameState.decodeDiff(state1, encodedDiff);
-      expect(result.lastAction).toEqual({ type: 'MoveAction', val: { x: 10, y: 20 } });
+      expect(result.lastAction).toEqual({ type: "MoveAction", val: { x: 10, y: 20 } });
     });
   });
 
-  describe('Records (Maps)', () => {
+  describe("Records (Maps)", () => {
     const baseState = {
       players: [],
       currentPlayer: undefined,
@@ -899,18 +899,21 @@ describe('Delta Pack Codegen - Unified API', () => {
       lastAction: undefined as GameAction | undefined,
     };
 
-    it('should handle empty map', () => {
+    it("should handle empty map", () => {
       const state = { ...baseState, metadata: new Map() };
       const encoded = GameState.encode(state);
       const decoded = GameState.decode(encoded);
       expect(decoded.metadata).toEqual(new Map());
     });
 
-    it('should handle map additions', () => {
-      const state1 = { ...baseState, metadata: new Map([['key1', 'value1']]) };
+    it("should handle map additions", () => {
+      const state1 = { ...baseState, metadata: new Map([["key1", "value1"]]) };
       const state2 = {
         ...baseState,
-        metadata: new Map([['key1', 'value1'], ['key2', 'value2']])
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
       };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
@@ -918,31 +921,37 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(result.metadata).toEqual(state2.metadata);
     });
 
-    it('should handle map deletions', () => {
+    it("should handle map deletions", () => {
       const state1 = {
         ...baseState,
-        metadata: new Map([['key1', 'value1'], ['key2', 'value2']])
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
       };
-      const state2 = { ...baseState, metadata: new Map([['key1', 'value1']]) };
+      const state2 = { ...baseState, metadata: new Map([["key1", "value1"]]) };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
       const result = GameState.decodeDiff(state1, encodedDiff);
       expect(result.metadata).toEqual(state2.metadata);
     });
 
-    it('should handle map updates', () => {
-      const state1 = { ...baseState, metadata: new Map([['key1', 'value1']]) };
-      const state2 = { ...baseState, metadata: new Map([['key1', 'updated']]) };
+    it("should handle map updates", () => {
+      const state1 = { ...baseState, metadata: new Map([["key1", "value1"]]) };
+      const state2 = { ...baseState, metadata: new Map([["key1", "updated"]]) };
 
       const encodedDiff = GameState.encodeDiff(state1, state2);
       const result = GameState.decodeDiff(state1, encodedDiff);
       expect(result.metadata).toEqual(state2.metadata);
     });
 
-    it('should handle map with no changes', () => {
+    it("should handle map with no changes", () => {
       const state = {
         ...baseState,
-        metadata: new Map([['key1', 'value1'], ['key2', 'value2']])
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
       };
 
       const encodedDiff = GameState.encodeDiff(state, state);
@@ -951,16 +960,16 @@ describe('Delta Pack Codegen - Unified API', () => {
     });
   });
 
-  describe('Edge Cases and Error Handling', () => {
-    it('should handle non-object validation', () => {
-      expect(() => Player.parse('not an object' as any)).toThrow(/Invalid Player/);
+  describe("Edge Cases and Error Handling", () => {
+    it("should handle non-object validation", () => {
+      expect(() => Player.parse("not an object" as any)).toThrow(/Invalid Player/);
     });
 
-    it('should handle undefined values in validation', () => {
+    it("should handle undefined values in validation", () => {
       expect(() => Player.parse(undefined as any)).toThrow();
     });
 
-    it('should roundtrip encode/decode multiple times', () => {
+    it("should roundtrip encode/decode multiple times", () => {
       let state = GameState.default();
 
       for (let i = 0; i < 10; i++) {
@@ -971,10 +980,10 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(state).toEqual(GameState.default());
     });
 
-    it('should roundtrip diff encode/decode multiple times', () => {
+    it("should roundtrip diff encode/decode multiple times", () => {
       const initialState: GameState = {
-        players: [{ id: 'p1', name: 'Alice', score: 0, isActive: true }],
-        currentPlayer: 'p1' as string | undefined,
+        players: [{ id: "p1", name: "Alice", score: 0, isActive: true }],
+        currentPlayer: "p1" as string | undefined,
         round: 0,
         metadata: new Map(),
         winningColor: undefined as Color | undefined,
@@ -993,8 +1002,8 @@ describe('Delta Pack Codegen - Unified API', () => {
     });
   });
 
-  describe('Performance Characteristics', () => {
-    it('should demonstrate delta compression benefits', () => {
+  describe("Performance Characteristics", () => {
+    it("should demonstrate delta compression benefits", () => {
       const state1 = {
         players: Array.from({ length: 10 }, (_, i) => ({
           id: `p${i}`,
@@ -1002,12 +1011,12 @@ describe('Delta Pack Codegen - Unified API', () => {
           score: i * 100,
           isActive: true,
         })),
-        currentPlayer: 'p0' as string | undefined,
+        currentPlayer: "p0" as string | undefined,
         round: 1,
         metadata: new Map([
-          ['mode', 'ranked'],
-          ['difficulty', 'hard'],
-          ['map', 'forest'],
+          ["mode", "ranked"],
+          ["difficulty", "hard"],
+          ["map", "forest"],
         ]),
         winningColor: undefined as Color | undefined,
         lastAction: undefined as GameAction | undefined,
@@ -1016,9 +1025,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       // Only change one player's score
       const state2 = {
         ...state1,
-        players: state1.players.map((p, i) =>
-          i === 0 ? { ...p, score: 999 } : p
-        ),
+        players: state1.players.map((p, i) => (i === 0 ? { ...p, score: 999 } : p)),
       };
 
       const fullEncoded = GameState.encode(state2);
@@ -1031,7 +1038,7 @@ describe('Delta Pack Codegen - Unified API', () => {
       expect(diffEncoded.length).toBeLessThan(fullEncoded.length);
     });
 
-    it('should have reasonable encoding sizes for minimal state', () => {
+    it("should have reasonable encoding sizes for minimal state", () => {
       const minimalState = GameState.default();
       const encoded = GameState.encode(minimalState);
 
