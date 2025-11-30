@@ -13,7 +13,7 @@ interface ObjectType {
 }
 interface UnionType {
   type: "union";
-  options: ReferenceType[];
+  options: readonly ReferenceType[];
 }
 interface ArrayType {
   type: "array";
@@ -30,7 +30,7 @@ interface RecordType {
 }
 interface EnumType {
   type: "enum";
-  options: string[];
+  options: readonly string[];
 }
 interface StringType {
   type: "string";
@@ -53,11 +53,15 @@ export function ReferenceType(reference: string): ReferenceType {
   return { type: "reference", reference };
 }
 
-export function ObjectType(properties: Record<string, PrimitiveType | ContainerType | ReferenceType>): ObjectType {
+export function ObjectType<const P extends Record<string, PrimitiveType | ContainerType | ReferenceType>>(
+  properties: P
+): { type: "object"; properties: P } {
   return { type: "object", properties };
 }
 
-export function UnionType(options: ReferenceType[]): UnionType {
+export function UnionType<const O extends readonly ReferenceType[]>(
+  options: O
+): { type: "union"; options: O } {
   return { type: "union", options };
 }
 
@@ -76,7 +80,9 @@ export function RecordType(
   return { type: "record", key, value };
 }
 
-export function EnumType(options: string[]): EnumType {
+export function EnumType<const O extends readonly string[]>(
+  options: O
+): { type: "enum"; options: O } {
   return { type: "enum", options };
 }
 

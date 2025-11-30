@@ -1,16 +1,40 @@
 import * as _ from "@hathora/delta-pack/helpers";
-import { Type } from "./generator";
+import type { Type } from "./generator";
 
 type DeltaPackApi<T> = {
   parse: (obj: T) => T;
   encode: (obj: T) => Uint8Array;
   decode: (buf: Uint8Array) => T;
+  encodeDiff: (a: T, b: T) => Uint8Array;
+  decodeDiff: (a: T, diff: Uint8Array) => T;
+  equals: (a: T, b: T) => boolean;
 };
 
 export function load<T>(schema: Record<string, Type>, objectName: string): DeltaPackApi<T> {
   const typeVal = schema[objectName];
   if (typeVal?.type !== "object") {
     throw new Error(`Type ${objectName} is not an object type`);
+  }
+
+  function isPrimitiveType(type: Type): boolean {
+    // Resolve references
+    if (type.type === "reference") {
+      const refType = schema[type.reference];
+      if (!refType) {
+        throw new Error(`Unknown reference type: ${type.reference}`);
+      }
+      return isPrimitiveType(refType);
+    }
+
+    // Check if the type itself is primitive
+    return (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "uint" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    );
   }
 
   function _parse(objVal: unknown, objType: Type): unknown {
@@ -178,6 +202,238 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     }
   }
 
+  function _equals(a: unknown, b: unknown, objType: Type): boolean {
+    if (objType.type === "string" || objType.type === "int" || objType.type === "uint") {
+      return a === b;
+    } else if (objType.type === "float") {
+      return Math.abs((a as number) - (b as number)) <= 0.00001;
+    } else if (objType.type === "boolean") {
+      return a === b;
+    } else if (objType.type === "enum") {
+      return a === b;
+    } else if (objType.type === "reference") {
+      const refType = schema[objType.reference];
+      if (!refType) {
+        throw new Error(`Unknown reference type: ${objType.reference}`);
+      }
+      return _equals(a, b, refType);
+    } else if (objType.type === "object") {
+      for (const [key, typeVal] of Object.entries(objType.properties)) {
+        if (!_equals((a as any)[key], (b as any)[key], typeVal)) {
+          return false;
+        }
+      }
+      return true;
+    } else if (objType.type === "array") {
+      const arrA = a as unknown[];
+      const arrB = b as unknown[];
+      if (arrA.length !== arrB.length) return false;
+      for (let i = 0; i < arrA.length; i++) {
+        if (!_equals(arrA[i], arrB[i], objType.value)) {
+          return false;
+        }
+      }
+      return true;
+    } else if (objType.type === "record") {
+      const mapA = a as Map<unknown, unknown>;
+      const mapB = b as Map<unknown, unknown>;
+      if (mapA.size !== mapB.size) return false;
+      for (const [key, val] of mapA) {
+        if (!mapB.has(key)) return false;
+        if (!_equals(val, mapB.get(key), objType.value)) {
+          return false;
+        }
+      }
+      return true;
+    } else if (objType.type === "union") {
+      const unionA = a as { type: string; val: unknown };
+      const unionB = b as { type: string; val: unknown };
+      if (unionA.type !== unionB.type) return false;
+      const refType = schema[unionA.type];
+      return _equals(unionA.val, unionB.val, refType);
+    } else if (objType.type === "optional") {
+      if (a === undefined && b === undefined) return true;
+      if (a === undefined || b === undefined) return false;
+      return _equals(a, b, objType.value);
+    }
+    return true;
+  }
+
+  function _encodeDiff(a: unknown, b: unknown, objType: Type, tracker: _.Tracker): void {
+    if (objType.type === "string") {
+      tracker.pushStringDiff(a as string, b as string);
+    } else if (objType.type === "int") {
+      tracker.pushIntDiff(a as number, b as number);
+    } else if (objType.type === "uint") {
+      tracker.pushUIntDiff(a as number, b as number);
+    } else if (objType.type === "float") {
+      tracker.pushFloatDiff(a as number, b as number);
+    } else if (objType.type === "boolean") {
+      tracker.pushBooleanDiff(a as boolean, b as boolean);
+    } else if (objType.type === "enum") {
+      const enumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
+      tracker.pushUIntDiff(enumObj[a as string], enumObj[b as string]);
+    } else if (objType.type === "reference") {
+      const refType = schema[objType.reference];
+      if (!refType) {
+        throw new Error(`Unknown reference type: ${objType.reference}`);
+      }
+      _encodeDiff(a, b, refType, tracker);
+    } else if (objType.type === "object") {
+      const changed = !_equals(a, b, objType);
+      tracker.pushBoolean(changed);
+      if (!changed) return;
+      for (const [key, typeVal] of Object.entries(objType.properties)) {
+        _encodeDiff((a as any)[key], (b as any)[key], typeVal, tracker);
+      }
+    } else if (objType.type === "array") {
+      const arrA = a as unknown[];
+      const arrB = b as unknown[];
+      tracker.pushArrayDiff(
+        arrA,
+        arrB,
+        (x, y) => _equals(x, y, objType.value),
+        (x) => _encode(x, objType.value, tracker),
+        (x, y) => _encodeDiff(x, y, objType.value, tracker)
+      );
+    } else if (objType.type === "record") {
+      const mapA = a as Map<unknown, unknown>;
+      const mapB = b as Map<unknown, unknown>;
+      tracker.pushRecordDiff(
+        mapA,
+        mapB,
+        (x, y) => _equals(x, y, objType.value),
+        (x) => _encode(x, objType.key, tracker),
+        (x) => _encode(x, objType.value, tracker),
+        (x, y) => _encodeDiff(x, y, objType.value, tracker)
+      );
+    } else if (objType.type === "union") {
+      const unionA = a as { type: string; val: unknown };
+      const unionB = b as { type: string; val: unknown };
+
+      if (unionB.type !== unionA.type) {
+        // Type changed - encode new discriminator and value
+        tracker.pushBoolean(false);
+        const variantIndex = objType.options.findIndex((opt) => opt.reference === unionB.type);
+        tracker.pushUInt(variantIndex);
+        const refType = schema[unionB.type];
+        _encode(unionB.val, refType, tracker);
+      } else {
+        // Same type - encode diff
+        tracker.pushBoolean(true);
+        const refType = schema[unionA.type];
+        _encodeDiff(unionA.val, unionB.val, refType, tracker);
+      }
+    } else if (objType.type === "optional") {
+      const valueType = objType.value;
+      // Use pushOptionalDiffPrimitive for primitives (including primitive references like UserId)
+      // Use pushOptionalDiff for objects/complex types
+      if (isPrimitiveType(valueType)) {
+        tracker.pushOptionalDiffPrimitive(
+          a,
+          b,
+          (x) => _encode(x, valueType, tracker)
+        );
+      } else {
+        tracker.pushOptionalDiff(
+          a,
+          b,
+          (x) => _encode(x, valueType, tracker),
+          (x, y) => _encodeDiff(x, y, valueType, tracker)
+        );
+      }
+    }
+  }
+
+  function _decodeDiff(a: unknown, objType: Type, tracker: _.Tracker): unknown {
+    if (objType.type === "string") {
+      return tracker.nextStringDiff(a as string);
+    } else if (objType.type === "int") {
+      return tracker.nextIntDiff(a as number);
+    } else if (objType.type === "uint") {
+      return tracker.nextUIntDiff(a as number);
+    } else if (objType.type === "float") {
+      return tracker.nextFloatDiff(a as number);
+    } else if (objType.type === "boolean") {
+      const changed = tracker.nextBoolean();
+      return changed ? !(a as boolean) : (a as boolean);
+    } else if (objType.type === "enum") {
+      const oldEnumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
+      const oldIdx = oldEnumObj[a as string];
+      const newIdx = tracker.nextUIntDiff(oldIdx);
+      return objType.options[newIdx];
+    } else if (objType.type === "reference") {
+      const refType = schema[objType.reference];
+      if (!refType) {
+        throw new Error(`Unknown reference type: ${objType.reference}`);
+      }
+      return _decodeDiff(a, refType, tracker);
+    } else if (objType.type === "object") {
+      const changed = tracker.nextBoolean();
+      if (!changed) return a;
+      const result: any = {};
+      for (const [key, typeVal] of Object.entries(objType.properties)) {
+        result[key] = _decodeDiff((a as any)[key], typeVal, tracker);
+      }
+      return result;
+    } else if (objType.type === "array") {
+      const arrA = a as unknown[];
+      return tracker.nextArrayDiff(
+        arrA,
+        () => _decode(objType.value, tracker),
+        (x) => _decodeDiff(x, objType.value, tracker)
+      );
+    } else if (objType.type === "record") {
+      const mapA = a as Map<unknown, unknown>;
+      return tracker.nextRecordDiff(
+        mapA,
+        () => _decode(objType.key, tracker),
+        () => _decode(objType.value, tracker),
+        (x) => _decodeDiff(x, objType.value, tracker)
+      );
+    } else if (objType.type === "union") {
+      const unionA = a as { type: string; val: unknown };
+      const sameType = tracker.nextBoolean();
+
+      if (!sameType) {
+        // Type changed - decode new discriminator and value
+        const variantIndex = tracker.nextUInt();
+        const variant = objType.options[variantIndex];
+        if (!variant) {
+          throw new Error(`Invalid union variant index: ${variantIndex}`);
+        }
+        const refType = schema[variant.reference];
+        return {
+          type: variant.reference,
+          val: _decode(refType, tracker),
+        };
+      } else {
+        // Same type - decode diff
+        const refType = schema[unionA.type];
+        return {
+          type: unionA.type,
+          val: _decodeDiff(unionA.val, refType, tracker),
+        };
+      }
+    } else if (objType.type === "optional") {
+      const valueType = objType.value;
+      // Use nextOptionalDiffPrimitive for primitives, nextOptionalDiff for complex types
+      if (isPrimitiveType(valueType)) {
+        return tracker.nextOptionalDiffPrimitive(
+          a,
+          () => _decode(valueType, tracker)
+        );
+      } else {
+        return tracker.nextOptionalDiff(
+          a,
+          () => _decode(valueType, tracker),
+          (x) => _decodeDiff(x, valueType, tracker)
+        );
+      }
+    }
+    return a;
+  }
+
   return {
     parse: (obj: T) => _parse(obj, typeVal) as T,
     encode: (obj: T) => {
@@ -189,6 +445,15 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const tracker = _.Tracker.parse(buf);
       return _decode(typeVal, tracker) as T;
     },
+    encodeDiff: (a: T, b: T) => {
+      const tracker = new _.Tracker();
+      _encodeDiff(a, b, typeVal, tracker);
+      return tracker.toBuffer();
+    },
+    decodeDiff: (a: T, diff: Uint8Array) => {
+      const tracker = _.Tracker.parse(diff);
+      return _decodeDiff(a, typeVal, tracker) as T;
+    },
+    equals: (a: T, b: T) => _equals(a, b, typeVal),
   };
 }
-

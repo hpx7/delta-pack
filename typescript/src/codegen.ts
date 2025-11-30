@@ -131,8 +131,8 @@ export const ${name} = {
     if (typeof obj !== "object" || obj?.type == null) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
+    ${type.options
+      .map((reference, i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
       return {
         type: "${reference.reference}",
@@ -146,8 +146,8 @@ export const ${name} = {
     }
   },
   equals(a: ${name}, b: ${name}): boolean {
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
+    ${type.options
+      .map((reference, i) => {
         return `${i > 0 ? "else " : ""}if (a.type === "${reference.reference}" && b.type === "${reference.reference}") {
       return ${renderEquals(reference, reference.reference, "a.val", "b.val")};
     }`;
@@ -176,8 +176,8 @@ export const ${name} = {
     return tracker.toBuffer();
   },
   _encodeDiff(a: ${name}, b: ${name}, tracker: _.Tracker): void {
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
+    ${type.options
+      .map((reference, i) => {
         return `${i > 0 ? "else " : ""}if (b.type === "${reference.reference}") {
       tracker.pushBoolean(a.type === "${reference.reference}");
       if (a.type === "${reference.reference}") {
@@ -195,8 +195,8 @@ export const ${name} = {
   },
   _decode(tracker: _.Tracker): ${name} {
     const type = tracker.nextUInt();
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
+    ${type.options
+      .map((reference, i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
       return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
     }`;
@@ -211,8 +211,8 @@ export const ${name} = {
   _decodeDiff(obj: ${name}, tracker: _.Tracker): ${name} {
     const isSameType = tracker.nextBoolean();
     if (isSameType) {
-      ${Object.entries(type.options)
-        .map(([childName, reference], i) => {
+      ${type.options
+        .map((reference, i) => {
           return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
         return {
           type: "${reference.reference}",
@@ -224,8 +224,8 @@ export const ${name} = {
       throw new Error("Invalid union diff");
     } else {
       const type = tracker.nextUInt();
-      ${Object.entries(type.options)
-        .map(([childName, reference], i) => {
+      ${type.options
+        .map((reference, i) => {
           return `${i > 0 ? "else " : ""}if (type === ${i}) {
         return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
       }`;
