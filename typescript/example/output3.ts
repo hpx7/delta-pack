@@ -49,7 +49,7 @@ export const ChatMessage = {
     };
   },
   parse(obj: ChatMessage): ChatMessage {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid ChatMessage: ${obj}`);
     }
     return {
@@ -118,7 +118,7 @@ export const ChatList = {
     };
   },
   parse(obj: ChatList): ChatList {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid ChatList: ${obj}`);
     }
     return {
@@ -194,7 +194,7 @@ export const Position = {
     };
   },
   parse(obj: Position): Position {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
@@ -272,7 +272,7 @@ export const Rotation = {
     };
   },
   parse(obj: Rotation): Rotation {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Rotation: ${obj}`);
     }
     return {
@@ -355,7 +355,7 @@ export const Size3D = {
     };
   },
   parse(obj: Size3D): Size3D {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Size3D: ${obj}`);
     }
     return {
@@ -783,7 +783,7 @@ export const Entity = {
     };
   },
   parse(obj: Entity): Entity {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Entity: ${obj}`);
     }
     return {
@@ -862,7 +862,7 @@ export const Snapshot = {
     };
   },
   parse(obj: Snapshot): Snapshot {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Snapshot: ${obj}`);
     }
     return {

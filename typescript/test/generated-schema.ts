@@ -56,7 +56,7 @@ export const Player = {
     };
   },
   parse(obj: Player): Player {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
@@ -138,7 +138,7 @@ export const Position = {
     };
   },
   parse(obj: Position): Position {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
@@ -208,7 +208,7 @@ export const MoveAction = {
     };
   },
   parse(obj: MoveAction): MoveAction {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid MoveAction: ${obj}`);
     }
     return {
@@ -278,7 +278,7 @@ export const AttackAction = {
     };
   },
   parse(obj: AttackAction): AttackAction {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid AttackAction: ${obj}`);
     }
     return {
@@ -347,7 +347,7 @@ export const UseItemAction = {
     };
   },
   parse(obj: UseItemAction): UseItemAction {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid UseItemAction: ${obj}`);
     }
     return {
@@ -574,7 +574,7 @@ export const GameState = {
     };
   },
   parse(obj: GameState): GameState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {

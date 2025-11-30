@@ -257,7 +257,7 @@ export const Position = {
     };
   },
   parse(obj: Position): Position {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
@@ -327,7 +327,7 @@ export const Velocity = {
     };
   },
   parse(obj: Velocity): Velocity {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Velocity: ${obj}`);
     }
     return {
@@ -401,7 +401,7 @@ export const InventoryItem = {
     };
   },
   parse(obj: InventoryItem): InventoryItem {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid InventoryItem: ${obj}`);
     }
     return {
@@ -511,7 +511,7 @@ export const Equipment = {
     };
   },
   parse(obj: Equipment): Equipment {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Equipment: ${obj}`);
     }
     return {
@@ -631,7 +631,7 @@ export const PlayerStats = {
     };
   },
   parse(obj: PlayerStats): PlayerStats {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid PlayerStats: ${obj}`);
     }
     return {
@@ -763,7 +763,7 @@ export const ActiveEffect = {
     };
   },
   parse(obj: ActiveEffect): ActiveEffect {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid ActiveEffect: ${obj}`);
     }
     return {
@@ -846,7 +846,7 @@ export const AbilityCooldown = {
     };
   },
   parse(obj: AbilityCooldown): AbilityCooldown {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid AbilityCooldown: ${obj}`);
     }
     return {
@@ -943,7 +943,7 @@ export const Player = {
     };
   },
   parse(obj: Player): Player {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
@@ -1199,7 +1199,7 @@ export const Enemy = {
     };
   },
   parse(obj: Enemy): Enemy {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Enemy: ${obj}`);
     }
     return {
@@ -1343,7 +1343,7 @@ export const Projectile = {
     };
   },
   parse(obj: Projectile): Projectile {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Projectile: ${obj}`);
     }
     return {
@@ -1461,7 +1461,7 @@ export const DroppedLoot = {
     };
   },
   parse(obj: DroppedLoot): DroppedLoot {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid DroppedLoot: ${obj}`);
     }
     return {
@@ -1548,7 +1548,7 @@ export const WorldObject = {
     };
   },
   parse(obj: WorldObject): WorldObject {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid WorldObject: ${obj}`);
     }
     return {
@@ -1666,7 +1666,7 @@ export const MatchStats = {
     };
   },
   parse(obj: MatchStats): MatchStats {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid MatchStats: ${obj}`);
     }
     return {
@@ -1762,7 +1762,7 @@ export const TeamScore = {
     };
   },
   parse(obj: TeamScore): TeamScore {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid TeamScore: ${obj}`);
     }
     return {
@@ -1848,7 +1848,7 @@ export const GameSettings = {
     };
   },
   parse(obj: GameSettings): GameSettings {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameSettings: ${obj}`);
     }
     return {
@@ -1957,7 +1957,7 @@ export const GameState = {
     };
   },
   parse(obj: GameState): GameState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {

@@ -183,7 +183,7 @@ export const CreatureState = {
     };
   },
   parse(obj: CreatureState): CreatureState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid CreatureState: ${obj}`);
     }
     return {
@@ -426,7 +426,7 @@ export const ItemState = {
     };
   },
   parse(obj: ItemState): ItemState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid ItemState: ${obj}`);
     }
     return {
@@ -542,7 +542,7 @@ export const EffectState = {
     };
   },
   parse(obj: EffectState): EffectState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid EffectState: ${obj}`);
     }
     return {
@@ -799,7 +799,7 @@ export const ObjectState = {
     };
   },
   parse(obj: ObjectState): ObjectState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid ObjectState: ${obj}`);
     }
     return {
@@ -1025,7 +1025,7 @@ export const PlayerState = {
     };
   },
   parse(obj: PlayerState): PlayerState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid PlayerState: ${obj}`);
     }
     return {
@@ -1194,7 +1194,7 @@ export const SpectatorState = {
     };
   },
   parse(obj: SpectatorState): SpectatorState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid SpectatorState: ${obj}`);
     }
     return {
@@ -1264,7 +1264,7 @@ export const DeckState = {
     };
   },
   parse(obj: DeckState): DeckState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid DeckState: ${obj}`);
     }
     return {
@@ -1428,7 +1428,7 @@ export const HandState = {
     };
   },
   parse(obj: HandState): HandState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid HandState: ${obj}`);
     }
     return {
@@ -1540,7 +1540,7 @@ export const SkillsState = {
     };
   },
   parse(obj: SkillsState): SkillsState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid SkillsState: ${obj}`);
     }
     return {
@@ -1660,7 +1660,7 @@ export const SkillState = {
     };
   },
   parse(obj: SkillState): SkillState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid SkillState: ${obj}`);
     }
     return {
@@ -1745,7 +1745,7 @@ export const GameInfo = {
     };
   },
   parse(obj: GameInfo): GameInfo {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameInfo: ${obj}`);
     }
     return {
@@ -1869,7 +1869,7 @@ export const DraftState = {
     };
   },
   parse(obj: DraftState): DraftState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid DraftState: ${obj}`);
     }
     return {
@@ -1972,7 +1972,7 @@ export const DraftDeckState = {
     };
   },
   parse(obj: DraftDeckState): DraftDeckState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid DraftDeckState: ${obj}`);
     }
     return {
@@ -2141,7 +2141,7 @@ export const CardPairState = {
     };
   },
   parse(obj: CardPairState): CardPairState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid CardPairState: ${obj}`);
     }
     return {
@@ -2218,7 +2218,7 @@ export const DebugBodyState = {
     };
   },
   parse(obj: DebugBodyState): DebugBodyState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid DebugBodyState: ${obj}`);
     }
     return {
@@ -2304,7 +2304,7 @@ export const Point = {
     };
   },
   parse(obj: Point): Point {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Point: ${obj}`);
     }
     return {
@@ -2381,7 +2381,7 @@ export const GameState = {
     };
   },
   parse(obj: GameState): GameState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {

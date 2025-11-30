@@ -465,7 +465,7 @@ export function parseOptional<T>(x: unknown, innerParse: (y: unknown) => T): T |
 }
 export function parseArray<T>(x: unknown, innerParse: (y: unknown) => T): T[] {
   if (!Array.isArray(x)) {
-    throw new Error(`Invalid array: ${x}`);
+    throw new Error(`Invalid array, got ${typeof x}`);
   }
   return x.map((y, i) => {
     try {
@@ -480,14 +480,14 @@ export function parseRecord<K, T>(
   innerKeyParse: (y: unknown) => K,
   innerValParse: (y: unknown) => T,
 ): Map<K, T> {
-  if (typeof x !== "object" || x == null || Array.isArray(x)) {
-    throw new Error(`Invalid record: ${x}`);
+  if (typeof x !== "object" || x == null) {
+    throw new Error(`Invalid record, got ${typeof x}`);
   }
-  if (!(x instanceof Map)) {
+  if (Object.getPrototypeOf(x) === Object.prototype) {
     x = new Map(Object.entries(x));
   }
   if (!(x instanceof Map)) {
-    throw new Error(`Invalid record: ${JSON.stringify(x)}`);
+    throw new Error(`Invalid record, got ${typeof x}`);
   }
   const result: Map<K, T> = new Map();
   for (const [key, val] of x) {

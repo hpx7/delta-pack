@@ -42,7 +42,7 @@ export const Position = {
     };
   },
   parse(obj: Position): Position {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
@@ -112,7 +112,7 @@ export const Velocity = {
     };
   },
   parse(obj: Velocity): Velocity {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Velocity: ${obj}`);
     }
     return {
@@ -198,7 +198,7 @@ export const Player = {
     };
   },
   parse(obj: Player): Player {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
@@ -364,7 +364,7 @@ export const State = {
     };
   },
   parse(obj: State): State {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid State: ${obj}`);
     }
     return {

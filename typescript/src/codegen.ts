@@ -36,7 +36,7 @@ export const ${name} = {
     };
   },
   parse(obj: ${name}): ${name} {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
     return {

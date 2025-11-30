@@ -28,7 +28,7 @@ export const Position = {
     };
   },
   parse(obj: Position): Position {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Position: ${obj}`);
     }
     return {
@@ -98,7 +98,7 @@ export const Weapon = {
     };
   },
   parse(obj: Weapon): Weapon {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Weapon: ${obj}`);
     }
     return {
@@ -170,7 +170,7 @@ export const Player = {
     };
   },
   parse(obj: Player): Player {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
@@ -261,7 +261,7 @@ export const GameState = {
     };
   },
   parse(obj: GameState): GameState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {

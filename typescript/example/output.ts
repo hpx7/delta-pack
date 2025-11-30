@@ -45,7 +45,7 @@ export const Card = {
     };
   },
   parse(obj: Card): Card {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Card: ${obj}`);
     }
     return {
@@ -115,7 +115,7 @@ export const Player = {
     };
   },
   parse(obj: Player): Player {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
@@ -191,7 +191,7 @@ export const PlayerState = {
     };
   },
   parse(obj: PlayerState): PlayerState {
-    if (typeof obj !== "object" || obj == null) {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid PlayerState: ${obj}`);
     }
     return {

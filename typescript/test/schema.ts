@@ -52,18 +52,18 @@ const UseItemAction = ObjectType({
 });
 
 const GameAction = UnionType([
-  ReferenceType(MoveAction),
-  ReferenceType(AttackAction),
-  ReferenceType(UseItemAction),
+  ReferenceType("MoveAction"),
+  ReferenceType("AttackAction"),
+  ReferenceType("UseItemAction"),
 ]);
 
 const GameState = ObjectType({
-  players: ArrayType(ReferenceType(Player)),
+  players: ArrayType(ReferenceType("Player")),
   currentPlayer: OptionalType(StringType()),
   round: UIntType(),
   metadata: RecordType(StringType(), StringType()),
-  winningColor: OptionalType(ReferenceType(Color)),
-  lastAction: OptionalType(ReferenceType(GameAction)),
+  winningColor: OptionalType(ReferenceType("Color")),
+  lastAction: OptionalType(ReferenceType("GameAction")),
 });
 
 // Generate code

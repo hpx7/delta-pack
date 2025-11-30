@@ -58,6 +58,9 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
       return _parse(objVal, refType);
     } else if (objType.type === "object") {
+      if (typeof objVal !== "object" || objVal === null || Object.getPrototypeOf(objVal) !== Object.prototype) {
+        throw new Error(`Invalid object: ${objVal}`);
+      }
       return _.mapValues(objType.properties, (typeVal, key) => {
         const fieldVal = (objVal as any)[key];
         return _.tryParseField(() => _parse(fieldVal, typeVal), key);
