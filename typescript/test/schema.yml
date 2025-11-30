@@ -1,0 +1,42 @@
+# Test schema for delta-pack
+# Equivalent to schema.ts
+
+Color:
+  - RED
+  - BLUE
+  - GREEN
+  - YELLOW
+
+Player:
+  id: string
+  name: string
+  score: int
+  isActive: boolean
+
+Position:
+  x: float
+  y: float
+
+MoveAction:
+  x: int
+  y: int
+
+AttackAction:
+  targetId: string
+  damage: uint
+
+UseItemAction:
+  itemId: string
+
+GameAction:
+  - MoveAction
+  - AttackAction
+  - UseItemAction
+
+GameState:
+  players: Player[]
+  currentPlayer: string?
+  round: uint
+  metadata: string, string
+  winningColor: Color?
+  lastAction: GameAction?
