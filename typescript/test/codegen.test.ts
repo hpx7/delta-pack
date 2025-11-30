@@ -10,7 +10,7 @@ import {
   type Color
 } from './generated-schema';
 
-describe('Delta Pack - Unified API', () => {
+describe('Delta Pack Codegen - Unified API', () => {
   describe('Player Type - Basic Operations', () => {
     const player1: Player = {
       id: 'player-1',

@@ -13,6 +13,10 @@
     "./helpers": {
       "types": "./dist/helpers.d.ts",
       "default": "./dist/helpers.js"
+    },
+    "./infer": {
+      "types": "./dist/infer.d.ts",
+      "default": "./dist/infer.js"
     }
   },
   "scripts": {

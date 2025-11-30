@@ -12,8 +12,12 @@ type DeltaPackApi<T> = {
 
 export function load<T>(schema: Record<string, Type>, objectName: string): DeltaPackApi<T> {
   const typeVal = schema[objectName];
-  if (typeVal?.type !== "object") {
-    throw new Error(`Type ${objectName} is not an object type`);
+  if (!typeVal) {
+    throw new Error(`Type ${objectName} not found in schema`);
+  }
+  // Support object, union, and enum types as root types
+  if (typeVal.type !== "object" && typeVal.type !== "union" && typeVal.type !== "enum") {
+    throw new Error(`Type ${objectName} must be an object, union, or enum type, got ${typeVal.type}`);
   }
 
   function isPrimitiveType(type: Type): boolean {
@@ -96,7 +100,11 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "uint") {
       tracker.pushUInt(objVal as number);
     } else if (objType.type === "float") {
-      tracker.pushFloat(objVal as number);
+      if (objType.precision) {
+        tracker.pushInt(Math.round((objVal as number) / objType.precision));
+      } else {
+        tracker.pushFloat(objVal as number);
+      }
     } else if (objType.type === "boolean") {
       tracker.pushBoolean(objVal as boolean);
     } else if (objType.type === "enum") {
@@ -151,7 +159,11 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "uint") {
       return tracker.nextUInt();
     } else if (objType.type === "float") {
-      return tracker.nextFloat();
+      if (objType.precision) {
+        return tracker.nextInt() * objType.precision;
+      } else {
+        return tracker.nextFloat();
+      }
     } else if (objType.type === "boolean") {
       return tracker.nextBoolean();
     } else if (objType.type === "enum") {
@@ -209,7 +221,11 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     if (objType.type === "string" || objType.type === "int" || objType.type === "uint") {
       return a === b;
     } else if (objType.type === "float") {
-      return Math.abs((a as number) - (b as number)) <= 0.00001;
+      if (objType.precision) {
+        return Math.round((a as number) / objType.precision) === Math.round((b as number) / objType.precision);
+      } else {
+        return Math.abs((a as number) - (b as number)) <= 0.00001;
+      }
     } else if (objType.type === "boolean") {
       return a === b;
     } else if (objType.type === "enum") {
@@ -270,7 +286,13 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "uint") {
       tracker.pushUIntDiff(a as number, b as number);
     } else if (objType.type === "float") {
-      tracker.pushFloatDiff(a as number, b as number);
+      if (objType.precision) {
+        const aQuantized = Math.round((a as number) / objType.precision);
+        const bQuantized = Math.round((b as number) / objType.precision);
+        tracker.pushIntDiff(aQuantized, bQuantized);
+      } else {
+        tracker.pushFloatDiff(a as number, b as number);
+      }
     } else if (objType.type === "boolean") {
       tracker.pushBooleanDiff(a as boolean, b as boolean);
     } else if (objType.type === "enum") {
@@ -356,7 +378,13 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "uint") {
       return tracker.nextUIntDiff(a as number);
     } else if (objType.type === "float") {
-      return tracker.nextFloatDiff(a as number);
+      if (objType.precision) {
+        const aQuantized = Math.round((a as number) / objType.precision);
+        const bQuantized = tracker.nextIntDiff(aQuantized);
+        return bQuantized * objType.precision;
+      } else {
+        return tracker.nextFloatDiff(a as number);
+      }
     } else if (objType.type === "boolean") {
       const changed = tracker.nextBoolean();
       return changed ? !(a as boolean) : (a as boolean);

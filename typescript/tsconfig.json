@@ -15,7 +15,8 @@
     "baseUrl": ".",
     "paths": {
       "@hathora/delta-pack": ["./src/generator.ts"],
-      "@hathora/delta-pack/helpers": ["./src/helpers.ts"]
+      "@hathora/delta-pack/helpers": ["./src/helpers.ts"],
+      "@hathora/delta-pack/infer": ["./src/infer.ts"]
     }
   }
 }

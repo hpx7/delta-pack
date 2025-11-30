@@ -13,6 +13,7 @@ import {
   UnionType,
   codegenTypescript,
 } from '@hathora/delta-pack';
+import { defineSchema } from '@hathora/delta-pack/infer';
 import { writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -66,7 +67,19 @@ const GameState = ObjectType({
   lastAction: OptionalType(ReferenceType("GameAction")),
 });
 
-// Generate code
+// Export schema for interpreter tests
+export const schema = defineSchema({
+  Color,
+  Player,
+  Position,
+  MoveAction,
+  AttackAction,
+  UseItemAction,
+  GameAction,
+  GameState,
+});
+
+// Generate code for codegen tests
 const typeDefinitions = {
   Color,
   Player,

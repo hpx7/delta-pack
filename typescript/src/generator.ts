@@ -7,49 +7,49 @@ export type ReferenceType = {
   type: "reference";
   reference: string;
 };
-interface ObjectType {
+export interface ObjectType {
   type: "object";
   properties: Record<string, PrimitiveType | ContainerType | ReferenceType>;
 }
-interface UnionType {
+export interface UnionType {
   type: "union";
   options: readonly ReferenceType[];
 }
-interface ArrayType {
+export interface ArrayType {
   type: "array";
   value: PrimitiveType | ContainerType | ReferenceType;
 }
-interface OptionalType {
+export interface OptionalType {
   type: "optional";
   value: PrimitiveType | ContainerType | ReferenceType;
 }
-interface RecordType {
+export interface RecordType {
   type: "record";
   key: StringType | IntType | UIntType;
   value: PrimitiveType | ContainerType | ReferenceType;
 }
-interface EnumType {
+export interface EnumType {
   type: "enum";
   options: readonly string[];
 }
-interface StringType {
+export interface StringType {
   type: "string";
 }
-interface IntType {
+export interface IntType {
   type: "int";
 }
-interface UIntType {
+export interface UIntType {
   type: "uint";
 }
-interface FloatType {
+export interface FloatType {
   type: "float";
   precision?: number;
 }
-interface BooleanType {
+export interface BooleanType {
   type: "boolean";
 }
 
-export function ReferenceType(reference: string): ReferenceType {
+export function ReferenceType<const R extends string>(reference: R): { type: "reference"; reference: R } {
   return { type: "reference", reference };
 }
 
@@ -65,18 +65,25 @@ export function UnionType<const O extends readonly ReferenceType[]>(
   return { type: "union", options };
 }
 
-export function ArrayType(value: PrimitiveType | ContainerType | ReferenceType): ArrayType {
+export function ArrayType<const V extends PrimitiveType | ContainerType | ReferenceType>(
+  value: V
+): { type: "array"; value: V } {
   return { type: "array", value };
 }
 
-export function OptionalType(value: PrimitiveType | ContainerType | ReferenceType): OptionalType {
+export function OptionalType<const V extends PrimitiveType | ContainerType | ReferenceType>(
+  value: V
+): { type: "optional"; value: V } {
   return { type: "optional", value };
 }
 
-export function RecordType(
-  key: StringType | IntType | UIntType,
-  value: PrimitiveType | ContainerType | ReferenceType,
-): RecordType {
+export function RecordType<
+  const K extends StringType | IntType | UIntType,
+  const V extends PrimitiveType | ContainerType | ReferenceType
+>(
+  key: K,
+  value: V,
+): { type: "record"; key: K; value: V } {
   return { type: "record", key, value };
 }
 
