@@ -23,7 +23,9 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test:gen": "tsx test/schema.ts",
-    "test": "npm run test:gen && vitest run"
+    "test": "npm run test:gen && vitest run",
+    "test:coverage": "npm run test:gen && vitest run --coverage",
+    "test:ui": "npm run test:gen && vitest --ui"
   },
   "dependencies": {
     "bin-serde": "^1.4.2",
