@@ -15,7 +15,7 @@ import {
   Type,
   UIntType,
   UnionType,
-} from "./generator";
+} from "./schema";
 import { mapValues } from "./helpers";
 
 export function parseSchemaYml(yamlContent: string): Record<string, Type> {

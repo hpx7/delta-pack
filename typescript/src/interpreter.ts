@@ -1,5 +1,5 @@
 import * as _ from "./helpers";
-import type { Type } from "./generator";
+import type { Type } from "./schema";
 
 type DeltaPackApi<T> = {
   parse: (obj: T) => T;

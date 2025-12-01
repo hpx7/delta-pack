@@ -1,9 +1,13 @@
-import type { ReferenceType, Type } from "./generator";
+import type { ReferenceType, Type } from "./schema";
 
-export function renderDoc(doc: Record<string, Type>) {
+export function codegenTypescript(schema: Record<string, Type>) {
+  return renderSchema(schema);
+}
+
+function renderSchema(schema: Record<string, Type>) {
   return `import * as _ from "@hpx7/delta-pack/helpers";
 
-${Object.entries(doc)
+${Object.entries(schema)
   .map(([name, type]) => {
     if (type.type === "enum") {
       return `
@@ -15,7 +19,7 @@ export type ${name} = ${type.options.map((option) => `"${option}"`).join(" | ")}
   })
   .join("\n")}
 
-${Object.entries(doc)
+${Object.entries(schema)
   .map(([name, type]) => {
     if (type.type === "enum") {
       return `
@@ -258,10 +262,10 @@ export const ${name} = {
   }
 
   function lookup(type: ReferenceType): Type {
-    if (type.reference in doc) {
-      return doc[type.reference];
+    if (type.reference in schema) {
+      return schema[type.reference];
     }
-    throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(doc)}`);
+    throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(schema)}`);
   }
 
   function renderTypeArg(type: Type): string {
@@ -447,7 +451,7 @@ export const ${name} = {
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value);
       const encodeFn = renderEncode(type.value, name, "x");
-      if (isPrimitiveType(type.value, doc)) {
+      if (isPrimitiveType(type.value, schema)) {
         return `tracker.pushOptionalDiffPrimitive<${valueType}>(
       ${keyA},
       ${keyB},
@@ -511,7 +515,7 @@ export const ${name} = {
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value);
       const decodeFn = renderDecode(type.value, name, "x");
-      if (isPrimitiveType(type.value, doc)) {
+      if (isPrimitiveType(type.value, schema)) {
         return `tracker.nextOptionalDiffPrimitive<${valueType}>(
         ${key},
         () => ${decodeFn}

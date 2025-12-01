@@ -1,5 +1,3 @@
-import { renderDoc } from "./codegen";
-
 export type PrimitiveType = EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
 export type ContainerType = ArrayType | OptionalType | RecordType;
 export type Type = ReferenceType | ObjectType | UnionType | ContainerType | PrimitiveType;
@@ -104,8 +102,4 @@ export function FloatType(options?: { precision?: number }): FloatType {
 
 export function BooleanType(): BooleanType {
   return { type: "boolean" };
-}
-
-export function codegenTypescript(doc: Record<string, Type>) {
-  return renderDoc(doc);
 }

@@ -2,8 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { parseSchemaYml } from "@hpx7/delta-pack";
-import type { EnumType, ObjectType, UnionType } from "@hpx7/delta-pack/generator";
+import { parseSchemaYml, EnumType, ObjectType, UnionType } from "@hpx7/delta-pack";
 import { schema as tsSchema } from "./schema";
 
 // Extract individual types from the TypeScript schema

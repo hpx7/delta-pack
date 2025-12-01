@@ -1,6 +1,6 @@
 {
   "name": "@hpx7/delta-pack",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A TypeScript code generator and runtime for binary serialization based on schemas.",
   "license": "MIT",
   "author": "hpx7",
@@ -33,9 +33,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./generator": {
-      "types": "./dist/generator.d.ts",
-      "default": "./dist/generator.js"
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "default": "./dist/schema.js"
     },
     "./helpers": {
       "types": "./dist/helpers.d.ts",
@@ -52,6 +52,10 @@
     "./interpreter": {
       "types": "./dist/interpreter.d.ts",
       "default": "./dist/interpreter.js"
+    },
+    "./codegen": {
+      "types": "./dist/codegen.d.ts",
+      "default": "./dist/codegen.js"
     }
   },
   "scripts": {
