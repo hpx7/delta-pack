@@ -14,9 +14,9 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@hathora/delta-pack": ["./src/generator.ts"],
-      "@hathora/delta-pack/helpers": ["./src/helpers.ts"],
-      "@hathora/delta-pack/infer": ["./src/infer.ts"]
+      "@hpx7/delta-pack": ["./src/generator.ts"],
+      "@hpx7/delta-pack/helpers": ["./src/helpers.ts"],
+      "@hpx7/delta-pack/infer": ["./src/infer.ts"]
     }
   }
 }

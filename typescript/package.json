@@ -1,6 +1,6 @@
 {
-  "name": "@hathora/delta-pack",
-  "version": "0.0.12",
+  "name": "@hpx7/delta-pack",
+  "version": "0.1.0",
   "license": "MIT",
   "type": "module",
   "main": "dist/generator.js",
@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test:gen": "tsx test/schema.ts",
+    "test:gen": "tsx test/schema.ts > test/generated-schema.ts",
     "test": "npm run test:gen && vitest run",
     "test:coverage": "npm run test:gen && vitest run --coverage",
     "test:ui": "npm run test:gen && vitest --ui",

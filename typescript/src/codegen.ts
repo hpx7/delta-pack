@@ -1,7 +1,7 @@
 import type { ReferenceType, Type } from "./generator";
 
 export function renderDoc(doc: Record<string, Type>) {
-  return `import * as _ from "@hathora/delta-pack/helpers";
+  return `import * as _ from "@hpx7/delta-pack/helpers";
 
 ${Object.entries(doc)
   .map(([name, type]) => {

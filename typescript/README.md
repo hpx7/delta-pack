@@ -5,7 +5,7 @@ TypeScript implementation of delta-pack, a compact binary serialization format w
 ## Installation
 
 ```bash
-npm install @hathora/delta-pack
+npm install @hpx7/delta-pack
 ```
 
 ## Quick Start
@@ -18,9 +18,9 @@ Delta-pack provides two approaches for working with schemas:
 ### Interpreter Mode (Recommended for prototyping)
 
 ```typescript
-import { ObjectType, StringType, IntType } from '@hathora/delta-pack';
-import { load } from '@hathora/delta-pack';
-import { Infer, defineSchema } from '@hathora/delta-pack/infer';
+import { ObjectType, StringType, IntType } from "@hpx7/delta-pack";
+import { load } from "@hpx7/delta-pack";
+import { Infer, defineSchema } from "@hpx7/delta-pack/infer";
 
 // Define schema in TypeScript
 const schema = defineSchema({
@@ -36,10 +36,10 @@ type Player = Infer<typeof schema.Player, typeof schema>;
 // Result: { id: string; name: string; score: number }
 
 // Load API for the type
-const Player = load<Player>(schema, 'Player');
+const Player = load<Player>(schema, "Player");
 
 // Use the API
-const player = { id: 'p1', name: 'Alice', score: 100 };
+const player = { id: "p1", name: "Alice", score: 100 };
 const encoded = Player.encode(player);
 const decoded = Player.decode(encoded);
 ```
@@ -47,8 +47,8 @@ const decoded = Player.decode(encoded);
 ### Codegen Mode (Recommended for production)
 
 ```typescript
-import { codegenTypescript, ObjectType, StringType, IntType } from '@hathora/delta-pack';
-import { writeFileSync } from 'fs';
+import { codegenTypescript, ObjectType, StringType, IntType } from "@hpx7/delta-pack";
+import { writeFileSync } from "fs";
 
 // Define schema in TypeScript
 const schema = {
@@ -61,15 +61,15 @@ const schema = {
 
 // Generate TypeScript code
 const code = codegenTypescript(schema);
-writeFileSync('generated.ts', code);
+writeFileSync("generated.ts", code);
 ```
 
 Then use the generated code:
 
 ```typescript
-import { Player } from './generated';
+import { Player } from "./generated";
 
-const player = Player.parse({ id: 'p1', name: 'Alice', score: 100 });
+const player = Player.parse({ id: "p1", name: "Alice", score: 100 });
 const encoded = Player.encode(player);
 const decoded = Player.decode(encoded);
 ```
@@ -109,7 +109,7 @@ Position:
 
 # Complex types
 GameState:
-  players: string,Player    # Map<string, Player>
+  players: string,Player # Map<string, Player>
   round: uint
   phase: string
 ```
@@ -117,10 +117,10 @@ GameState:
 Parse YAML schemas with:
 
 ```typescript
-import { parseSchemaYml } from '@hathora/delta-pack';
-import { readFileSync } from 'fs';
+import { parseSchemaYml } from "@hpx7/delta-pack";
+import { readFileSync } from "fs";
 
-const schemaYml = readFileSync('schema.yml', 'utf8');
+const schemaYml = readFileSync("schema.yml", "utf8");
 const schema = parseSchemaYml(schemaYml);
 ```
 
@@ -143,9 +143,9 @@ import {
   RecordType,
   EnumType,
   ReferenceType,
-} from '@hathora/delta-pack';
+} from "@hpx7/delta-pack";
 
-const Team = EnumType(['RED', 'BLUE']);
+const Team = EnumType(["RED", "BLUE"]);
 
 const Position = ObjectType({
   x: FloatType({ precision: 0.1 }),
@@ -156,12 +156,12 @@ const Player = ObjectType({
   id: StringType(),
   name: StringType(),
   score: IntType(),
-  team: ReferenceType('Team'),
-  position: OptionalType(ReferenceType('Position')),
+  team: ReferenceType("Team"),
+  position: OptionalType(ReferenceType("Position")),
 });
 
 const GameState = ObjectType({
-  players: RecordType(StringType(), ReferenceType('Player')),
+  players: RecordType(StringType(), ReferenceType("Player")),
   round: UIntType(),
   phase: StringType(),
 });
@@ -181,9 +181,9 @@ The interpreter mode provides a runtime API for working with schemas.
 ### Loading a Schema
 
 ```typescript
-import { ObjectType, StringType, IntType } from '@hathora/delta-pack';
-import { load } from '@hathora/delta-pack';
-import { Infer, defineSchema } from '@hathora/delta-pack/infer';
+import { ObjectType, StringType, IntType } from "@hpx7/delta-pack";
+import { load } from "@hpx7/delta-pack";
+import { Infer, defineSchema } from "@hpx7/delta-pack/infer";
 
 // Define schema
 const schema = defineSchema({
@@ -199,7 +199,7 @@ type Player = Infer<typeof schema.Player, typeof schema>;
 // Result: { id: string; name: string; score: number }
 
 // Load interpreter API
-const Player = load<Player>(schema, 'Player');
+const Player = load<Player>(schema, "Player");
 ```
 
 ### API Methods
@@ -212,8 +212,8 @@ Validates and parses an object, throwing if invalid:
 
 ```typescript
 const player = Player.parse({
-  id: 'p1',
-  name: 'Alice',
+  id: "p1",
+  name: "Alice",
   score: 100,
 });
 ```
@@ -223,7 +223,7 @@ const player = Player.parse({
 Serializes an object to binary format:
 
 ```typescript
-const player = { id: 'p1', name: 'Alice', score: 100 };
+const player = { id: "p1", name: "Alice", score: 100 };
 const bytes = Player.encode(player);
 console.log(`Encoded size: ${bytes.length} bytes`);
 ```
@@ -242,8 +242,8 @@ const decoded = Player.decode(bytes);
 Encodes only the differences between two objects:
 
 ```typescript
-const oldPlayer = { id: 'p1', name: 'Alice', score: 100 };
-const newPlayer = { id: 'p1', name: 'Alice', score: 150 };
+const oldPlayer = { id: "p1", name: "Alice", score: 100 };
+const newPlayer = { id: "p1", name: "Alice", score: 150 };
 
 const diff = Player.encodeDiff(oldPlayer, newPlayer);
 console.log(`Diff size: ${diff.length} bytes`); // Much smaller!
@@ -282,11 +282,11 @@ The codegen mode generates TypeScript code from schemas for compile-time type sa
 ### Generating Code
 
 ```typescript
-import { codegenTypescript } from '@hathora/delta-pack';
-import { writeFileSync } from 'fs';
+import { codegenTypescript } from "@hpx7/delta-pack";
+import { writeFileSync } from "fs";
 
 const code = codegenTypescript(schema);
-writeFileSync('generated.ts', code);
+writeFileSync("generated.ts", code);
 ```
 
 ### Using Generated Code
@@ -294,12 +294,12 @@ writeFileSync('generated.ts', code);
 The generated code exports TypeScript types and runtime objects:
 
 ```typescript
-import { Player, GameState } from './generated';
+import { Player, GameState } from "./generated";
 
 // TypeScript types are available
 const player: Player = {
-  id: 'p1',
-  name: 'Alice',
+  id: "p1",
+  name: "Alice",
   score: 100,
 };
 
@@ -325,6 +325,7 @@ The generated code provides the same methods as interpreter mode:
 ### Multiplayer Game State Sync
 
 **schema.yml:**
+
 ```yaml
 Team:
   - RED
@@ -360,13 +361,13 @@ import {
   EnumType,
   ReferenceType,
   RecordType,
-} from '@hathora/delta-pack';
-import { load } from '@hathora/delta-pack';
-import { Infer, defineSchema } from '@hathora/delta-pack/infer';
+} from "@hpx7/delta-pack";
+import { load } from "@hpx7/delta-pack";
+import { Infer, defineSchema } from "@hpx7/delta-pack/infer";
 
 // Define schema
 const schema = defineSchema({
-  Team: EnumType(['RED', 'BLUE']),
+  Team: EnumType(["RED", "BLUE"]),
   Position: ObjectType({
     x: FloatType(),
     y: FloatType(),
@@ -374,13 +375,13 @@ const schema = defineSchema({
   Player: ObjectType({
     id: StringType(),
     username: StringType(),
-    team: ReferenceType('Team'),
-    position: ReferenceType('Position'),
+    team: ReferenceType("Team"),
+    position: ReferenceType("Position"),
     health: UIntType(),
     score: IntType(),
   }),
   GameState: ObjectType({
-    players: RecordType(StringType(), ReferenceType('Player')),
+    players: RecordType(StringType(), ReferenceType("Player")),
     round: UIntType(),
     timeRemaining: FloatType(),
   }),
@@ -391,19 +392,22 @@ type GameState = Infer<typeof schema.GameState, typeof schema>;
 type Player = Infer<typeof schema.Player, typeof schema>;
 
 // Load API
-const GameState = load<GameState>(schema, 'GameState');
+const GameState = load<GameState>(schema, "GameState");
 
 // Initial state
 const state1: GameState = {
   players: new Map([
-    ['p1', {
-      id: 'p1',
-      username: 'Alice',
-      team: 'RED',
-      position: { x: 100, y: 100 },
-      health: 100,
-      score: 0,
-    }],
+    [
+      "p1",
+      {
+        id: "p1",
+        username: "Alice",
+        team: "RED",
+        position: { x: 100, y: 100 },
+        health: 100,
+        score: 0,
+      },
+    ],
   ]),
   round: 1,
   timeRemaining: 600.0,
@@ -413,10 +417,13 @@ const state1: GameState = {
 const state2: GameState = {
   ...state1,
   players: new Map([
-    ['p1', {
-      ...state1.players.get('p1')!,
-      position: { x: 105.5, y: 102.3 },
-    }],
+    [
+      "p1",
+      {
+        ...state1.players.get("p1")!,
+        position: { x: 105.5, y: 102.3 },
+      },
+    ],
   ]),
   timeRemaining: 599.0,
 };
@@ -432,7 +439,7 @@ console.log(`Savings: ${((1 - diffBytes.length / fullBytes.length) * 100).toFixe
 
 // Client applies delta
 const reconstructed = GameState.decodeDiff(state1, diffBytes);
-console.log('State synchronized!', GameState.equals(reconstructed, state2)); // true
+console.log("State synchronized!", GameState.equals(reconstructed, state2)); // true
 ```
 
 **Using Codegen Mode:**
@@ -448,12 +455,12 @@ import {
   EnumType,
   ReferenceType,
   RecordType,
-} from '@hathora/delta-pack';
-import { writeFileSync } from 'fs';
+} from "@hpx7/delta-pack";
+import { writeFileSync } from "fs";
 
 // Define schema
 const schema = {
-  Team: EnumType(['RED', 'BLUE']),
+  Team: EnumType(["RED", "BLUE"]),
   Position: ObjectType({
     x: FloatType(),
     y: FloatType(),
@@ -461,13 +468,13 @@ const schema = {
   Player: ObjectType({
     id: StringType(),
     username: StringType(),
-    team: ReferenceType('Team'),
-    position: ReferenceType('Position'),
+    team: ReferenceType("Team"),
+    position: ReferenceType("Position"),
     health: UIntType(),
     score: IntType(),
   }),
   GameState: ObjectType({
-    players: RecordType(StringType(), ReferenceType('Player')),
+    players: RecordType(StringType(), ReferenceType("Player")),
     round: UIntType(),
     timeRemaining: FloatType(),
   }),
@@ -475,20 +482,20 @@ const schema = {
 
 // Generate code
 const code = codegenTypescript(schema);
-writeFileSync('generated.ts', code);
+writeFileSync("generated.ts", code);
 ```
 
 Then use the generated code:
 
 ```typescript
-import { GameState, Player } from './generated';
+import { GameState, Player } from "./generated";
 
 // TypeScript types are available at compile time
 const state: GameState = GameState.default();
-state.players.set('p1', {
-  id: 'p1',
-  username: 'Alice',
-  team: 'RED',
+state.players.set("p1", {
+  id: "p1",
+  username: "Alice",
+  team: "RED",
   position: { x: 100, y: 100 },
   health: 100,
   score: 0,
@@ -504,11 +511,13 @@ const decoded = GameState.decode(encoded);
 ### Delta Compression
 
 Delta encoding is most effective when:
+
 - State changes are incremental (only a few fields change per update)
 - You send updates frequently (e.g., 60 times per second in games)
 - Objects are medium to large (>50 bytes)
 
 **Typical bandwidth savings:**
+
 - Position-only updates: 90-95% smaller
 - Single field changes: 85-90% smaller
 - Multiple field changes: 70-85% smaller
@@ -546,6 +555,7 @@ See the `examples/` directory for complete examples:
 - `examples/game/` - Multiplayer game with complex state
 
 Each example includes:
+
 - `schema.yml` - Schema definition
 - `state1.json`, `state2.json`, ... - Example states demonstrating delta compression
 
@@ -553,30 +563,30 @@ Each example includes:
 
 ### Primitive Types
 
-| Function | TypeScript Type | Description |
-|----------|----------------|-------------|
-| `StringType()` | `string` | UTF-8 encoded string |
-| `IntType()` | `number` | Variable-length signed integer |
-| `UIntType()` | `number` | Variable-length unsigned integer |
-| `FloatType()` | `number` | 32-bit IEEE 754 float |
-| `FloatType({ precision })` | `number` | Quantized float with specified precision |
-| `BooleanType()` | `boolean` | Single bit boolean |
+| Function                   | TypeScript Type | Description                              |
+| -------------------------- | --------------- | ---------------------------------------- |
+| `StringType()`             | `string`        | UTF-8 encoded string                     |
+| `IntType()`                | `number`        | Variable-length signed integer           |
+| `UIntType()`               | `number`        | Variable-length unsigned integer         |
+| `FloatType()`              | `number`        | 32-bit IEEE 754 float                    |
+| `FloatType({ precision })` | `number`        | Quantized float with specified precision |
+| `BooleanType()`            | `boolean`       | Single bit boolean                       |
 
 ### Container Types
 
-| Function | TypeScript Type | Description |
-|----------|----------------|-------------|
-| `ArrayType(T)` | `T[]` | Array of type T |
-| `OptionalType(T)` | `T \| undefined` | Optional value of type T |
-| `RecordType(K, V)` | `Map<K, V>` | Map with key type K and value type V |
+| Function           | TypeScript Type  | Description                          |
+| ------------------ | ---------------- | ------------------------------------ |
+| `ArrayType(T)`     | `T[]`            | Array of type T                      |
+| `OptionalType(T)`  | `T \| undefined` | Optional value of type T             |
+| `RecordType(K, V)` | `Map<K, V>`      | Map with key type K and value type V |
 
 ### Complex Types
 
-| Function | TypeScript Type | Description |
-|----------|----------------|-------------|
-| `ObjectType({ ... })` | `{ ... }` | Object with defined properties |
-| `EnumType([...])` | Union of string literals | Enumerated string values |
-| `ReferenceType(name)` | Named type | Reference to another type in schema |
+| Function              | TypeScript Type          | Description                         |
+| --------------------- | ------------------------ | ----------------------------------- |
+| `ObjectType({ ... })` | `{ ... }`                | Object with defined properties      |
+| `EnumType([...])`     | Union of string literals | Enumerated string values            |
+| `ReferenceType(name)` | Named type               | Reference to another type in schema |
 
 ## Development
 
