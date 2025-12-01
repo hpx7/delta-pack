@@ -11,7 +11,7 @@ import {
   parseRecord,
   tryParseField,
   mapValues,
-} from "../src/helpers";
+} from "@hpx7/delta-pack/helpers";
 
 describe("Helper Functions - Parse and Validation", () => {
   describe("parseString", () => {

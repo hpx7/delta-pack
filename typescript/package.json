@@ -1,6 +1,6 @@
 {
   "name": "@hpx7/delta-pack",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "A TypeScript code generator and runtime for binary serialization based on schemas.",
   "license": "MIT",
   "author": "hpx7",
@@ -20,34 +20,38 @@
     "state-sync"
   ],
   "type": "module",
-  "main": "dist/src/generator.js",
-  "types": "dist/src/generator.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
-    "dist/src/**/*.js",
-    "dist/src/**/*.d.ts",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
     "README.md",
     "LICENSE"
   ],
   "exports": {
     ".": {
-      "types": "./dist/src/generator.d.ts",
-      "default": "./dist/src/generator.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generator": {
+      "types": "./dist/generator.d.ts",
+      "default": "./dist/generator.js"
     },
     "./helpers": {
-      "types": "./dist/src/helpers.d.ts",
-      "default": "./dist/src/helpers.js"
+      "types": "./dist/helpers.d.ts",
+      "default": "./dist/helpers.js"
     },
     "./infer": {
-      "types": "./dist/src/infer.d.ts",
-      "default": "./dist/src/infer.js"
+      "types": "./dist/infer.d.ts",
+      "default": "./dist/infer.js"
     },
     "./parser": {
-      "types": "./dist/src/parser.d.ts",
-      "default": "./dist/src/parser.js"
+      "types": "./dist/parser.d.ts",
+      "default": "./dist/parser.js"
     },
     "./interpreter": {
-      "types": "./dist/src/interpreter.d.ts",
-      "default": "./dist/src/interpreter.js"
+      "types": "./dist/interpreter.d.ts",
+      "default": "./dist/interpreter.js"
     }
   },
   "scripts": {

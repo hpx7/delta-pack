@@ -11,9 +11,9 @@ import {
   EnumType,
   ReferenceType,
   UnionType,
+  defineSchema,
   codegenTypescript,
 } from "@hpx7/delta-pack";
-import { defineSchema } from "@hpx7/delta-pack/infer";
 
 // Define test schema with multiple types
 const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);

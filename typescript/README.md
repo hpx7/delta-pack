@@ -18,9 +18,7 @@ Delta-pack provides two approaches for working with schemas:
 ### Interpreter Mode (Recommended for prototyping)
 
 ```typescript
-import { ObjectType, StringType, IntType } from "@hpx7/delta-pack";
-import { load } from "@hpx7/delta-pack/interpreter";
-import { Infer, defineSchema } from "@hpx7/delta-pack/infer";
+import { ObjectType, StringType, IntType, load, Infer, defineSchema } from "@hpx7/delta-pack";
 
 // Define schema in TypeScript
 const schema = defineSchema({
@@ -117,7 +115,7 @@ GameState:
 Parse YAML schemas with:
 
 ```typescript
-import { parseSchemaYml } from "@hpx7/delta-pack/parser";
+import { parseSchemaYml } from "@hpx7/delta-pack";
 import { readFileSync } from "fs";
 
 const schemaYml = readFileSync("schema.yml", "utf8");
@@ -181,9 +179,7 @@ The interpreter mode provides a runtime API for working with schemas.
 ### Loading a Schema
 
 ```typescript
-import { ObjectType, StringType, IntType } from "@hpx7/delta-pack";
-import { load } from "@hpx7/delta-pack/interpreter";
-import { Infer, defineSchema } from "@hpx7/delta-pack/infer";
+import { ObjectType, StringType, IntType, load, Infer, defineSchema } from "@hpx7/delta-pack";
 
 // Define schema
 const schema = defineSchema({
@@ -361,9 +357,10 @@ import {
   EnumType,
   ReferenceType,
   RecordType,
+  load,
+  Infer,
+  defineSchema,
 } from "@hpx7/delta-pack";
-import { load } from "@hpx7/delta-pack/interpreter";
-import { Infer, defineSchema } from "@hpx7/delta-pack/infer";
 
 // Define schema
 const schema = defineSchema({

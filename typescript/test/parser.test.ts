@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { parseSchemaYml } from "../src/parser";
+import { parseSchemaYml } from "@hpx7/delta-pack";
+import type { EnumType, ObjectType, UnionType } from "@hpx7/delta-pack/generator";
 import { schema as tsSchema } from "./schema";
-import type { EnumType, ObjectType, UnionType } from "../src/generator";
 
 // Extract individual types from the TypeScript schema
 const Color = tsSchema.Color;

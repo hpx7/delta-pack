@@ -1,4 +1,4 @@
-import * as _ from "@hpx7/delta-pack/helpers";
+import * as _ from "./helpers";
 import type { Type } from "./generator";
 
 type DeltaPackApi<T> = {

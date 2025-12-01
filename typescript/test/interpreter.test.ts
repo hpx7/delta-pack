@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Infer } from "../src/infer";
-import { load } from "../src/interpreter";
+import { Infer, load } from "@hpx7/delta-pack";
 import { schema } from "./schema";
 
 // Infer TypeScript types from schema
