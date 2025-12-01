@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+
+UserId: string
+
+HairColor:
+  - BLACK
+  - BROWN
+  - BLOND
+  - RED
+  - WHITE
+  - OTHER
+
+Address:
+  street: string
+  zip: string
+  state: string
+
+EmailContact:
+  email: string
+
+PhoneContact:
+  phone: string
+  extension: uint?
+
+Contact:
+  - EmailContact
+  - PhoneContact
+
+User:
+  id: UserId
+  name: string
+  age: uint
+  weight: float
+  married: boolean
+  hairColor: HairColor
+  address: Address?
+  children: UserId[]
+  metadata: string,string
+  preferredContact: Contact?

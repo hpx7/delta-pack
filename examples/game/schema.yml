@@ -1,0 +1,211 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+
+# Enums for game constants
+Team:
+  - RED
+  - BLUE
+  - GREEN
+  - YELLOW
+
+PlayerStatus:
+  - ALIVE
+  - DEAD
+  - SPECTATING
+  - DISCONNECTED
+
+WeaponType:
+  - SWORD
+  - BOW
+  - STAFF
+  - DAGGER
+  - AXE
+
+ItemRarity:
+  - COMMON
+  - UNCOMMON
+  - RARE
+  - EPIC
+  - LEGENDARY
+
+AbilityType:
+  - HEAL
+  - DAMAGE
+  - SHIELD
+  - BUFF
+  - DEBUFF
+  - TELEPORT
+
+EffectType:
+  - POISON
+  - BURN
+  - FREEZE
+  - STUN
+  - REGEN
+  - HASTE
+
+# Position in 2D space (0.1 precision = ~10cm accuracy)
+Position:
+  x: float
+  y: float
+
+# Velocity for movement (0.1 precision)
+Velocity:
+  vx: float
+  vy: float
+
+# Item in inventory
+InventoryItem:
+  itemId: string
+  name: string
+  quantity: uint
+  rarity: ItemRarity
+  durability: uint?
+  enchantmentLevel: uint?
+
+# Equipment slot
+Equipment:
+  weapon: WeaponType?
+  armor: string?
+  accessory1: string?
+  accessory2: string?
+
+# Player stats
+PlayerStats:
+  health: uint
+  maxHealth: uint
+  mana: uint
+  maxMana: uint
+  stamina: uint
+  maxStamina: uint
+  level: uint
+  experience: uint
+  strength: uint
+  agility: uint
+  intelligence: uint
+  defense: uint
+
+# Active effect on player
+ActiveEffect:
+  effectType: EffectType
+  duration: float
+  strength: uint
+  stackCount: uint
+
+# Ability cooldown tracking
+AbilityCooldown:
+  abilityId: string
+  abilityType: AbilityType
+  remainingCooldown: float
+
+# Player state
+Player:
+  playerId: string
+  username: string
+  team: Team?
+  status: PlayerStatus
+  position: Position
+  velocity: Velocity
+  rotation: float
+  stats: PlayerStats
+  inventory: InventoryItem[]
+  equipment: Equipment
+  activeEffects: ActiveEffect[]
+  abilityCooldowns: AbilityCooldown[]
+  kills: uint
+  deaths: uint
+  assists: uint
+  gold: uint
+  score: int
+  ping: uint
+  isJumping: boolean
+  isCrouching: boolean
+  isAiming: boolean
+  lastDamageTime: float?
+  respawnTime: float?
+
+# Enemy/NPC entity
+Enemy:
+  enemyId: string
+  name: string
+  position: Position
+  velocity: Velocity
+  health: uint
+  maxHealth: uint
+  level: uint
+  isAggro: boolean
+  targetPlayerId: string?
+  lastAttackTime: float
+  lootTableId: string?
+
+# Projectile (bullets, arrows, spells)
+Projectile:
+  projectileId: string
+  ownerId: string
+  position: Position
+  velocity: Velocity
+  damage: uint
+  penetration: uint
+  timeToLive: float
+  hitPlayers: string[]
+
+# Dropped loot
+DroppedLoot:
+  lootId: string
+  position: Position
+  item: InventoryItem
+  despawnTime: float
+
+# World object (destructible, interactive)
+WorldObject:
+  objectId: string
+  objectType: string
+  position: Position
+  health: uint?
+  isDestroyed: boolean
+  isInteractable: boolean
+  interactedBy: string?
+
+# Match statistics
+MatchStats:
+  totalKills: uint
+  totalDeaths: uint
+  totalDamageDealt: uint
+  totalHealingDone: uint
+  longestKillStreak: uint
+  matchDuration: float
+
+# Team score
+TeamScore:
+  team: Team
+  score: uint
+  kills: uint
+  objectivesCaptured: uint
+
+# Game settings
+GameSettings:
+  maxPlayers: uint
+  friendlyFire: boolean
+  respawnDelay: float
+  roundTimeLimit: uint
+  startingGold: uint
+  gravityMultiplier: float
+
+# Main game state
+GameState:
+  gameId: string
+  serverTime: float
+  tickNumber: uint
+  round: uint
+  phase: string
+  timeRemaining: float
+  players: string, Player
+  enemies: string, Enemy
+  projectiles: string, Projectile
+  droppedLoot: string, DroppedLoot
+  worldObjects: string, WorldObject
+  teamScores: TeamScore[]
+  matchStats: MatchStats
+  settings: GameSettings
+  winningTeam: Team?
+  mapName: string
+  weatherIntensity: float
