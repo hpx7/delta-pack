@@ -1,27 +1,51 @@
 {
   "name": "@hpx7/delta-pack",
-  "version": "0.1.0",
+  "version": "0.1.2",
+  "description": "A TypeScript code generator and runtime for binary serialization based on schemas.",
   "license": "MIT",
+  "author": "hpx7",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hpx7/delta-pack.git"
+  },
+  "keywords": [
+    "serialization",
+    "binary",
+    "delta",
+    "compression",
+    "codegen",
+    "schema",
+    "multiplayer",
+    "networking",
+    "state-sync"
+  ],
   "type": "module",
-  "main": "dist/generator.js",
-  "types": "dist/generator.d.ts",
+  "main": "dist/src/generator.js",
+  "types": "dist/src/generator.d.ts",
+  "files": [
+    "dist/src/**/*.js",
+    "dist/src/**/*.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
   "exports": {
     ".": {
-      "types": "./dist/generator.d.ts",
-      "default": "./dist/generator.js"
+      "types": "./dist/src/generator.d.ts",
+      "default": "./dist/src/generator.js"
     },
     "./helpers": {
-      "types": "./dist/helpers.d.ts",
-      "default": "./dist/helpers.js"
+      "types": "./dist/src/helpers.d.ts",
+      "default": "./dist/src/helpers.js"
     },
     "./infer": {
-      "types": "./dist/infer.d.ts",
-      "default": "./dist/infer.js"
+      "types": "./dist/src/infer.d.ts",
+      "default": "./dist/src/infer.js"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
     "test:gen": "tsx test/schema.ts > test/generated-schema.ts",
     "test": "npm run test:gen && vitest run",
     "test:coverage": "npm run test:gen && vitest run --coverage",

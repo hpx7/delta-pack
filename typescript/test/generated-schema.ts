@@ -1,7 +1,8 @@
 import * as _ from "@hpx7/delta-pack/helpers";
 
-export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
 
+export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
+    
 export type Player = {
   id: string;
   name: string;
@@ -24,10 +25,7 @@ export type AttackAction = {
 export type UseItemAction = {
   itemId: string;
 };
-export type GameAction =
-  | { type: "MoveAction"; val: MoveAction }
-  | { type: "AttackAction"; val: AttackAction }
-  | { type: "UseItemAction"; val: UseItemAction };
+export type GameAction = { type: "MoveAction"; val: MoveAction } | { type: "AttackAction"; val: AttackAction } | { type: "UseItemAction"; val: UseItemAction };
 export type GameState = {
   players: Player[];
   currentPlayer?: string;
@@ -36,6 +34,7 @@ export type GameState = {
   winningColor?: Color;
   lastAction?: GameAction;
 };
+
 
 const Color = {
   0: "RED",
@@ -165,7 +164,10 @@ export const Position = {
     };
   },
   equals(a: Position, b: Position): boolean {
-    return Math.round(a.x / 0.1) === Math.round(b.x / 0.1) && Math.round(a.y / 0.1) === Math.round(b.y / 0.1);
+    return (
+      Math.round(a.x / 0.1) === Math.round(b.x / 0.1) &&
+      Math.round(a.y / 0.1) === Math.round(b.y / 0.1)
+    );
   },
   encode(obj: Position): Uint8Array {
     const tracker = new _.Tracker();
@@ -232,7 +234,10 @@ export const MoveAction = {
     };
   },
   equals(a: MoveAction, b: MoveAction): boolean {
-    return a.x === b.x && a.y === b.y;
+    return (
+      a.x === b.x &&
+      a.y === b.y
+    );
   },
   encode(obj: MoveAction): Uint8Array {
     const tracker = new _.Tracker();
@@ -299,7 +304,10 @@ export const AttackAction = {
     };
   },
   equals(a: AttackAction, b: AttackAction): boolean {
-    return a.targetId === b.targetId && a.damage === b.damage;
+    return (
+      a.targetId === b.targetId &&
+      a.damage === b.damage
+    );
   },
   encode(obj: AttackAction): Uint8Array {
     const tracker = new _.Tracker();
@@ -364,7 +372,9 @@ export const UseItemAction = {
     };
   },
   equals(a: UseItemAction, b: UseItemAction): boolean {
-    return a.itemId === b.itemId;
+    return (
+      a.itemId === b.itemId
+    );
   },
   encode(obj: UseItemAction): Uint8Array {
     const tracker = new _.Tracker();
@@ -429,26 +439,31 @@ export const GameAction = {
         type: "MoveAction",
         val: MoveAction.parse(obj.val as MoveAction),
       };
-    } else if (obj.type === "AttackAction") {
+    }
+    else if (obj.type === "AttackAction") {
       return {
         type: "AttackAction",
         val: AttackAction.parse(obj.val as AttackAction),
       };
-    } else if (obj.type === "UseItemAction") {
+    }
+    else if (obj.type === "UseItemAction") {
       return {
         type: "UseItemAction",
         val: UseItemAction.parse(obj.val as UseItemAction),
       };
-    } else {
+    }
+    else {
       throw new Error(`Invalid GameAction: ${obj}`);
     }
   },
   equals(a: GameAction, b: GameAction): boolean {
     if (a.type === "MoveAction" && b.type === "MoveAction") {
       return MoveAction.equals(a.val, b.val);
-    } else if (a.type === "AttackAction" && b.type === "AttackAction") {
+    }
+    else if (a.type === "AttackAction" && b.type === "AttackAction") {
       return AttackAction.equals(a.val, b.val);
-    } else if (a.type === "UseItemAction" && b.type === "UseItemAction") {
+    }
+    else if (a.type === "UseItemAction" && b.type === "UseItemAction") {
       return UseItemAction.equals(a.val, b.val);
     }
     return false;
@@ -462,10 +477,12 @@ export const GameAction = {
     if (obj.type === "MoveAction") {
       tracker.pushUInt(0);
       MoveAction._encode(obj.val, tracker);
-    } else if (obj.type === "AttackAction") {
+    }
+    else if (obj.type === "AttackAction") {
       tracker.pushUInt(1);
       AttackAction._encode(obj.val, tracker);
-    } else if (obj.type === "UseItemAction") {
+    }
+    else if (obj.type === "UseItemAction") {
       tracker.pushUInt(2);
       UseItemAction._encode(obj.val, tracker);
     }
@@ -484,7 +501,8 @@ export const GameAction = {
         tracker.pushUInt(0);
         MoveAction._encode(b.val, tracker);
       }
-    } else if (b.type === "AttackAction") {
+    }
+    else if (b.type === "AttackAction") {
       tracker.pushBoolean(a.type === "AttackAction");
       if (a.type === "AttackAction") {
         AttackAction._encodeDiff(a.val, b.val, tracker);
@@ -492,7 +510,8 @@ export const GameAction = {
         tracker.pushUInt(1);
         AttackAction._encode(b.val, tracker);
       }
-    } else if (b.type === "UseItemAction") {
+    }
+    else if (b.type === "UseItemAction") {
       tracker.pushBoolean(a.type === "UseItemAction");
       if (a.type === "UseItemAction") {
         UseItemAction._encodeDiff(a.val, b.val, tracker);
@@ -509,9 +528,11 @@ export const GameAction = {
     const type = tracker.nextUInt();
     if (type === 0) {
       return { type: "MoveAction", val: MoveAction._decode(tracker) };
-    } else if (type === 1) {
+    }
+    else if (type === 1) {
       return { type: "AttackAction", val: AttackAction._decode(tracker) };
-    } else if (type === 2) {
+    }
+    else if (type === 2) {
       return { type: "UseItemAction", val: UseItemAction._decode(tracker) };
     }
     throw new Error("Invalid union");
@@ -528,12 +549,14 @@ export const GameAction = {
           type: "MoveAction",
           val: MoveAction._decodeDiff(obj.val, tracker),
         };
-      } else if (obj.type === "AttackAction") {
+      }
+      else if (obj.type === "AttackAction") {
         return {
           type: "AttackAction",
           val: AttackAction._decodeDiff(obj.val, tracker),
         };
-      } else if (obj.type === "UseItemAction") {
+      }
+      else if (obj.type === "UseItemAction") {
         return {
           type: "UseItemAction",
           val: UseItemAction._decodeDiff(obj.val, tracker),
@@ -544,15 +567,17 @@ export const GameAction = {
       const type = tracker.nextUInt();
       if (type === 0) {
         return { type: "MoveAction", val: MoveAction._decode(tracker) };
-      } else if (type === 1) {
+      }
+      else if (type === 1) {
         return { type: "AttackAction", val: AttackAction._decode(tracker) };
-      } else if (type === 2) {
+      }
+      else if (type === 2) {
         return { type: "UseItemAction", val: UseItemAction._decode(tracker) };
       }
       throw new Error("Invalid union diff");
     }
-  },
-};
+  }
+}
 
 export const GameState = {
   default(): GameState {
@@ -571,28 +596,11 @@ export const GameState = {
     }
     return {
       players: _.tryParseField(() => _.parseArray(obj.players, (x) => Player.parse(x as Player)), "GameState.players"),
-      currentPlayer: _.tryParseField(
-        () => _.parseOptional(obj.currentPlayer, (x) => _.parseString(x)),
-        "GameState.currentPlayer"
-      ),
+      currentPlayer: _.tryParseField(() => _.parseOptional(obj.currentPlayer, (x) => _.parseString(x)), "GameState.currentPlayer"),
       round: _.tryParseField(() => _.parseUInt(obj.round), "GameState.round"),
-      metadata: _.tryParseField(
-        () =>
-          _.parseRecord(
-            obj.metadata,
-            (x) => _.parseString(x),
-            (x) => _.parseString(x)
-          ),
-        "GameState.metadata"
-      ),
-      winningColor: _.tryParseField(
-        () => _.parseOptional(obj.winningColor, (x) => _.parseEnum(x, Color)),
-        "GameState.winningColor"
-      ),
-      lastAction: _.tryParseField(
-        () => _.parseOptional(obj.lastAction, (x) => GameAction.parse(x as GameAction)),
-        "GameState.lastAction"
-      ),
+      metadata: _.tryParseField(() => _.parseRecord(obj.metadata, (x) => _.parseString(x), (x) => _.parseString(x)), "GameState.metadata"),
+      winningColor: _.tryParseField(() => _.parseOptional(obj.winningColor, (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
+      lastAction: _.tryParseField(() => _.parseOptional(obj.lastAction, (x) => GameAction.parse(x as GameAction)), "GameState.lastAction"),
     };
   },
   equals(a: GameState, b: GameState): boolean {
@@ -600,12 +608,7 @@ export const GameState = {
       _.equalsArray(a.players, b.players, (x, y) => Player.equals(x, y)) &&
       _.equalsOptional(a.currentPlayer, b.currentPlayer, (x, y) => x === y) &&
       a.round === b.round &&
-      _.equalsRecord(
-        a.metadata,
-        b.metadata,
-        (x, y) => x === y,
-        (x, y) => x === y
-      ) &&
+      _.equalsRecord(a.metadata, b.metadata, (x, y) => x === y, (x, y) => x === y) &&
       _.equalsOptional(a.winningColor, b.winningColor, (x, y) => x === y) &&
       _.equalsOptional(a.lastAction, b.lastAction, (x, y) => GameAction.equals(x, y))
     );
@@ -619,11 +622,7 @@ export const GameState = {
     tracker.pushArray(obj.players, (x) => Player._encode(x, tracker));
     tracker.pushOptional(obj.currentPlayer, (x) => tracker.pushString(x));
     tracker.pushUInt(obj.round);
-    tracker.pushRecord(
-      obj.metadata,
-      (x) => tracker.pushString(x),
-      (x) => tracker.pushString(x)
-    );
+    tracker.pushRecord(obj.metadata, (x) => tracker.pushString(x), (x) => tracker.pushString(x));
     tracker.pushOptional(obj.winningColor, (x) => tracker.pushUInt(Color[x]));
     tracker.pushOptional(obj.lastAction, (x) => GameAction._encode(x, tracker));
   },
@@ -645,7 +644,11 @@ export const GameState = {
       (x) => Player._encode(x, tracker),
       (x, y) => Player._encodeDiff(x, y, tracker)
     );
-    tracker.pushOptionalDiffPrimitive<string>(a.currentPlayer, b.currentPlayer, (x) => tracker.pushString(x));
+    tracker.pushOptionalDiffPrimitive<string>(
+      a.currentPlayer,
+      b.currentPlayer,
+      (x) => tracker.pushString(x)
+    );
     tracker.pushUIntDiff(a.round, b.round);
     tracker.pushRecordDiff<string, string>(
       a.metadata,
@@ -655,7 +658,11 @@ export const GameState = {
       (x) => tracker.pushString(x),
       (x, y) => tracker.pushStringDiff(x, y)
     );
-    tracker.pushOptionalDiffPrimitive<Color>(a.winningColor, b.winningColor, (x) => tracker.pushUInt(Color[x]));
+    tracker.pushOptionalDiffPrimitive<Color>(
+      a.winningColor,
+      b.winningColor,
+      (x) => tracker.pushUInt(Color[x])
+    );
     tracker.pushOptionalDiff<GameAction>(
       a.lastAction,
       b.lastAction,
@@ -671,10 +678,7 @@ export const GameState = {
       players: tracker.nextArray(() => Player._decode(tracker)),
       currentPlayer: tracker.nextOptional(() => tracker.nextString()),
       round: tracker.nextUInt(),
-      metadata: tracker.nextRecord(
-        () => tracker.nextString(),
-        () => tracker.nextString()
-      ),
+      metadata: tracker.nextRecord(() => tracker.nextString(), () => tracker.nextString()),
       winningColor: tracker.nextOptional(() => (Color as any)[tracker.nextUInt()]),
       lastAction: tracker.nextOptional(() => GameAction._decode(tracker)),
     };
@@ -694,7 +698,10 @@ export const GameState = {
         () => Player._decode(tracker),
         (x) => Player._decodeDiff(x, tracker)
       ),
-      currentPlayer: tracker.nextOptionalDiffPrimitive<string>(obj.currentPlayer, () => tracker.nextString()),
+      currentPlayer: tracker.nextOptionalDiffPrimitive<string>(
+        obj.currentPlayer,
+        () => tracker.nextString()
+      ),
       round: tracker.nextUIntDiff(obj.round),
       metadata: tracker.nextRecordDiff<string, string>(
         obj.metadata,

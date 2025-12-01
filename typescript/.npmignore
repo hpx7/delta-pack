@@ -1,0 +1,18 @@
+# Source files (only publish dist/)
+src/
+test/
+
+# Config files
+tsconfig.json
+vitest.config.ts
+.prettierrc
+.prettierignore
+
+# Development files
+*.test.ts
+*.test.js
+coverage/
+.vitest/
+
+# Documentation (already in dist via README.md)
+examples/
