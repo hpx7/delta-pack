@@ -51,6 +51,7 @@ describe("YAML Schema Parser", () => {
     expect(playerType.properties.name.type).toBe("string");
     expect(playerType.properties.score.type).toBe("int");
     expect(playerType.properties.isActive.type).toBe("boolean");
+    expect(parsedSchema.Player).toEqual(Player);
   });
 
   it("should parse Position as object type with floats", () => {

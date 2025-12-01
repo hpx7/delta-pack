@@ -38,7 +38,7 @@ export type Infer<T extends Type, S extends Record<string, Type> = {}, D extends
                         ? Infer<S[R], S, Prev[D]>
                         : unknown
                       : T extends { type: "object"; properties: infer P }
-                        ? { [K in keyof P]: P[K] extends Type ? Infer<P[K], S, Prev[D]> : never }
+                        ? { -readonly [K in keyof P]: P[K] extends Type ? Infer<P[K], S, Prev[D]> : never }
                         : T extends { type: "union"; options: readonly any[] }
                           ? InferUnion<T["options"], S, Prev[D]>
                           : unknown;

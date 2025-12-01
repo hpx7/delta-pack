@@ -29,6 +29,7 @@ const Player = ObjectType({
   name: StringType(),
   score: IntType(),
   isActive: BooleanType(),
+  partner: OptionalType(ReferenceType("Player")), // Recursive reference
 });
 
 // Position with quantized floats

@@ -12,6 +12,7 @@ Player:
   name: string
   score: int
   isActive: boolean
+  partner: Player?
 
 Position:
   x: float

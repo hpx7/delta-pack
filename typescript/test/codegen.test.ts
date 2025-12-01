@@ -116,6 +116,196 @@ describe("Delta Pack Codegen - Unified API", () => {
     });
   });
 
+  describe("Recursive Schema - Player with Partner", () => {
+    it("should handle player without partner", () => {
+      const player: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: undefined,
+      };
+
+      expect(() => Player.parse(player)).not.toThrow();
+
+      const encoded = Player.encode(player);
+      const decoded = Player.decode(encoded);
+      expect(Player.equals(decoded, player)).toBe(true);
+    });
+
+    it("should handle player with partner (one level)", () => {
+      const partner: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const player: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: partner,
+      };
+
+      expect(() => Player.parse(player)).not.toThrow();
+
+      const encoded = Player.encode(player);
+      const decoded = Player.decode(encoded);
+      expect(Player.equals(decoded, player)).toBe(true);
+      expect(decoded.partner).toBeDefined();
+      expect(decoded.partner?.name).toBe("Bob");
+    });
+
+    it("should handle nested partners (two levels)", () => {
+      const partner2: Player = {
+        id: "p3",
+        name: "Charlie",
+        score: 25,
+        isActive: false,
+        partner: undefined,
+      };
+
+      const partner1: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+        partner: partner2,
+      };
+
+      const player: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: partner1,
+      };
+
+      expect(() => Player.parse(player)).not.toThrow();
+
+      const encoded = Player.encode(player);
+      const decoded = Player.decode(encoded);
+      expect(Player.equals(decoded, player)).toBe(true);
+      expect(decoded.partner?.name).toBe("Bob");
+      expect(decoded.partner?.partner?.name).toBe("Charlie");
+    });
+
+    it("should handle partner changes in diff", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const partner: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const player2: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: partner,
+      };
+
+      const encodedDiff = Player.encodeDiff(player1, player2);
+      const result = Player.decodeDiff(player1, encodedDiff);
+      expect(Player.equals(result, player2)).toBe(true);
+      expect(result.partner?.name).toBe("Bob");
+    });
+
+    it("should handle nested partner changes in diff", () => {
+      const partner1: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: partner1,
+      };
+
+      const partner2: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 75, // score changed
+        isActive: true,
+        partner: undefined,
+      };
+
+      const player2: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: partner2,
+      };
+
+      const encodedDiff = Player.encodeDiff(player1, player2);
+      const result = Player.decodeDiff(player1, encodedDiff);
+      expect(Player.equals(result, player2)).toBe(true);
+      expect(result.partner?.score).toBe(75);
+    });
+
+    it("should handle removing partner in diff", () => {
+      const partner: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: partner,
+      };
+
+      const player2: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const encodedDiff = Player.encodeDiff(player1, player2);
+      const result = Player.decodeDiff(player1, encodedDiff);
+      expect(Player.equals(result, player2)).toBe(true);
+      expect(result.partner).toBeUndefined();
+    });
+
+    it("should detect validation errors for invalid partner", () => {
+      const invalidPlayer = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: { id: 123, name: "Bob" }, // invalid id type
+      };
+      expect(() => Player.parse(invalidPlayer as any)).toThrow();
+    });
+  });
+
   describe("Position Type - Quantized Floats", () => {
     it("should create default position", () => {
       const defaultPos = Position.default();

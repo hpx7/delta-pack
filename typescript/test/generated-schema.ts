@@ -8,6 +8,7 @@ export type Player = {
   name: string;
   score: number;
   isActive: boolean;
+  partner?: Player;
 };
 export type Position = {
   x: number;
@@ -53,6 +54,7 @@ export const Player = {
       name: "",
       score: 0,
       isActive: false,
+      partner: undefined,
     };
   },
   parse(obj: Player): Player {
@@ -64,6 +66,7 @@ export const Player = {
       name: _.tryParseField(() => _.parseString(obj.name), "Player.name"),
       score: _.tryParseField(() => _.parseInt(obj.score), "Player.score"),
       isActive: _.tryParseField(() => _.parseBoolean(obj.isActive), "Player.isActive"),
+      partner: _.tryParseField(() => _.parseOptional(obj.partner, (x) => Player.parse(x as Player)), "Player.partner"),
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -71,7 +74,8 @@ export const Player = {
       a.id === b.id &&
       a.name === b.name &&
       a.score === b.score &&
-      a.isActive === b.isActive
+      a.isActive === b.isActive &&
+      _.equalsOptional(a.partner, b.partner, (x, y) => Player.equals(x, y))
     );
   },
   encode(obj: Player): Uint8Array {
@@ -84,6 +88,7 @@ export const Player = {
     tracker.pushString(obj.name);
     tracker.pushInt(obj.score);
     tracker.pushBoolean(obj.isActive);
+    tracker.pushOptional(obj.partner, (x) => Player._encode(x, tracker));
   },
   encodeDiff(a: Player, b: Player): Uint8Array {
     const tracker = new _.Tracker();
@@ -100,6 +105,12 @@ export const Player = {
     tracker.pushStringDiff(a.name, b.name);
     tracker.pushIntDiff(a.score, b.score);
     tracker.pushBooleanDiff(a.isActive, b.isActive);
+    tracker.pushOptionalDiff<Player>(
+      a.partner,
+      b.partner,
+      (x) => Player._encode(x, tracker),
+      (x, y) => Player._encodeDiff(x, y, tracker)
+    );
   },
   decode(input: Uint8Array): Player {
     return Player._decode(_.Tracker.parse(input));
@@ -110,6 +121,7 @@ export const Player = {
       name: tracker.nextString(),
       score: tracker.nextInt(),
       isActive: tracker.nextBoolean(),
+      partner: tracker.nextOptional(() => Player._decode(tracker)),
     };
   },
   decodeDiff(obj: Player, input: Uint8Array): Player {
@@ -126,6 +138,11 @@ export const Player = {
       name: tracker.nextStringDiff(obj.name),
       score: tracker.nextIntDiff(obj.score),
       isActive: tracker.nextBooleanDiff(obj.isActive),
+      partner: tracker.nextOptionalDiff<Player>(
+        obj.partner,
+        () => Player._decode(tracker),
+        (x) => Player._decodeDiff(x, tracker)
+      ),
     };
   },
 };
