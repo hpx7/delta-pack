@@ -16,7 +16,9 @@
     "paths": {
       "@hpx7/delta-pack": ["./src/generator.ts"],
       "@hpx7/delta-pack/helpers": ["./src/helpers.ts"],
-      "@hpx7/delta-pack/infer": ["./src/infer.ts"]
+      "@hpx7/delta-pack/infer": ["./src/infer.ts"],
+      "@hpx7/delta-pack/parser": ["./src/parser.ts"],
+      "@hpx7/delta-pack/interpreter": ["./src/interpreter.ts"]
     }
   }
 }
