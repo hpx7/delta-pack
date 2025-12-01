@@ -1,16 +1,7 @@
 {
   "include": ["src", "test"],
   "compilerOptions": {
-    "strict": true,
-    "declaration": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "target": "esnext",
-    "moduleResolution": "node",
-    "experimentalDecorators": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    /* Output configuration */
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
@@ -20,6 +11,23 @@
       "@hpx7/delta-pack/infer": ["./src/infer.ts"],
       "@hpx7/delta-pack/parser": ["./src/parser.ts"],
       "@hpx7/delta-pack/interpreter": ["./src/interpreter.ts"]
-    }
+    },
+
+    /* Module Resolution */
+    "moduleResolution": "node",
+    "declaration": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "target": "esnext",
+    "skipLibCheck": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "forceConsistentCasingInFileNames": true
   }
 }

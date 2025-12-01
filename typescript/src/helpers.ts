@@ -11,10 +11,13 @@ export class Tracker {
   private bitsIdx = 0;
   private dict: string[] = [];
   private data: PrimitiveValue[] = [];
-  constructor(
-    private bits: boolean[] = [],
-    private reader: Reader = new Reader(new Uint8Array())
-  ) {}
+  private bits: boolean[];
+  private reader: Reader;
+
+  constructor(bits: boolean[] = [], reader: Reader = new Reader(new Uint8Array())) {
+    this.bits = bits;
+    this.reader = reader;
+  }
   static parse(buf: Uint8Array) {
     const reader = new Reader(buf);
 

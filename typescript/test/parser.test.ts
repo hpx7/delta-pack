@@ -9,12 +9,10 @@ import { schema as tsSchema } from "./schema";
 // Extract individual types from the TypeScript schema
 const Color = tsSchema.Color;
 const Player = tsSchema.Player;
-const Position = tsSchema.Position;
 const MoveAction = tsSchema.MoveAction;
 const AttackAction = tsSchema.AttackAction;
 const UseItemAction = tsSchema.UseItemAction;
 const GameAction = tsSchema.GameAction;
-const GameState = tsSchema.GameState;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
