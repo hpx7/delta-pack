@@ -72,15 +72,3 @@ export const schema = defineSchema({
   GameAction,
   GameState,
 });
-
-// Generate code for codegen tests
-const typeDefinitions = {
-  Color,
-  Player,
-  Position,
-  MoveAction,
-  AttackAction,
-  UseItemAction,
-  GameAction,
-  GameState,
-};
