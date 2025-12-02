@@ -6,7 +6,7 @@
   "author": "hpx7",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hpx7/delta-pack.git"
+    "url": "git+https://github.com/hpx7/delta-pack.git"
   },
   "keywords": [
     "serialization",
