@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "typescript/package.json"
+      - ".github/workflows/publish.yml"
 
 permissions:
   id-token: write
@@ -42,3 +43,5 @@ jobs:
         uses: JS-DevTools/npm-publish@v4
         with:
           package: typescript/package.json
+          access: public
+          provenance: true
