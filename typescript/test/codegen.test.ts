@@ -1,4 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { join } from "path";
+import { codegenTypescript } from "@hpx7/delta-pack";
+import { schema } from "./schema";
 import {
   Player,
   Position,
@@ -11,6 +15,15 @@ import {
 } from "./generated-schema";
 
 describe("Delta Pack Codegen - Unified API", () => {
+  describe("Code Generation", () => {
+    it("should generate code matching generated-schema.ts", () => {
+      const generatedCode = codegenTypescript(schema);
+      const expectedCode = readFileSync(join(__dirname, "generated-schema.ts"), "utf-8");
+
+      expect(generatedCode.trim()).toBe(expectedCode.trim());
+    });
+  });
+
   describe("Player Type - Basic Operations", () => {
     const player1: Player = {
       id: "player-1",

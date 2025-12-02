@@ -12,7 +12,6 @@ import {
   ReferenceType,
   UnionType,
   defineSchema,
-  codegenTypescript,
 } from "@hpx7/delta-pack";
 
 // Define test schema with multiple types
@@ -85,6 +84,3 @@ const typeDefinitions = {
   GameAction,
   GameState,
 };
-
-const generatedCode = codegenTypescript(typeDefinitions);
-console.log(generatedCode);
