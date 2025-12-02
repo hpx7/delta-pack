@@ -7,14 +7,13 @@ on:
       - "typescript/package.json"
       - ".github/workflows/publish.yml"
 
-permissions:
-  id-token: write
-  contents: read
-
 jobs:
   publish:
     name: Build and publish to NPM
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     defaults:
       run:
         working-directory: typescript
