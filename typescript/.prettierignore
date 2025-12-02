@@ -5,3 +5,4 @@ coverage
 *.yaml
 *.json
 *.md
+generated*.ts
