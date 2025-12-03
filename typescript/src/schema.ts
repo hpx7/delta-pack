@@ -103,3 +103,23 @@ export function FloatType(options?: { precision?: number }): FloatType {
 export function BooleanType(): BooleanType {
   return { type: "boolean" };
 }
+
+export function isPrimitiveType(type: Type, schema?: Record<string, Type>): boolean {
+  // Resolve references if schema provided
+  if (type.type === "reference" && schema) {
+    const refType = schema[type.reference];
+    if (!refType) {
+      throw new Error(`Unknown reference type: ${type.reference}`);
+    }
+    return isPrimitiveType(refType, schema);
+  }
+
+  return (
+    type.type === "string" ||
+    type.type === "int" ||
+    type.type === "uint" ||
+    type.type === "float" ||
+    type.type === "boolean" ||
+    type.type === "enum"
+  );
+}

@@ -1,4 +1,4 @@
-import type { ReferenceType, Type } from "./schema";
+import { Type, ReferenceType, isPrimitiveType } from "./schema";
 
 export function codegenTypescript(schema: Record<string, Type>) {
   return renderSchema(schema);
@@ -263,23 +263,6 @@ export const ${name} = {
   })
   .join("\n")}`;
 
-  function isPrimitiveType(type: Type, doc: Record<string, Type>): boolean {
-    // Resolve references
-    if (type.type === "reference") {
-      return isPrimitiveType(lookup(type), doc);
-    }
-
-    // Check if the type itself is primitive
-    return (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "uint" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    );
-  }
-
   function lookup(type: ReferenceType): Type {
     if (type.reference in schema) {
       return schema[type.reference];
@@ -379,9 +362,9 @@ export const ${name} = {
       return renderEquals(lookup(type), type.reference, keyA, keyB);
     } else if (type.type === "float") {
       if (type.precision) {
-        return `Math.round(${keyA} / ${type.precision}) === Math.round(${keyB} / ${type.precision})`;
+        return `_.equalsFloatQuantized(${keyA}, ${keyB}, ${type.precision})`;
       }
-      return `Math.abs(${keyA} - ${keyB}) < 0.00001`;
+      return `_.equalsFloat(${keyA}, ${keyB})`;
     } else if (
       type.type === "string" ||
       type.type === "int" ||
@@ -413,7 +396,7 @@ export const ${name} = {
       return `tracker.pushUInt(${key})`;
     } else if (type.type === "float") {
       if (type.precision) {
-        return `tracker.pushInt(Math.round(${key} / ${type.precision}))`;
+        return `tracker.pushFloatQuantized(${key}, ${type.precision})`;
       }
       return `tracker.pushFloat(${key})`;
     } else if (type.type === "boolean") {
@@ -443,7 +426,7 @@ export const ${name} = {
       return `tracker.nextUInt()`;
     } else if (type.type === "float") {
       if (type.precision) {
-        return `tracker.nextInt() * ${type.precision}`;
+        return `tracker.nextFloatQuantized(${type.precision})`;
       }
       return `tracker.nextFloat()`;
     } else if (type.type === "boolean") {
@@ -510,7 +493,7 @@ export const ${name} = {
       return `tracker.pushUIntDiff(${keyA}, ${keyB})`;
     } else if (type.type === "float") {
       if (type.precision) {
-        return `tracker.pushIntDiff(Math.round(${keyA} / ${type.precision}), Math.round(${keyB} / ${type.precision}))`;
+        return `tracker.pushFloatQuantizedDiff(${keyA}, ${keyB}, ${type.precision})`;
       }
       return `tracker.pushFloatDiff(${keyA}, ${keyB})`;
     } else if (type.type === "boolean") {
@@ -569,7 +552,7 @@ export const ${name} = {
       return `tracker.nextUIntDiff(${key})`;
     } else if (type.type === "float") {
       if (type.precision) {
-        return `tracker.nextIntDiff(Math.round(${key} / ${type.precision})) * ${type.precision}`;
+        return `tracker.nextFloatQuantizedDiff(${key}, ${type.precision})`;
       }
       return `tracker.nextFloatDiff(${key})`;
     } else if (type.type === "boolean") {

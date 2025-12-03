@@ -26,6 +26,7 @@ describe("YAML Schema Parser", () => {
     expect(parsedSchema.Color).toBeDefined();
     expect(parsedSchema.Player).toBeDefined();
     expect(parsedSchema.Position).toBeDefined();
+    expect(parsedSchema.Velocity).toBeDefined();
     expect(parsedSchema.MoveAction).toBeDefined();
     expect(parsedSchema.AttackAction).toBeDefined();
     expect(parsedSchema.UseItemAction).toBeDefined();

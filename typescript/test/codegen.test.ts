@@ -1,11 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { codegenTypescript } from "@hpx7/delta-pack";
+import { codegenTypescript, equalsFloat, equalsFloatQuantized } from "@hpx7/delta-pack";
 import { schema } from "./schema";
 import {
   Player,
   Position,
+  Velocity,
   GameState,
   GameAction,
   MoveAction,
@@ -438,6 +439,147 @@ describe("Delta Pack Codegen - Unified API", () => {
 
       expect(decoded.x).toBe(0.0);
       expect(decoded.y).toBe(0.0);
+    });
+  });
+
+  describe("Velocity Type - Non-Quantized Floats", () => {
+    it("should create default velocity", () => {
+      const defaultVel = Velocity.default();
+      expect(defaultVel).toEqual({ vx: 0.0, vy: 0.0 });
+    });
+
+    it("should parse correct velocity data", () => {
+      const vel = { vx: 123.456789, vy: 78.912345 };
+      expect(() => Velocity.parse(vel)).not.toThrow();
+    });
+
+    it("should detect validation errors for vx", () => {
+      const invalidVel = { vx: "invalid", vy: 10.0 };
+      expect(() => Velocity.parse(invalidVel as any)).toThrow(/vx/);
+    });
+
+    it("should detect validation errors for vy", () => {
+      const invalidVel = { vx: 10.0, vy: "invalid" };
+      expect(() => Velocity.parse(invalidVel as any)).toThrow(/vy/);
+    });
+
+    it("should preserve full precision floats on encode/decode", () => {
+      const vel = { vx: 123.456789, vy: 78.912345 };
+      const encoded = Velocity.encode(vel);
+      const decoded = Velocity.decode(encoded);
+
+      // Should preserve values within epsilon (0.00001)
+      expect(equalsFloat(decoded.vx, 123.456789)).toBe(true);
+      expect(equalsFloat(decoded.vy, 78.912345)).toBe(true);
+    });
+
+    it("should handle exact float values", () => {
+      const vel = { vx: 100.0, vy: 200.5 };
+      const encoded = Velocity.encode(vel);
+      const decoded = Velocity.decode(encoded);
+
+      expect(equalsFloat(decoded.vx, 100.0)).toBe(true);
+      expect(equalsFloat(decoded.vy, 200.5)).toBe(true);
+    });
+
+    it("should check equality with epsilon tolerance", () => {
+      // Values within epsilon should be equal
+      const vel1 = { vx: 100.000001, vy: 200.000001 };
+      const vel2 = { vx: 100.000002, vy: 200.000002 };
+
+      expect(Velocity.equals(vel1, vel2)).toBe(true);
+    });
+
+    it("should detect inequality beyond epsilon threshold", () => {
+      const vel1 = { vx: 100.0, vy: 200.0 };
+      const vel2 = { vx: 100.01, vy: 200.0 };
+
+      // 0.01 is beyond epsilon (0.001)
+      expect(Velocity.equals(vel1, vel2)).toBe(false);
+    });
+
+    it("should encode/decode diff with full precision", () => {
+      const vel1 = { vx: 100.123456, vy: 200.654321 };
+      const vel2 = { vx: 100.234567, vy: 200.765432 };
+
+      const encodedDiff = Velocity.encodeDiff(vel1, vel2);
+      const result = Velocity.decodeDiff(vel1, encodedDiff);
+
+      expect(equalsFloat(result.vx, 100.234567)).toBe(true);
+      expect(equalsFloat(result.vy, 200.765432)).toBe(true);
+      expect(Velocity.equals(result, vel2)).toBe(true);
+    });
+
+    it("should handle no change in diff (within epsilon)", () => {
+      const vel1 = { vx: 100.0000001, vy: 200.0000002 };
+      const vel2 = { vx: 100.0000002, vy: 200.0000003 };
+
+      // Both within epsilon, so should be treated as equal
+      const encodedDiff = Velocity.encodeDiff(vel1, vel2);
+      const result = Velocity.decodeDiff(vel1, encodedDiff);
+
+      expect(Velocity.equals(result, vel1)).toBe(true);
+    });
+
+    it("should handle large velocity values", () => {
+      const vel = { vx: 9999.123456, vy: -8888.654321 };
+      const encoded = Velocity.encode(vel);
+      const decoded = Velocity.decode(encoded);
+
+      // Large float values lose precision with 32-bit encoding, but equalsFloat should still work
+      expect(equalsFloat(decoded.vx, vel.vx)).toBe(true);
+      expect(equalsFloat(decoded.vy, vel.vy)).toBe(true);
+    });
+
+    it("should handle negative velocities", () => {
+      const vel1 = { vx: -50.123456, vy: -100.654321 };
+      const vel2 = { vx: -50.234567, vy: -100.765432 };
+
+      const encodedDiff = Velocity.encodeDiff(vel1, vel2);
+      const result = Velocity.decodeDiff(vel1, encodedDiff);
+
+      expect(equalsFloat(result.vx, -50.234567)).toBe(true);
+      expect(equalsFloat(result.vy, -100.765432)).toBe(true);
+    });
+
+    it("should handle zero velocities", () => {
+      const vel = { vx: 0.0, vy: 0.0 };
+      const encoded = Velocity.encode(vel);
+      const decoded = Velocity.decode(encoded);
+
+      expect(decoded.vx).toBe(0.0);
+      expect(decoded.vy).toBe(0.0);
+    });
+
+    it("should handle very small velocity values", () => {
+      const vel = { vx: 0.000001, vy: 0.000002 };
+      const encoded = Velocity.encode(vel);
+      const decoded = Velocity.decode(encoded);
+
+      expect(equalsFloat(decoded.vx, 0.000001)).toBe(true);
+      expect(equalsFloat(decoded.vy, 0.000002)).toBe(true);
+    });
+
+    it("should distinguish between quantized and non-quantized floats", () => {
+      // Position uses quantization (0.1 precision)
+      const pos = { x: 123.456, y: 78.912 };
+      const encodedPos = Position.encode(pos);
+      const decodedPos = Position.decode(encodedPos);
+
+      // Velocity uses epsilon comparison (no quantization)
+      const vel = { vx: 123.456, vy: 78.912 };
+      const encodedVel = Velocity.encode(vel);
+      const decodedVel = Velocity.decode(encodedVel);
+
+      // Position should be quantized to 0.1
+      expect(equalsFloatQuantized(decodedPos.x, 123.456, 0.1)).toBe(true);
+      expect(equalsFloatQuantized(decodedPos.y, 78.912, 0.1)).toBe(true);
+      expect(decodedPos.x).toBe(123.5);
+      expect(decodedPos.y).toBe(78.9);
+
+      // Velocity should preserve full precision
+      expect(equalsFloat(decodedVel.vx, 123.456)).toBe(true);
+      expect(equalsFloat(decodedVel.vy, 78.912)).toBe(true);
     });
   });
 

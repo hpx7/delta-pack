@@ -18,6 +18,10 @@ Position:
   x: float
   y: float
 
+Velocity:
+  vx: float
+  vy: float
+
 MoveAction:
   x: int
   y: int

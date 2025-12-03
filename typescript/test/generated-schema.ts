@@ -14,6 +14,10 @@ export type Position = {
   x: number;
   y: number;
 };
+export type Velocity = {
+  vx: number;
+  vy: number;
+};
 export type MoveAction = {
   x: number;
   y: number;
@@ -165,8 +169,8 @@ export const Position = {
   },
   equals(a: Position, b: Position): boolean {
     return (
-      Math.round(a.x / 0.1) === Math.round(b.x / 0.1) &&
-      Math.round(a.y / 0.1) === Math.round(b.y / 0.1)
+      _.equalsFloatQuantized(a.x, b.x, 0.1) &&
+      _.equalsFloatQuantized(a.y, b.y, 0.1)
     );
   },
   encode(obj: Position): Uint8Array {
@@ -175,8 +179,8 @@ export const Position = {
     return tracker.toBuffer();
   },
   _encode(obj: Position, tracker: _.Tracker): void {
-    tracker.pushInt(Math.round(obj.x / 0.1));
-    tracker.pushInt(Math.round(obj.y / 0.1));
+    tracker.pushFloatQuantized(obj.x, 0.1);
+    tracker.pushFloatQuantized(obj.y, 0.1);
   },
   encodeDiff(a: Position, b: Position): Uint8Array {
     const tracker = new _.Tracker();
@@ -189,16 +193,16 @@ export const Position = {
     if (!changed) {
       return;
     }
-    tracker.pushIntDiff(Math.round(a.x / 0.1), Math.round(b.x / 0.1));
-    tracker.pushIntDiff(Math.round(a.y / 0.1), Math.round(b.y / 0.1));
+    tracker.pushFloatQuantizedDiff(a.x, b.x, 0.1);
+    tracker.pushFloatQuantizedDiff(a.y, b.y, 0.1);
   },
   decode(input: Uint8Array): Position {
     return Position._decode(_.Tracker.parse(input));
   },
   _decode(tracker: _.Tracker): Position {
     return {
-      x: tracker.nextInt() * 0.1,
-      y: tracker.nextInt() * 0.1,
+      x: tracker.nextFloatQuantized(0.1),
+      y: tracker.nextFloatQuantized(0.1),
     };
   },
   decodeDiff(obj: Position, input: Uint8Array): Position {
@@ -211,8 +215,78 @@ export const Position = {
       return obj;
     }
     return {
-      x: tracker.nextIntDiff(Math.round(obj.x / 0.1)) * 0.1,
-      y: tracker.nextIntDiff(Math.round(obj.y / 0.1)) * 0.1,
+      x: tracker.nextFloatQuantizedDiff(obj.x, 0.1),
+      y: tracker.nextFloatQuantizedDiff(obj.y, 0.1),
+    };
+  },
+};
+
+export const Velocity = {
+  default(): Velocity {
+    return {
+      vx: 0.0,
+      vy: 0.0,
+    };
+  },
+  parse(obj: Velocity): Velocity {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+      throw new Error(`Invalid Velocity: ${obj}`);
+    }
+    return {
+      vx: _.tryParseField(() => _.parseFloat(obj.vx), "Velocity.vx"),
+      vy: _.tryParseField(() => _.parseFloat(obj.vy), "Velocity.vy"),
+    };
+  },
+  equals(a: Velocity, b: Velocity): boolean {
+    return (
+      _.equalsFloat(a.vx, b.vx) &&
+      _.equalsFloat(a.vy, b.vy)
+    );
+  },
+  encode(obj: Velocity): Uint8Array {
+    const tracker = new _.Tracker();
+    Velocity._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: Velocity, tracker: _.Tracker): void {
+    tracker.pushFloat(obj.vx);
+    tracker.pushFloat(obj.vy);
+  },
+  encodeDiff(a: Velocity, b: Velocity): Uint8Array {
+    const tracker = new _.Tracker();
+    Velocity._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: Velocity, b: Velocity, tracker: _.Tracker): void {
+    const changed = !Velocity.equals(a, b);
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    tracker.pushFloatDiff(a.vx, b.vx);
+    tracker.pushFloatDiff(a.vy, b.vy);
+  },
+  decode(input: Uint8Array): Velocity {
+    return Velocity._decode(_.Tracker.parse(input));
+  },
+  _decode(tracker: _.Tracker): Velocity {
+    return {
+      vx: tracker.nextFloat(),
+      vy: tracker.nextFloat(),
+    };
+  },
+  decodeDiff(obj: Velocity, input: Uint8Array): Velocity {
+    const tracker = _.Tracker.parse(input);
+    return Velocity._decodeDiff(obj, tracker);
+  },
+  _decodeDiff(obj: Velocity, tracker: _.Tracker): Velocity {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
+      return obj;
+    }
+    return {
+      vx: tracker.nextFloatDiff(obj.vx),
+      vy: tracker.nextFloatDiff(obj.vy),
     };
   },
 };
@@ -434,7 +508,7 @@ export const GameAction = {
     if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid GameAction: ${obj}`);
     }
-    // Check if it's Delta-Pack format: { type: "TypeName", val: ... }
+    // check if it's delta-pack format: { type: "TypeName", val: ... }
     if ("type" in obj && typeof obj.type === "string" && "val" in obj) {
       if (obj.type === "MoveAction") {
         return {
@@ -458,7 +532,7 @@ export const GameAction = {
         throw new Error(`Invalid GameAction: ${obj}`);
       }
     }
-    // Check if it's protobuf format: { TypeName: ... }
+    // check if it's protobuf format: { TypeName: ... }
     const entries = Object.entries(obj);
     if (entries.length === 1) {
       const [fieldName, fieldValue] = entries[0];

@@ -31,6 +31,12 @@ const Position = ObjectType({
   y: FloatType({ precision: 0.1 }),
 });
 
+// Velocity with non-quantized floats
+const Velocity = ObjectType({
+  vx: FloatType(),
+  vy: FloatType(),
+});
+
 // Union type for different game actions
 const MoveAction = ObjectType({
   x: IntType(),
@@ -66,6 +72,7 @@ export const schema = defineSchema({
   Color,
   Player,
   Position,
+  Velocity,
   MoveAction,
   AttackAction,
   UseItemAction,

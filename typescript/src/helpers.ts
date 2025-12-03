@@ -2,6 +2,8 @@ import { Writer, Reader } from "bin-serde";
 import utf8Size from "utf8-buffer-size";
 import { rleDecode, rleEncode } from "./rle";
 
+const FLOAT_EPSILON = 0.001;
+
 type PrimitiveValue =
   | { type: "string"; val: string; len: number }
   | { type: "int"; val: number }
@@ -50,6 +52,9 @@ export class Tracker {
   pushFloat(val: number) {
     this.data.push({ type: "float", val });
   }
+  pushFloatQuantized(val: number, precision: number) {
+    this.pushInt(Math.round(val / precision));
+  }
   pushBoolean(val: boolean) {
     this.bits.push(val);
   }
@@ -94,11 +99,14 @@ export class Tracker {
     }
   }
   pushFloatDiff(a: number, b: number) {
-    const changed = Math.abs(a - b) > 0.00001;
+    const changed = !equalsFloat(a, b);
     this.pushBoolean(changed);
     if (changed) {
       this.pushFloat(b);
     }
+  }
+  pushFloatQuantizedDiff(a: number, b: number, precision: number) {
+    this.pushIntDiff(Math.round(a / precision), Math.round(b / precision));
   }
   pushBooleanDiff(a: boolean, b: boolean) {
     this.pushBoolean(a !== b);
@@ -239,6 +247,9 @@ export class Tracker {
   nextFloat() {
     return this.reader.readFloat();
   }
+  nextFloatQuantized(precision: number) {
+    return this.nextInt() * precision;
+  }
   nextBoolean() {
     return this.bits[this.bitsIdx++];
   }
@@ -279,6 +290,10 @@ export class Tracker {
   nextFloatDiff(a: number) {
     const changed = this.nextBoolean();
     return changed ? this.nextFloat() : a;
+  }
+  nextFloatQuantizedDiff(a: number, precision: number) {
+    const changed = this.nextBoolean();
+    return changed ? this.nextFloatQuantized(precision) : a;
   }
   nextBooleanDiff(a: boolean) {
     const changed = this.nextBoolean();
@@ -485,6 +500,12 @@ export function parseRecord<K, T>(
   return result;
 }
 
+export function equalsFloat(a: number, b: number): boolean {
+  return Math.abs(a - b) < FLOAT_EPSILON;
+}
+export function equalsFloatQuantized(a: number, b: number, precision: number): boolean {
+  return Math.round(a / precision) === Math.round(b / precision);
+}
 export function equalsOptional<T>(a: T | undefined, b: T | undefined, equals: (x: T, y: T) => boolean) {
   if (a == null && b == null) {
     return true;

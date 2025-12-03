@@ -1,5 +1,5 @@
 import * as _ from "./helpers";
-import type { Type } from "./schema";
+import { Type, isPrimitiveType } from "./schema";
 
 type DeltaPackApi<T> = {
   parse: (obj: T) => T;
@@ -18,27 +18,6 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
   // Support object, union, and enum types as root types
   if (typeVal.type !== "object" && typeVal.type !== "union" && typeVal.type !== "enum") {
     throw new Error(`Type ${objectName} must be an object, union, or enum type, got ${typeVal.type}`);
-  }
-
-  function isPrimitiveType(type: Type): boolean {
-    // Resolve references
-    if (type.type === "reference") {
-      const refType = schema[type.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${type.reference}`);
-      }
-      return isPrimitiveType(refType);
-    }
-
-    // Check if the type itself is primitive
-    return (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "uint" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    );
   }
 
   function _parse(objVal: unknown, objType: Type): unknown {
@@ -122,7 +101,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       tracker.pushUInt(objVal as number);
     } else if (objType.type === "float") {
       if (objType.precision) {
-        tracker.pushInt(Math.round((objVal as number) / objType.precision));
+        tracker.pushFloatQuantized(objVal as number, objType.precision);
       } else {
         tracker.pushFloat(objVal as number);
       }
@@ -175,7 +154,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       return tracker.nextUInt();
     } else if (objType.type === "float") {
       if (objType.precision) {
-        return tracker.nextInt() * objType.precision;
+        return tracker.nextFloatQuantized(objType.precision);
       } else {
         return tracker.nextFloat();
       }
@@ -237,9 +216,9 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       return a === b;
     } else if (objType.type === "float") {
       if (objType.precision) {
-        return Math.round((a as number) / objType.precision) === Math.round((b as number) / objType.precision);
+        return _.equalsFloatQuantized(a as number, b as number, objType.precision);
       } else {
-        return Math.abs((a as number) - (b as number)) <= 0.00001;
+        return _.equalsFloat(a as number, b as number);
       }
     } else if (objType.type === "boolean") {
       return a === b;
@@ -302,9 +281,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       tracker.pushUIntDiff(a as number, b as number);
     } else if (objType.type === "float") {
       if (objType.precision) {
-        const aQuantized = Math.round((a as number) / objType.precision);
-        const bQuantized = Math.round((b as number) / objType.precision);
-        tracker.pushIntDiff(aQuantized, bQuantized);
+        return tracker.pushFloatQuantizedDiff(a as number, b as number, objType.precision);
       } else {
         tracker.pushFloatDiff(a as number, b as number);
       }
@@ -368,7 +345,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const valueType = objType.value;
       // Use pushOptionalDiffPrimitive for primitives (including primitive references like UserId)
       // Use pushOptionalDiff for objects/complex types
-      if (isPrimitiveType(valueType)) {
+      if (isPrimitiveType(valueType, schema)) {
         tracker.pushOptionalDiffPrimitive(a, b, (x) => _encode(x, valueType, tracker));
       } else {
         tracker.pushOptionalDiff(
@@ -390,9 +367,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       return tracker.nextUIntDiff(a as number);
     } else if (objType.type === "float") {
       if (objType.precision) {
-        const aQuantized = Math.round((a as number) / objType.precision);
-        const bQuantized = tracker.nextIntDiff(aQuantized);
-        return bQuantized * objType.precision;
+        return tracker.nextFloatQuantizedDiff(a as number, objType.precision);
       } else {
         return tracker.nextFloatDiff(a as number);
       }
@@ -460,7 +435,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "optional") {
       const valueType = objType.value;
       // Use nextOptionalDiffPrimitive for primitives, nextOptionalDiff for complex types
-      if (isPrimitiveType(valueType)) {
+      if (isPrimitiveType(valueType, schema)) {
         return tracker.nextOptionalDiffPrimitive(a, () => _decode(valueType, tracker));
       } else {
         return tracker.nextOptionalDiff(
