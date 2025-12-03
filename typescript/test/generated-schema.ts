@@ -431,30 +431,57 @@ export const GameAction = {
     return ["MoveAction", "AttackAction", "UseItemAction"];
   },
   parse(obj: GameAction): GameAction {
-    if (typeof obj !== "object" || obj?.type == null) {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid GameAction: ${obj}`);
     }
-    if (obj.type === "MoveAction") {
-      return {
-        type: "MoveAction",
-        val: MoveAction.parse(obj.val as MoveAction),
-      };
+    // Check if it's Delta-Pack format: { type: "TypeName", val: ... }
+    if ("type" in obj && typeof obj.type === "string" && "val" in obj) {
+      if (obj.type === "MoveAction") {
+        return {
+          type: "MoveAction",
+          val: MoveAction.parse(obj.val as MoveAction),
+        };
+      }
+      else if (obj.type === "AttackAction") {
+        return {
+          type: "AttackAction",
+          val: AttackAction.parse(obj.val as AttackAction),
+        };
+      }
+      else if (obj.type === "UseItemAction") {
+        return {
+          type: "UseItemAction",
+          val: UseItemAction.parse(obj.val as UseItemAction),
+        };
+      }
+      else {
+        throw new Error(`Invalid GameAction: ${obj}`);
+      }
     }
-    else if (obj.type === "AttackAction") {
-      return {
-        type: "AttackAction",
-        val: AttackAction.parse(obj.val as AttackAction),
-      };
+    // Check if it's protobuf format: { TypeName: ... }
+    const entries = Object.entries(obj);
+    if (entries.length === 1) {
+      const [fieldName, fieldValue] = entries[0];
+      if (fieldName === "MoveAction") {
+        return {
+          type: "MoveAction",
+          val: MoveAction.parse(fieldValue as MoveAction),
+        };
+      }
+      else if (fieldName === "AttackAction") {
+        return {
+          type: "AttackAction",
+          val: AttackAction.parse(fieldValue as AttackAction),
+        };
+      }
+      else if (fieldName === "UseItemAction") {
+        return {
+          type: "UseItemAction",
+          val: UseItemAction.parse(fieldValue as UseItemAction),
+        };
+      }
     }
-    else if (obj.type === "UseItemAction") {
-      return {
-        type: "UseItemAction",
-        val: UseItemAction.parse(obj.val as UseItemAction),
-      };
-    }
-    else {
-      throw new Error(`Invalid GameAction: ${obj}`);
-    }
+    throw new Error(`Invalid GameAction: ${obj}`);
   },
   equals(a: GameAction, b: GameAction): boolean {
     if (a.type === "MoveAction" && b.type === "MoveAction") {

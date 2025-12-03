@@ -133,22 +133,41 @@ export const ${name} = {
     return [${type.options.map((option) => `"${option.reference}"`).join(", ")}];
   },
   parse(obj: ${name}): ${name} {
-    if (typeof obj !== "object" || obj?.type == null) {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
-    ${type.options
-      .map((reference, i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
-      return {
-        type: "${reference.reference}",
-        val: ${renderParse(reference, reference.reference, "obj.val")},
-      };
-    }`;
-      })
-      .join("\n    ")}
-    else {
-      throw new Error(\`Invalid ${name}: \${obj}\`);
+    // check if it's delta-pack format: { type: "TypeName", val: ... }
+    if ("type" in obj && typeof obj.type === "string" && "val" in obj) {
+      ${type.options
+        .map((reference, i) => {
+          return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+        return {
+          type: "${reference.reference}",
+          val: ${renderParse(reference, reference.reference, "obj.val")},
+        };
+      }`;
+        })
+        .join("\n      ")}
+      else {
+        throw new Error(\`Invalid ${name}: \${obj}\`);
+      }
     }
+    // check if it's protobuf format: { TypeName: ... }
+    const entries = Object.entries(obj);
+    if (entries.length === 1) {
+      const [fieldName, fieldValue] = entries[0];
+      ${type.options
+        .map((reference, i) => {
+          return `${i > 0 ? "else " : ""}if (fieldName === "${reference.reference}") {
+        return {
+          type: "${reference.reference}",
+          val: ${renderParse(reference, reference.reference, "fieldValue")},
+        };
+      }`;
+        })
+        .join("\n      ")}
+    }
+    throw new Error(\`Invalid ${name}: \${obj}\`);
   },
   equals(a: ${name}, b: ${name}): boolean {
     ${type.options

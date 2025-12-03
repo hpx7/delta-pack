@@ -78,19 +78,36 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         (val) => _parse(val, objType.value)
       );
     } else if (objType.type === "union") {
-      const unionType = (objVal as { type: string })?.type;
-      if (typeof unionType !== "string") {
-        throw new Error(`Invalid union type object: ${JSON.stringify(objVal)}`);
+      if (typeof objVal !== "object" || objVal === null) {
+        throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
       }
-      const optionType = objType.options.find((opt) => opt.reference === unionType);
-      if (!optionType) {
-        throw new Error(`Unknown union type option: ${unionType}`);
+      // check if it's delta-pack format: { type: "TypeName", val: ... }
+      if ("type" in objVal && typeof objVal.type === "string" && "val" in objVal) {
+        const optionType = objType.options.find((opt) => opt.reference === objVal.type);
+        if (!optionType) {
+          throw new Error(`Unknown union type option: ${objVal.type}`);
+        }
+        const refType = schema[optionType.reference];
+        return {
+          type: objVal.type,
+          val: _parse(objVal.val, refType),
+        };
       }
-      const refType = schema[optionType.reference];
-      return {
-        type: unionType,
-        val: _parse((objVal as any).val, refType),
-      };
+      // check if it's protobuf format: { TypeName: ... }
+      const entries = Object.entries(objVal);
+      if (entries.length === 1) {
+        const [fieldName, fieldValue] = entries[0];
+        const optionType = objType.options.find((opt) => opt.reference === fieldName);
+        if (!optionType) {
+          throw new Error(`Unknown union type option: ${fieldName}`);
+        }
+        const refType = schema[optionType.reference];
+        return {
+          type: fieldName,
+          val: _parse(fieldValue, refType),
+        };
+      }
+      throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
     } else if (objType.type === "optional") {
       return _.parseOptional(objVal, (val) => _parse(val, objType.value));
     }

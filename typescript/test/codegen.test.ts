@@ -655,6 +655,35 @@ describe("Delta Pack Codegen - Unified API", () => {
       expect(() => GameAction.parse(useItemAction)).not.toThrow();
     });
 
+    it("should parse protobuf-style MoveAction union", () => {
+      const protobufAction: any = { MoveAction: { x: 10, y: 20 } };
+      const parsed = GameAction.parse(protobufAction);
+      expect(parsed).toEqual({ type: "MoveAction", val: { x: 10, y: 20 } });
+    });
+
+    it("should parse protobuf-style AttackAction union", () => {
+      const protobufAction: any = { AttackAction: { targetId: "enemy-1", damage: 50 } };
+      const parsed = GameAction.parse(protobufAction);
+      expect(parsed).toEqual({ type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } });
+    });
+
+    it("should parse protobuf-style UseItemAction union", () => {
+      const protobufAction: any = { UseItemAction: { itemId: "potion-1" } };
+      const parsed = GameAction.parse(protobufAction);
+      expect(parsed).toEqual({ type: "UseItemAction", val: { itemId: "potion-1" } });
+    });
+
+    it("should encode protobuf-style union the same as delta-pack format", () => {
+      const deltaPackAction: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
+      const protobufAction: any = { MoveAction: { x: 100, y: 200 } };
+
+      const parsedProtobuf = GameAction.parse(protobufAction);
+      const encodedDeltaPack = GameAction.encode(deltaPackAction);
+      const encodedProtobuf = GameAction.encode(parsedProtobuf);
+
+      expect(encodedProtobuf).toEqual(encodedDeltaPack);
+    });
+
     it("should detect GameAction validation errors for invalid type", () => {
       const invalidAction: any = { type: "InvalidAction", val: {} };
       expect(() => GameAction.parse(invalidAction)).toThrow();
