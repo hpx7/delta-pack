@@ -2,7 +2,7 @@ import * as _ from "./helpers";
 import { Type, isPrimitiveType } from "./schema";
 
 type DeltaPackApi<T> = {
-  parse: (obj: T) => T;
+  fromJson: (obj: Record<string, unknown>) => T;
   encode: (obj: T) => Uint8Array;
   decode: (buf: Uint8Array) => T;
   encodeDiff: (a: T, b: T) => Uint8Array;
@@ -20,7 +20,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     throw new Error(`Type ${objectName} must be an object, union, or enum type, got ${typeVal.type}`);
   }
 
-  function _parse(objVal: unknown, objType: Type): unknown {
+  function _fromJson(objVal: unknown, objType: Type): unknown {
     if (objType.type === "string") {
       return _.parseString(objVal);
     } else if (objType.type === "int") {
@@ -39,22 +39,22 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       if (!refType) {
         throw new Error(`Unknown reference type: ${objType.reference}`);
       }
-      return _parse(objVal, refType);
+      return _fromJson(objVal, refType);
     } else if (objType.type === "object") {
       if (typeof objVal !== "object" || objVal === null || Object.getPrototypeOf(objVal) !== Object.prototype) {
         throw new Error(`Invalid object: ${objVal}`);
       }
       return _.mapValues(objType.properties, (typeVal, key) => {
         const fieldVal = (objVal as any)[key];
-        return _.tryParseField(() => _parse(fieldVal, typeVal), key);
+        return _.tryParseField(() => _fromJson(fieldVal, typeVal), key);
       });
     } else if (objType.type === "array") {
-      return _.parseArray(objVal, (elem) => _parse(elem, objType.value));
+      return _.parseArray(objVal, (elem) => _fromJson(elem, objType.value));
     } else if (objType.type === "record") {
       return _.parseRecord(
         objVal,
-        (key) => _parse(key, objType.key),
-        (val) => _parse(val, objType.value)
+        (key) => _fromJson(key, objType.key),
+        (val) => _fromJson(val, objType.value)
       );
     } else if (objType.type === "union") {
       if (typeof objVal !== "object" || objVal === null) {
@@ -69,7 +69,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         const refType = schema[optionType.reference];
         return {
           type: objVal.type,
-          val: _parse(objVal.val, refType),
+          val: _fromJson(objVal.val, refType),
         };
       }
       // check if it's protobuf format: { TypeName: ... }
@@ -83,12 +83,12 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         const refType = schema[optionType.reference];
         return {
           type: fieldName,
-          val: _parse(fieldValue, refType),
+          val: _fromJson(fieldValue, refType),
         };
       }
       throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
     } else if (objType.type === "optional") {
-      return _.parseOptional(objVal, (val) => _parse(val, objType.value));
+      return _.parseOptional(objVal, (val) => _fromJson(val, objType.value));
     }
   }
 
@@ -449,7 +449,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
   }
 
   return {
-    parse: (obj: T) => _parse(obj, typeVal) as T,
+    fromJson: (obj: Record<string, unknown>) => _fromJson(obj, typeVal) as T,
     encode: (obj: T) => {
       const tracker = new _.Tracker();
       _encode(obj, typeVal, tracker);

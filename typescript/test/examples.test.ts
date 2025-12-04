@@ -35,8 +35,8 @@ describe("Examples - Primitives", () => {
   });
 
   it("should parse state1 JSON data", () => {
-    expect(() => ExampleObject.parse(state1Data)).not.toThrow();
-    const parsed = ExampleObject.parse(state1Data);
+    expect(() => ExampleObject.fromJson(state1Data)).not.toThrow();
+    const parsed = ExampleObject.fromJson(state1Data);
     expect(parsed.stringField).toBe("example string");
     expect(parsed.signedIntField).toBe(-42);
     expect(parsed.unsignedIntField).toBe(42);
@@ -45,8 +45,8 @@ describe("Examples - Primitives", () => {
   });
 
   it("should parse state2 JSON data", () => {
-    expect(() => ExampleObject.parse(state2Data)).not.toThrow();
-    const parsed = ExampleObject.parse(state2Data);
+    expect(() => ExampleObject.fromJson(state2Data)).not.toThrow();
+    const parsed = ExampleObject.fromJson(state2Data);
     expect(parsed.stringField).toBe("updated string");
     expect(parsed.signedIntField).toBe(-43);
     expect(parsed.unsignedIntField).toBe(43);
@@ -54,22 +54,22 @@ describe("Examples - Primitives", () => {
   });
 
   it("should encode and decode state1", () => {
-    const state1 = ExampleObject.parse(state1Data);
+    const state1 = ExampleObject.fromJson(state1Data);
     const encoded = ExampleObject.encode(state1);
     const decoded = ExampleObject.decode(encoded);
     expect(ExampleObject.equals(decoded, state1)).toBe(true);
   });
 
   it("should encode and decode state2", () => {
-    const state2 = ExampleObject.parse(state2Data);
+    const state2 = ExampleObject.fromJson(state2Data);
     const encoded = ExampleObject.encode(state2);
     const decoded = ExampleObject.decode(encoded);
     expect(ExampleObject.equals(decoded, state2)).toBe(true);
   });
 
   it("should encode and decode diff from state1 to state2", () => {
-    const state1 = ExampleObject.parse(state1Data);
-    const state2 = ExampleObject.parse(state2Data);
+    const state1 = ExampleObject.fromJson(state1Data);
+    const state2 = ExampleObject.fromJson(state2Data);
 
     const diff = ExampleObject.encodeDiff(state1, state2);
     const decoded = ExampleObject.decodeDiff(state1, diff);
@@ -103,8 +103,8 @@ describe("Examples - User", () => {
   });
 
   it("should parse state1 JSON data", () => {
-    expect(() => User.parse(state1Data)).not.toThrow();
-    const parsed = User.parse(state1Data);
+    expect(() => User.fromJson(state1Data)).not.toThrow();
+    const parsed = User.fromJson(state1Data);
     expect(parsed.id).toBe("user_12345");
     expect(parsed.name).toBe("John Doe");
     expect(parsed.age).toBe(30);
@@ -113,8 +113,8 @@ describe("Examples - User", () => {
   });
 
   it("should parse state2 JSON data", () => {
-    expect(() => User.parse(state2Data)).not.toThrow();
-    const parsed = User.parse(state2Data);
+    expect(() => User.fromJson(state2Data)).not.toThrow();
+    const parsed = User.fromJson(state2Data);
     expect(parsed.name).toBe("John Doe");
     expect(parsed.age).toBe(31);
     expect(parsed.children).toHaveLength(3);
@@ -122,22 +122,22 @@ describe("Examples - User", () => {
   });
 
   it("should encode and decode state1", () => {
-    const state1 = User.parse(state1Data);
+    const state1 = User.fromJson(state1Data);
     const encoded = User.encode(state1);
     const decoded = User.decode(encoded);
     expect(User.equals(decoded, state1)).toBe(true);
   });
 
   it("should encode and decode state2", () => {
-    const state2 = User.parse(state2Data);
+    const state2 = User.fromJson(state2Data);
     const encoded = User.encode(state2);
     const decoded = User.decode(encoded);
     expect(User.equals(decoded, state2)).toBe(true);
   });
 
   it("should encode and decode diff from state1 to state2", () => {
-    const state1 = User.parse(state1Data);
-    const state2 = User.parse(state2Data);
+    const state1 = User.fromJson(state1Data);
+    const state2 = User.fromJson(state2Data);
 
     const diff = User.encodeDiff(state1, state2);
     const decoded = User.decodeDiff(state1, diff);
@@ -175,31 +175,31 @@ describe("Examples - Game", () => {
   });
 
   it("should parse state1 JSON data (lobby with 2 players)", () => {
-    expect(() => GameState.parse(statesData[0])).not.toThrow();
-    const parsed = GameState.parse(statesData[0]);
+    expect(() => GameState.fromJson(statesData[0])).not.toThrow();
+    const parsed = GameState.fromJson(statesData[0]);
     expect(parsed.gameId).toBe("match-12345");
     expect(parsed.phase).toBe("LOBBY");
     expect(parsed.players.size).toBe(2);
   });
 
   it("should parse state2 JSON data (game starting with 4 players)", () => {
-    expect(() => GameState.parse(statesData[1])).not.toThrow();
-    const parsed = GameState.parse(statesData[1]);
+    expect(() => GameState.fromJson(statesData[1])).not.toThrow();
+    const parsed = GameState.fromJson(statesData[1]);
     expect(parsed.phase).toBe("STARTING");
     expect(parsed.players.size).toBe(4);
   });
 
   it("should parse state3 JSON data (game active with enemies and projectiles)", () => {
-    expect(() => GameState.parse(statesData[2])).not.toThrow();
-    const parsed = GameState.parse(statesData[2]);
+    expect(() => GameState.fromJson(statesData[2])).not.toThrow();
+    const parsed = GameState.fromJson(statesData[2]);
     expect(parsed.phase).toBe("ACTIVE");
     expect(parsed.enemies.size).toBe(1);
     expect(parsed.projectiles.size).toBe(1);
   });
 
   it("should parse state4 JSON data (combat with effects)", () => {
-    expect(() => GameState.parse(statesData[3])).not.toThrow();
-    const parsed = GameState.parse(statesData[3]);
+    expect(() => GameState.fromJson(statesData[3])).not.toThrow();
+    const parsed = GameState.fromJson(statesData[3]);
     const player1 = parsed.players.get("player1");
     expect(player1.stats.health).toBe(75);
     expect(player1.activeEffects).toHaveLength(1);
@@ -207,8 +207,8 @@ describe("Examples - Game", () => {
   });
 
   it("should parse state5 JSON data (mid-game with 8 players)", () => {
-    expect(() => GameState.parse(statesData[4])).not.toThrow();
-    const parsed = GameState.parse(statesData[4]);
+    expect(() => GameState.fromJson(statesData[4])).not.toThrow();
+    const parsed = GameState.fromJson(statesData[4]);
     expect(parsed.players.size).toBe(8);
     expect(parsed.enemies.size).toBe(3);
     expect(parsed.droppedLoot.size).toBe(1);
@@ -216,35 +216,35 @@ describe("Examples - Game", () => {
   });
 
   it("should parse state6 JSON data (minimal position updates)", () => {
-    expect(() => GameState.parse(statesData[5])).not.toThrow();
-    const parsed = GameState.parse(statesData[5]);
+    expect(() => GameState.fromJson(statesData[5])).not.toThrow();
+    const parsed = GameState.fromJson(statesData[5]);
     expect(parsed.tickNumber).toBe(601);
   });
 
   it("should encode and decode state1", () => {
-    const state1 = GameState.parse(statesData[0]);
+    const state1 = GameState.fromJson(statesData[0]);
     const encoded = GameState.encode(state1);
     const decoded = GameState.decode(encoded);
     expect(GameState.equals(decoded, state1)).toBe(true);
   });
 
   it("should encode and decode state3 (with enemies and projectiles)", () => {
-    const state3 = GameState.parse(statesData[2]);
+    const state3 = GameState.fromJson(statesData[2]);
     const encoded = GameState.encode(state3);
     const decoded = GameState.decode(encoded);
     expect(GameState.equals(decoded, state3)).toBe(true);
   });
 
   it("should encode and decode state5 (mid-game)", () => {
-    const state5 = GameState.parse(statesData[4]);
+    const state5 = GameState.fromJson(statesData[4]);
     const encoded = GameState.encode(state5);
     const decoded = GameState.decode(encoded);
     expect(GameState.equals(decoded, state5)).toBe(true);
   });
 
   it("should encode and decode diff from state1 to state2", () => {
-    const state1 = GameState.parse(statesData[0]);
-    const state2 = GameState.parse(statesData[1]);
+    const state1 = GameState.fromJson(statesData[0]);
+    const state2 = GameState.fromJson(statesData[1]);
 
     const diff = GameState.encodeDiff(state1, state2);
     const decoded = GameState.decodeDiff(state1, diff);
@@ -253,8 +253,8 @@ describe("Examples - Game", () => {
   });
 
   it("should encode and decode diff from state2 to state3", () => {
-    const state2 = GameState.parse(statesData[1]);
-    const state3 = GameState.parse(statesData[2]);
+    const state2 = GameState.fromJson(statesData[1]);
+    const state3 = GameState.fromJson(statesData[2]);
 
     const diff = GameState.encodeDiff(state2, state3);
     const decoded = GameState.decodeDiff(state2, diff);
@@ -263,8 +263,8 @@ describe("Examples - Game", () => {
   });
 
   it("should encode and decode diff from state3 to state4", () => {
-    const state3 = GameState.parse(statesData[2]);
-    const state4 = GameState.parse(statesData[3]);
+    const state3 = GameState.fromJson(statesData[2]);
+    const state4 = GameState.fromJson(statesData[3]);
 
     const diff = GameState.encodeDiff(state3, state4);
     const decoded = GameState.decodeDiff(state3, diff);
@@ -273,8 +273,8 @@ describe("Examples - Game", () => {
   });
 
   it("should encode and decode diff from state4 to state5", () => {
-    const state4 = GameState.parse(statesData[3]);
-    const state5 = GameState.parse(statesData[4]);
+    const state4 = GameState.fromJson(statesData[3]);
+    const state5 = GameState.fromJson(statesData[4]);
 
     const diff = GameState.encodeDiff(state4, state5);
     const decoded = GameState.decodeDiff(state4, diff);
@@ -283,8 +283,8 @@ describe("Examples - Game", () => {
   });
 
   it("should encode and decode diff from state5 to state6 (minimal changes)", () => {
-    const state5 = GameState.parse(statesData[4]);
-    const state6 = GameState.parse(statesData[5]);
+    const state5 = GameState.fromJson(statesData[4]);
+    const state6 = GameState.fromJson(statesData[5]);
 
     const diff = GameState.encodeDiff(state5, state6);
     const decoded = GameState.decodeDiff(state5, diff);
@@ -302,8 +302,8 @@ describe("Examples - Game", () => {
   });
 
   it("should demonstrate delta compression efficiency", () => {
-    const state5 = GameState.parse(statesData[4]);
-    const state6 = GameState.parse(statesData[5]);
+    const state5 = GameState.fromJson(statesData[4]);
+    const state6 = GameState.fromJson(statesData[5]);
 
     const fullEncode = GameState.encode(state6);
     const diff = GameState.encodeDiff(state5, state6);

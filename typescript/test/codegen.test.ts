@@ -12,7 +12,7 @@ import {
   MoveAction,
   AttackAction,
   UseItemAction,
-  type Color,
+  Color,
 } from "./generated-schema";
 
 describe("Delta Pack Codegen - Unified API", () => {
@@ -51,27 +51,27 @@ describe("Delta Pack Codegen - Unified API", () => {
     });
 
     it("should parse correct player data", () => {
-      expect(() => Player.parse(player1)).not.toThrow();
+      expect(() => Player.fromJson(player1)).not.toThrow();
     });
 
     it("should detect validation errors for name", () => {
       const invalidPlayer = { id: "p1", name: 123, score: 100, isActive: true };
-      expect(() => Player.parse(invalidPlayer as any)).toThrow(/name/);
+      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/name/);
     });
 
     it("should detect validation errors for id", () => {
       const invalidPlayer = { id: 123, name: "Alice", score: 100, isActive: true };
-      expect(() => Player.parse(invalidPlayer as any)).toThrow(/id/);
+      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/id/);
     });
 
     it("should detect validation errors for score", () => {
       const invalidPlayer = { id: "p1", name: "Alice", score: "invalid", isActive: true };
-      expect(() => Player.parse(invalidPlayer as any)).toThrow(/score/);
+      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/score/);
     });
 
     it("should detect validation errors for isActive", () => {
       const invalidPlayer = { id: "p1", name: "Alice", score: 100, isActive: "invalid" };
-      expect(() => Player.parse(invalidPlayer as any)).toThrow(/isActive/);
+      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/isActive/);
     });
 
     it("should check equality correctly", () => {
@@ -140,7 +140,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         partner: undefined,
       };
 
-      expect(() => Player.parse(player)).not.toThrow();
+      expect(() => Player.fromJson(player)).not.toThrow();
 
       const encoded = Player.encode(player);
       const decoded = Player.decode(encoded);
@@ -164,7 +164,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         partner: partner,
       };
 
-      expect(() => Player.parse(player)).not.toThrow();
+      expect(() => Player.fromJson(player)).not.toThrow();
 
       const encoded = Player.encode(player);
       const decoded = Player.decode(encoded);
@@ -198,7 +198,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         partner: partner1,
       };
 
-      expect(() => Player.parse(player)).not.toThrow();
+      expect(() => Player.fromJson(player)).not.toThrow();
 
       const encoded = Player.encode(player);
       const decoded = Player.decode(encoded);
@@ -316,7 +316,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         isActive: true,
         partner: { id: 123, name: "Bob" }, // invalid id type
       };
-      expect(() => Player.parse(invalidPlayer as any)).toThrow();
+      expect(() => Player.fromJson(invalidPlayer as any)).toThrow();
     });
   });
 
@@ -328,17 +328,17 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should parse correct position data", () => {
       const pos = { x: 123.456, y: 78.912 };
-      expect(() => Position.parse(pos)).not.toThrow();
+      expect(() => Position.fromJson(pos)).not.toThrow();
     });
 
     it("should detect validation errors for x", () => {
       const invalidPos = { x: "invalid", y: 10.0 };
-      expect(() => Position.parse(invalidPos as any)).toThrow(/x/);
+      expect(() => Position.fromJson(invalidPos as any)).toThrow(/x/);
     });
 
     it("should detect validation errors for y", () => {
       const invalidPos = { x: 10.0, y: "invalid" };
-      expect(() => Position.parse(invalidPos as any)).toThrow(/y/);
+      expect(() => Position.fromJson(invalidPos as any)).toThrow(/y/);
     });
 
     it("should quantize floats on encode/decode (0.1 precision)", () => {
@@ -450,17 +450,17 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should parse correct velocity data", () => {
       const vel = { vx: 123.456789, vy: 78.912345 };
-      expect(() => Velocity.parse(vel)).not.toThrow();
+      expect(() => Velocity.fromJson(vel)).not.toThrow();
     });
 
     it("should detect validation errors for vx", () => {
       const invalidVel = { vx: "invalid", vy: 10.0 };
-      expect(() => Velocity.parse(invalidVel as any)).toThrow(/vx/);
+      expect(() => Velocity.fromJson(invalidVel as any)).toThrow(/vx/);
     });
 
     it("should detect validation errors for vy", () => {
       const invalidVel = { vx: 10.0, vy: "invalid" };
-      expect(() => Velocity.parse(invalidVel as any)).toThrow(/vy/);
+      expect(() => Velocity.fromJson(invalidVel as any)).toThrow(/vy/);
     });
 
     it("should preserve full precision floats on encode/decode", () => {
@@ -621,21 +621,21 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should parse MoveAction", () => {
       const move = { x: 10, y: 20 };
-      expect(() => MoveAction.parse(move)).not.toThrow();
+      expect(() => MoveAction.fromJson(move)).not.toThrow();
     });
 
     it("should detect MoveAction validation errors for x", () => {
       const invalidMove = { x: "invalid", y: 20 };
-      expect(() => MoveAction.parse(invalidMove as any)).toThrow(/x/);
+      expect(() => MoveAction.fromJson(invalidMove as any)).toThrow(/x/);
     });
 
     it("should detect MoveAction validation errors for y", () => {
       const invalidMove = { x: 10, y: "invalid" };
-      expect(() => MoveAction.parse(invalidMove as any)).toThrow(/y/);
+      expect(() => MoveAction.fromJson(invalidMove as any)).toThrow(/y/);
     });
 
     it("should detect MoveAction validation errors for non-object", () => {
-      expect(() => MoveAction.parse("not an object" as any)).toThrow(/Invalid MoveAction/);
+      expect(() => MoveAction.fromJson("not an object" as any)).toThrow(/Invalid MoveAction/);
     });
 
     it("should create default AttackAction", () => {
@@ -675,21 +675,21 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should parse AttackAction", () => {
       const attack = { targetId: "enemy-1", damage: 50 };
-      expect(() => AttackAction.parse(attack)).not.toThrow();
+      expect(() => AttackAction.fromJson(attack)).not.toThrow();
     });
 
     it("should detect AttackAction validation errors for targetId", () => {
       const invalid = { targetId: 123, damage: 50 };
-      expect(() => AttackAction.parse(invalid as any)).toThrow(/targetId/);
+      expect(() => AttackAction.fromJson(invalid as any)).toThrow(/targetId/);
     });
 
     it("should detect AttackAction validation errors for damage", () => {
       const invalid = { targetId: "enemy-1", damage: -10 };
-      expect(() => AttackAction.parse(invalid as any)).toThrow(/damage/);
+      expect(() => AttackAction.fromJson(invalid as any)).toThrow(/damage/);
     });
 
     it("should detect AttackAction validation errors for non-object", () => {
-      expect(() => AttackAction.parse("not an object" as any)).toThrow(/Invalid AttackAction/);
+      expect(() => AttackAction.fromJson("not an object" as any)).toThrow(/Invalid AttackAction/);
     });
 
     it("should create default UseItemAction", () => {
@@ -729,16 +729,16 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should parse UseItemAction", () => {
       const useItem = { itemId: "potion-1" };
-      expect(() => UseItemAction.parse(useItem)).not.toThrow();
+      expect(() => UseItemAction.fromJson(useItem)).not.toThrow();
     });
 
     it("should detect UseItemAction validation errors for itemId", () => {
       const invalid = { itemId: 123 };
-      expect(() => UseItemAction.parse(invalid as any)).toThrow(/itemId/);
+      expect(() => UseItemAction.fromJson(invalid as any)).toThrow(/itemId/);
     });
 
     it("should detect UseItemAction validation errors for non-object", () => {
-      expect(() => UseItemAction.parse("not an object" as any)).toThrow(/Invalid UseItemAction/);
+      expect(() => UseItemAction.fromJson("not an object" as any)).toThrow(/Invalid UseItemAction/);
     });
   });
 
@@ -784,34 +784,34 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should parse MoveAction in union", () => {
       const moveAction: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
-      expect(() => GameAction.parse(moveAction)).not.toThrow();
+      expect(() => GameAction.fromJson(moveAction)).not.toThrow();
     });
 
     it("should parse AttackAction in union", () => {
       const attackAction: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
-      expect(() => GameAction.parse(attackAction)).not.toThrow();
+      expect(() => GameAction.fromJson(attackAction)).not.toThrow();
     });
 
     it("should parse UseItemAction in union", () => {
       const useItemAction: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
-      expect(() => GameAction.parse(useItemAction)).not.toThrow();
+      expect(() => GameAction.fromJson(useItemAction)).not.toThrow();
     });
 
     it("should parse protobuf-style MoveAction union", () => {
       const protobufAction: any = { MoveAction: { x: 10, y: 20 } };
-      const parsed = GameAction.parse(protobufAction);
+      const parsed = GameAction.fromJson(protobufAction);
       expect(parsed).toEqual({ type: "MoveAction", val: { x: 10, y: 20 } });
     });
 
     it("should parse protobuf-style AttackAction union", () => {
       const protobufAction: any = { AttackAction: { targetId: "enemy-1", damage: 50 } };
-      const parsed = GameAction.parse(protobufAction);
+      const parsed = GameAction.fromJson(protobufAction);
       expect(parsed).toEqual({ type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } });
     });
 
     it("should parse protobuf-style UseItemAction union", () => {
       const protobufAction: any = { UseItemAction: { itemId: "potion-1" } };
-      const parsed = GameAction.parse(protobufAction);
+      const parsed = GameAction.fromJson(protobufAction);
       expect(parsed).toEqual({ type: "UseItemAction", val: { itemId: "potion-1" } });
     });
 
@@ -819,7 +819,7 @@ describe("Delta Pack Codegen - Unified API", () => {
       const deltaPackAction: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
       const protobufAction: any = { MoveAction: { x: 100, y: 200 } };
 
-      const parsedProtobuf = GameAction.parse(protobufAction);
+      const parsedProtobuf = GameAction.fromJson(protobufAction);
       const encodedDeltaPack = GameAction.encode(deltaPackAction);
       const encodedProtobuf = GameAction.encode(parsedProtobuf);
 
@@ -828,26 +828,26 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect GameAction validation errors for invalid type", () => {
       const invalidAction: any = { type: "InvalidAction", val: {} };
-      expect(() => GameAction.parse(invalidAction)).toThrow();
+      expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should detect GameAction validation errors for non-object", () => {
-      expect(() => GameAction.parse("not an object" as any)).toThrow();
+      expect(() => GameAction.fromJson("not an object" as any)).toThrow();
     });
 
     it("should detect GameAction validation errors for invalid MoveAction value", () => {
       const invalidAction: any = { type: "MoveAction", val: { x: "invalid", y: 20 } };
-      expect(() => GameAction.parse(invalidAction)).toThrow();
+      expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should detect GameAction validation errors for invalid AttackAction value", () => {
       const invalidAction: any = { type: "AttackAction", val: { targetId: 123, damage: 50 } };
-      expect(() => GameAction.parse(invalidAction)).toThrow();
+      expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should detect GameAction validation errors for invalid UseItemAction value", () => {
       const invalidAction: any = { type: "UseItemAction", val: { itemId: false } };
-      expect(() => GameAction.parse(invalidAction)).toThrow();
+      expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should encode and decode MoveAction union", () => {
@@ -943,7 +943,7 @@ describe("Delta Pack Codegen - Unified API", () => {
     });
 
     it("should parse correct game state", () => {
-      expect(() => GameState.parse(gameState1)).not.toThrow();
+      expect(() => GameState.fromJson(gameState1)).not.toThrow();
     });
 
     it("should detect validation errors for invalid players", () => {
@@ -955,7 +955,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      expect(() => GameState.parse(invalidState as any)).toThrow(/players/);
+      expect(() => GameState.fromJson(invalidState)).toThrow(/players/);
     });
 
     it("should detect validation errors for invalid currentPlayer", () => {
@@ -967,7 +967,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      expect(() => GameState.parse(invalidState as any)).toThrow(/currentPlayer/);
+      expect(() => GameState.fromJson(invalidState)).toThrow(/currentPlayer/);
     });
 
     it("should detect validation errors for invalid round", () => {
@@ -979,7 +979,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      expect(() => GameState.parse(invalidState as any)).toThrow(/round/);
+      expect(() => GameState.fromJson(invalidState)).toThrow(/round/);
     });
 
     it("should detect validation errors for invalid metadata", () => {
@@ -991,7 +991,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         winningColor: undefined,
         lastAction: undefined,
       };
-      expect(() => GameState.parse(invalidState as any)).toThrow(/metadata/);
+      expect(() => GameState.fromJson(invalidState)).toThrow(/metadata/);
     });
 
     it("should detect validation errors for invalid winningColor", () => {
@@ -1003,7 +1003,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         winningColor: "INVALID_COLOR",
         lastAction: undefined,
       };
-      expect(() => GameState.parse(invalidState as any)).toThrow(/winningColor/);
+      expect(() => GameState.fromJson(invalidState)).toThrow(/winningColor/);
     });
 
     it("should detect validation errors for invalid lastAction", () => {
@@ -1015,11 +1015,11 @@ describe("Delta Pack Codegen - Unified API", () => {
         winningColor: undefined,
         lastAction: { type: "MoveAction", val: { x: "invalid", y: 20 } },
       };
-      expect(() => GameState.parse(invalidState as any)).toThrow(/lastAction/);
+      expect(() => GameState.fromJson(invalidState)).toThrow(/lastAction/);
     });
 
     it("should detect validation errors for non-object", () => {
-      expect(() => GameState.parse("not an object" as any)).toThrow(/Invalid GameState/);
+      expect(() => GameState.fromJson("not an object" as any)).toThrow(/Invalid GameState/);
     });
 
     it("should check equality correctly", () => {
@@ -1336,11 +1336,11 @@ describe("Delta Pack Codegen - Unified API", () => {
 
   describe("Edge Cases and Error Handling", () => {
     it("should handle non-object validation", () => {
-      expect(() => Player.parse("not an object" as any)).toThrow(/Invalid Player/);
+      expect(() => Player.fromJson("not an object" as any)).toThrow(/Invalid Player/);
     });
 
     it("should handle undefined values in validation", () => {
-      expect(() => Player.parse(undefined as any)).toThrow();
+      expect(() => Player.fromJson(undefined as any)).toThrow();
     });
 
     it("should roundtrip encode/decode multiple times", () => {

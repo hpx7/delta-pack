@@ -61,7 +61,7 @@ export const Player = {
       partner: undefined,
     };
   },
-  parse(obj: Player): Player {
+  fromJson(obj: Record<string, unknown>): Player {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Player: ${obj}`);
     }
@@ -70,7 +70,7 @@ export const Player = {
       name: _.tryParseField(() => _.parseString(obj.name), "Player.name"),
       score: _.tryParseField(() => _.parseInt(obj.score), "Player.score"),
       isActive: _.tryParseField(() => _.parseBoolean(obj.isActive), "Player.isActive"),
-      partner: _.tryParseField(() => _.parseOptional(obj.partner, (x) => Player.parse(x as Player)), "Player.partner"),
+      partner: _.tryParseField(() => _.parseOptional(obj.partner, (x) => Player.fromJson(x as Player)), "Player.partner"),
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -158,7 +158,7 @@ export const Position = {
       y: 0.0,
     };
   },
-  parse(obj: Position): Position {
+  fromJson(obj: Record<string, unknown>): Position {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Position: ${obj}`);
     }
@@ -228,7 +228,7 @@ export const Velocity = {
       vy: 0.0,
     };
   },
-  parse(obj: Velocity): Velocity {
+  fromJson(obj: Record<string, unknown>): Velocity {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid Velocity: ${obj}`);
     }
@@ -298,7 +298,7 @@ export const MoveAction = {
       y: 0,
     };
   },
-  parse(obj: MoveAction): MoveAction {
+  fromJson(obj: Record<string, unknown>): MoveAction {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid MoveAction: ${obj}`);
     }
@@ -368,7 +368,7 @@ export const AttackAction = {
       damage: 0,
     };
   },
-  parse(obj: AttackAction): AttackAction {
+  fromJson(obj: Record<string, unknown>): AttackAction {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid AttackAction: ${obj}`);
     }
@@ -437,7 +437,7 @@ export const UseItemAction = {
       itemId: "",
     };
   },
-  parse(obj: UseItemAction): UseItemAction {
+  fromJson(obj: Record<string, unknown>): UseItemAction {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid UseItemAction: ${obj}`);
     }
@@ -504,7 +504,7 @@ export const GameAction = {
   values() {
     return ["MoveAction", "AttackAction", "UseItemAction"];
   },
-  parse(obj: GameAction): GameAction {
+  fromJson(obj: Record<string, unknown>): GameAction {
     if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid GameAction: ${obj}`);
     }
@@ -513,19 +513,19 @@ export const GameAction = {
       if (obj.type === "MoveAction") {
         return {
           type: "MoveAction",
-          val: MoveAction.parse(obj.val as MoveAction),
+          val: MoveAction.fromJson(obj.val as MoveAction),
         };
       }
       else if (obj.type === "AttackAction") {
         return {
           type: "AttackAction",
-          val: AttackAction.parse(obj.val as AttackAction),
+          val: AttackAction.fromJson(obj.val as AttackAction),
         };
       }
       else if (obj.type === "UseItemAction") {
         return {
           type: "UseItemAction",
-          val: UseItemAction.parse(obj.val as UseItemAction),
+          val: UseItemAction.fromJson(obj.val as UseItemAction),
         };
       }
       else {
@@ -539,19 +539,19 @@ export const GameAction = {
       if (fieldName === "MoveAction") {
         return {
           type: "MoveAction",
-          val: MoveAction.parse(fieldValue as MoveAction),
+          val: MoveAction.fromJson(fieldValue as MoveAction),
         };
       }
       else if (fieldName === "AttackAction") {
         return {
           type: "AttackAction",
-          val: AttackAction.parse(fieldValue as AttackAction),
+          val: AttackAction.fromJson(fieldValue as AttackAction),
         };
       }
       else if (fieldName === "UseItemAction") {
         return {
           type: "UseItemAction",
-          val: UseItemAction.parse(fieldValue as UseItemAction),
+          val: UseItemAction.fromJson(fieldValue as UseItemAction),
         };
       }
     }
@@ -691,17 +691,17 @@ export const GameState = {
       lastAction: undefined,
     };
   },
-  parse(obj: GameState): GameState {
+  fromJson(obj: Record<string, unknown>): GameState {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {
-      players: _.tryParseField(() => _.parseArray(obj.players, (x) => Player.parse(x as Player)), "GameState.players"),
+      players: _.tryParseField(() => _.parseArray(obj.players, (x) => Player.fromJson(x as Player)), "GameState.players"),
       currentPlayer: _.tryParseField(() => _.parseOptional(obj.currentPlayer, (x) => _.parseString(x)), "GameState.currentPlayer"),
       round: _.tryParseField(() => _.parseUInt(obj.round), "GameState.round"),
       metadata: _.tryParseField(() => _.parseRecord(obj.metadata, (x) => _.parseString(x), (x) => _.parseString(x)), "GameState.metadata"),
       winningColor: _.tryParseField(() => _.parseOptional(obj.winningColor, (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
-      lastAction: _.tryParseField(() => _.parseOptional(obj.lastAction, (x) => GameAction.parse(x as GameAction)), "GameState.lastAction"),
+      lastAction: _.tryParseField(() => _.parseOptional(obj.lastAction, (x) => GameAction.fromJson(x as GameAction)), "GameState.lastAction"),
     };
   },
   equals(a: GameState, b: GameState): boolean {

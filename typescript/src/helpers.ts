@@ -393,14 +393,6 @@ export class Tracker {
   }
 }
 
-export function tryParseField<T>(parseFn: () => T, key: string): T {
-  try {
-    return parseFn();
-  } catch (err) {
-    throw new Error(`Invalid field ${key}`, { cause: err });
-  }
-}
-
 export function parseString(x: unknown): string {
   if (typeof x !== "string") {
     throw new Error(`Invalid string: ${x}`);
@@ -498,6 +490,13 @@ export function parseRecord<K, T>(
     }
   }
   return result;
+}
+export function tryParseField<T>(parseFn: () => T, key: string): T {
+  try {
+    return parseFn();
+  } catch (err) {
+    throw new Error(`Invalid field ${key}`, { cause: err });
+  }
 }
 
 export function equalsFloat(a: number, b: number): boolean {

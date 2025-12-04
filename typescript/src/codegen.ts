@@ -40,14 +40,14 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  parse(obj: ${name}): ${name} {
+  fromJson(obj: Record<string, unknown>): ${name} {
     if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
-          return `${childName}: _.tryParseField(() => ${renderParse(childType, childName, `obj.${childName}`)}, "${name}.${childName}"),`;
+          return `${childName}: _.tryParseField(() => ${renderFromJson(childType, childName, `obj.${childName}`)}, "${name}.${childName}"),`;
         })
         .join("\n      ")}
     };
@@ -132,7 +132,7 @@ export const ${name} = {
   values() {
     return [${type.options.map((option) => `"${option.reference}"`).join(", ")}];
   },
-  parse(obj: ${name}): ${name} {
+  fromJson(obj: Record<string, unknown>): ${name} {
     if (typeof obj !== "object" || obj == null) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
@@ -143,7 +143,7 @@ export const ${name} = {
           return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
         return {
           type: "${reference.reference}",
-          val: ${renderParse(reference, reference.reference, "obj.val")},
+          val: ${renderFromJson(reference, reference.reference, "obj.val")},
         };
       }`;
         })
@@ -161,7 +161,7 @@ export const ${name} = {
           return `${i > 0 ? "else " : ""}if (fieldName === "${reference.reference}") {
         return {
           type: "${reference.reference}",
-          val: ${renderParse(reference, reference.reference, "fieldValue")},
+          val: ${renderFromJson(reference, reference.reference, "fieldValue")},
         };
       }`;
         })
@@ -322,17 +322,17 @@ export const ${name} = {
     return `${name}.default()`;
   }
 
-  function renderParse(type: Type, name: string, key: string): string {
+  function renderFromJson(type: Type, name: string, key: string): string {
     if (type.type === "array") {
-      return `_.parseArray(${key}, (x) => ${renderParse(type.value, name, "x")})`;
+      return `_.parseArray(${key}, (x) => ${renderFromJson(type.value, name, "x")})`;
     } else if (type.type === "optional") {
-      return `_.parseOptional(${key}, (x) => ${renderParse(type.value, name, "x")})`;
+      return `_.parseOptional(${key}, (x) => ${renderFromJson(type.value, name, "x")})`;
     } else if (type.type === "record") {
-      const keyFn = renderParse(type.key, name, "x");
-      const valueFn = renderParse(type.value, name, "x");
+      const keyFn = renderFromJson(type.key, name, "x");
+      const valueFn = renderFromJson(type.value, name, "x");
       return `_.parseRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderParse(lookup(type), type.reference, key);
+      return renderFromJson(lookup(type), type.reference, key);
     } else if (type.type === "string") {
       return `_.parseString(${key})`;
     } else if (type.type === "int") {
@@ -346,7 +346,7 @@ export const ${name} = {
     } else if (type.type === "enum") {
       return `_.parseEnum(${key}, ${name})`;
     }
-    return `${name}.parse(${key} as ${name})`;
+    return `${name}.fromJson(${key} as ${name})`;
   }
 
   function renderEquals(type: Type, name: string, keyA: string, keyB: string): string {

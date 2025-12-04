@@ -67,7 +67,7 @@ Then use the generated code:
 ```typescript
 import { Player } from "./generated";
 
-const player = Player.parse({ id: "p1", name: "Alice", score: 100 });
+const player: Player = { id: "p1", name: "Alice", score: 100 };
 const encoded = Player.encode(player);
 const decoded = Player.decode(encoded);
 ```
@@ -202,16 +202,21 @@ const Player = load<Player>(schema, "Player");
 
 Every loaded type provides these methods:
 
-#### `parse(obj: unknown): T`
+#### `fromJson(obj: Record<string, unknown>): T`
 
-Validates and parses an object, throwing if invalid:
+Validates and parses JSON data, throwing if invalid. Use this when parsing untrusted or untyped data:
 
 ```typescript
-const player = Player.parse({
-  id: "p1",
-  name: "Alice",
-  score: 100,
-});
+// Parse unvalidated JSON data
+const jsonData = JSON.parse(networkResponse);
+const player = Player.fromJson(jsonData);
+```
+
+For most cases, prefer using TypeScript types directly:
+
+```typescript
+// Preferred: use TypeScript types for compile-time safety
+const player: Player = { id: "p1", name: "Alice", score: 100 };
 ```
 
 #### `encode(obj: T): Uint8Array`
@@ -256,11 +261,13 @@ const reconstructed = Player.decodeDiff(oldPlayer, diff);
 
 #### `equals(a: T, b: T): boolean`
 
-Deep equality comparison:
+Deep equality comparison with appropriate tolerance for floats:
 
 ```typescript
 const isEqual = Player.equals(player1, player2);
 ```
+
+For quantized floats (with `precision`), equality uses quantized value comparison. For non-quantized floats, equality uses epsilon-based comparison (0.00001 tolerance).
 
 #### `default(): T`
 
@@ -308,7 +315,7 @@ const decoded = Player.decode(encoded);
 
 The generated code provides the same methods as interpreter mode:
 
-- `Player.parse(obj)` - Validate and parse
+- `Player.fromJson(obj)` - Validate and parse JSON data
 - `Player.encode(obj)` - Serialize to binary
 - `Player.decode(bytes)` - Deserialize from binary
 - `Player.encodeDiff(old, new)` - Encode delta
