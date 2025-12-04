@@ -10,7 +10,7 @@
         {
           "type": "string",
           "description": "Type alias or field type definition",
-          "pattern": "^(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*(\\[\\]|\\?|,[a-zA-Z0-9]+)?)$"
+          "pattern": "^((string|int|uint),(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)(\\[\\]|\\?)?|(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?))?)$"
         },
         {
           "type": "array",
@@ -29,7 +29,7 @@
             "^[a-z][a-zA-Z0-9]*$": {
               "type": "string",
               "description": "Field type (primitive, reference, array, optional, or map)",
-              "pattern": "^(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?)|((,[a-zA-Z0-9\\[\\]]+)))?$"
+              "pattern": "^((string|int|uint),(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)(\\[\\]|\\?)?|(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?))?)$"
             }
           },
           "additionalProperties": false,
@@ -61,8 +61,8 @@
     },
     "mapType": {
       "type": "string",
-      "pattern": "^(string|int|uint|[A-Z][a-zA-Z0-9]*),([a-zA-Z0-9\\[\\]]+)$",
-      "description": "Map type using comma syntax: KeyType,ValueType"
+      "pattern": "^(string|int|uint),(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)(\\[\\]|\\?)?$",
+      "description": "Map type using comma syntax: KeyType,ValueType (key must be string, int, or uint)"
     }
   },
   "examples": [

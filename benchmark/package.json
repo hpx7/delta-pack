@@ -1,0 +1,13 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@hpx7/delta-pack": "^0.1.10",
+    "@msgpack/msgpack": "^3.1.2",
+    "protobufjs": "^7.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

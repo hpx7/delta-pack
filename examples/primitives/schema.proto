@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message Primitives {
+  string stringField = 1;
+  sint32 signedIntField = 2;
+  uint32 unsignedIntField = 3;
+  float floatField = 4;
+  bool booleanField = 5;
+}

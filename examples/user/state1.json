@@ -16,8 +16,7 @@
     "department": "engineering"
   },
   "preferredContact": {
-    "type": "EmailContact",
-    "val": {
+    "EmailContact": {
       "email": "john.doe@example.com"
     }
   }

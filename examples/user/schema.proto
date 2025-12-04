@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+enum HairColor {
+  HAIR_COLOR_UNSPECIFIED = 0;
+  BLACK = 1;
+  BROWN = 2;
+  BLOND = 3;
+  RED = 4;
+  WHITE = 5;
+  OTHER = 6;
+}
+
+message Address {
+  string street = 1;
+  string zip = 2;
+  string state = 3;
+}
+
+message EmailContact {
+  string email = 1;
+}
+
+message PhoneContact {
+  string phone = 1;
+  optional uint32 extension = 2;
+}
+
+message Contact {
+  oneof contactType {
+    EmailContact EmailContact = 1;
+    PhoneContact PhoneContact = 2;
+  }
+}
+
+message User {
+  string id = 1; // UserId type alias
+  string name = 2;
+  uint32 age = 3;
+  float weight = 4;
+  bool married = 5;
+  HairColor hairColor = 6;
+  optional Address address = 7;
+  repeated string children = 8; // UserId[] type alias
+  map<string, string> metadata = 9;
+  optional Contact preferredContact = 10;
+}

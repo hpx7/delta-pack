@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+// Enums for game constants
+enum Team {
+  TEAM_UNSPECIFIED = 0;
+  RED = 1;
+  BLUE = 2;
+  GREEN = 3;
+  YELLOW = 4;
+}
+
+enum PlayerStatus {
+  PLAYER_STATUS_UNSPECIFIED = 0;
+  ALIVE = 1;
+  DEAD = 2;
+  SPECTATING = 3;
+  DISCONNECTED = 4;
+}
+
+enum WeaponType {
+  WEAPON_TYPE_UNSPECIFIED = 0;
+  SWORD = 1;
+  BOW = 2;
+  STAFF = 3;
+  DAGGER = 4;
+  AXE = 5;
+}
+
+enum ItemRarity {
+  ITEM_RARITY_UNSPECIFIED = 0;
+  COMMON = 1;
+  UNCOMMON = 2;
+  RARE = 3;
+  EPIC = 4;
+  LEGENDARY = 5;
+}
+
+enum AbilityType {
+  ABILITY_TYPE_UNSPECIFIED = 0;
+  HEAL = 1;
+  DAMAGE = 2;
+  SHIELD = 3;
+  BUFF = 4;
+  DEBUFF = 5;
+  TELEPORT = 6;
+}
+
+enum EffectType {
+  EFFECT_TYPE_UNSPECIFIED = 0;
+  POISON = 1;
+  BURN = 2;
+  FREEZE = 3;
+  STUN = 4;
+  REGEN = 5;
+  HASTE = 6;
+}
+
+// Position in 2D space (0.1 precision = ~10cm accuracy)
+message Position {
+  float x = 1;
+  float y = 2;
+}
+
+// Velocity for movement (0.1 precision)
+message Velocity {
+  float vx = 1;
+  float vy = 2;
+}
+
+// Item in inventory
+message InventoryItem {
+  string itemId = 1;
+  string name = 2;
+  uint32 quantity = 3;
+  ItemRarity rarity = 4;
+  optional uint32 durability = 5;
+  optional uint32 enchantmentLevel = 6;
+}
+
+// Equipment slot
+message Equipment {
+  optional WeaponType weapon = 1;
+  optional string armor = 2;
+  optional string accessory1 = 3;
+  optional string accessory2 = 4;
+}
+
+// Player stats
+message PlayerStats {
+  uint32 health = 1;
+  uint32 maxHealth = 2;
+  uint32 mana = 3;
+  uint32 maxMana = 4;
+  uint32 stamina = 5;
+  uint32 maxStamina = 6;
+  uint32 level = 7;
+  uint32 experience = 8;
+  uint32 strength = 9;
+  uint32 agility = 10;
+  uint32 intelligence = 11;
+  uint32 defense = 12;
+}
+
+// Active effect on player
+message ActiveEffect {
+  EffectType effectType = 1;
+  float duration = 2;
+  uint32 strength = 3;
+  uint32 stackCount = 4;
+}
+
+// Ability cooldown tracking
+message AbilityCooldown {
+  string abilityId = 1;
+  AbilityType abilityType = 2;
+  float remainingCooldown = 3;
+}
+
+// Player state
+message Player {
+  string playerId = 1;
+  string username = 2;
+  optional Team team = 3;
+  PlayerStatus status = 4;
+  Position position = 5;
+  Velocity velocity = 6;
+  float rotation = 7;
+  PlayerStats stats = 8;
+  repeated InventoryItem inventory = 9;
+  Equipment equipment = 10;
+  repeated ActiveEffect activeEffects = 11;
+  repeated AbilityCooldown abilityCooldowns = 12;
+  uint32 kills = 13;
+  uint32 deaths = 14;
+  uint32 assists = 15;
+  uint32 gold = 16;
+  sint32 score = 17;
+  uint32 ping = 18;
+  bool isJumping = 19;
+  bool isCrouching = 20;
+  bool isAiming = 21;
+  optional float lastDamageTime = 22;
+  optional float respawnTime = 23;
+}
+
+// Enemy/NPC entity
+message Enemy {
+  string enemyId = 1;
+  string name = 2;
+  Position position = 3;
+  Velocity velocity = 4;
+  uint32 health = 5;
+  uint32 maxHealth = 6;
+  uint32 level = 7;
+  bool isAggro = 8;
+  optional string targetPlayerId = 9;
+  float lastAttackTime = 10;
+  optional string lootTableId = 11;
+}
+
+// Projectile (bullets, arrows, spells)
+message Projectile {
+  string projectileId = 1;
+  string ownerId = 2;
+  Position position = 3;
+  Velocity velocity = 4;
+  uint32 damage = 5;
+  uint32 penetration = 6;
+  float timeToLive = 7;
+  repeated string hitPlayers = 8;
+}
+
+// Dropped loot
+message DroppedLoot {
+  string lootId = 1;
+  Position position = 2;
+  InventoryItem item = 3;
+  float despawnTime = 4;
+}
+
+// World object (destructible, interactive)
+message WorldObject {
+  string objectId = 1;
+  string objectType = 2;
+  Position position = 3;
+  optional uint32 health = 4;
+  bool isDestroyed = 5;
+  bool isInteractable = 6;
+  optional string interactedBy = 7;
+}
+
+// Match statistics
+message MatchStats {
+  uint32 totalKills = 1;
+  uint32 totalDeaths = 2;
+  uint32 totalDamageDealt = 3;
+  uint32 totalHealingDone = 4;
+  uint32 longestKillStreak = 5;
+  float matchDuration = 6;
+}
+
+// Team score
+message TeamScore {
+  Team team = 1;
+  uint32 score = 2;
+  uint32 kills = 3;
+  uint32 objectivesCaptured = 4;
+}
+
+// Game settings
+message GameSettings {
+  uint32 maxPlayers = 1;
+  bool friendlyFire = 2;
+  float respawnDelay = 3;
+  uint32 roundTimeLimit = 4;
+  uint32 startingGold = 5;
+  float gravityMultiplier = 6;
+}
+
+// Main game state
+message GameState {
+  string gameId = 1;
+  float serverTime = 2;
+  uint32 tickNumber = 3;
+  uint32 round = 4;
+  string phase = 5;
+  float timeRemaining = 6;
+  map<string, Player> players = 7;
+  map<string, Enemy> enemies = 8;
+  map<string, Projectile> projectiles = 9;
+  map<string, DroppedLoot> droppedLoot = 10;
+  map<string, WorldObject> worldObjects = 11;
+  repeated TeamScore teamScores = 12;
+  MatchStats matchStats = 13;
+  GameSettings settings = 14;
+  optional Team winningTeam = 15;
+  string mapName = 16;
+  float weatherIntensity = 17;
+}

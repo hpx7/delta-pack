@@ -198,11 +198,11 @@ GameState:
   round: uint
   phase: string
   timeRemaining: float
-  players: string, Player
-  enemies: string, Enemy
-  projectiles: string, Projectile
-  droppedLoot: string, DroppedLoot
-  worldObjects: string, WorldObject
+  players: string,Player
+  enemies: string,Enemy
+  projectiles: string,Projectile
+  droppedLoot: string,DroppedLoot
+  worldObjects: string,WorldObject
   teamScores: TeamScore[]
   matchStats: MatchStats
   settings: GameSettings

@@ -17,8 +17,7 @@
     "level": "senior"
   },
   "preferredContact": {
-    "type": "PhoneContact",
-    "val": {
+    "PhoneContact": {
       "phone": "+1-555-0123",
       "extension": 42
     }

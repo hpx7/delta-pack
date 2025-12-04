@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
 
-ExampleObject:
+Primitives:
   stringField: string
   signedIntField: int
   unsignedIntField: uint

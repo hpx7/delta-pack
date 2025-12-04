@@ -9,17 +9,17 @@ const __dirname = dirname(__filename);
 const examplesDir = join(__dirname, "../../examples");
 
 describe("Examples - Primitives", () => {
-  const schemaPath = join(examplesDir, "primitives/schema.yml");
+  const schemaPath = join(examplesDir, "Primitives/schema.yml");
   const schemaYml = readFileSync(schemaPath, "utf8");
   const schema = parseSchemaYml(schemaYml);
 
-  const state1Path = join(examplesDir, "primitives/state1.json");
-  const state2Path = join(examplesDir, "primitives/state2.json");
+  const state1Path = join(examplesDir, "Primitives/state1.json");
+  const state2Path = join(examplesDir, "Primitives/state2.json");
 
   const state1Data = JSON.parse(readFileSync(state1Path, "utf8"));
   const state2Data = JSON.parse(readFileSync(state2Path, "utf8"));
 
-  type ExampleObject = {
+  type Primitives = {
     stringField: string;
     signedIntField: number;
     unsignedIntField: number;
@@ -27,16 +27,16 @@ describe("Examples - Primitives", () => {
     booleanField: boolean;
   };
 
-  const ExampleObject = load<ExampleObject>(schema, "ExampleObject");
+  const Primitives = load<Primitives>(schema, "Primitives");
 
   it("should parse schema successfully", () => {
-    expect(schema.ExampleObject).toBeDefined();
-    expect(schema.ExampleObject.type).toBe("object");
+    expect(schema.Primitives).toBeDefined();
+    expect(schema.Primitives.type).toBe("object");
   });
 
   it("should parse state1 JSON data", () => {
-    expect(() => ExampleObject.fromJson(state1Data)).not.toThrow();
-    const parsed = ExampleObject.fromJson(state1Data);
+    expect(() => Primitives.fromJson(state1Data)).not.toThrow();
+    const parsed = Primitives.fromJson(state1Data);
     expect(parsed.stringField).toBe("example string");
     expect(parsed.signedIntField).toBe(-42);
     expect(parsed.unsignedIntField).toBe(42);
@@ -45,8 +45,8 @@ describe("Examples - Primitives", () => {
   });
 
   it("should parse state2 JSON data", () => {
-    expect(() => ExampleObject.fromJson(state2Data)).not.toThrow();
-    const parsed = ExampleObject.fromJson(state2Data);
+    expect(() => Primitives.fromJson(state2Data)).not.toThrow();
+    const parsed = Primitives.fromJson(state2Data);
     expect(parsed.stringField).toBe("updated string");
     expect(parsed.signedIntField).toBe(-43);
     expect(parsed.unsignedIntField).toBe(43);
@@ -54,37 +54,37 @@ describe("Examples - Primitives", () => {
   });
 
   it("should encode and decode state1", () => {
-    const state1 = ExampleObject.fromJson(state1Data);
-    const encoded = ExampleObject.encode(state1);
-    const decoded = ExampleObject.decode(encoded);
-    expect(ExampleObject.equals(decoded, state1)).toBe(true);
+    const state1 = Primitives.fromJson(state1Data);
+    const encoded = Primitives.encode(state1);
+    const decoded = Primitives.decode(encoded);
+    expect(Primitives.equals(decoded, state1)).toBe(true);
   });
 
   it("should encode and decode state2", () => {
-    const state2 = ExampleObject.fromJson(state2Data);
-    const encoded = ExampleObject.encode(state2);
-    const decoded = ExampleObject.decode(encoded);
-    expect(ExampleObject.equals(decoded, state2)).toBe(true);
+    const state2 = Primitives.fromJson(state2Data);
+    const encoded = Primitives.encode(state2);
+    const decoded = Primitives.decode(encoded);
+    expect(Primitives.equals(decoded, state2)).toBe(true);
   });
 
   it("should encode and decode diff from state1 to state2", () => {
-    const state1 = ExampleObject.fromJson(state1Data);
-    const state2 = ExampleObject.fromJson(state2Data);
+    const state1 = Primitives.fromJson(state1Data);
+    const state2 = Primitives.fromJson(state2Data);
 
-    const diff = ExampleObject.encodeDiff(state1, state2);
-    const decoded = ExampleObject.decodeDiff(state1, diff);
+    const diff = Primitives.encodeDiff(state1, state2);
+    const decoded = Primitives.decodeDiff(state1, diff);
 
-    expect(ExampleObject.equals(decoded, state2)).toBe(true);
+    expect(Primitives.equals(decoded, state2)).toBe(true);
   });
 });
 
 describe("Examples - User", () => {
-  const schemaPath = join(examplesDir, "user/schema.yml");
+  const schemaPath = join(examplesDir, "User/schema.yml");
   const schemaYml = readFileSync(schemaPath, "utf8");
   const schema = parseSchemaYml(schemaYml);
 
-  const state1Path = join(examplesDir, "user/state1.json");
-  const state2Path = join(examplesDir, "user/state2.json");
+  const state1Path = join(examplesDir, "User/state1.json");
+  const state2Path = join(examplesDir, "User/state2.json");
 
   const state1Data = JSON.parse(readFileSync(state1Path, "utf8"));
   const state2Data = JSON.parse(readFileSync(state2Path, "utf8"));
@@ -147,17 +147,17 @@ describe("Examples - User", () => {
 });
 
 describe("Examples - Game", () => {
-  const schemaPath = join(examplesDir, "game/schema.yml");
+  const schemaPath = join(examplesDir, "GameState/schema.yml");
   const schemaYml = readFileSync(schemaPath, "utf8");
   const schema = parseSchemaYml(schemaYml);
 
   const statePaths = [
-    join(examplesDir, "game/state1.json"),
-    join(examplesDir, "game/state2.json"),
-    join(examplesDir, "game/state3.json"),
-    join(examplesDir, "game/state4.json"),
-    join(examplesDir, "game/state5.json"),
-    join(examplesDir, "game/state6.json"),
+    join(examplesDir, "GameState/state1.json"),
+    join(examplesDir, "GameState/state2.json"),
+    join(examplesDir, "GameState/state3.json"),
+    join(examplesDir, "GameState/state4.json"),
+    join(examplesDir, "GameState/state5.json"),
+    join(examplesDir, "GameState/state6.json"),
   ];
 
   const statesData = statePaths.map((path) => JSON.parse(readFileSync(path, "utf8")));
