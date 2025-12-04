@@ -219,6 +219,31 @@ For most cases, prefer using TypeScript types directly:
 const player: Player = { id: "p1", name: "Alice", score: 100 };
 ```
 
+#### `toJson(obj: T): Record<string, unknown>`
+
+Converts an object to JSON-serializable format. Useful for serializing to JSON or sending over HTTP:
+
+```typescript
+const player: Player = { id: "p1", name: "Alice", score: 100 };
+const json = Player.toJson(player);
+const jsonString = JSON.stringify(json);
+```
+
+**Format notes:**
+- Maps (RecordType) are converted to plain objects
+- Optional object properties with `undefined` values are excluded from the JSON
+- Unions are converted to protobuf format: `{ TypeName: {...} }`
+
+**Example with unions:**
+
+```typescript
+const action: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+const json = GameAction.toJson(action);
+// Result: { MoveAction: { x: 10, y: 20 } }
+```
+
+This format is compatible with protobuf JSON encoding and can be parsed back with `fromJson()`.
+
 #### `encode(obj: T): Uint8Array`
 
 Serializes an object to binary format:
@@ -316,6 +341,7 @@ const decoded = Player.decode(encoded);
 The generated code provides the same methods as interpreter mode:
 
 - `Player.fromJson(obj)` - Validate and parse JSON data
+- `Player.toJson(obj)` - Convert to JSON-serializable format
 - `Player.encode(obj)` - Serialize to binary
 - `Player.decode(bytes)` - Deserialize from binary
 - `Player.encodeDiff(old, new)` - Encode delta

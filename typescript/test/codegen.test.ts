@@ -74,6 +74,22 @@ describe("Delta Pack Codegen - Unified API", () => {
       expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/isActive/);
     });
 
+    it("should convert player to JSON", () => {
+      const json = Player.toJson(player1);
+      expect(json).toEqual({
+        id: "player-1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      });
+    });
+
+    it("should round-trip fromJson/toJson", () => {
+      const json = Player.toJson(player1);
+      const parsed = Player.fromJson(json);
+      expect(Player.equals(parsed, player1)).toBe(true);
+    });
+
     it("should check equality correctly", () => {
       expect(Player.equals(player1, player1)).toBe(true);
       expect(Player.equals(player1, player2)).toBe(false);
@@ -850,6 +866,31 @@ describe("Delta Pack Codegen - Unified API", () => {
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
+    it("should convert MoveAction union to protobuf JSON format", () => {
+      const action: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const json = GameAction.toJson(action);
+      expect(json).toEqual({ MoveAction: { x: 10, y: 20 } });
+    });
+
+    it("should convert AttackAction union to protobuf JSON format", () => {
+      const action: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+      const json = GameAction.toJson(action);
+      expect(json).toEqual({ AttackAction: { targetId: "enemy-1", damage: 50 } });
+    });
+
+    it("should convert UseItemAction union to protobuf JSON format", () => {
+      const action: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
+      const json = GameAction.toJson(action);
+      expect(json).toEqual({ UseItemAction: { itemId: "potion-1" } });
+    });
+
+    it("should round-trip union fromJson/toJson with protobuf format", () => {
+      const action: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
+      const json = GameAction.toJson(action);
+      const parsed = GameAction.fromJson(json);
+      expect(GameAction.equals(parsed, action)).toBe(true);
+    });
+
     it("should encode and decode MoveAction union", () => {
       const action: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
       const encoded = GameAction.encode(action);
@@ -1025,6 +1066,28 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should check equality correctly", () => {
       expect(GameState.equals(gameState1, gameState1)).toBe(true);
       expect(GameState.equals(gameState1, gameState2)).toBe(false);
+    });
+
+    it("should convert GameState to JSON with arrays and records", () => {
+      const json = GameState.toJson(gameState1);
+      expect(json).toEqual({
+        players: [
+          { id: "p1", name: "Alice", score: 0, isActive: true },
+          { id: "p2", name: "Bob", score: 0, isActive: true },
+        ],
+        currentPlayer: "p1",
+        round: 1,
+        metadata: {
+          mode: "ranked",
+          difficulty: "hard",
+        },
+      });
+    });
+
+    it("should round-trip GameState fromJson/toJson", () => {
+      const json = GameState.toJson(gameState1);
+      const parsed = GameState.fromJson(json);
+      expect(GameState.equals(parsed, gameState1)).toBe(true);
     });
 
     it("should encode and decode game state", () => {

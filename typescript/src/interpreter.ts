@@ -3,6 +3,7 @@ import { Type, isPrimitiveType } from "./schema";
 
 type DeltaPackApi<T> = {
   fromJson: (obj: Record<string, unknown>) => T;
+  toJson: (obj: T) => Record<string, unknown>;
   encode: (obj: T) => Uint8Array;
   decode: (buf: Uint8Array) => T;
   encodeDiff: (a: T, b: T) => Uint8Array;
@@ -41,7 +42,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
       return _fromJson(objVal, refType);
     } else if (objType.type === "object") {
-      if (typeof objVal !== "object" || objVal === null || Object.getPrototypeOf(objVal) !== Object.prototype) {
+      if (typeof objVal !== "object" || objVal == null || Object.getPrototypeOf(objVal) !== Object.prototype) {
         throw new Error(`Invalid object: ${objVal}`);
       }
       return _.mapValues(objType.properties, (typeVal, key) => {
@@ -57,7 +58,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         (val) => _fromJson(val, objType.value)
       );
     } else if (objType.type === "union") {
-      if (typeof objVal !== "object" || objVal === null) {
+      if (typeof objVal !== "object" || objVal == null) {
         throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
       }
       // check if it's delta-pack format: { type: "TypeName", val: ... }
@@ -90,6 +91,54 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "optional") {
       return _.parseOptional(objVal, (val) => _fromJson(val, objType.value));
     }
+  }
+
+  function _toJson(objVal: unknown, objType: Type): unknown {
+    if (
+      objType.type === "string" ||
+      objType.type === "int" ||
+      objType.type === "uint" ||
+      objType.type === "float" ||
+      objType.type === "boolean" ||
+      objType.type === "enum"
+    ) {
+      return objVal;
+    } else if (objType.type === "reference") {
+      const refType = schema[objType.reference];
+      if (!refType) {
+        throw new Error(`Unknown reference type: ${objType.reference}`);
+      }
+      return _toJson(objVal, refType);
+    } else if (objType.type === "object") {
+      const result: Record<string, unknown> = {};
+      for (const [key, typeVal] of Object.entries(objType.properties)) {
+        const fieldVal = (objVal as any)[key];
+        // Skip optional properties that are undefined
+        if (typeVal.type === "optional" && fieldVal == null) {
+          continue;
+        }
+        result[key] = _toJson(fieldVal, typeVal);
+      }
+      return result;
+    } else if (objType.type === "array") {
+      const arr = objVal as unknown[];
+      return arr.map((elem) => _toJson(elem, objType.value));
+    } else if (objType.type === "record") {
+      const map = objVal as Map<unknown, unknown>;
+      return _.mapToObject(map, (val) => _toJson(val, objType.value));
+    } else if (objType.type === "union") {
+      const unionObj = objVal as { type: string; val: unknown };
+      const refType = schema[unionObj.type];
+      return {
+        [unionObj.type]: _toJson(unionObj.val, refType),
+      };
+    } else if (objType.type === "optional") {
+      if (objVal == null) {
+        return null;
+      }
+      return _toJson(objVal, objType.value);
+    }
+    return objVal;
   }
 
   function _encode(objVal: unknown, objType: Type, tracker: _.Tracker): void {
@@ -265,8 +314,8 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const refType = schema[unionA.type];
       return _equals(unionA.val, unionB.val, refType);
     } else if (objType.type === "optional") {
-      if (a === undefined && b === undefined) return true;
-      if (a === undefined || b === undefined) return false;
+      if (a == null && b == null) return true;
+      if (a == null || b == null) return false;
       return _equals(a, b, objType.value);
     }
     return true;
@@ -450,6 +499,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
 
   return {
     fromJson: (obj: Record<string, unknown>) => _fromJson(obj, typeVal) as T,
+    toJson: (obj: T) => _toJson(obj, typeVal) as Record<string, unknown>,
     encode: (obj: T) => {
       const tracker = new _.Tracker();
       _encode(obj, typeVal, tracker);

@@ -52,6 +52,21 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
+  toJson(obj: ${name}): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    ${Object.entries(type.properties)
+      .map(([childName, childType]) => {
+        if (childType.type === "optional") {
+          return `if (obj.${childName} != null) {
+      result.${childName} = ${renderToJson(childType, childName, `obj.${childName}`)};
+    }`;
+        } else {
+          return `result.${childName} = ${renderToJson(childType, childName, `obj.${childName}`)};`;
+        }
+      })
+      .join("\n    ")}
+    return result;
+  },
   equals(a: ${name}, b: ${name}): boolean {
     return (
       ${Object.entries(type.properties)
@@ -167,6 +182,18 @@ export const ${name} = {
         })
         .join("\n      ")}
     }
+    throw new Error(\`Invalid ${name}: \${obj}\`);
+  },
+  toJson(obj: ${name}): Record<string, unknown> {
+    ${type.options
+      .map((reference, i) => {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+      return {
+        ${reference.reference}: ${renderToJson(reference, reference.reference, "obj.val")},
+      };
+    }`;
+      })
+      .join("\n    ")}
     throw new Error(\`Invalid ${name}: \${obj}\`);
   },
   equals(a: ${name}, b: ${name}): boolean {
@@ -347,6 +374,28 @@ export const ${name} = {
       return `_.parseEnum(${key}, ${name})`;
     }
     return `${name}.fromJson(${key} as ${name})`;
+  }
+
+  function renderToJson(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `${key}.map((x) => ${renderToJson(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return renderToJson(type.value, name, key);
+    } else if (type.type === "record") {
+      return `_.mapToObject(${key}, (x) => ${renderToJson(type.value, name, "x")})`;
+    } else if (type.type === "reference") {
+      return renderToJson(lookup(type), type.reference, key);
+    } else if (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "uint" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    ) {
+      return `${key}`;
+    }
+    return `${name}.toJson(${key})`;
   }
 
   function renderEquals(type: Type, name: string, keyA: string, keyB: string): string {

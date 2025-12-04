@@ -73,6 +73,17 @@ export const Player = {
       partner: _.tryParseField(() => _.parseOptional(obj.partner, (x) => Player.fromJson(x as Player)), "Player.partner"),
     };
   },
+  toJson(obj: Player): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.id = obj.id;
+    result.name = obj.name;
+    result.score = obj.score;
+    result.isActive = obj.isActive;
+    if (obj.partner != null) {
+      result.partner = Player.toJson(obj.partner);
+    }
+    return result;
+  },
   equals(a: Player, b: Player): boolean {
     return (
       a.id === b.id &&
@@ -167,6 +178,12 @@ export const Position = {
       y: _.tryParseField(() => _.parseFloat(obj.y), "Position.y"),
     };
   },
+  toJson(obj: Position): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.x = obj.x;
+    result.y = obj.y;
+    return result;
+  },
   equals(a: Position, b: Position): boolean {
     return (
       _.equalsFloatQuantized(a.x, b.x, 0.1) &&
@@ -236,6 +253,12 @@ export const Velocity = {
       vx: _.tryParseField(() => _.parseFloat(obj.vx), "Velocity.vx"),
       vy: _.tryParseField(() => _.parseFloat(obj.vy), "Velocity.vy"),
     };
+  },
+  toJson(obj: Velocity): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.vx = obj.vx;
+    result.vy = obj.vy;
+    return result;
   },
   equals(a: Velocity, b: Velocity): boolean {
     return (
@@ -307,6 +330,12 @@ export const MoveAction = {
       y: _.tryParseField(() => _.parseInt(obj.y), "MoveAction.y"),
     };
   },
+  toJson(obj: MoveAction): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.x = obj.x;
+    result.y = obj.y;
+    return result;
+  },
   equals(a: MoveAction, b: MoveAction): boolean {
     return (
       a.x === b.x &&
@@ -377,6 +406,12 @@ export const AttackAction = {
       damage: _.tryParseField(() => _.parseUInt(obj.damage), "AttackAction.damage"),
     };
   },
+  toJson(obj: AttackAction): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.targetId = obj.targetId;
+    result.damage = obj.damage;
+    return result;
+  },
   equals(a: AttackAction, b: AttackAction): boolean {
     return (
       a.targetId === b.targetId &&
@@ -444,6 +479,11 @@ export const UseItemAction = {
     return {
       itemId: _.tryParseField(() => _.parseString(obj.itemId), "UseItemAction.itemId"),
     };
+  },
+  toJson(obj: UseItemAction): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.itemId = obj.itemId;
+    return result;
   },
   equals(a: UseItemAction, b: UseItemAction): boolean {
     return (
@@ -554,6 +594,24 @@ export const GameAction = {
           val: UseItemAction.fromJson(fieldValue as UseItemAction),
         };
       }
+    }
+    throw new Error(`Invalid GameAction: ${obj}`);
+  },
+  toJson(obj: GameAction): Record<string, unknown> {
+    if (obj.type === "MoveAction") {
+      return {
+        MoveAction: MoveAction.toJson(obj.val),
+      };
+    }
+    else if (obj.type === "AttackAction") {
+      return {
+        AttackAction: AttackAction.toJson(obj.val),
+      };
+    }
+    else if (obj.type === "UseItemAction") {
+      return {
+        UseItemAction: UseItemAction.toJson(obj.val),
+      };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
   },
@@ -703,6 +761,22 @@ export const GameState = {
       winningColor: _.tryParseField(() => _.parseOptional(obj.winningColor, (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
       lastAction: _.tryParseField(() => _.parseOptional(obj.lastAction, (x) => GameAction.fromJson(x as GameAction)), "GameState.lastAction"),
     };
+  },
+  toJson(obj: GameState): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.players = obj.players.map((x) => Player.toJson(x));
+    if (obj.currentPlayer != null) {
+      result.currentPlayer = obj.currentPlayer;
+    }
+    result.round = obj.round;
+    result.metadata = _.mapToObject(obj.metadata, (x) => x);
+    if (obj.winningColor != null) {
+      result.winningColor = obj.winningColor;
+    }
+    if (obj.lastAction != null) {
+      result.lastAction = GameAction.toJson(obj.lastAction);
+    }
+    return result;
   },
   equals(a: GameState, b: GameState): boolean {
     return (

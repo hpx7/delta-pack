@@ -555,3 +555,11 @@ export function equalsRecord<K, T>(
 export function mapValues<T, U>(obj: Record<string, T>, fn: (value: T, key: string) => U): Record<string, U> {
   return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, fn(value, key)]));
 }
+
+export function mapToObject<K, V>(map: Map<K, V>, valueToObject: (x: V) => unknown): Record<string, unknown> {
+  const obj: Record<string, unknown> = {};
+  map.forEach((value, key) => {
+    obj[String(key)] = valueToObject(value);
+  });
+  return obj;
+}
