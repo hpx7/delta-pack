@@ -21,7 +21,7 @@ export type Infer<T extends Type, S extends Record<string, Type> = {}, D extends
               ? U
               : T extends { type: "array"; value: infer V }
                 ? V extends Type
-                  ? Array<Infer<V, S, Prev[D]>>
+                  ? Array<Infer<V, S, Prev[D]>> & { _dirty?: Set<number> }
                   : never
                 : T extends { type: "optional"; value: infer V }
                   ? V extends Type
@@ -30,7 +30,7 @@ export type Infer<T extends Type, S extends Record<string, Type> = {}, D extends
                   : T extends { type: "record"; key: infer K; value: infer V }
                     ? K extends Type
                       ? V extends Type
-                        ? Map<Infer<K, S, Prev[D]>, Infer<V, S, Prev[D]>>
+                        ? Map<Infer<K, S, Prev[D]>, Infer<V, S, Prev[D]>> & { _dirty?: Set<Infer<K, S, Prev[D]>> }
                         : never
                       : never
                     : T extends { type: "reference"; reference: infer R }
@@ -38,7 +38,7 @@ export type Infer<T extends Type, S extends Record<string, Type> = {}, D extends
                         ? Infer<S[R], S, Prev[D]>
                         : unknown
                       : T extends { type: "object"; properties: infer P }
-                        ? { -readonly [K in keyof P]: P[K] extends Type ? Infer<P[K], S, Prev[D]> : never }
+                        ? { -readonly [K in keyof P]: P[K] extends Type ? Infer<P[K], S, Prev[D]> : never } & { _dirty?: Set<keyof P> }
                         : T extends { type: "union"; options: readonly any[] }
                           ? InferUnion<T["options"], S, Prev[D]>
                           : unknown;

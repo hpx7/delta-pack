@@ -552,6 +552,53 @@ Delta encoding is most effective when:
 - Single field changes: 85-90% smaller
 - Multiple field changes: 70-85% smaller
 
+### Dirty Tracking Optimization
+
+For maximum encodeDiff performance, you can use the optional `_dirty` field to mark which fields/indices/keys have changed. This allows delta encoding to skip comparison checks entirely:
+
+```typescript
+// Objects: track changed fields
+const player: Player = { id: "p1", name: "Alice", score: 100 };
+player.score = 150;
+player._dirty = new Set(["score"]);
+
+const diff = Player.encodeDiff(oldPlayer, player);
+// Only encodes the 'score' field without checking other fields
+```
+
+```typescript
+// Arrays: track changed indices
+const items: Item[] = [...];
+items[5] = newItem;
+items._dirty = new Set([5]);
+
+const diff = encodeDiff(oldItems, items);
+// Only encodes index 5 without checking other elements
+```
+
+```typescript
+// Maps (RecordType): track changed keys
+const players: Map<string, Player> = new Map();
+players.set("p1", updatedPlayer);
+players._dirty = new Set(["p1"]);
+
+const diff = encodeDiff(oldPlayers, players);
+// Only processes key "p1" without checking other entries
+```
+
+The `_dirty` field is:
+- **Optional**: If absent, full comparison is performed
+- **Type-safe**: `Set<keyof T>` for objects, `Set<number>` for arrays, `Set<K>` for maps
+- **Included in generated types**: Both codegen and interpreter types include `_dirty`
+- **Not serialized**: The `_dirty` field is never encoded in the binary format
+
+**When to use dirty tracking:**
+- High-frequency updates (e.g., 60+ times per second)
+- Large objects/collections where full comparison is expensive
+- When you can reliably track changes at the application level
+
+**Important:** If dirty tracking is enabled but incomplete (e.g., you modify a field but don't mark it dirty), the delta will be incorrect. Only use dirty tracking if you can guarantee accurate tracking.
+
 ### Quantized Floats
 
 Use precision for floats to reduce size:

@@ -346,11 +346,16 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
       _encodeDiff(a, b, refType, tracker);
     } else if (objType.type === "object") {
-      const changed = !_equals(a, b, objType);
+      const dirty = (b as any)._dirty;
+      const changed = dirty == null ? !_equals(a, b, objType) : dirty.size > 0;
       tracker.pushBoolean(changed);
       if (!changed) return;
       for (const [key, typeVal] of Object.entries(objType.properties)) {
-        _encodeDiff((a as any)[key], (b as any)[key], typeVal, tracker);
+        if (dirty != null && !dirty.has(key)) {
+          tracker.pushBoolean(false);
+        } else {
+          _encodeDiff((a as any)[key], (b as any)[key], typeVal, tracker);
+        }
       }
     } else if (objType.type === "array") {
       const arrA = a as unknown[];

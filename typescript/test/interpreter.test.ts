@@ -1111,4 +1111,181 @@ describe("Delta Pack Interpreter - Unified API", () => {
       expect(encoded.length).toBeLessThan(20); // Should be very small
     });
   });
+
+  describe("Dirty Tracking Optimization", () => {
+    it("should work without dirty tracking (normal behavior)", () => {
+      const state1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const state2: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 150,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const diff = Player.encodeDiff(state1, state2);
+      const decoded = Player.decodeDiff(state1, diff);
+
+      expect(Player.equals(decoded, state2)).toBe(true);
+    });
+
+    it("should use dirty tracking when _dirty is present", () => {
+      const state1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const state2: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 150,
+        isActive: true,
+        partner: undefined,
+        _dirty: new Set(["score"]),
+      };
+
+      const diff = Player.encodeDiff(state1, state2);
+      const decoded = Player.decodeDiff(state1, diff);
+
+      expect(decoded.score).toBe(150);
+      expect(Player.equals(decoded, state2)).toBe(true);
+    });
+
+    it("should produce smaller diffs with dirty tracking for sparse updates", () => {
+      const largeState1: GameState = {
+        players: [
+          { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined },
+          { id: "p2", name: "Bob", score: 50, isActive: true, partner: undefined },
+        ],
+        currentPlayer: "p1",
+        round: 1,
+        metadata: new Map([["mode", "classic"]]),
+        winningColor: undefined,
+        lastAction: undefined,
+      };
+
+      // Without dirty tracking - changes only round
+      const state2WithoutDirty: GameState = {
+        ...largeState1,
+        round: 2,
+      };
+
+      // With dirty tracking - mark only round as dirty
+      const state2WithDirty: GameState = {
+        ...largeState1,
+        round: 2,
+        _dirty: new Set(["round"]),
+      };
+
+      const diffWithoutDirty = GameState.encodeDiff(largeState1, state2WithoutDirty);
+      const diffWithDirty = GameState.encodeDiff(largeState1, state2WithDirty);
+
+      console.log(`Without dirty tracking: ${diffWithoutDirty.length} bytes`);
+      console.log(`With dirty tracking: ${diffWithDirty.length} bytes`);
+
+      // Dirty tracking should produce smaller or equal size
+      expect(diffWithDirty.length).toBeLessThanOrEqual(diffWithoutDirty.length);
+
+      // Both should decode correctly
+      const decoded1 = GameState.decodeDiff(largeState1, diffWithoutDirty);
+      const decoded2 = GameState.decodeDiff(largeState1, diffWithDirty);
+
+      expect(decoded1.round).toBe(2);
+      expect(decoded2.round).toBe(2);
+    });
+
+    it("should early exit when dirty is empty", () => {
+      const state1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner: undefined,
+      };
+
+      const state2: Player = {
+        ...state1,
+        _dirty: new Set(), // Nothing dirty
+      };
+
+      const diff = Player.encodeDiff(state1, state2);
+      const decoded = Player.decodeDiff(state1, diff);
+
+      expect(Player.equals(decoded, state1)).toBe(true);
+      // Diff should be tiny (just the "no change" boolean)
+      expect(diff.length).toBeLessThan(5);
+    });
+
+    it("should support dirty tracking for arrays", () => {
+      const state1: GameState = {
+        players: [
+          { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined },
+          { id: "p2", name: "Bob", score: 50, isActive: true, partner: undefined },
+          { id: "p3", name: "Charlie", score: 75, isActive: true, partner: undefined },
+        ],
+        currentPlayer: "p1",
+        round: 1,
+        metadata: new Map(),
+        winningColor: undefined,
+        lastAction: undefined,
+      };
+
+      // Update only player at index 1
+      const players = state1.players;
+      players[1] = { ...players[1], score: 200 };
+      players._dirty = new Set([1]); // Mark only index 1 as dirty
+
+      const state2: GameState = {
+        ...state1,
+        players,
+      };
+
+      const diff = GameState.encodeDiff(state1, state2);
+      const decoded = GameState.decodeDiff(state1, diff);
+
+      expect(decoded.players[1].score).toBe(200);
+      expect(GameState.equals(decoded, state2)).toBe(true);
+    });
+
+    it("should support dirty tracking for records", () => {
+      const state1: GameState = {
+        players: [],
+        currentPlayer: "p1",
+        round: 1,
+        metadata: new Map([
+          ["mode", "classic"],
+          ["difficulty", "hard"],
+          ["map", "desert"],
+        ]),
+        winningColor: undefined,
+        lastAction: undefined,
+      };
+
+      // Update only one key
+      const metadata = state1.metadata;
+      metadata.set("mode", "ranked");
+      metadata._dirty = new Set(["mode"]); // Mark only "mode" as dirty
+
+      const state2: GameState = {
+        ...state1,
+        metadata,
+      };
+
+      const diff = GameState.encodeDiff(state1, state2);
+      const decoded = GameState.decodeDiff(state1, diff);
+
+      expect(decoded.metadata.get("mode")).toBe("ranked");
+      expect(GameState.equals(decoded, state2)).toBe(true);
+    });
+  });
 });

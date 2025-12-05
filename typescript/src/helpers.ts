@@ -151,22 +151,23 @@ export class Tracker {
   }
   pushArrayDiff<T>(
     a: T[],
-    b: T[],
+    b: T[] & { _dirty?: Set<number> },
     equals: (x: T, y: T) => boolean,
     encode: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const changed = a.length !== b.length || !equalsArray(a, b, equals);
+    const dirty = b._dirty;
+    const changed = dirty != null ? dirty.size > 0 || a.length !== b.length : !equalsArray(a, b, equals);
     this.pushBoolean(changed);
     if (!changed) {
       return;
     }
-
     this.pushUInt(b.length);
     const minLen = Math.min(a.length, b.length);
     for (let i = 0; i < minLen; i++) {
-      this.pushBoolean(!equals(a[i], b[i]));
-      if (!equals(a[i], b[i])) {
+      const elementChanged = dirty != null ? dirty.has(i) : !equals(a[i], b[i]);
+      this.pushBoolean(elementChanged);
+      if (elementChanged) {
         encodeDiff(a[i], b[i]);
       }
     }
@@ -176,37 +177,57 @@ export class Tracker {
   }
   pushRecordDiff<K, T>(
     a: Map<K, T>,
-    b: Map<K, T>,
+    b: Map<K, T> & { _dirty?: Set<K> },
     equals: (x: T, y: T) => boolean,
     encodeKey: (x: K) => void,
     encodeVal: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const changed = a.size !== b.size || !equalsRecord(a, b, (x, y) => x === y, equals);
+    const dirty = b._dirty;
+    const changed = dirty != null ? dirty.size > 0 : !equalsRecord(a, b, (x, y) => x === y, equals);
     this.pushBoolean(changed);
     if (!changed) {
       return;
     }
 
     const orderedKeys = [...a.keys()].sort();
-
     const updates: number[] = [];
     const deletions: number[] = [];
-    orderedKeys.forEach((aKey, i) => {
-      if (b.has(aKey)) {
-        if (!equals(a.get(aKey)!, b.get(aKey)!)) {
-          updates.push(i);
-        }
-      } else {
-        deletions.push(i);
-      }
-    });
     const additions: [K, T][] = [];
-    b.forEach((bVal, bKey) => {
-      if (!a.has(bKey)) {
-        additions.push([bKey, bVal]);
-      }
-    });
+
+    if (dirty != null) {
+      // With dirty tracking: only process dirty keys
+      dirty.forEach((dirtyKey) => {
+        if (a.has(dirtyKey) && b.has(dirtyKey)) {
+          // Key exists in both - it's an update
+          const idx = orderedKeys.indexOf(dirtyKey);
+          updates.push(idx);
+        } else if (!a.has(dirtyKey) && b.has(dirtyKey)) {
+          // Key not in a - it's an addition
+          additions.push([dirtyKey, b.get(dirtyKey)!]);
+        } else if (a.has(dirtyKey) && !b.has(dirtyKey)) {
+          // Key in a but not in b - it's a deletion
+          const idx = orderedKeys.indexOf(dirtyKey);
+          deletions.push(idx);
+        }
+      });
+    } else {
+      // Without dirty tracking: check all keys
+      orderedKeys.forEach((aKey, i) => {
+        if (b.has(aKey)) {
+          if (!equals(a.get(aKey)!, b.get(aKey)!)) {
+            updates.push(i);
+          }
+        } else {
+          deletions.push(i);
+        }
+      });
+      b.forEach((bVal, bKey) => {
+        if (!a.has(bKey)) {
+          additions.push([bKey, bVal]);
+        }
+      });
+    }
 
     if (a.size > 0) {
       this.pushUInt(deletions.length);

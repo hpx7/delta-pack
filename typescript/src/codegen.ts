@@ -14,7 +14,7 @@ ${Object.entries(schema)
 export type ${name} = ${type.options.map((option) => `"${option}"`).join(" | ")};
     `;
     } else {
-      return `export type ${name} = ${renderTypeArg(type)};`;
+      return `export type ${name} = ${renderTypeArg(type, name)};`;
     }
   })
   .join("\n")}
@@ -94,14 +94,20 @@ export const ${name} = {
     return tracker.toBuffer();
   },
   _encodeDiff(a: ${name}, b: ${name}, tracker: _.Tracker): void {
-    const changed = !${name}.equals(a, b);
+    const dirty = b._dirty;
+    const changed = dirty == null ? !${name}.equals(a, b) : dirty.size > 0;
     tracker.pushBoolean(changed);
     if (!changed) {
       return;
     }
     ${Object.entries(type.properties)
       .map(([childName, childType]) => {
-        return `${renderEncodeDiff(childType, name, `a.${childName}`, `b.${childName}`)};`;
+        return `// Field: ${childName}
+    if (dirty != null && !dirty.has("${childName}")) {
+      tracker.pushBoolean(false);
+    } else {
+      ${renderEncodeDiff(childType, name, `a.${childName}`, `b.${childName}`)};
+    }`;
       })
       .join("\n    ")}
   },
@@ -297,25 +303,25 @@ export const ${name} = {
     throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(schema)}`);
   }
 
-  function renderTypeArg(type: Type): string {
+  function renderTypeArg(type: Type, name: string): string {
     if (type.type === "object") {
       return `{
   ${Object.entries(type.properties)
     .map(([name, childType]) => {
-      return `${name}${childType.type === "optional" ? "?" : ""}: ${renderTypeArg(childType)};`;
+      return `${name}${childType.type === "optional" ? "?" : ""}: ${renderTypeArg(childType, name)};`;
     })
     .join("\n  ")}
-}`;
+} & { _dirty?: Set<keyof ${name}> }`;
     } else if (type.type === "union") {
       return type.options
-        .map((option) => `{ type: "${renderTypeArg(option)}"; val: ${renderTypeArg(option)} }`)
+        .map((option) => `{ type: "${renderTypeArg(option, name)}"; val: ${renderTypeArg(option, name)} }`)
         .join(" | ");
     } else if (type.type === "array") {
-      return `${renderTypeArg(type.value)}[]`;
+      return `${renderTypeArg(type.value, name)}[] & { _dirty?: Set<number> }`;
     } else if (type.type === "optional") {
-      return `${renderTypeArg(type.value)}`;
+      return `${renderTypeArg(type.value, name)}`;
     } else if (type.type === "record") {
-      return `Map<${renderTypeArg(type.key)}, ${renderTypeArg(type.value)}>`;
+      return `Map<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}> & { _dirty?: Set<${renderTypeArg(type.key, name)}> }`;
     } else if (type.type === "reference") {
       return type.reference;
     } else if (type.type === "int" || type.type === "uint" || type.type === "float") {
@@ -488,7 +494,7 @@ export const ${name} = {
 
   function renderEncodeDiff(type: Type, name: string, keyA: string, keyB: string): string {
     if (type.type === "array") {
-      const valueType = renderTypeArg(type.value);
+      const valueType = renderTypeArg(type.value, name);
       const equalsFn = renderEquals(type.value, name, "x", "y");
       const encodeFn = renderEncode(type.value, name, "x");
       const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
@@ -500,7 +506,7 @@ export const ${name} = {
       (x, y) => ${encodeDiffFn}
     )`;
     } else if (type.type === "optional") {
-      const valueType = renderTypeArg(type.value);
+      const valueType = renderTypeArg(type.value, name);
       const encodeFn = renderEncode(type.value, name, "x");
       if (isPrimitiveType(type.value, schema)) {
         return `tracker.pushOptionalDiffPrimitive<${valueType}>(
@@ -518,8 +524,8 @@ export const ${name} = {
     )`;
       }
     } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key);
-      const valueType = renderTypeArg(type.value);
+      const keyType = renderTypeArg(type.key, name);
+      const valueType = renderTypeArg(type.value, name);
       const equalsFn = renderEquals(type.value, name, "x", "y");
       const encodeKeyFn = renderEncode(type.key, name, "x");
       const encodeValFn = renderEncode(type.value, name, "x");
@@ -555,7 +561,7 @@ export const ${name} = {
 
   function renderDecodeDiff(type: Type, name: string, key: string): string {
     if (type.type === "array") {
-      const valueType = renderTypeArg(type.value);
+      const valueType = renderTypeArg(type.value, name);
       const decodeFn = renderDecode(type.value, name, "x");
       const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
       return `tracker.nextArrayDiff<${valueType}>(
@@ -564,7 +570,7 @@ export const ${name} = {
         (x) => ${decodeDiffFn}
       )`;
     } else if (type.type === "optional") {
-      const valueType = renderTypeArg(type.value);
+      const valueType = renderTypeArg(type.value, name);
       const decodeFn = renderDecode(type.value, name, "x");
       if (isPrimitiveType(type.value, schema)) {
         return `tracker.nextOptionalDiffPrimitive<${valueType}>(
@@ -580,8 +586,8 @@ export const ${name} = {
       )`;
       }
     } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key);
-      const valueType = renderTypeArg(type.value);
+      const keyType = renderTypeArg(type.key, name);
+      const valueType = renderTypeArg(type.value, name);
       const decodeKeyFn = renderDecode(type.key, name, "x");
       const decodeValueFn = renderDecode(type.value, name, "x");
       const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
