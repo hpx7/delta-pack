@@ -74,6 +74,32 @@ describe("Delta Pack Codegen - Unified API", () => {
       expect(() => Player.fromJson(invalidPlayer)).toThrow(/isActive/);
     });
 
+    it("should discard extra properties in fromJson", () => {
+      const playerWithExtra = {
+        id: "player-1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        extraField: "should be ignored",
+        anotherExtra: 999,
+      };
+      const parsed = Player.fromJson(playerWithExtra);
+      expect(parsed).toEqual(player1);
+      expect(parsed).not.toHaveProperty("extraField");
+      expect(parsed).not.toHaveProperty("anotherExtra");
+    });
+
+    it("should not encode extra properties", () => {
+      const playerWithExtra = {
+        ...player1,
+        extraField: "should be ignored",
+        anotherExtra: 999,
+      };
+      const encodedNormal = Player.encode(player1);
+      const encodedWithExtra = Player.encode(playerWithExtra);
+      expect(encodedWithExtra).toEqual(encodedNormal);
+    });
+
     it("should convert player to JSON", () => {
       const json = Player.toJson(player1);
       expect(json).toEqual({
