@@ -1,6 +1,6 @@
 {
   "name": "@hpx7/delta-pack",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "A TypeScript code generator and runtime for binary serialization based on schemas.",
   "license": "MIT",
   "author": "hpx7",
