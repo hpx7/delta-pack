@@ -56,22 +56,22 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect validation errors for name", () => {
       const invalidPlayer = { id: "p1", name: 123, score: 100, isActive: true };
-      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/name/);
+      expect(() => Player.fromJson(invalidPlayer)).toThrow(/name/);
     });
 
     it("should detect validation errors for id", () => {
       const invalidPlayer = { id: 123, name: "Alice", score: 100, isActive: true };
-      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/id/);
+      expect(() => Player.fromJson(invalidPlayer)).toThrow(/id/);
     });
 
     it("should detect validation errors for score", () => {
       const invalidPlayer = { id: "p1", name: "Alice", score: "invalid", isActive: true };
-      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/score/);
+      expect(() => Player.fromJson(invalidPlayer)).toThrow(/score/);
     });
 
     it("should detect validation errors for isActive", () => {
       const invalidPlayer = { id: "p1", name: "Alice", score: 100, isActive: "invalid" };
-      expect(() => Player.fromJson(invalidPlayer as any)).toThrow(/isActive/);
+      expect(() => Player.fromJson(invalidPlayer)).toThrow(/isActive/);
     });
 
     it("should convert player to JSON", () => {
@@ -332,7 +332,7 @@ describe("Delta Pack Codegen - Unified API", () => {
         isActive: true,
         partner: { id: 123, name: "Bob" }, // invalid id type
       };
-      expect(() => Player.fromJson(invalidPlayer as any)).toThrow();
+      expect(() => Player.fromJson(invalidPlayer)).toThrow();
     });
   });
 
@@ -349,12 +349,12 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect validation errors for x", () => {
       const invalidPos = { x: "invalid", y: 10.0 };
-      expect(() => Position.fromJson(invalidPos as any)).toThrow(/x/);
+      expect(() => Position.fromJson(invalidPos)).toThrow(/x/);
     });
 
     it("should detect validation errors for y", () => {
       const invalidPos = { x: 10.0, y: "invalid" };
-      expect(() => Position.fromJson(invalidPos as any)).toThrow(/y/);
+      expect(() => Position.fromJson(invalidPos)).toThrow(/y/);
     });
 
     it("should quantize floats on encode/decode (0.1 precision)", () => {
@@ -471,12 +471,12 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect validation errors for vx", () => {
       const invalidVel = { vx: "invalid", vy: 10.0 };
-      expect(() => Velocity.fromJson(invalidVel as any)).toThrow(/vx/);
+      expect(() => Velocity.fromJson(invalidVel)).toThrow(/vx/);
     });
 
     it("should detect validation errors for vy", () => {
       const invalidVel = { vx: 10.0, vy: "invalid" };
-      expect(() => Velocity.fromJson(invalidVel as any)).toThrow(/vy/);
+      expect(() => Velocity.fromJson(invalidVel)).toThrow(/vy/);
     });
 
     it("should preserve full precision floats on encode/decode", () => {
@@ -642,12 +642,12 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect MoveAction validation errors for x", () => {
       const invalidMove = { x: "invalid", y: 20 };
-      expect(() => MoveAction.fromJson(invalidMove as any)).toThrow(/x/);
+      expect(() => MoveAction.fromJson(invalidMove)).toThrow(/x/);
     });
 
     it("should detect MoveAction validation errors for y", () => {
       const invalidMove = { x: 10, y: "invalid" };
-      expect(() => MoveAction.fromJson(invalidMove as any)).toThrow(/y/);
+      expect(() => MoveAction.fromJson(invalidMove)).toThrow(/y/);
     });
 
     it("should detect MoveAction validation errors for non-object", () => {
@@ -696,12 +696,12 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect AttackAction validation errors for targetId", () => {
       const invalid = { targetId: 123, damage: 50 };
-      expect(() => AttackAction.fromJson(invalid as any)).toThrow(/targetId/);
+      expect(() => AttackAction.fromJson(invalid)).toThrow(/targetId/);
     });
 
     it("should detect AttackAction validation errors for damage", () => {
       const invalid = { targetId: "enemy-1", damage: -10 };
-      expect(() => AttackAction.fromJson(invalid as any)).toThrow(/damage/);
+      expect(() => AttackAction.fromJson(invalid)).toThrow(/damage/);
     });
 
     it("should detect AttackAction validation errors for non-object", () => {
@@ -750,7 +750,7 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should detect UseItemAction validation errors for itemId", () => {
       const invalid = { itemId: 123 };
-      expect(() => UseItemAction.fromJson(invalid as any)).toThrow(/itemId/);
+      expect(() => UseItemAction.fromJson(invalid)).toThrow(/itemId/);
     });
 
     it("should detect UseItemAction validation errors for non-object", () => {
