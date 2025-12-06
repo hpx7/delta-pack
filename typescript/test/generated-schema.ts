@@ -38,6 +38,9 @@ export type GameState = {
   winningColor?: Color;
   lastAction?: GameAction;
 } & { _dirty?: Set<keyof GameState> };
+export type Inventory = {
+  items?: (Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> };
+} & { _dirty?: Set<keyof Inventory> };
 
 
 const Color = {
@@ -999,6 +1002,113 @@ export const GameState = {
         obj.lastAction,
         () => GameAction._decode(tracker),
         (x) => GameAction._decodeDiff(x, tracker)
+      ),
+    };
+  },
+};
+
+export const Inventory = {
+  default(): Inventory {
+    return {
+      items: undefined,
+    };
+  },
+  fromJson(obj: Record<string, unknown>): Inventory {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+      throw new Error(`Invalid Inventory: ${obj}`);
+    }
+    return {
+      items: _.tryParseField(() => _.parseOptional(obj.items, (x) => _.parseArray(x, (x) => _.parseRecord(x, (x) => _.parseString(x), (x) => _.parseInt(x)))), "Inventory.items"),
+    };
+  },
+  toJson(obj: Inventory): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    if (obj.items != null) {
+      result.items = obj.items.map((x) => _.mapToObject(x, (x) => x));
+    }
+    return result;
+  },
+  equals(a: Inventory, b: Inventory): boolean {
+    return (
+      _.equalsOptional(a.items, b.items, (x, y) => _.equalsArray(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y)))
+    );
+  },
+  encode(obj: Inventory): Uint8Array {
+    const tracker = new _.Tracker();
+    Inventory._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: Inventory, tracker: _.Tracker): void {
+    tracker.pushOptional(obj.items, (x) => tracker.pushArray(x, (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x))));
+  },
+  encodeDiff(a: Inventory, b: Inventory): Uint8Array {
+    const tracker = new _.Tracker();
+    Inventory._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: Inventory, b: Inventory, tracker: _.Tracker): void {
+    const dirty = b._dirty;
+    const changed = dirty == null ? !Inventory.equals(a, b) : dirty.size > 0;
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    // Field: items
+    if (dirty != null && !dirty.has("items")) {
+      tracker.pushBoolean(false);
+    } else {
+      tracker.pushOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(
+      a.items,
+      b.items,
+      (x) => tracker.pushArray(x, (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x))),
+      (x, y) => tracker.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(
+      x,
+      y,
+      (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
+      (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x)),
+      (x, y) => tracker.pushRecordDiff<string, number>(
+      x,
+      y,
+      (x, y) => x === y,
+      (x) => tracker.pushString(x),
+      (x) => tracker.pushInt(x),
+      (x, y) => tracker.pushIntDiff(x, y)
+    )
+    )
+    );
+    }
+  },
+  decode(input: Uint8Array): Inventory {
+    return Inventory._decode(_.Tracker.parse(input));
+  },
+  _decode(tracker: _.Tracker): Inventory {
+    return {
+      items: tracker.nextOptional(() => tracker.nextArray(() => tracker.nextRecord(() => tracker.nextString(), () => tracker.nextInt()))),
+    };
+  },
+  decodeDiff(obj: Inventory, input: Uint8Array): Inventory {
+    const tracker = _.Tracker.parse(input);
+    return Inventory._decodeDiff(obj, tracker);
+  },
+  _decodeDiff(obj: Inventory, tracker: _.Tracker): Inventory {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
+      return obj;
+    }
+    return {
+      items: tracker.nextOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(
+        obj.items,
+        () => tracker.nextArray(() => tracker.nextRecord(() => tracker.nextString(), () => tracker.nextInt())),
+        (x) => tracker.nextArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(
+        x,
+        () => tracker.nextRecord(() => tracker.nextString(), () => tracker.nextInt()),
+        (x) => tracker.nextRecordDiff<string, number>(
+        x,
+        () => tracker.nextString(),
+        () => tracker.nextInt(),
+        (x) => tracker.nextIntDiff(x)
+      )
+      )
       ),
     };
   },

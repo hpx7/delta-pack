@@ -11,6 +11,7 @@ type AttackAction = Infer<typeof schema.AttackAction, typeof schema>;
 type UseItemAction = Infer<typeof schema.UseItemAction, typeof schema>;
 type GameAction = Infer<typeof schema.GameAction, typeof schema>;
 type GameState = Infer<typeof schema.GameState, typeof schema>;
+type Inventory = Infer<typeof schema.Inventory, typeof schema>;
 
 // Load interpreter APIs
 const Player = load<Player>(schema, "Player");
@@ -21,6 +22,7 @@ const AttackAction = load<AttackAction>(schema, "AttackAction");
 const UseItemAction = load<UseItemAction>(schema, "UseItemAction");
 const GameAction = load<GameAction>(schema, "GameAction");
 const GameState = load<GameState>(schema, "GameState");
+const Inventory = load<Inventory>(schema, "Inventory");
 
 describe("Delta Pack Interpreter - Unified API", () => {
   describe("Player Type - Basic Operations", () => {
@@ -1312,6 +1314,69 @@ describe("Delta Pack Interpreter - Unified API", () => {
 
       expect(decoded.metadata.get("mode")).toBe("ranked");
       expect(GameState.equals(decoded, state2)).toBe(true);
+    });
+  });
+
+  describe("Nested Container Types - Inventory", () => {
+    it("should encode/decode inventory with optional array of records", () => {
+      const inventory: Inventory = {
+        items: [
+          new Map([
+            ["sword", 1],
+            ["shield", 1],
+          ]),
+          new Map([
+            ["potion", 5],
+            ["arrow", 20],
+          ]),
+        ],
+      };
+
+      const encoded = Inventory.encode(inventory);
+      const decoded = Inventory.decode(encoded);
+
+      expect(decoded.items).toHaveLength(2);
+      expect(decoded.items![0].get("sword")).toBe(1);
+      expect(decoded.items![0].get("shield")).toBe(1);
+      expect(decoded.items![1].get("potion")).toBe(5);
+      expect(decoded.items![1].get("arrow")).toBe(20);
+    });
+
+    it("should handle undefined items in inventory", () => {
+      const inventory: Inventory = {
+        items: undefined,
+      };
+
+      const encoded = Inventory.encode(inventory);
+      const decoded = Inventory.decode(encoded);
+
+      expect(decoded.items).toBeUndefined();
+    });
+
+    it("should compute diff for nested container changes", () => {
+      const inv1: Inventory = {
+        items: [
+          new Map([
+            ["sword", 1],
+            ["shield", 1],
+          ]),
+        ],
+      };
+
+      const inv2: Inventory = {
+        items: [
+          new Map([
+            ["sword", 1],
+            ["shield", 2],
+          ]),
+        ],
+      };
+
+      const encodedDiff = Inventory.encodeDiff(inv1, inv2);
+      const decoded = Inventory.decodeDiff(inv1, encodedDiff);
+
+      expect(decoded.items![0].get("shield")).toBe(2);
+      expect(decoded.items![0].get("sword")).toBe(1);
     });
   });
 });

@@ -67,6 +67,11 @@ const GameState = ObjectType({
   lastAction: OptionalType(ReferenceType("GameAction")),
 });
 
+// Nested container type: optional array of records
+const Inventory = ObjectType({
+  items: OptionalType(ArrayType(RecordType(StringType(), IntType()))),
+});
+
 // Export schema for interpreter tests
 export const schema = defineSchema({
   Color,
@@ -78,4 +83,5 @@ export const schema = defineSchema({
   UseItemAction,
   GameAction,
   GameState,
+  Inventory,
 });

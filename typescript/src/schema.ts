@@ -104,8 +104,7 @@ export function BooleanType(): BooleanType {
   return { type: "boolean" };
 }
 
-export function isPrimitiveType(type: Type, schema?: Record<string, Type>): boolean {
-  // Resolve references if schema provided
+export function isPrimitiveType(type: Type, schema: Record<string, Type>): boolean {
   if (type.type === "reference" && schema) {
     const refType = schema[type.reference];
     if (!refType) {

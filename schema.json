@@ -10,7 +10,7 @@
         {
           "type": "string",
           "description": "Type alias or field type definition",
-          "pattern": "^((string|int|uint),(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)(\\[\\]|\\?)?|(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?))?)$"
+          "pattern": "^(<(string|int|uint), [a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*|(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?))*)$"
         },
         {
           "type": "array",
@@ -28,8 +28,8 @@
           "patternProperties": {
             "^[a-z][a-zA-Z0-9]*$": {
               "type": "string",
-              "description": "Field type (primitive, reference, array, optional, or map)",
-              "pattern": "^((string|int|uint),(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)(\\[\\]|\\?)?|(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?))?)$"
+              "description": "Field type (primitive, reference, array, optional, or record)",
+              "pattern": "^(<(string|int|uint), [a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*|(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)((\\[\\])|(\\?))*)$"
             }
           },
           "additionalProperties": false,
@@ -59,10 +59,10 @@
       "pattern": "^[a-zA-Z0-9]+\\?$",
       "description": "Optional type using ? suffix"
     },
-    "mapType": {
+    "recordType": {
       "type": "string",
-      "pattern": "^(string|int|uint),(string|int|uint|float|boolean|[A-Z][a-zA-Z0-9]*)(\\[\\]|\\?)?$",
-      "description": "Map type using comma syntax: KeyType,ValueType (key must be string, int, or uint)"
+      "pattern": "^<(string|int|uint), [a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*$",
+      "description": "Record/Map type using angle bracket syntax: <KeyType, ValueType> (key must be string, int, or uint). Supports suffixes like [] and ?"
     }
   },
   "examples": [
@@ -94,8 +94,11 @@
         "position": "Position",
         "color": "Color?",
         "tags": "string[]",
-        "metadata": "string,string",
+        "metadata": "<string, string>",
         "contact": "Contact?"
+      },
+      "Inventory": {
+        "items": "<string, int>[]?"
       }
     }
   ]

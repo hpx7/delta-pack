@@ -317,7 +317,10 @@ export const ${name} = {
         .map((option) => `{ type: "${renderTypeArg(option, name)}"; val: ${renderTypeArg(option, name)} }`)
         .join(" | ");
     } else if (type.type === "array") {
-      return `${renderTypeArg(type.value, name)}[] & { _dirty?: Set<number> }`;
+      const elementType = renderTypeArg(type.value, name);
+      // Parenthesize if element type has _dirty (array or record - objects can't be direct children)
+      const needsParens = type.value.type === "array" || type.value.type === "record";
+      return needsParens ? `(${elementType})[] & { _dirty?: Set<number> }` : `${elementType}[] & { _dirty?: Set<number> }`;
     } else if (type.type === "optional") {
       return `${renderTypeArg(type.value, name)}`;
     } else if (type.type === "record") {

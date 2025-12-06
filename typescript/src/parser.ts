@@ -43,18 +43,43 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
       return ObjectType(properties);
     }
     if (typeof value === "string") {
-      // map type, array type, optional type, reference type, or primitive type
-      if (value.includes(",")) {
-        // map type
-        const parts = value.split(",").map((s) => s.trim());
+      // angle bracket record syntax: <K, V> with optional suffixes []?
+      if (value.startsWith("<")) {
+        const closeIndex = value.indexOf(">");
+        if (closeIndex === -1) {
+          throw new Error(`Unclosed angle bracket in type: ${value}`);
+        }
+        const inner = value.slice(1, closeIndex);
+        const suffix = value.slice(closeIndex + 1);
+
+        // Parse the inner part as K, V for record
+        const parts = inner.split(",").map((s) => s.trim());
         if (parts.length !== 2) {
-          throw new Error(`Map type must have exactly 2 types, got: ${value}`);
+          throw new Error(`Record type must have exactly 2 types, got: ${value}`);
         }
         const [keyTypeStr, valueTypeStr] = parts;
         const keyType = parseType(keyTypeStr) as { type: "string" | "int" | "uint" };
         const valueType = parseType(valueTypeStr) as PrimitiveType | ContainerType | ReferenceType;
-        return RecordType(keyType, valueType);
+        let resultType: Type = RecordType(keyType, valueType);
+
+        // Apply suffixes ([], ?, etc.)
+        let remainingSuffix = suffix;
+        while (remainingSuffix) {
+          if (remainingSuffix.startsWith("[]")) {
+            resultType = ArrayType(resultType as PrimitiveType | ContainerType | ReferenceType);
+            remainingSuffix = remainingSuffix.slice(2);
+          } else if (remainingSuffix.startsWith("?")) {
+            resultType = OptionalType(resultType as PrimitiveType | ContainerType | ReferenceType);
+            remainingSuffix = remainingSuffix.slice(1);
+          } else {
+            throw new Error(`Unknown suffix in type: ${remainingSuffix}`);
+          }
+        }
+
+        return resultType;
       }
+
+      // array type, optional type, reference type, or primitive type
       if (value.endsWith("[]")) {
         // array type
         const itemTypeStr = value.slice(0, -2);

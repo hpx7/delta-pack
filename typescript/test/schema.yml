@@ -42,6 +42,9 @@ GameState:
   players: Player[]
   currentPlayer: string?
   round: uint
-  metadata: string, string
+  metadata: <string, string>
   winningColor: Color?
   lastAction: GameAction?
+
+Inventory:
+  items: <string, int>[]?

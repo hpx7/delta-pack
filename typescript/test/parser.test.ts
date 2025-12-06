@@ -32,6 +32,7 @@ describe("YAML Schema Parser", () => {
     expect(parsedSchema.UseItemAction).toBeDefined();
     expect(parsedSchema.GameAction).toBeDefined();
     expect(parsedSchema.GameState).toBeDefined();
+    expect(parsedSchema.Inventory).toBeDefined();
   });
 
   it("should parse Color as enum type", () => {
@@ -194,5 +195,52 @@ describe("YAML Schema Parser", () => {
     expect(allTypes).toContain("uint");
     expect(allTypes).toContain("float");
     expect(allTypes).toContain("boolean");
+  });
+
+  it("should parse Inventory with nested containers using angle bracket syntax", () => {
+    const inventoryType = parsedSchema.Inventory as ObjectType;
+    expect(inventoryType.type).toBe("object");
+
+    // items: <string, int>[]?
+    const itemsField = inventoryType.properties.items;
+    expect(itemsField.type).toBe("optional");
+
+    // Should be optional array
+    const arrayType = (itemsField as any).value;
+    expect(arrayType.type).toBe("array");
+
+    // Array element should be record
+    const recordType = arrayType.value;
+    expect(recordType.type).toBe("record");
+    expect(recordType.key.type).toBe("string");
+    expect(recordType.value.type).toBe("int");
+  });
+
+  it("should parse angle bracket record syntax", () => {
+    // Test <string, string> syntax
+    const gameStateType = parsedSchema.GameState as ObjectType;
+    const metadataField = gameStateType.properties.metadata;
+    expect(metadataField.type).toBe("record");
+    expect((metadataField as any).key.type).toBe("string");
+    expect((metadataField as any).value.type).toBe("string");
+  });
+
+  it("should support angle bracket syntax with suffixes", () => {
+    // <string, int>[]? should parse as: OptionalType(ArrayType(RecordType(...)))
+    const inventoryType = parsedSchema.Inventory as ObjectType;
+    const itemsField = inventoryType.properties.items;
+
+    // Outer: optional
+    expect(itemsField.type).toBe("optional");
+
+    // Middle: array
+    const innerType = (itemsField as any).value;
+    expect(innerType.type).toBe("array");
+
+    // Inner: record
+    const recordType = innerType.value;
+    expect(recordType.type).toBe("record");
+    expect(recordType.key.type).toBe("string");
+    expect(recordType.value.type).toBe("int");
   });
 });

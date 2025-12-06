@@ -35,5 +35,5 @@ User:
   hairColor: HairColor
   address: Address?
   children: UserId[]
-  metadata: string,string
+  metadata: <string, string>
   preferredContact: Contact?
