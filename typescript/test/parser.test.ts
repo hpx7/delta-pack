@@ -243,4 +243,54 @@ describe("YAML Schema Parser", () => {
     expect(recordType.key.type).toBe("string");
     expect(recordType.value.type).toBe("int");
   });
+
+  it("should support angle bracket syntax without spaces after comma", () => {
+    // Test that <K,V> (no space) works the same as <K, V> (with space)
+    const schema1 = parseSchemaYml("TestType:\n  field: <string,int>");
+    const schema2 = parseSchemaYml("TestType:\n  field: <string, int>");
+
+    const type1 = (schema1.TestType as ObjectType).properties.field;
+    const type2 = (schema2.TestType as ObjectType).properties.field;
+
+    expect(type1.type).toBe("record");
+    expect(type2.type).toBe("record");
+    expect(type1).toEqual(type2);
+
+    // Test with suffixes
+    const schema3 = parseSchemaYml("TestType:\n  field: <string,int>[]?");
+    const type3 = (schema3.TestType as ObjectType).properties.field;
+
+    expect(type3.type).toBe("optional");
+    const arrayType = (type3 as any).value;
+    expect(arrayType.type).toBe("array");
+    const recordType = arrayType.value;
+    expect(recordType.type).toBe("record");
+    expect(recordType.key.type).toBe("string");
+    expect(recordType.value.type).toBe("int");
+  });
+
+  it("should support nested record types in values", () => {
+    // Test nested inline records: <string, <int, Player>>
+    const schema = parseSchemaYml(`
+Player:
+  id: string
+  name: string
+
+TestType:
+  field: <string, <int, Player>>
+`);
+
+    const fieldType = (schema.TestType as ObjectType).properties.field;
+    expect(fieldType.type).toBe("record");
+
+    // Key should be string
+    expect((fieldType as any).key.type).toBe("string");
+
+    // Value should be a nested record
+    const valueType = (fieldType as any).value;
+    expect(valueType.type).toBe("record");
+    expect(valueType.key.type).toBe("int");
+    expect(valueType.value.type).toBe("reference");
+    expect(valueType.value.reference).toBe("Player");
+  });
 });
