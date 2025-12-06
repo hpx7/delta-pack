@@ -320,7 +320,9 @@ export const ${name} = {
       const elementType = renderTypeArg(type.value, name);
       // Parenthesize if element type has _dirty (array or record - objects can't be direct children)
       const needsParens = type.value.type === "array" || type.value.type === "record";
-      return needsParens ? `(${elementType})[] & { _dirty?: Set<number> }` : `${elementType}[] & { _dirty?: Set<number> }`;
+      return needsParens
+        ? `(${elementType})[] & { _dirty?: Set<number> }`
+        : `${elementType}[] & { _dirty?: Set<number> }`;
     } else if (type.type === "optional") {
       return `${renderTypeArg(type.value, name)}`;
     } else if (type.type === "record") {
