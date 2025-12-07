@@ -161,11 +161,11 @@ export const Player = {
       tracker.pushBoolean(false);
     } else {
       tracker.pushOptionalDiff<Player>(
-      a.partner,
-      b.partner,
-      (x) => Player._encode(x, tracker),
-      (x, y) => Player._encodeDiff(x, y, tracker)
-    );
+        a.partner,
+        b.partner,
+        (x) => Player._encode(x, tracker),
+        (x, y) => Player._encodeDiff(x, y, tracker)
+      );
     }
   },
   decode(input: Uint8Array): Player {
@@ -793,8 +793,8 @@ export const GameAction = {
     return tracker.toBuffer();
   },
   _encodeDiff(a: GameAction, b: GameAction, tracker: _.Tracker): void {
+    tracker.pushBoolean(a.type === b.type);
     if (b.type === "MoveAction") {
-      tracker.pushBoolean(a.type === "MoveAction");
       if (a.type === "MoveAction") {
         MoveAction._encodeDiff(a.val, b.val, tracker);
       } else {
@@ -803,7 +803,6 @@ export const GameAction = {
       }
     }
     else if (b.type === "AttackAction") {
-      tracker.pushBoolean(a.type === "AttackAction");
       if (a.type === "AttackAction") {
         AttackAction._encodeDiff(a.val, b.val, tracker);
       } else {
@@ -812,7 +811,6 @@ export const GameAction = {
       }
     }
     else if (b.type === "UseItemAction") {
-      tracker.pushBoolean(a.type === "UseItemAction");
       if (a.type === "UseItemAction") {
         UseItemAction._encodeDiff(a.val, b.val, tracker);
       } else {
@@ -866,13 +864,22 @@ export const GameAction = {
     } else {
       const type = tracker.nextUInt();
       if (type === 0) {
-        return { type: "MoveAction", val: MoveAction._decode(tracker) };
+        return {
+          type: "MoveAction",
+          val: MoveAction._decode(tracker),
+        };
       }
       else if (type === 1) {
-        return { type: "AttackAction", val: AttackAction._decode(tracker) };
+        return {
+          type: "AttackAction",
+          val: AttackAction._decode(tracker),
+        };
       }
       else if (type === 2) {
-        return { type: "UseItemAction", val: UseItemAction._decode(tracker) };
+        return {
+          type: "UseItemAction",
+          val: UseItemAction._decode(tracker),
+        };
       }
       throw new Error("Invalid union diff");
     }
@@ -969,22 +976,22 @@ export const GameState = {
       tracker.pushBoolean(false);
     } else {
       tracker.pushArrayDiff<Player>(
-      a.players,
-      b.players,
-      (x, y) => Player.equals(x, y),
-      (x) => Player._encode(x, tracker),
-      (x, y) => Player._encodeDiff(x, y, tracker)
-    );
+        a.players,
+        b.players,
+        (x, y) => Player.equals(x, y),
+        (x) => Player._encode(x, tracker),
+        (x, y) => Player._encodeDiff(x, y, tracker)
+      );
     }
     // Field: currentPlayer
     if (dirty != null && !dirty.has("currentPlayer")) {
       tracker.pushBoolean(false);
     } else {
       tracker.pushOptionalDiffPrimitive<string>(
-      a.currentPlayer,
-      b.currentPlayer,
-      (x) => tracker.pushString(x)
-    );
+        a.currentPlayer,
+        b.currentPlayer,
+        (x) => tracker.pushString(x)
+      );
     }
     // Field: round
     if (dirty != null && !dirty.has("round")) {
@@ -997,34 +1004,34 @@ export const GameState = {
       tracker.pushBoolean(false);
     } else {
       tracker.pushRecordDiff<string, string>(
-      a.metadata,
-      b.metadata,
-      (x, y) => x === y,
-      (x) => tracker.pushString(x),
-      (x) => tracker.pushString(x),
-      (x, y) => tracker.pushStringDiff(x, y)
-    );
+        a.metadata,
+        b.metadata,
+        (x, y) => x === y,
+        (x) => tracker.pushString(x),
+        (x) => tracker.pushString(x),
+        (x, y) => tracker.pushStringDiff(x, y)
+      );
     }
     // Field: winningColor
     if (dirty != null && !dirty.has("winningColor")) {
       tracker.pushBoolean(false);
     } else {
       tracker.pushOptionalDiffPrimitive<Color>(
-      a.winningColor,
-      b.winningColor,
-      (x) => tracker.pushUInt(Color[x])
-    );
+        a.winningColor,
+        b.winningColor,
+        (x) => tracker.pushUInt(Color[x])
+      );
     }
     // Field: lastAction
     if (dirty != null && !dirty.has("lastAction")) {
       tracker.pushBoolean(false);
     } else {
       tracker.pushOptionalDiff<GameAction>(
-      a.lastAction,
-      b.lastAction,
-      (x) => GameAction._encode(x, tracker),
-      (x, y) => GameAction._encodeDiff(x, y, tracker)
-    );
+        a.lastAction,
+        b.lastAction,
+        (x) => GameAction._encode(x, tracker),
+        (x, y) => GameAction._encodeDiff(x, y, tracker)
+      );
     }
   },
   decode(input: Uint8Array): GameState {
@@ -1135,24 +1142,24 @@ export const Inventory = {
       tracker.pushBoolean(false);
     } else {
       tracker.pushOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(
-      a.items,
-      b.items,
-      (x) => tracker.pushArray(x, (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x))),
-      (x, y) => tracker.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(
-      x,
-      y,
-      (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
-      (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x)),
-      (x, y) => tracker.pushRecordDiff<string, number>(
-      x,
-      y,
-      (x, y) => x === y,
-      (x) => tracker.pushString(x),
-      (x) => tracker.pushInt(x),
-      (x, y) => tracker.pushIntDiff(x, y)
-    )
-    )
-    );
+        a.items,
+        b.items,
+        (x) => tracker.pushArray(x, (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x))),
+        (x, y) => tracker.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(
+        x,
+        y,
+        (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
+        (x) => tracker.pushRecord(x, (x) => tracker.pushString(x), (x) => tracker.pushInt(x)),
+        (x, y) => tracker.pushRecordDiff<string, number>(
+        x,
+        y,
+        (x, y) => x === y,
+        (x) => tracker.pushString(x),
+        (x) => tracker.pushInt(x),
+        (x, y) => tracker.pushIntDiff(x, y)
+      )
+      )
+      );
     }
   },
   decode(input: Uint8Array): Inventory {
@@ -1245,13 +1252,13 @@ export const PlayerRegistry = {
       tracker.pushBoolean(false);
     } else {
       tracker.pushRecordDiff<string, Player>(
-      a.players,
-      b.players,
-      (x, y) => Player.equals(x, y),
-      (x) => tracker.pushString(x),
-      (x) => Player._encode(x, tracker),
-      (x, y) => Player._encodeDiff(x, y, tracker)
-    );
+        a.players,
+        b.players,
+        (x, y) => Player.equals(x, y),
+        (x) => tracker.pushString(x),
+        (x) => Player._encode(x, tracker),
+        (x, y) => Player._encodeDiff(x, y, tracker)
+      );
     }
   },
   decode(input: Uint8Array): PlayerRegistry {

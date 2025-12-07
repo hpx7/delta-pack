@@ -255,10 +255,10 @@ export const ${name} = {
     return tracker.toBuffer();
   },
   _encodeDiff(a: ${name}, b: ${name}, tracker: _.Tracker): void {
+    tracker.pushBoolean(a.type === b.type);
     ${type.options
       .map((reference, i) => {
         return `${i > 0 ? "else " : ""}if (b.type === "${reference.reference}") {
-      tracker.pushBoolean(a.type === "${reference.reference}");
       if (a.type === "${reference.reference}") {
         ${renderEncodeDiff(reference, reference.reference, "a.val", "b.val")};
       } else {
@@ -306,7 +306,10 @@ export const ${name} = {
       ${type.options
         .map((reference, i) => {
           return `${i > 0 ? "else " : ""}if (type === ${i}) {
-        return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
+        return {
+          type: "${reference.reference}",
+          val: ${renderDecode(reference, reference.reference, "obj.val")},
+        };
       }`;
         })
         .join("\n      ")}
@@ -549,29 +552,29 @@ export const ${name} = {
       const encodeFn = renderEncode(type.value, name, "x");
       const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
       return `tracker.pushArrayDiff<${valueType}>(
-      ${keyA},
-      ${keyB},
-      (x, y) => ${equalsFn},
-      (x) => ${encodeFn},
-      (x, y) => ${encodeDiffFn}
-    )`;
+        ${keyA},
+        ${keyB},
+        (x, y) => ${equalsFn},
+        (x) => ${encodeFn},
+        (x, y) => ${encodeDiffFn}
+      )`;
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value, name);
       const encodeFn = renderEncode(type.value, name, "x");
       if (isPrimitiveType(type.value, schema)) {
         return `tracker.pushOptionalDiffPrimitive<${valueType}>(
-      ${keyA},
-      ${keyB},
-      (x) => ${encodeFn}
-    )`;
+        ${keyA},
+        ${keyB},
+        (x) => ${encodeFn}
+      )`;
       } else {
         const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
         return `tracker.pushOptionalDiff<${valueType}>(
-      ${keyA},
-      ${keyB},
-      (x) => ${encodeFn},
-      (x, y) => ${encodeDiffFn}
-    )`;
+        ${keyA},
+        ${keyB},
+        (x) => ${encodeFn},
+        (x, y) => ${encodeDiffFn}
+      )`;
       }
     } else if (type.type === "record") {
       const keyType = renderTypeArg(type.key, name);
@@ -581,13 +584,13 @@ export const ${name} = {
       const encodeValFn = renderEncode(type.value, name, "x");
       const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
       return `tracker.pushRecordDiff<${keyType}, ${valueType}>(
-      ${keyA},
-      ${keyB},
-      (x, y) => ${equalsFn},
-      (x) => ${encodeKeyFn},
-      (x) => ${encodeValFn},
-      (x, y) => ${encodeDiffFn}
-    )`;
+        ${keyA},
+        ${keyB},
+        (x, y) => ${equalsFn},
+        (x) => ${encodeKeyFn},
+        (x) => ${encodeValFn},
+        (x, y) => ${encodeDiffFn}
+      )`;
     } else if (type.type === "reference") {
       return renderEncodeDiff(lookup(type), type.reference, keyA, keyB);
     } else if (type.type === "string") {
