@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "scripts": {
+    "gen": "tsx gen.ts > generated.ts",
+    "server": "npm run gen && tsx server.ts",
+    "client": "npm run gen && tsx client.ts"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
+  }
+}
