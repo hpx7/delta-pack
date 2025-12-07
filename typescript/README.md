@@ -294,6 +294,26 @@ const isEqual = Player.equals(player1, player2);
 
 For quantized floats (with `precision`), equality uses quantized value comparison. For non-quantized floats, equality uses epsilon-based comparison (0.00001 tolerance).
 
+#### `clone(obj: T): T`
+
+Creates a deep clone of an object:
+
+```typescript
+const player1 = { id: "p1", name: "Alice", score: 100 };
+const player2 = Player.clone(player1);
+
+// Modifying the clone doesn't affect the original
+player2.score = 200;
+console.log(player1.score); // 100
+console.log(player2.score); // 200
+```
+
+**Important notes:**
+- Creates deep copies of all nested objects, arrays, and maps
+- Primitives (strings, numbers, booleans) are copied by value
+- The `_dirty` field is **not** preserved in clones (clones always start clean)
+- Useful for creating modified copies without mutating the original state
+
 #### `default(): T`
 
 Creates a default instance:
@@ -347,6 +367,7 @@ The generated code provides the same methods as interpreter mode:
 - `Player.encodeDiff(old, new)` - Encode delta
 - `Player.decodeDiff(old, diff)` - Apply delta
 - `Player.equals(a, b)` - Deep equality
+- `Player.clone(obj)` - Deep clone object
 - `Player.default()` - Default instance
 
 ## Complete Example
@@ -565,6 +586,27 @@ player._dirty = new Set(["score"]);
 const diff = Player.encodeDiff(oldPlayer, player);
 // Only encodes the 'score' field without checking other fields
 ```
+
+**Pattern: Clone and modify for clean state tracking:**
+
+When you need to modify state without mutating the original, use `clone()` to create a fresh copy:
+
+```typescript
+// Start with a clean clone
+const newPlayer = Player.clone(oldPlayer);
+
+// Modify and track changes
+newPlayer.score = 200;
+newPlayer._dirty = new Set(["score"]);
+
+// Efficient delta encoding
+const diff = Player.encodeDiff(oldPlayer, newPlayer);
+```
+
+This pattern ensures:
+- Original state remains unchanged
+- You can precisely control which fields are marked dirty
+- Delta encoding is maximally efficient
 
 ```typescript
 // Arrays: track changed indices

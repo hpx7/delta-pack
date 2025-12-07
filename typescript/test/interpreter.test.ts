@@ -12,6 +12,7 @@ type UseItemAction = Infer<typeof schema.UseItemAction, typeof schema>;
 type GameAction = Infer<typeof schema.GameAction, typeof schema>;
 type GameState = Infer<typeof schema.GameState, typeof schema>;
 type Inventory = Infer<typeof schema.Inventory, typeof schema>;
+type PlayerRegistry = Infer<typeof schema.PlayerRegistry, typeof schema>;
 
 // Load interpreter APIs
 const Player = load<Player>(schema, "Player");
@@ -23,6 +24,7 @@ const UseItemAction = load<UseItemAction>(schema, "UseItemAction");
 const GameAction = load<GameAction>(schema, "GameAction");
 const GameState = load<GameState>(schema, "GameState");
 const Inventory = load<Inventory>(schema, "Inventory");
+const PlayerRegistry = load<PlayerRegistry>(schema, "PlayerRegistry");
 
 describe("Delta Pack Interpreter - Unified API", () => {
   describe("Player Type - Basic Operations", () => {
@@ -31,7 +33,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
       name: "Alice",
       score: 100,
       isActive: true,
-      partner: undefined,
     };
 
     const player2: Player = {
@@ -39,7 +40,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
       name: "Alice",
       score: 150,
       isActive: false,
-      partner: undefined,
     };
 
     it("should parse correct player data", () => {
@@ -146,8 +146,8 @@ describe("Delta Pack Interpreter - Unified API", () => {
     });
 
     it("should handle all fields changing", () => {
-      const p1 = { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined };
-      const p2 = { id: "p2", name: "Bob", score: 200, isActive: false, partner: undefined };
+      const p1 = { id: "p1", name: "Alice", score: 100, isActive: true };
+      const p2 = { id: "p2", name: "Bob", score: 200, isActive: false };
 
       const encodedDiff = Player.encodeDiff(p1, p2);
       const result = Player.decodeDiff(p1, encodedDiff);
@@ -155,8 +155,8 @@ describe("Delta Pack Interpreter - Unified API", () => {
     });
 
     it("should handle only one field changing", () => {
-      const p1 = { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined };
-      const p2 = { id: "p1", name: "Alice", score: 150, isActive: true, partner: undefined };
+      const p1 = { id: "p1", name: "Alice", score: 100, isActive: true };
+      const p2 = { id: "p1", name: "Alice", score: 150, isActive: true };
 
       const encodedDiff = Player.encodeDiff(p1, p2);
       const result = Player.decodeDiff(p1, encodedDiff);
@@ -171,7 +171,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       expect(() => Player.fromJson(player)).not.toThrow();
@@ -187,7 +186,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player: Player = {
@@ -213,7 +211,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Charlie",
         score: 25,
         isActive: false,
-        partner: undefined,
       };
 
       const partner1: Player = {
@@ -247,7 +244,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player: Player = {
@@ -279,7 +275,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const partner: Player = {
@@ -287,7 +282,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player2: Player = {
@@ -310,7 +304,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player1: Player = {
@@ -326,7 +319,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Bob",
         score: 75, // score changed
         isActive: true,
-        partner: undefined,
       };
 
       const player2: Player = {
@@ -349,7 +341,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player1: Player = {
@@ -365,7 +356,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const encodedDiff = Player.encodeDiff(player1, player2);
@@ -938,8 +928,8 @@ describe("Delta Pack Interpreter - Unified API", () => {
   });
 
   describe("Complex Type - GameState", () => {
-    const player1: Player = { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined };
-    const player2: Player = { id: "p2", name: "Bob", score: 50, isActive: true, partner: undefined };
+    const player1: Player = { id: "p1", name: "Alice", score: 100, isActive: true };
+    const player2: Player = { id: "p2", name: "Bob", score: 50, isActive: true };
 
     const gameState1: GameState = {
       players: [player1, player2],
@@ -949,7 +939,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         ["mode", "classic"],
         ["difficulty", "hard"],
       ]),
-      winningColor: undefined,
       lastAction: { type: "MoveAction", val: { x: 10, y: 20 } },
     };
 
@@ -1041,11 +1030,8 @@ describe("Delta Pack Interpreter - Unified API", () => {
     it("should handle empty players array", () => {
       const emptyState: GameState = {
         players: [],
-        currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       };
 
       const encoded = GameState.encode(emptyState);
@@ -1098,14 +1084,12 @@ describe("Delta Pack Interpreter - Unified API", () => {
     it("should demonstrate delta compression benefits", () => {
       const state1: GameState = {
         players: [
-          { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined },
-          { id: "p2", name: "Bob", score: 50, isActive: true, partner: undefined },
+          { id: "p1", name: "Alice", score: 100, isActive: true },
+          { id: "p2", name: "Bob", score: 50, isActive: true },
         ],
         currentPlayer: "p1",
         round: 1,
         metadata: new Map([["mode", "classic"]]),
-        winningColor: undefined,
-        lastAction: undefined,
       };
 
       const state2: GameState = {
@@ -1126,11 +1110,8 @@ describe("Delta Pack Interpreter - Unified API", () => {
     it("should have reasonable encoding sizes for minimal state", () => {
       const minimalState: GameState = {
         players: [],
-        currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       };
 
       const encoded = GameState.encode(minimalState);
@@ -1147,7 +1128,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const state2: Player = {
@@ -1155,7 +1135,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 150,
         isActive: true,
-        partner: undefined,
       };
 
       const diff = Player.encodeDiff(state1, state2);
@@ -1170,7 +1149,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const state2: Player = {
@@ -1178,7 +1156,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 150,
         isActive: true,
-        partner: undefined,
         _dirty: new Set(["score"]),
       };
 
@@ -1192,14 +1169,12 @@ describe("Delta Pack Interpreter - Unified API", () => {
     it("should produce smaller diffs with dirty tracking for sparse updates", () => {
       const largeState1: GameState = {
         players: [
-          { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined },
-          { id: "p2", name: "Bob", score: 50, isActive: true, partner: undefined },
+          { id: "p1", name: "Alice", score: 100, isActive: true },
+          { id: "p2", name: "Bob", score: 50, isActive: true },
         ],
         currentPlayer: "p1",
         round: 1,
         metadata: new Map([["mode", "classic"]]),
-        winningColor: undefined,
-        lastAction: undefined,
       };
 
       // Without dirty tracking - changes only round
@@ -1238,7 +1213,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const state2: Player = {
@@ -1257,15 +1231,13 @@ describe("Delta Pack Interpreter - Unified API", () => {
     it("should support dirty tracking for arrays", () => {
       const state1: GameState = {
         players: [
-          { id: "p1", name: "Alice", score: 100, isActive: true, partner: undefined },
-          { id: "p2", name: "Bob", score: 50, isActive: true, partner: undefined },
-          { id: "p3", name: "Charlie", score: 75, isActive: true, partner: undefined },
+          { id: "p1", name: "Alice", score: 100, isActive: true },
+          { id: "p2", name: "Bob", score: 50, isActive: true },
+          { id: "p3", name: "Charlie", score: 75, isActive: true },
         ],
         currentPlayer: "p1",
         round: 1,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       };
 
       // Update only player at index 1
@@ -1295,8 +1267,6 @@ describe("Delta Pack Interpreter - Unified API", () => {
           ["difficulty", "hard"],
           ["map", "desert"],
         ]),
-        winningColor: undefined,
-        lastAction: undefined,
       };
 
       // Update only one key
@@ -1377,6 +1347,238 @@ describe("Delta Pack Interpreter - Unified API", () => {
 
       expect(decoded.items![0].get("shield")).toBe(2);
       expect(decoded.items![0].get("sword")).toBe(1);
+    });
+  });
+
+  describe("Clone Function", () => {
+    it("should clone simple objects", () => {
+      const player1: Player = {
+        id: "player1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2 = Player.clone(player1);
+
+      expect(player2).toEqual(player1);
+      expect(player2).not.toBe(player1); // Different object reference
+
+      // Modifying clone shouldn't affect original
+      player2.name = "Bob";
+      expect(player1.name).toBe("Alice");
+      expect(player2.name).toBe("Bob");
+    });
+
+    it("should clone nested objects", () => {
+      const partner: Player = {
+        id: "partner1",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+      };
+
+      const player1: Player = {
+        id: "player1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner,
+      };
+
+      const player2 = Player.clone(player1);
+
+      expect(player2).toEqual(player1);
+      expect(player2.partner).not.toBe(player1.partner); // Deep clone
+
+      // Modifying nested clone shouldn't affect original
+      player2.partner!.name = "Charlie";
+      expect(player1.partner!.name).toBe("Bob");
+      expect(player2.partner!.name).toBe("Charlie");
+    });
+
+    it("should clone arrays", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 150,
+        isActive: false,
+      };
+
+      const gameState: GameState = {
+        players: [player1, player2],
+        round: 5,
+        metadata: new Map(),
+      };
+
+      const clonedState = GameState.clone(gameState);
+
+      expect(clonedState.players).toEqual(gameState.players);
+      expect(clonedState.players).not.toBe(gameState.players); // Different array
+      expect(clonedState.players[0]).not.toBe(gameState.players[0]); // Deep clone
+
+      // Modifying clone shouldn't affect original
+      clonedState.players[0].name = "Charlie";
+      expect(gameState.players[0].name).toBe("Alice");
+      expect(clonedState.players[0].name).toBe("Charlie");
+    });
+
+    it("should clone maps/records", () => {
+      const gameState: GameState = {
+        players: [],
+        round: 1,
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
+      };
+
+      const clonedState = GameState.clone(gameState);
+
+      expect(clonedState.metadata).toEqual(gameState.metadata);
+      expect(clonedState.metadata).not.toBe(gameState.metadata); // Different map
+
+      // Modifying clone shouldn't affect original
+      clonedState.metadata.set("key1", "modified");
+      expect(gameState.metadata.get("key1")).toBe("value1");
+      expect(clonedState.metadata.get("key1")).toBe("modified");
+    });
+
+    it("should clone maps with complex values", () => {
+      const map1 = new Map<string, number>([
+        ["item1", 5],
+        ["item2", 10],
+      ]);
+
+      const map2 = new Map<string, number>([["item3", 15]]);
+
+      const inventory: Inventory = {
+        items: [map1, map2],
+      };
+
+      const clonedInventory = Inventory.clone(inventory);
+
+      expect(clonedInventory.items).toEqual(inventory.items);
+      expect(clonedInventory.items).not.toBe(inventory.items); // Different array
+      expect(clonedInventory.items![0]).not.toBe(inventory.items![0]); // Different map
+
+      // Modifying clone shouldn't affect original
+      clonedInventory.items![0].set("item1", 999);
+      expect(inventory.items![0].get("item1")).toBe(5);
+      expect(clonedInventory.items![0].get("item1")).toBe(999);
+    });
+
+    it("should clone union types", () => {
+      const moveAction: GameAction = {
+        type: "MoveAction",
+        val: { x: 10, y: 20 },
+      };
+
+      const clonedAction = GameAction.clone(moveAction);
+
+      expect(clonedAction).toEqual(moveAction);
+      expect(clonedAction).not.toBe(moveAction);
+
+      // Modifying clone shouldn't affect original
+      if (clonedAction.type === "MoveAction") {
+        clonedAction.val.x = 999;
+      }
+      if (moveAction.type === "MoveAction") {
+        expect(moveAction.val.x).toBe(10);
+      }
+      if (clonedAction.type === "MoveAction") {
+        expect(clonedAction.val.x).toBe(999);
+      }
+    });
+
+    it("should handle optional fields", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2 = Player.clone(player1);
+
+      expect(player2.partner).toBeUndefined();
+
+      // Set optional field on clone
+      player2.partner = {
+        id: "partner",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+      };
+
+      expect(player1.partner).toBeUndefined();
+      expect(player2.partner?.id).toBe("partner");
+    });
+
+    it("should not preserve dirty state", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const gameState: GameState = {
+        players: [player1],
+        round: 1,
+        metadata: new Map([["key1", "value1"]]),
+      };
+
+      // Add dirty tracking
+      gameState.players._dirty = new Set([0]);
+      gameState.metadata._dirty = new Set(["key1"]);
+
+      const clonedState = GameState.clone(gameState);
+
+      // Clone should not have _dirty fields
+      expect(clonedState.players._dirty).toBeUndefined();
+      expect(clonedState.metadata._dirty).toBeUndefined();
+    });
+
+    it("should clone maps with object values", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 150,
+        isActive: false,
+      };
+
+      const registry: PlayerRegistry = {
+        players: new Map([
+          ["alice", player1],
+          ["bob", player2],
+        ]),
+      };
+
+      const clonedRegistry = PlayerRegistry.clone(registry);
+
+      expect(clonedRegistry.players).toEqual(registry.players);
+      expect(clonedRegistry.players).not.toBe(registry.players); // Different map
+      expect(clonedRegistry.players.get("alice")).not.toBe(registry.players.get("alice")); // Deep clone
+
+      // Modifying clone shouldn't affect original
+      clonedRegistry.players.get("alice")!.name = "Alicia";
+      expect(registry.players.get("alice")!.name).toBe("Alice");
+      expect(clonedRegistry.players.get("alice")!.name).toBe("Alicia");
     });
   });
 });

@@ -67,6 +67,15 @@ export const ${name} = {
       .join("\n    ")}
     return result;
   },
+  clone(obj: ${name}): ${name} {
+    return {
+      ${Object.entries(type.properties)
+        .map(([childName, childType]) => {
+          return `${childName}: ${renderClone(childType, name, `obj.${childName}`)},`;
+        })
+        .join("\n      ")}
+    };
+  },
   equals(a: ${name}, b: ${name}): boolean {
     return (
       ${Object.entries(type.properties)
@@ -196,6 +205,19 @@ export const ${name} = {
         return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
       return {
         ${reference.reference}: ${renderToJson(reference, reference.reference, "obj.val")},
+      };
+    }`;
+      })
+      .join("\n    ")}
+    throw new Error(\`Invalid ${name}: \${obj}\`);
+  },
+  clone(obj: ${name}): ${name} {
+    ${type.options
+      .map((reference, i) => {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+      return {
+        type: "${reference.reference}",
+        val: ${renderClone(reference, reference.reference, "obj.val")},
       };
     }`;
       })
@@ -407,6 +429,29 @@ export const ${name} = {
       return `${key}`;
     }
     return `${name}.toJson(${key})`;
+  }
+
+  function renderClone(type: Type, name: string, key: string): string {
+    if (type.type === "array") {
+      return `${key}.map((x) => ${renderClone(type.value, name, "x")})`;
+    } else if (type.type === "optional") {
+      return `${key} != null ? ${renderClone(type.value, name, key)} : undefined`;
+    } else if (type.type === "record") {
+      const valueFn = renderClone(type.value, name, "v");
+      return `new Map([...${key}].map(([k, v]) => [k, ${valueFn}]))`;
+    } else if (type.type === "reference") {
+      return renderClone(lookup(type), type.reference, key);
+    } else if (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "uint" ||
+      type.type === "float" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    ) {
+      return `${key}`;
+    }
+    return `${name}.clone(${key})`;
   }
 
   function renderEquals(type: Type, name: string, keyA: string, keyB: string): string {

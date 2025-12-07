@@ -9,6 +9,7 @@ type DeltaPackApi<T> = {
   encodeDiff: (a: T, b: T) => Uint8Array;
   decodeDiff: (a: T, diff: Uint8Array) => T;
   equals: (a: T, b: T) => boolean;
+  clone: (obj: T) => T;
 };
 
 export function load<T>(schema: Record<string, Type>, objectName: string): DeltaPackApi<T> {
@@ -321,6 +322,54 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     return true;
   }
 
+  function _clone(obj: unknown, objType: Type): unknown {
+    if (objType.type === "string" || objType.type === "int" || objType.type === "uint") {
+      return obj;
+    } else if (objType.type === "float") {
+      return obj;
+    } else if (objType.type === "boolean") {
+      return obj;
+    } else if (objType.type === "enum") {
+      return obj;
+    } else if (objType.type === "reference") {
+      const refType = schema[objType.reference];
+      if (!refType) {
+        throw new Error(`Unknown reference type: ${objType.reference}`);
+      }
+      return _clone(obj, refType);
+    } else if (objType.type === "object") {
+      const result: any = {};
+      for (const [key, typeVal] of Object.entries(objType.properties)) {
+        result[key] = _clone((obj as any)[key], typeVal);
+      }
+      return result;
+    } else if (objType.type === "array") {
+      const arr = obj as unknown[];
+      return arr.map((item) => _clone(item, objType.value));
+    } else if (objType.type === "record") {
+      const map = obj as Map<unknown, unknown>;
+      const newMap = new Map();
+      for (const [key, val] of map) {
+        newMap.set(key, _clone(val, objType.value));
+      }
+      return newMap;
+    } else if (objType.type === "union") {
+      const union = obj as { type: string; val: unknown };
+      const refType = schema[union.type];
+      if (!refType) {
+        throw new Error(`Unknown union type: ${union.type}`);
+      }
+      return {
+        type: union.type,
+        val: _clone(union.val, refType),
+      };
+    } else if (objType.type === "optional") {
+      if (obj == null) return undefined;
+      return _clone(obj, objType.value);
+    }
+    return obj;
+  }
+
   function _encodeDiff(a: unknown, b: unknown, objType: Type, tracker: _.Tracker): void {
     if (objType.type === "string") {
       tracker.pushStringDiff(a as string, b as string);
@@ -524,5 +573,6 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       return _decodeDiff(a, typeVal, tracker) as T;
     },
     equals: (a: T, b: T) => _equals(a, b, typeVal),
+    clone: (obj: T) => _clone(obj, typeVal) as T,
   };
 }

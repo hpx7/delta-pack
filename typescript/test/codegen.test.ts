@@ -14,6 +14,7 @@ import {
   UseItemAction,
   Color,
   Inventory,
+  PlayerRegistry,
 } from "./generated-schema";
 
 describe("Delta Pack Codegen - Unified API", () => {
@@ -180,7 +181,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       expect(() => Player.fromJson(player)).not.toThrow();
@@ -196,7 +196,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player: Player = {
@@ -222,7 +221,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Charlie",
         score: 25,
         isActive: false,
-        partner: undefined,
       };
 
       const partner1: Player = {
@@ -256,7 +254,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const partner: Player = {
@@ -264,7 +261,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player2: Player = {
@@ -287,7 +283,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player1: Player = {
@@ -303,7 +298,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Bob",
         score: 75, // score changed
         isActive: true,
-        partner: undefined,
       };
 
       const player2: Player = {
@@ -326,7 +320,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Bob",
         score: 50,
         isActive: true,
-        partner: undefined,
       };
 
       const player1: Player = {
@@ -342,7 +335,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const encodedDiff = Player.encodeDiff(player1, player2);
@@ -978,8 +970,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         ["mode", "ranked"],
         ["difficulty", "hard"],
       ]),
-      winningColor: undefined,
-      lastAction: undefined,
     };
 
     const gameState2: GameState = {
@@ -1002,11 +992,8 @@ describe("Delta Pack Codegen - Unified API", () => {
       const defaultState = GameState.default();
       expect(defaultState).toEqual({
         players: [],
-        currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       });
     });
 
@@ -1017,11 +1004,8 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should detect validation errors for invalid players", () => {
       const invalidState = {
         players: [{ id: 123, name: "Invalid", score: 0, isActive: true }],
-        currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       };
       expect(() => GameState.fromJson(invalidState)).toThrow(/players/);
     });
@@ -1032,8 +1016,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         currentPlayer: 123,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       };
       expect(() => GameState.fromJson(invalidState)).toThrow(/currentPlayer/);
     });
@@ -1041,11 +1023,8 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should detect validation errors for invalid round", () => {
       const invalidState = {
         players: [],
-        currentPlayer: undefined,
         round: -1,
         metadata: new Map(),
-        winningColor: undefined,
-        lastAction: undefined,
       };
       expect(() => GameState.fromJson(invalidState)).toThrow(/round/);
     });
@@ -1053,11 +1032,8 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should detect validation errors for invalid metadata", () => {
       const invalidState = {
         players: [],
-        currentPlayer: undefined,
         round: 0,
         metadata: "not a map",
-        winningColor: undefined,
-        lastAction: undefined,
       };
       expect(() => GameState.fromJson(invalidState)).toThrow(/metadata/);
     });
@@ -1065,11 +1041,9 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should detect validation errors for invalid winningColor", () => {
       const invalidState = {
         players: [],
-        currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
         winningColor: "INVALID_COLOR",
-        lastAction: undefined,
       };
       expect(() => GameState.fromJson(invalidState)).toThrow(/winningColor/);
     });
@@ -1077,10 +1051,8 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should detect validation errors for invalid lastAction", () => {
       const invalidState = {
         players: [],
-        currentPlayer: undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined,
         lastAction: { type: "MoveAction", val: { x: "invalid", y: 20 } },
       };
       expect(() => GameState.fromJson(invalidState)).toThrow(/lastAction/);
@@ -1157,8 +1129,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         currentPlayer: "p1" as string | undefined,
         round: 1,
         metadata: new Map([["mode", "ranked"]]),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       const state2 = {
@@ -1186,8 +1156,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         currentPlayer: "p1" as string | undefined,
         round: 1,
         metadata: new Map(),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       const encodedDiff = GameState.encodeDiff(state, state);
@@ -1201,11 +1169,8 @@ describe("Delta Pack Codegen - Unified API", () => {
           { id: "p1", name: "Alice", score: 100, isActive: true },
           { id: "p2", name: "Bob", score: 50, isActive: true },
         ],
-        currentPlayer: undefined,
         round: 1,
         metadata: new Map(),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       const state2 = {
@@ -1224,11 +1189,8 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should handle array length changes - adding elements", () => {
       const state1 = {
         players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
-        currentPlayer: undefined,
         round: 1,
         metadata: new Map(),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       const state2 = {
@@ -1250,11 +1212,8 @@ describe("Delta Pack Codegen - Unified API", () => {
           { id: "p1", name: "Alice", score: 100, isActive: true },
           { id: "p2", name: "Bob", score: 50, isActive: true },
         ],
-        currentPlayer: undefined,
         round: 1,
         metadata: new Map(),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       const state2 = {
@@ -1270,11 +1229,8 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should handle empty array", () => {
       const state1 = {
         players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
-        currentPlayer: undefined,
         round: 1,
         metadata: new Map(),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       const state2 = { ...state1, players: [] };
@@ -1288,11 +1244,8 @@ describe("Delta Pack Codegen - Unified API", () => {
   describe("Optional Fields", () => {
     const baseState = {
       players: [],
-      currentPlayer: undefined,
       round: 1,
       metadata: new Map(),
-      winningColor: undefined as Color | undefined,
-      lastAction: undefined as GameAction | undefined,
     };
 
     it("should handle optional field: undefined -> value", () => {
@@ -1356,11 +1309,8 @@ describe("Delta Pack Codegen - Unified API", () => {
   describe("Records (Maps)", () => {
     const baseState = {
       players: [],
-      currentPlayer: undefined,
       round: 1,
       metadata: new Map(),
-      winningColor: undefined as Color | undefined,
-      lastAction: undefined as GameAction | undefined,
     };
 
     it("should handle empty map", () => {
@@ -1450,8 +1400,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         currentPlayer: "p1" as string | undefined,
         round: 0,
         metadata: new Map(),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       let state = initialState;
@@ -1482,8 +1430,6 @@ describe("Delta Pack Codegen - Unified API", () => {
           ["difficulty", "hard"],
           ["map", "forest"],
         ]),
-        winningColor: undefined as Color | undefined,
-        lastAction: undefined as GameAction | undefined,
       };
 
       // Only change one player's score
@@ -1518,7 +1464,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const state2: Player = {
@@ -1526,7 +1471,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 150,
         isActive: true,
-        partner: undefined,
       };
 
       const diff = Player.encodeDiff(state1, state2);
@@ -1541,7 +1485,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const state2: Player = {
@@ -1549,7 +1492,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 150,
         isActive: true,
-        partner: undefined,
         _dirty: new Set(["score"]),
       };
 
@@ -1563,9 +1505,9 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should produce smaller diffs with dirty tracking for sparse updates", () => {
       const largeState1 = GameState.default();
       largeState1.players = [
-        { id: "p1", name: "Alice", score: 0, isActive: true, partner: undefined },
-        { id: "p2", name: "Bob", score: 0, isActive: true, partner: undefined },
-        { id: "p3", name: "Charlie", score: 0, isActive: true, partner: undefined },
+        { id: "p1", name: "Alice", score: 0, isActive: true },
+        { id: "p2", name: "Bob", score: 0, isActive: true },
+        { id: "p3", name: "Charlie", score: 0, isActive: true },
       ];
       largeState1.round = 1;
 
@@ -1605,7 +1547,6 @@ describe("Delta Pack Codegen - Unified API", () => {
         name: "Alice",
         score: 100,
         isActive: true,
-        partner: undefined,
       };
 
       const state2: Player = {
@@ -1624,9 +1565,9 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should support dirty tracking for arrays", () => {
       const state1 = GameState.default();
       state1.players = [
-        { id: "p1", name: "Alice", score: 0, isActive: true, partner: undefined },
-        { id: "p2", name: "Bob", score: 0, isActive: true, partner: undefined },
-        { id: "p3", name: "Charlie", score: 0, isActive: true, partner: undefined },
+        { id: "p1", name: "Alice", score: 0, isActive: true },
+        { id: "p2", name: "Bob", score: 0, isActive: true },
+        { id: "p3", name: "Charlie", score: 0, isActive: true },
       ];
 
       // Update only player at index 1
@@ -1732,6 +1673,238 @@ describe("Delta Pack Codegen - Unified API", () => {
 
       expect(decoded.items![0].get("shield")).toBe(2);
       expect(decoded.items![0].get("sword")).toBe(1);
+    });
+  });
+
+  describe("Clone Function", () => {
+    it("should clone simple objects", () => {
+      const player1: Player = {
+        id: "player1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2 = Player.clone(player1);
+
+      expect(player2).toEqual(player1);
+      expect(player2).not.toBe(player1); // Different object reference
+
+      // Modifying clone shouldn't affect original
+      player2.name = "Bob";
+      expect(player1.name).toBe("Alice");
+      expect(player2.name).toBe("Bob");
+    });
+
+    it("should clone nested objects", () => {
+      const partner: Player = {
+        id: "partner1",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+      };
+
+      const player1: Player = {
+        id: "player1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+        partner,
+      };
+
+      const player2 = Player.clone(player1);
+
+      expect(player2).toEqual(player1);
+      expect(player2.partner).not.toBe(player1.partner); // Deep clone
+
+      // Modifying nested clone shouldn't affect original
+      player2.partner!.name = "Charlie";
+      expect(player1.partner!.name).toBe("Bob");
+      expect(player2.partner!.name).toBe("Charlie");
+    });
+
+    it("should clone arrays", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 150,
+        isActive: false,
+      };
+
+      const gameState: GameState = {
+        players: [player1, player2],
+        round: 5,
+        metadata: new Map(),
+      };
+
+      const clonedState = GameState.clone(gameState);
+
+      expect(clonedState.players).toEqual(gameState.players);
+      expect(clonedState.players).not.toBe(gameState.players); // Different array
+      expect(clonedState.players[0]).not.toBe(gameState.players[0]); // Deep clone
+
+      // Modifying clone shouldn't affect original
+      clonedState.players[0].name = "Charlie";
+      expect(gameState.players[0].name).toBe("Alice");
+      expect(clonedState.players[0].name).toBe("Charlie");
+    });
+
+    it("should clone maps/records", () => {
+      const gameState: GameState = {
+        players: [],
+        round: 1,
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
+      };
+
+      const clonedState = GameState.clone(gameState);
+
+      expect(clonedState.metadata).toEqual(gameState.metadata);
+      expect(clonedState.metadata).not.toBe(gameState.metadata); // Different map
+
+      // Modifying clone shouldn't affect original
+      clonedState.metadata.set("key1", "modified");
+      expect(gameState.metadata.get("key1")).toBe("value1");
+      expect(clonedState.metadata.get("key1")).toBe("modified");
+    });
+
+    it("should clone maps with complex values", () => {
+      const map1 = new Map<string, number>([
+        ["item1", 5],
+        ["item2", 10],
+      ]);
+
+      const map2 = new Map<string, number>([["item3", 15]]);
+
+      const inventory: Inventory = {
+        items: [map1, map2],
+      };
+
+      const clonedInventory = Inventory.clone(inventory);
+
+      expect(clonedInventory.items).toEqual(inventory.items);
+      expect(clonedInventory.items).not.toBe(inventory.items); // Different array
+      expect(clonedInventory.items![0]).not.toBe(inventory.items![0]); // Different map
+
+      // Modifying clone shouldn't affect original
+      clonedInventory.items![0].set("item1", 999);
+      expect(inventory.items![0].get("item1")).toBe(5);
+      expect(clonedInventory.items![0].get("item1")).toBe(999);
+    });
+
+    it("should clone union types", () => {
+      const moveAction: GameAction = {
+        type: "MoveAction",
+        val: { x: 10, y: 20 },
+      };
+
+      const clonedAction = GameAction.clone(moveAction);
+
+      expect(clonedAction).toEqual(moveAction);
+      expect(clonedAction).not.toBe(moveAction);
+
+      // Modifying clone shouldn't affect original
+      if (clonedAction.type === "MoveAction") {
+        clonedAction.val.x = 999;
+      }
+      if (moveAction.type === "MoveAction") {
+        expect(moveAction.val.x).toBe(10);
+      }
+      if (clonedAction.type === "MoveAction") {
+        expect(clonedAction.val.x).toBe(999);
+      }
+    });
+
+    it("should handle optional fields", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2 = Player.clone(player1);
+
+      expect(player2.partner).toBeUndefined();
+
+      // Set optional field on clone
+      player2.partner = {
+        id: "partner",
+        name: "Bob",
+        score: 50,
+        isActive: true,
+      };
+
+      expect(player1.partner).toBeUndefined();
+      expect(player2.partner?.id).toBe("partner");
+    });
+
+    it("should not preserve dirty state", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const gameState: GameState = {
+        players: [player1],
+        round: 1,
+        metadata: new Map([["key1", "value1"]]),
+      };
+
+      // Add dirty tracking
+      gameState.players._dirty = new Set([0]);
+      gameState.metadata._dirty = new Set(["key1"]);
+
+      const clonedState = GameState.clone(gameState);
+
+      // Clone should not have _dirty fields
+      expect(clonedState.players._dirty).toBeUndefined();
+      expect(clonedState.metadata._dirty).toBeUndefined();
+    });
+
+    it("should clone maps with object values", () => {
+      const player1: Player = {
+        id: "p1",
+        name: "Alice",
+        score: 100,
+        isActive: true,
+      };
+
+      const player2: Player = {
+        id: "p2",
+        name: "Bob",
+        score: 150,
+        isActive: false,
+      };
+
+      const registry: PlayerRegistry = {
+        players: new Map([
+          ["alice", player1],
+          ["bob", player2],
+        ]),
+      };
+
+      const clonedRegistry = PlayerRegistry.clone(registry);
+
+      expect(clonedRegistry.players).toEqual(registry.players);
+      expect(clonedRegistry.players).not.toBe(registry.players); // Different map
+      expect(clonedRegistry.players.get("alice")).not.toBe(registry.players.get("alice")); // Deep clone
+
+      // Modifying clone shouldn't affect original
+      clonedRegistry.players.get("alice")!.name = "Alicia";
+      expect(registry.players.get("alice")!.name).toBe("Alice");
+      expect(clonedRegistry.players.get("alice")!.name).toBe("Alicia");
     });
   });
 });

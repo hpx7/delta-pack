@@ -38,12 +38,30 @@ export type Infer<T extends Type, S extends Record<string, Type> = {}, D extends
                         ? Infer<S[R], S, Prev[D]>
                         : unknown
                       : T extends { type: "object"; properties: infer P }
-                        ? { -readonly [K in keyof P]: P[K] extends Type ? Infer<P[K], S, Prev[D]> : never } & {
-                            _dirty?: Set<keyof P>;
-                          }
+                        ? InferObject<P, S, Prev[D]>
                         : T extends { type: "union"; options: readonly any[] }
                           ? InferUnion<T["options"], S, Prev[D]>
                           : unknown;
+
+// Helper for object type inference - splits required and optional properties
+type InferObject<P, S extends Record<string, Type>, D extends number> = {
+  // Required properties (not optional)
+  -readonly [K in keyof P as P[K] extends { type: "optional" } ? never : K]: P[K] extends Type
+    ? Infer<P[K], S, D>
+    : never;
+} & {
+  // Optional properties (with ?)
+  -readonly [K in keyof P as P[K] extends { type: "optional" } ? K : never]?: P[K] extends {
+    type: "optional";
+    value: infer V;
+  }
+    ? V extends Type
+      ? Infer<V, S, D>
+      : never
+    : never;
+} & {
+  _dirty?: Set<keyof P>;
+};
 
 // Helper for union type inference
 type InferUnion<Options extends readonly { reference: string }[], S extends Record<string, Type>, D extends number> = {

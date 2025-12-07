@@ -72,6 +72,11 @@ const Inventory = ObjectType({
   items: OptionalType(ArrayType(RecordType(StringType(), IntType()))),
 });
 
+// Map with object values
+const PlayerRegistry = ObjectType({
+  players: RecordType(StringType(), ReferenceType("Player")),
+});
+
 // Export schema for interpreter tests
 export const schema = defineSchema({
   Color,
@@ -84,4 +89,5 @@ export const schema = defineSchema({
   GameAction,
   GameState,
   Inventory,
+  PlayerRegistry,
 });

@@ -41,6 +41,9 @@ export type GameState = {
 export type Inventory = {
   items?: (Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> };
 } & { _dirty?: Set<keyof Inventory> };
+export type PlayerRegistry = {
+  players: Map<string, Player> & { _dirty?: Set<string> };
+} & { _dirty?: Set<keyof PlayerRegistry> };
 
 
 const Color = {
@@ -86,6 +89,15 @@ export const Player = {
       result.partner = Player.toJson(obj.partner);
     }
     return result;
+  },
+  clone(obj: Player): Player {
+    return {
+      id: obj.id,
+      name: obj.name,
+      score: obj.score,
+      isActive: obj.isActive,
+      partner: obj.partner != null ? Player.clone(obj.partner) : undefined,
+    };
   },
   equals(a: Player, b: Player): boolean {
     return (
@@ -213,6 +225,12 @@ export const Position = {
     result.y = obj.y;
     return result;
   },
+  clone(obj: Position): Position {
+    return {
+      x: obj.x,
+      y: obj.y,
+    };
+  },
   equals(a: Position, b: Position): boolean {
     return (
       _.equalsFloatQuantized(a.x, b.x, 0.1) &&
@@ -299,6 +317,12 @@ export const Velocity = {
     result.vx = obj.vx;
     result.vy = obj.vy;
     return result;
+  },
+  clone(obj: Velocity): Velocity {
+    return {
+      vx: obj.vx,
+      vy: obj.vy,
+    };
   },
   equals(a: Velocity, b: Velocity): boolean {
     return (
@@ -387,6 +411,12 @@ export const MoveAction = {
     result.y = obj.y;
     return result;
   },
+  clone(obj: MoveAction): MoveAction {
+    return {
+      x: obj.x,
+      y: obj.y,
+    };
+  },
   equals(a: MoveAction, b: MoveAction): boolean {
     return (
       a.x === b.x &&
@@ -474,6 +504,12 @@ export const AttackAction = {
     result.damage = obj.damage;
     return result;
   },
+  clone(obj: AttackAction): AttackAction {
+    return {
+      targetId: obj.targetId,
+      damage: obj.damage,
+    };
+  },
   equals(a: AttackAction, b: AttackAction): boolean {
     return (
       a.targetId === b.targetId &&
@@ -557,6 +593,11 @@ export const UseItemAction = {
     const result: Record<string, unknown> = {};
     result.itemId = obj.itemId;
     return result;
+  },
+  clone(obj: UseItemAction): UseItemAction {
+    return {
+      itemId: obj.itemId,
+    };
   },
   equals(a: UseItemAction, b: UseItemAction): boolean {
     return (
@@ -690,6 +731,27 @@ export const GameAction = {
     else if (obj.type === "UseItemAction") {
       return {
         UseItemAction: UseItemAction.toJson(obj.val),
+      };
+    }
+    throw new Error(`Invalid GameAction: ${obj}`);
+  },
+  clone(obj: GameAction): GameAction {
+    if (obj.type === "MoveAction") {
+      return {
+        type: "MoveAction",
+        val: MoveAction.clone(obj.val),
+      };
+    }
+    else if (obj.type === "AttackAction") {
+      return {
+        type: "AttackAction",
+        val: AttackAction.clone(obj.val),
+      };
+    }
+    else if (obj.type === "UseItemAction") {
+      return {
+        type: "UseItemAction",
+        val: UseItemAction.clone(obj.val),
       };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
@@ -856,6 +918,16 @@ export const GameState = {
       result.lastAction = GameAction.toJson(obj.lastAction);
     }
     return result;
+  },
+  clone(obj: GameState): GameState {
+    return {
+      players: obj.players.map((x) => Player.clone(x)),
+      currentPlayer: obj.currentPlayer != null ? obj.currentPlayer : undefined,
+      round: obj.round,
+      metadata: new Map([...obj.metadata].map(([k, v]) => [k, v])),
+      winningColor: obj.winningColor != null ? obj.winningColor : undefined,
+      lastAction: obj.lastAction != null ? GameAction.clone(obj.lastAction) : undefined,
+    };
   },
   equals(a: GameState, b: GameState): boolean {
     return (
@@ -1028,6 +1100,11 @@ export const Inventory = {
     }
     return result;
   },
+  clone(obj: Inventory): Inventory {
+    return {
+      items: obj.items != null ? obj.items.map((x) => new Map([...x].map(([k, v]) => [k, v]))) : undefined,
+    };
+  },
   equals(a: Inventory, b: Inventory): boolean {
     return (
       _.equalsOptional(a.items, b.items, (x, y) => _.equalsArray(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y)))
@@ -1109,6 +1186,97 @@ export const Inventory = {
         (x) => tracker.nextIntDiff(x)
       )
       )
+      ),
+    };
+  },
+};
+
+export const PlayerRegistry = {
+  default(): PlayerRegistry {
+    return {
+      players: new Map(),
+    };
+  },
+  fromJson(obj: Record<string, unknown>): PlayerRegistry {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+      throw new Error(`Invalid PlayerRegistry: ${obj}`);
+    }
+    return {
+      players: _.tryParseField(() => _.parseRecord(obj.players, (x) => _.parseString(x), (x) => Player.fromJson(x as Player)), "PlayerRegistry.players"),
+    };
+  },
+  toJson(obj: PlayerRegistry): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result.players = _.mapToObject(obj.players, (x) => Player.toJson(x));
+    return result;
+  },
+  clone(obj: PlayerRegistry): PlayerRegistry {
+    return {
+      players: new Map([...obj.players].map(([k, v]) => [k, Player.clone(v)])),
+    };
+  },
+  equals(a: PlayerRegistry, b: PlayerRegistry): boolean {
+    return (
+      _.equalsRecord(a.players, b.players, (x, y) => x === y, (x, y) => Player.equals(x, y))
+    );
+  },
+  encode(obj: PlayerRegistry): Uint8Array {
+    const tracker = new _.Tracker();
+    PlayerRegistry._encode(obj, tracker);
+    return tracker.toBuffer();
+  },
+  _encode(obj: PlayerRegistry, tracker: _.Tracker): void {
+    tracker.pushRecord(obj.players, (x) => tracker.pushString(x), (x) => Player._encode(x, tracker));
+  },
+  encodeDiff(a: PlayerRegistry, b: PlayerRegistry): Uint8Array {
+    const tracker = new _.Tracker();
+    PlayerRegistry._encodeDiff(a, b, tracker);
+    return tracker.toBuffer();
+  },
+  _encodeDiff(a: PlayerRegistry, b: PlayerRegistry, tracker: _.Tracker): void {
+    const dirty = b._dirty;
+    const changed = dirty == null ? !PlayerRegistry.equals(a, b) : dirty.size > 0;
+    tracker.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    // Field: players
+    if (dirty != null && !dirty.has("players")) {
+      tracker.pushBoolean(false);
+    } else {
+      tracker.pushRecordDiff<string, Player>(
+      a.players,
+      b.players,
+      (x, y) => Player.equals(x, y),
+      (x) => tracker.pushString(x),
+      (x) => Player._encode(x, tracker),
+      (x, y) => Player._encodeDiff(x, y, tracker)
+    );
+    }
+  },
+  decode(input: Uint8Array): PlayerRegistry {
+    return PlayerRegistry._decode(_.Tracker.parse(input));
+  },
+  _decode(tracker: _.Tracker): PlayerRegistry {
+    return {
+      players: tracker.nextRecord(() => tracker.nextString(), () => Player._decode(tracker)),
+    };
+  },
+  decodeDiff(obj: PlayerRegistry, input: Uint8Array): PlayerRegistry {
+    const tracker = _.Tracker.parse(input);
+    return PlayerRegistry._decodeDiff(obj, tracker);
+  },
+  _decodeDiff(obj: PlayerRegistry, tracker: _.Tracker): PlayerRegistry {
+    const changed = tracker.nextBoolean();
+    if (!changed) {
+      return obj;
+    }
+    return {
+      players: tracker.nextRecordDiff<string, Player>(
+        obj.players,
+        () => tracker.nextString(),
+        () => Player._decode(tracker),
+        (x) => Player._decodeDiff(x, tracker)
       ),
     };
   },
