@@ -1,4 +1,4 @@
-import { Type, ReferenceType, isPrimitiveType } from "./schema";
+import { Type, ReferenceType, isPrimitiveType } from "./schema.js";
 
 export function codegenTypescript(schema: Record<string, Type>) {
   return renderSchema(schema);
@@ -47,7 +47,7 @@ export const ${name} = {
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
-          return `${childName}: _.tryParseField(() => ${renderFromJson(childType, childName, `obj.${childName}`)}, "${name}.${childName}"),`;
+          return `${childName}: _.tryParseField(() => ${renderFromJson(childType, childName, `obj["${childName}"]`)}, "${name}.${childName}"),`;
         })
         .join("\n      ")}
     };
@@ -58,10 +58,10 @@ export const ${name} = {
       .map(([childName, childType]) => {
         if (childType.type === "optional") {
           return `if (obj.${childName} != null) {
-      result.${childName} = ${renderToJson(childType, childName, `obj.${childName}`)};
+      result["${childName}"] = ${renderToJson(childType, childName, `obj.${childName}`)};
     }`;
         } else {
-          return `result.${childName} = ${renderToJson(childType, childName, `obj.${childName}`)};`;
+          return `result["${childName}"] = ${renderToJson(childType, childName, `obj.${childName}`)};`;
         }
       })
       .join("\n    ")}
@@ -155,8 +155,8 @@ export const ${name} = {
 export const ${name} = {
   default(): ${name} {
     return {
-      type: "${type.options[0].reference}",
-      val: ${renderDefault(type.options[0], type.options[0].reference)},
+      type: "${type.options[0]!.reference}",
+      val: ${renderDefault(type.options[0]!, type.options[0]!.reference)},
     };
   },
   values() {
@@ -167,13 +167,13 @@ export const ${name} = {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
     // check if it's delta-pack format: { type: "TypeName", val: ... }
-    if ("type" in obj && typeof obj.type === "string" && "val" in obj) {
+    if ("type" in obj && typeof obj["type"] === "string" && "val" in obj) {
       ${type.options
         .map((reference, i) => {
-          return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+          return `${i > 0 ? "else " : ""}if (obj["type"] === "${reference.reference}") {
         return {
           type: "${reference.reference}",
-          val: ${renderFromJson(reference, reference.reference, "obj.val")},
+          val: ${renderFromJson(reference, reference.reference, `obj["val"]`)},
         };
       }`;
         })
@@ -185,7 +185,7 @@ export const ${name} = {
     // check if it's protobuf format: { TypeName: ... }
     const entries = Object.entries(obj);
     if (entries.length === 1) {
-      const [fieldName, fieldValue] = entries[0];
+      const [fieldName, fieldValue] = entries[0]!;
       ${type.options
         .map((reference, i) => {
           return `${i > 0 ? "else " : ""}if (fieldName === "${reference.reference}") {
@@ -318,12 +318,14 @@ export const ${name} = {
   }
 }`;
     }
+    throw new Error(`Unsupported type for ${name}: ${JSON.stringify(type)}`);
   })
   .join("\n")}`;
 
   function lookup(type: ReferenceType): Type {
-    if (type.reference in schema) {
-      return schema[type.reference];
+    const res = schema[type.reference];
+    if (res != null) {
+      return res;
     }
     throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(schema)}`);
   }
@@ -349,7 +351,7 @@ export const ${name} = {
         ? `(${elementType})[] & { _dirty?: Set<number> }`
         : `${elementType}[] & { _dirty?: Set<number> }`;
     } else if (type.type === "optional") {
-      return `${renderTypeArg(type.value, name)}`;
+      return `${renderTypeArg(type.value, name)} | undefined`;
     } else if (type.type === "record") {
       return `Map<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}> & { _dirty?: Set<${renderTypeArg(type.key, name)}> }`;
     } else if (type.type === "reference") {

@@ -1,6 +1,6 @@
 import { Writer, Reader } from "bin-serde";
-import utf8Size from "utf8-buffer-size";
-import { rleDecode, rleEncode } from "./rle";
+import utf8BufferSize from "utf8-buffer-size";
+import { rleDecode, rleEncode } from "./rle.js";
 
 const FLOAT_EPSILON = 0.001;
 
@@ -37,7 +37,7 @@ export class Tracker {
     const idx = this.dict.indexOf(val);
     if (idx < 0) {
       this.dict.push(val);
-      const len = utf8Size(val);
+      const len = utf8BufferSize(val);
       this.data.push({ type: "string", val, len });
     } else {
       this.data.push({ type: "int", val: -idx - 1 });
@@ -165,14 +165,14 @@ export class Tracker {
     this.pushUInt(b.length);
     const minLen = Math.min(a.length, b.length);
     for (let i = 0; i < minLen; i++) {
-      const elementChanged = dirty != null ? dirty.has(i) : !equals(a[i], b[i]);
+      const elementChanged = dirty != null ? dirty.has(i) : !equals(a[i]!, b[i]!);
       this.pushBoolean(elementChanged);
       if (elementChanged) {
-        encodeDiff(a[i], b[i]);
+        encodeDiff(a[i]!, b[i]!);
       }
     }
     for (let i = a.length; i < b.length; i++) {
-      encode(b[i]);
+      encode(b[i]!);
     }
   }
   pushRecordDiff<K, T>(
@@ -237,7 +237,7 @@ export class Tracker {
       this.pushUInt(updates.length);
       updates.forEach((idx) => {
         this.pushUInt(idx);
-        const key = orderedKeys[idx];
+        const key = orderedKeys[idx]!;
         encodeDiff(a.get(key)!, b.get(key)!);
       });
     }
@@ -257,7 +257,7 @@ export class Tracker {
       this.dict.push(str);
       return str;
     }
-    return this.dict[-lenOrIdx - 1];
+    return this.dict[-lenOrIdx - 1]!;
   }
   nextInt() {
     return this.reader.readVarint();
@@ -272,7 +272,7 @@ export class Tracker {
     return this.nextInt() * precision;
   }
   nextBoolean() {
-    return this.bits[this.bitsIdx++];
+    return this.bits[this.bitsIdx++]!;
   }
   nextOptional<T>(innerRead: () => T): T | undefined {
     return this.nextBoolean() ? innerRead() : undefined;
@@ -349,14 +349,14 @@ export class Tracker {
     }
 
     const newLen = this.nextUInt();
-    const newArr: T[] = new Array<T>(newLen);
+    const newArr: T[] = [];
     const minLen = Math.min(arr.length, newLen);
     for (let i = 0; i < minLen; i++) {
       const changed = this.nextBoolean();
-      newArr[i] = changed ? decodeDiff(arr[i]) : arr[i];
+      newArr.push(changed ? decodeDiff(arr[i]!) : arr[i]!);
     }
     for (let i = arr.length; i < newLen; i++) {
-      newArr[i] = decode();
+      newArr.push(decode());
     }
     return newArr;
   }
@@ -372,12 +372,12 @@ export class Tracker {
     if (obj.size > 0) {
       const numDeletions = this.nextUInt();
       for (let i = 0; i < numDeletions; i++) {
-        const key = orderedKeys[this.nextUInt()];
+        const key = orderedKeys[this.nextUInt()]!;
         result.delete(key);
       }
       const numUpdates = this.nextUInt();
       for (let i = 0; i < numUpdates; i++) {
-        const key = orderedKeys[this.nextUInt()];
+        const key = orderedKeys[this.nextUInt()]!;
         result.set(key, decodeDiff(result.get(key)!));
       }
     }
@@ -540,7 +540,7 @@ export function equalsArray<T>(a: T[], b: T[], equals: (x: T, y: T) => boolean) 
     return false;
   }
   for (let i = 0; i < a.length; i++) {
-    if (!equals(a[i], b[i])) {
+    if (!equals(a[i]!, b[i]!)) {
       return false;
     }
   }

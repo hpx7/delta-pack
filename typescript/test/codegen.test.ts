@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { codegenTypescript, equalsFloat, equalsFloatQuantized } from "@hpx7/delta-pack";
-import { schema } from "./schema";
+import { schema } from "./schema.js";
 import {
   Player,
   Position,
@@ -15,7 +15,7 @@ import {
   Color,
   Inventory,
   PlayerRegistry,
-} from "./generated-schema";
+} from "./generated-schema.js";
 
 describe("Delta Pack Codegen - Unified API", () => {
   describe("Code Generation", () => {
@@ -1126,7 +1126,7 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should have smaller diff encoding than full encoding for partial changes", () => {
       const state1 = {
         players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
-        currentPlayer: "p1" as string | undefined,
+        currentPlayer: "p1",
         round: 1,
         metadata: new Map([["mode", "ranked"]]),
       };
@@ -1153,7 +1153,7 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should handle array with no changes", () => {
       const state = {
         players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
-        currentPlayer: "p1" as string | undefined,
+        currentPlayer: "p1",
         round: 1,
         metadata: new Map(),
       };
@@ -1397,7 +1397,7 @@ describe("Delta Pack Codegen - Unified API", () => {
     it("should roundtrip diff encode/decode multiple times", () => {
       const initialState: GameState = {
         players: [{ id: "p1", name: "Alice", score: 0, isActive: true }],
-        currentPlayer: "p1" as string | undefined,
+        currentPlayer: "p1",
         round: 0,
         metadata: new Map(),
       };
@@ -1423,7 +1423,7 @@ describe("Delta Pack Codegen - Unified API", () => {
           score: i * 100,
           isActive: true,
         })),
-        currentPlayer: "p0" as string | undefined,
+        currentPlayer: "p0",
         round: 1,
         metadata: new Map([
           ["mode", "ranked"],
@@ -1572,7 +1572,7 @@ describe("Delta Pack Codegen - Unified API", () => {
 
       // Update only player at index 1
       const players = state1.players;
-      players[1] = { ...players[1], score: 100 };
+      players[1] = { ...players[1]!, score: 100 };
       players._dirty = new Set([1]); // Mark only index 1 as dirty
 
       const state2: GameState = {
@@ -1583,7 +1583,7 @@ describe("Delta Pack Codegen - Unified API", () => {
       const diff = GameState.encodeDiff(state1, state2);
       const decoded = GameState.decodeDiff(state1, diff);
 
-      expect(decoded.players[1].score).toBe(100);
+      expect(decoded.players[1]!.score).toBe(100);
       expect(GameState.equals(decoded, state2)).toBe(true);
     });
 
@@ -1632,10 +1632,10 @@ describe("Delta Pack Codegen - Unified API", () => {
       const decoded = Inventory.decode(encoded);
 
       expect(decoded.items).toHaveLength(2);
-      expect(decoded.items![0].get("sword")).toBe(1);
-      expect(decoded.items![0].get("shield")).toBe(1);
-      expect(decoded.items![1].get("potion")).toBe(5);
-      expect(decoded.items![1].get("arrow")).toBe(20);
+      expect(decoded.items![0]!.get("sword")).toBe(1);
+      expect(decoded.items![0]!.get("shield")).toBe(1);
+      expect(decoded.items![1]!.get("potion")).toBe(5);
+      expect(decoded.items![1]!.get("arrow")).toBe(20);
     });
 
     it("should handle undefined items in inventory", () => {
@@ -1671,8 +1671,8 @@ describe("Delta Pack Codegen - Unified API", () => {
       const encodedDiff = Inventory.encodeDiff(inv1, inv2);
       const decoded = Inventory.decodeDiff(inv1, encodedDiff);
 
-      expect(decoded.items![0].get("shield")).toBe(2);
-      expect(decoded.items![0].get("sword")).toBe(1);
+      expect(decoded.items![0]!.get("shield")).toBe(2);
+      expect(decoded.items![0]!.get("sword")).toBe(1);
     });
   });
 
@@ -1751,9 +1751,9 @@ describe("Delta Pack Codegen - Unified API", () => {
       expect(clonedState.players[0]).not.toBe(gameState.players[0]); // Deep clone
 
       // Modifying clone shouldn't affect original
-      clonedState.players[0].name = "Charlie";
-      expect(gameState.players[0].name).toBe("Alice");
-      expect(clonedState.players[0].name).toBe("Charlie");
+      clonedState.players[0]!.name = "Charlie";
+      expect(gameState.players[0]!.name).toBe("Alice");
+      expect(clonedState.players[0]!.name).toBe("Charlie");
     });
 
     it("should clone maps/records", () => {
@@ -1796,9 +1796,9 @@ describe("Delta Pack Codegen - Unified API", () => {
       expect(clonedInventory.items![0]).not.toBe(inventory.items![0]); // Different map
 
       // Modifying clone shouldn't affect original
-      clonedInventory.items![0].set("item1", 999);
-      expect(inventory.items![0].get("item1")).toBe(5);
-      expect(clonedInventory.items![0].get("item1")).toBe(999);
+      clonedInventory.items![0]!.set("item1", 999);
+      expect(inventory.items![0]!.get("item1")).toBe(5);
+      expect(clonedInventory.items![0]!.get("item1")).toBe(999);
     });
 
     it("should clone union types", () => {

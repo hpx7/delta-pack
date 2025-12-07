@@ -41,7 +41,7 @@ export interface UIntType {
 }
 export interface FloatType {
   type: "float";
-  precision?: number;
+  precision?: number | undefined;
 }
 export interface BooleanType {
   type: "boolean";

@@ -6,6 +6,7 @@
     "client": "npm run gen && tsx client.ts"
   },
   "dependencies": {
+    "@hpx7/delta-pack": "file:..",
     "ws": "^8.18.3"
   },
   "devDependencies": {

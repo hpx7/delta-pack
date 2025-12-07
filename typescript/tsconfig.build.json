@@ -1,5 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src"],
-  "exclude": ["test", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["test", "**/*.test.ts", "**/*.spec.ts"],
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist"
+  }
 }

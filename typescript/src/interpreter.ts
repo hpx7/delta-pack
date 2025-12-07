@@ -1,5 +1,5 @@
-import * as _ from "./helpers";
-import { Type, isPrimitiveType } from "./schema";
+import * as _ from "./helpers.js";
+import { Type, isPrimitiveType } from "./schema.js";
 
 type DeltaPackApi<T> = {
   fromJson: (obj: Record<string, unknown>) => T;
@@ -68,7 +68,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         if (!optionType) {
           throw new Error(`Unknown union type option: ${objVal.type}`);
         }
-        const refType = schema[optionType.reference];
+        const refType = schema[optionType.reference]!;
         return {
           type: objVal.type,
           val: _fromJson(objVal.val, refType),
@@ -77,12 +77,12 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       // check if it's protobuf format: { TypeName: ... }
       const entries = Object.entries(objVal);
       if (entries.length === 1) {
-        const [fieldName, fieldValue] = entries[0];
+        const [fieldName, fieldValue] = entries[0]!;
         const optionType = objType.options.find((opt) => opt.reference === fieldName);
         if (!optionType) {
           throw new Error(`Unknown union type option: ${fieldName}`);
         }
-        const refType = schema[optionType.reference];
+        const refType = schema[optionType.reference]!;
         return {
           type: fieldName,
           val: _fromJson(fieldValue, refType),
@@ -92,6 +92,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "optional") {
       return _.parseOptional(objVal, (val) => _fromJson(val, objType.value));
     }
+    throw new Error(`Unknown type: ${objType}`);
   }
 
   function _toJson(objVal: unknown, objType: Type): unknown {
@@ -129,7 +130,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       return _.mapToObject(map, (val) => _toJson(val, objType.value));
     } else if (objType.type === "union") {
       const unionObj = objVal as { type: string; val: unknown };
-      const refType = schema[unionObj.type];
+      const refType = schema[unionObj.type]!;
       return {
         [unionObj.type]: _toJson(unionObj.val, refType),
       };
@@ -159,7 +160,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       tracker.pushBoolean(objVal as boolean);
     } else if (objType.type === "enum") {
       const enumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      tracker.pushUInt(enumObj[objVal as string]);
+      tracker.pushUInt(enumObj[objVal as string]!);
     } else if (objType.type === "reference") {
       const refType = schema[objType.reference];
       if (!refType) {
@@ -188,7 +189,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         throw new Error(`Unknown union variant: ${unionObj.type}`);
       }
       tracker.pushUInt(variantIndex);
-      const refType = schema[unionObj.type];
+      const refType = schema[unionObj.type]!;
       _encode(unionObj.val, refType, tracker);
     } else if (objType.type === "optional") {
       tracker.pushOptional(objVal, (val) => _encode(val, objType.value, tracker));
@@ -247,7 +248,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       if (!variant) {
         throw new Error(`Invalid union variant index: ${variantIndex}`);
       }
-      const refType = schema[variant.reference];
+      const refType = schema[variant.reference]!;
       return {
         type: variant.reference,
         val: _decode(refType, tracker),
@@ -259,6 +260,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
       return _decode(objType.value, tracker);
     }
+    throw new Error(`Unknown type: ${objType}`);
   }
 
   function _equals(a: unknown, b: unknown, objType: Type): boolean {
@@ -312,7 +314,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const unionA = a as { type: string; val: unknown };
       const unionB = b as { type: string; val: unknown };
       if (unionA.type !== unionB.type) return false;
-      const refType = schema[unionA.type];
+      const refType = schema[unionA.type]!;
       return _equals(unionA.val, unionB.val, refType);
     } else if (objType.type === "optional") {
       if (a == null && b == null) return true;
@@ -387,7 +389,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       tracker.pushBooleanDiff(a as boolean, b as boolean);
     } else if (objType.type === "enum") {
       const enumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      tracker.pushUIntDiff(enumObj[a as string], enumObj[b as string]);
+      tracker.pushUIntDiff(enumObj[a as string]!, enumObj[b as string]!);
     } else if (objType.type === "reference") {
       const refType = schema[objType.reference];
       if (!refType) {
@@ -436,12 +438,12 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         tracker.pushBoolean(false);
         const variantIndex = objType.options.findIndex((opt) => opt.reference === unionB.type);
         tracker.pushUInt(variantIndex);
-        const refType = schema[unionB.type];
+        const refType = schema[unionB.type]!;
         _encode(unionB.val, refType, tracker);
       } else {
         // Same type - encode diff
         tracker.pushBoolean(true);
-        const refType = schema[unionA.type];
+        const refType = schema[unionA.type]!;
         _encodeDiff(unionA.val, unionB.val, refType, tracker);
       }
     } else if (objType.type === "optional") {
@@ -479,7 +481,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       return changed ? !(a as boolean) : (a as boolean);
     } else if (objType.type === "enum") {
       const oldEnumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      const oldIdx = oldEnumObj[a as string];
+      const oldIdx = oldEnumObj[a as string]!;
       const newIdx = tracker.nextUIntDiff(oldIdx);
       return objType.options[newIdx];
     } else if (objType.type === "reference") {
@@ -522,14 +524,14 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         if (!variant) {
           throw new Error(`Invalid union variant index: ${variantIndex}`);
         }
-        const refType = schema[variant.reference];
+        const refType = schema[variant.reference]!;
         return {
           type: variant.reference,
           val: _decode(refType, tracker),
         };
       } else {
         // Same type - decode diff
-        const refType = schema[unionA.type];
+        const refType = schema[unionA.type]!;
         return {
           type: unionA.type,
           val: _decodeDiff(unionA.val, refType, tracker),

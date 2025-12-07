@@ -60,7 +60,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
     "test:gen": "tsx test/gen.ts > test/generated-schema.ts",
     "test": "npm run test:gen && vitest run",

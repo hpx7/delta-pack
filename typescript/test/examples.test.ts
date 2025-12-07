@@ -30,8 +30,8 @@ describe("Examples - Primitives", () => {
   const Primitives = load<Primitives>(schema, "Primitives");
 
   it("should parse schema successfully", () => {
-    expect(schema.Primitives).toBeDefined();
-    expect(schema.Primitives.type).toBe("object");
+    expect(schema["Primitives"]).toBeDefined();
+    expect(schema["Primitives"]!.type).toBe("object");
   });
 
   it("should parse state1 JSON data", () => {
@@ -94,12 +94,12 @@ describe("Examples - User", () => {
   const User = load<User>(schema, "User");
 
   it("should parse schema successfully", () => {
-    expect(schema.User).toBeDefined();
-    expect(schema.User.type).toBe("object");
-    expect(schema.HairColor).toBeDefined();
-    expect(schema.HairColor.type).toBe("enum");
-    expect(schema.Contact).toBeDefined();
-    expect(schema.Contact.type).toBe("union");
+    expect(schema["User"]).toBeDefined();
+    expect(schema["User"]!.type).toBe("object");
+    expect(schema["HairColor"]).toBeDefined();
+    expect(schema["HairColor"]!.type).toBe("enum");
+    expect(schema["Contact"]).toBeDefined();
+    expect(schema["Contact"]!.type).toBe("union");
   });
 
   it("should parse state1 JSON data", () => {
@@ -167,11 +167,11 @@ describe("Examples - Game", () => {
   const GameState = load<GameState>(schema, "GameState");
 
   it("should parse schema successfully", () => {
-    expect(schema.GameState).toBeDefined();
-    expect(schema.GameState.type).toBe("object");
-    expect(schema.Player).toBeDefined();
-    expect(schema.Team).toBeDefined();
-    expect(schema.Team.type).toBe("enum");
+    expect(schema["GameState"]).toBeDefined();
+    expect(schema["GameState"]!.type).toBe("object");
+    expect(schema["Player"]).toBeDefined();
+    expect(schema["Team"]).toBeDefined();
+    expect(schema["Team"]!.type).toBe("enum");
   });
 
   it("should parse state1 JSON data (lobby with 2 players)", () => {

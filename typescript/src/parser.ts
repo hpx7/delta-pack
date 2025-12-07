@@ -15,8 +15,8 @@ import {
   Type,
   UIntType,
   UnionType,
-} from "./schema";
-import { mapValues } from "./helpers";
+} from "./schema.js";
+import { mapValues } from "./helpers.js";
 
 export function parseSchemaYml(yamlContent: string): Record<string, Type> {
   // the yaml schema is a mapping from type names to type definitions

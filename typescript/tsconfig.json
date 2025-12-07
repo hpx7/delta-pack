@@ -1,8 +1,8 @@
 {
-  "include": ["src", "test", "game-example"],
+  "include": ["src", "test"],
   "compilerOptions": {
     /* Output configuration */
-    "outDir": "dist",
+    "noEmit": true,
     "baseUrl": ".",
     "paths": {
       "@hpx7/delta-pack": ["src/index.ts"],
@@ -15,19 +15,27 @@
     },
 
     /* Module Resolution */
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "declaration": true,
     "esModuleInterop": true,
-    "module": "esnext",
+    "module": "preserve",
     "target": "esnext",
     "skipLibCheck": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
 
     /* Linting */
     "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "forceConsistentCasingInFileNames": true
   }

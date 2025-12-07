@@ -1,7 +1,7 @@
 // Re-export everything from all modules
-export * from "./schema";
-export * from "./parser";
-export * from "./interpreter";
-export * from "./infer";
-export * from "./helpers";
-export * from "./codegen";
+export * from "./schema.js";
+export * from "./parser.js";
+export * from "./interpreter.js";
+export * from "./infer.js";
+export * from "./helpers.js";
+export * from "./codegen.js";

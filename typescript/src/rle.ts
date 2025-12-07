@@ -1,5 +1,5 @@
 export function rleEncode(bits: boolean[]): boolean[] {
-  let last = bits[0];
+  let last = bits[0]!;
   let count = 1;
   const rleBits: boolean[] = [last];
   for (let i = 1; i <= bits.length; i++) {
@@ -24,7 +24,7 @@ export function rleEncode(bits: boolean[]): boolean[] {
       } else {
         throw new Error("RLE count too large: " + count);
       }
-      last = bits[i];
+      last = bits[i]!;
       count = 1;
     }
   }
@@ -34,7 +34,7 @@ export function rleEncode(bits: boolean[]): boolean[] {
 export function rleDecode(rleBits: boolean[]): boolean[] {
   const bits: boolean[] = [];
   let idx = 0;
-  let last = rleBits[idx++];
+  let last = rleBits[idx++]!;
   while (idx < rleBits.length) {
     // Variable-length unary decoding
     if (!rleBits[idx++]) {
@@ -42,34 +42,34 @@ export function rleDecode(rleBits: boolean[]): boolean[] {
       bits.push(last);
     } else if (!rleBits[idx++]) {
       // '10' + 1 bit = run of 2-3
-      const count = bitsToUint([rleBits[idx++]]) + 2;
+      const count = bitsToUint([rleBits[idx++]!]) + 2;
       for (let i = 0; i < count; i++) {
-        bits.push(last);
+        !bits.push(last);
       }
     } else if (!rleBits[idx++]) {
-      // '110' + 1 bit = run of 4-5
-      const count = bitsToUint([rleBits[idx++]]) + 4;
+      // '110' + 1 bit = run o!f 4-5
+      const count = bitsToUint([rleBits[idx++]!]) + 4;
       for (let i = 0; i < count; i++) {
-        bits.push(last);
+        !bits.push(last);
       }
     } else if (!rleBits[idx++]) {
-      // '1110' + 3 bits = run of 6-13
-      const count = bitsToUint([rleBits[idx++], rleBits[idx++], rleBits[idx++]]) + 6;
+      // '1110' + 3 bits = run! of 6-13
+      const count = bitsToUint([rleBits[idx++]!, rleBits[idx++]!, rleBits[idx++]!]) + 6;
       for (let i = 0; i < count; i++) {
-        bits.push(last);
+        !bits.push(last);
       }
     } else {
       // '1111' + 8 bits = run of 14-269
       const count =
         bitsToUint([
-          rleBits[idx++],
-          rleBits[idx++],
-          rleBits[idx++],
-          rleBits[idx++],
-          rleBits[idx++],
-          rleBits[idx++],
-          rleBits[idx++],
-          rleBits[idx++],
+          rleBits[idx++]!,
+          rleBits[idx++]!,
+          rleBits[idx++]!,
+          rleBits[idx++]!,
+          rleBits[idx++]!,
+          rleBits[idx++]!,
+          rleBits[idx++]!,
+          rleBits[idx++]!,
         ]) + 14;
       for (let i = 0; i < count; i++) {
         bits.push(last);
