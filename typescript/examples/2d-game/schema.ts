@@ -7,9 +7,10 @@ import {
   RecordType,
   ReferenceType,
   UnionType,
+  defineSchema,
 } from "@hpx7/delta-pack";
 
-export const schema = {
+export const schema = defineSchema({
   Player: ObjectType({
     id: StringType(),
     name: StringType(),
@@ -54,4 +55,4 @@ export const schema = {
   }),
 
   ServerMessage: UnionType([ReferenceType("StateMessage")]),
-};
+});
