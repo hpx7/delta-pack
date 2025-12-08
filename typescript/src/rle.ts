@@ -1,4 +1,7 @@
 export function rleEncode(bits: boolean[]): boolean[] {
+  if (bits.length === 0) {
+    return [];
+  }
   let last = bits[0]!;
   let count = 1;
   const rleBits: boolean[] = [last];
@@ -44,19 +47,19 @@ export function rleDecode(rleBits: boolean[]): boolean[] {
       // '10' + 1 bit = run of 2-3
       const count = bitsToUint([rleBits[idx++]!]) + 2;
       for (let i = 0; i < count; i++) {
-        !bits.push(last);
+        bits.push(last);
       }
     } else if (!rleBits[idx++]) {
-      // '110' + 1 bit = run o!f 4-5
+      // '110' + 1 bit = run of 4-5
       const count = bitsToUint([rleBits[idx++]!]) + 4;
       for (let i = 0; i < count; i++) {
-        !bits.push(last);
+        bits.push(last);
       }
     } else if (!rleBits[idx++]) {
-      // '1110' + 3 bits = run! of 6-13
+      // '1110' + 3 bits = run of 6-13
       const count = bitsToUint([rleBits[idx++]!, rleBits[idx++]!, rleBits[idx++]!]) + 6;
       for (let i = 0; i < count; i++) {
-        !bits.push(last);
+        bits.push(last);
       }
     } else {
       // '1111' + 8 bits = run of 14-269
