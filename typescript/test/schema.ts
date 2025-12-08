@@ -17,8 +17,11 @@ import {
 // Define test schema with multiple types
 const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
+// Type alias
+const PlayerId = StringType();
+
 const Player = ObjectType({
-  id: StringType(),
+  id: ReferenceType("PlayerId"),
   name: StringType(),
   score: IntType(),
   isActive: BooleanType(),
@@ -80,6 +83,7 @@ const PlayerRegistry = ObjectType({
 // Export schema for interpreter tests
 export const schema = defineSchema({
   Color,
+  PlayerId,
   Player,
   Position,
   Velocity,

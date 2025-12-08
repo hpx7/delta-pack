@@ -3,8 +3,9 @@ import * as _ from "@hpx7/delta-pack/helpers";
 
 export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
     
+export type PlayerId = string;
 export type Player = {
-  id: string;
+  id: PlayerId;
   name: string;
   score: number;
   isActive: boolean;
@@ -56,6 +57,7 @@ const Color = {
   GREEN: 2,
   YELLOW: 3,
 };
+
 
 export const Player = {
   default(): Player {

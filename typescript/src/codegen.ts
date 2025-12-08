@@ -318,7 +318,7 @@ export const ${name} = {
   }
 }`;
     }
-    throw new Error(`Unsupported type for ${name}: ${JSON.stringify(type)}`);
+    return "";
   })
   .join("\n")}`;
 

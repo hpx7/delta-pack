@@ -46,7 +46,7 @@ describe("YAML Schema Parser", () => {
     const playerType = parsedSchema["Player"] as ObjectType;
     expect(playerType.type).toBe("object");
     expect(playerType.properties).toBeDefined();
-    expect(playerType.properties["id"]!.type).toBe("string");
+    expect(playerType.properties["id"]!.type).toBe("reference");
     expect(playerType.properties["name"]!.type).toBe("string");
     expect(playerType.properties["score"]!.type).toBe("int");
     expect(playerType.properties["isActive"]!.type).toBe("boolean");

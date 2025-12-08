@@ -7,8 +7,11 @@ Color:
   - GREEN
   - YELLOW
 
+# Type alias
+PlayerId: string
+
 Player:
-  id: string
+  id: PlayerId
   name: string
   score: int
   isActive: boolean
