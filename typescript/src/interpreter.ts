@@ -12,6 +12,8 @@ type DeltaPackApi<T> = {
   clone: (obj: T) => T;
 };
 
+type UnionVal = { type: string; val: unknown };
+
 export function load<T>(schema: Record<string, Type>, objectName: string): DeltaPackApi<T> {
   const typeVal = schema[objectName];
   if (!typeVal) {
@@ -20,6 +22,22 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
   // Support object, union, and enum types as root types
   if (typeVal.type !== "object" && typeVal.type !== "union" && typeVal.type !== "enum") {
     throw new Error(`Type ${objectName} must be an object, union, or enum type, got ${typeVal.type}`);
+  }
+
+  function resolveRef(name: string): Type {
+    const refType = schema[name];
+    if (!refType) {
+      throw new Error(`Unknown reference type: ${name}`);
+    }
+    return refType;
+  }
+
+  function prop(obj: unknown, key: string): unknown {
+    return (obj as Record<string, unknown>)[key];
+  }
+
+  function enumIndices(options: readonly string[]): Record<string, number> {
+    return Object.fromEntries(options.map((opt, i) => [opt, i]));
   }
 
   function _fromJson(objVal: unknown, objType: Type): unknown {
@@ -34,21 +52,15 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "boolean") {
       return _.parseBoolean(objVal);
     } else if (objType.type === "enum") {
-      const enumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      return _.parseEnum(objVal, enumObj);
+      return _.parseEnum(objVal, enumIndices(objType.options));
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      return _fromJson(objVal, refType);
+      return _fromJson(objVal, resolveRef(objType.reference));
     } else if (objType.type === "object") {
       if (typeof objVal !== "object" || objVal == null || Object.getPrototypeOf(objVal) !== Object.prototype) {
         throw new Error(`Invalid object: ${objVal}`);
       }
       return _.mapValues(objType.properties, (typeVal, key) => {
-        const fieldVal = (objVal as any)[key];
-        return _.tryParseField(() => _fromJson(fieldVal, typeVal), key);
+        return _.tryParseField(() => _fromJson(prop(objVal, key), typeVal), key);
       });
     } else if (objType.type === "array") {
       return _.parseArray(objVal, (elem) => _fromJson(elem, objType.value));
@@ -68,10 +80,9 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         if (!optionType) {
           throw new Error(`Unknown union type option: ${objVal.type}`);
         }
-        const refType = schema[optionType.reference]!;
         return {
           type: objVal.type,
-          val: _fromJson(objVal.val, refType),
+          val: _fromJson(objVal.val, resolveRef(optionType.reference)),
         };
       }
       // check if it's protobuf format: { TypeName: ... }
@@ -82,10 +93,9 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         if (!optionType) {
           throw new Error(`Unknown union type option: ${fieldName}`);
         }
-        const refType = schema[optionType.reference]!;
         return {
           type: fieldName,
-          val: _fromJson(fieldValue, refType),
+          val: _fromJson(fieldValue, resolveRef(optionType.reference)),
         };
       }
       throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
@@ -106,15 +116,11 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     ) {
       return objVal;
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      return _toJson(objVal, refType);
+      return _toJson(objVal, resolveRef(objType.reference));
     } else if (objType.type === "object") {
       const result: Record<string, unknown> = {};
       for (const [key, typeVal] of Object.entries(objType.properties)) {
-        const fieldVal = (objVal as any)[key];
+        const fieldVal = prop(objVal, key);
         // Skip optional properties that are undefined
         if (typeVal.type === "optional" && fieldVal == null) {
           continue;
@@ -129,10 +135,9 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       const map = objVal as Map<unknown, unknown>;
       return _.mapToObject(map, (val) => _toJson(val, objType.value));
     } else if (objType.type === "union") {
-      const unionObj = objVal as { type: string; val: unknown };
-      const refType = schema[unionObj.type]!;
+      const union = objVal as UnionVal;
       return {
-        [unionObj.type]: _toJson(unionObj.val, refType),
+        [union.type]: _toJson(union.val, resolveRef(union.type)),
       };
     } else if (objType.type === "optional") {
       if (objVal == null) {
@@ -159,18 +164,12 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "boolean") {
       tracker.pushBoolean(objVal as boolean);
     } else if (objType.type === "enum") {
-      const enumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      tracker.pushUInt(enumObj[objVal as string]!);
+      tracker.pushUInt(enumIndices(objType.options)[objVal as string]!);
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      _encode(objVal, refType, tracker);
+      _encode(objVal, resolveRef(objType.reference), tracker);
     } else if (objType.type === "object") {
       for (const [key, typeVal] of Object.entries(objType.properties)) {
-        const fieldVal = (objVal as any)[key];
-        _encode(fieldVal, typeVal, tracker);
+        _encode(prop(objVal, key), typeVal, tracker);
       }
     } else if (objType.type === "array") {
       const arr = objVal as unknown[];
@@ -183,14 +182,13 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         (val) => _encode(val, objType.value, tracker)
       );
     } else if (objType.type === "union") {
-      const unionObj = objVal as { type: string; val: unknown };
-      const variantIndex = objType.options.findIndex((opt) => opt.reference === unionObj.type);
+      const union = objVal as UnionVal;
+      const variantIndex = objType.options.findIndex((opt) => opt.reference === union.type);
       if (variantIndex === -1) {
-        throw new Error(`Unknown union variant: ${unionObj.type}`);
+        throw new Error(`Unknown union variant: ${union.type}`);
       }
       tracker.pushUInt(variantIndex);
-      const refType = schema[unionObj.type]!;
-      _encode(unionObj.val, refType, tracker);
+      _encode(union.val, resolveRef(union.type), tracker);
     } else if (objType.type === "optional") {
       tracker.pushOptional(objVal, (val) => _encode(val, objType.value, tracker));
     }
@@ -212,16 +210,11 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "boolean") {
       return tracker.nextBoolean();
     } else if (objType.type === "enum") {
-      const idx = tracker.nextUInt();
-      return objType.options[idx];
+      return objType.options[tracker.nextUInt()];
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      return _decode(refType, tracker);
+      return _decode(resolveRef(objType.reference), tracker);
     } else if (objType.type === "object") {
-      const result: any = {};
+      const result: Record<string, unknown> = {};
       for (const [key, typeVal] of Object.entries(objType.properties)) {
         result[key] = _decode(typeVal, tracker);
       }
@@ -248,17 +241,12 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       if (!variant) {
         throw new Error(`Invalid union variant index: ${variantIndex}`);
       }
-      const refType = schema[variant.reference]!;
       return {
         type: variant.reference,
-        val: _decode(refType, tracker),
+        val: _decode(resolveRef(variant.reference), tracker),
       };
     } else if (objType.type === "optional") {
-      const hasValue = tracker.nextBoolean();
-      if (!hasValue) {
-        return undefined;
-      }
-      return _decode(objType.value, tracker);
+      return tracker.nextBoolean() ? _decode(objType.value, tracker) : undefined;
     }
     throw new Error(`Unknown type: ${objType}`);
   }
@@ -277,14 +265,10 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "enum") {
       return a === b;
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      return _equals(a, b, refType);
+      return _equals(a, b, resolveRef(objType.reference));
     } else if (objType.type === "object") {
       for (const [key, typeVal] of Object.entries(objType.properties)) {
-        if (!_equals((a as any)[key], (b as any)[key], typeVal)) {
+        if (!_equals(prop(a, key), prop(b, key), typeVal)) {
           return false;
         }
       }
@@ -311,11 +295,10 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
       return true;
     } else if (objType.type === "union") {
-      const unionA = a as { type: string; val: unknown };
-      const unionB = b as { type: string; val: unknown };
+      const unionA = a as UnionVal;
+      const unionB = b as UnionVal;
       if (unionA.type !== unionB.type) return false;
-      const refType = schema[unionA.type]!;
-      return _equals(unionA.val, unionB.val, refType);
+      return _equals(unionA.val, unionB.val, resolveRef(unionA.type));
     } else if (objType.type === "optional") {
       if (a == null && b == null) return true;
       if (a == null || b == null) return false;
@@ -325,24 +308,21 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
   }
 
   function _clone(obj: unknown, objType: Type): unknown {
-    if (objType.type === "string" || objType.type === "int" || objType.type === "uint") {
-      return obj;
-    } else if (objType.type === "float") {
-      return obj;
-    } else if (objType.type === "boolean") {
-      return obj;
-    } else if (objType.type === "enum") {
+    if (
+      objType.type === "string" ||
+      objType.type === "int" ||
+      objType.type === "uint" ||
+      objType.type === "float" ||
+      objType.type === "boolean" ||
+      objType.type === "enum"
+    ) {
       return obj;
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      return _clone(obj, refType);
+      return _clone(obj, resolveRef(objType.reference));
     } else if (objType.type === "object") {
-      const result: any = {};
+      const result: Record<string, unknown> = {};
       for (const [key, typeVal] of Object.entries(objType.properties)) {
-        result[key] = _clone((obj as any)[key], typeVal);
+        result[key] = _clone(prop(obj, key), typeVal);
       }
       return result;
     } else if (objType.type === "array") {
@@ -356,14 +336,10 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
       }
       return newMap;
     } else if (objType.type === "union") {
-      const union = obj as { type: string; val: unknown };
-      const refType = schema[union.type];
-      if (!refType) {
-        throw new Error(`Unknown union type: ${union.type}`);
-      }
+      const union = obj as UnionVal;
       return {
         type: union.type,
-        val: _clone(union.val, refType),
+        val: _clone(union.val, resolveRef(union.type)),
       };
     } else if (objType.type === "optional") {
       if (obj == null) return undefined;
@@ -388,16 +364,12 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "boolean") {
       tracker.pushBooleanDiff(a as boolean, b as boolean);
     } else if (objType.type === "enum") {
-      const enumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      tracker.pushUIntDiff(enumObj[a as string]!, enumObj[b as string]!);
+      const indices = enumIndices(objType.options);
+      tracker.pushUIntDiff(indices[a as string]!, indices[b as string]!);
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      _encodeDiff(a, b, refType, tracker);
+      _encodeDiff(a, b, resolveRef(objType.reference), tracker);
     } else if (objType.type === "object") {
-      const dirty = (b as any)._dirty;
+      const dirty = (b as { _dirty?: Set<string> })._dirty;
       const changed = dirty == null ? !_equals(a, b, objType) : dirty.size > 0;
       tracker.pushBoolean(changed);
       if (!changed) return;
@@ -405,7 +377,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         if (dirty != null && !dirty.has(key)) {
           tracker.pushBoolean(false);
         } else {
-          _encodeDiff((a as any)[key], (b as any)[key], typeVal, tracker);
+          _encodeDiff(prop(a, key), prop(b, key), typeVal, tracker);
         }
       }
     } else if (objType.type === "array") {
@@ -430,21 +402,18 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         (x, y) => _encodeDiff(x, y, objType.value, tracker)
       );
     } else if (objType.type === "union") {
-      const unionA = a as { type: string; val: unknown };
-      const unionB = b as { type: string; val: unknown };
-
+      const unionA = a as UnionVal;
+      const unionB = b as UnionVal;
       if (unionB.type !== unionA.type) {
         // Type changed - encode new discriminator and value
         tracker.pushBoolean(false);
         const variantIndex = objType.options.findIndex((opt) => opt.reference === unionB.type);
         tracker.pushUInt(variantIndex);
-        const refType = schema[unionB.type]!;
-        _encode(unionB.val, refType, tracker);
+        _encode(unionB.val, resolveRef(unionB.type), tracker);
       } else {
         // Same type - encode diff
         tracker.pushBoolean(true);
-        const refType = schema[unionA.type]!;
-        _encodeDiff(unionA.val, unionB.val, refType, tracker);
+        _encodeDiff(unionA.val, unionB.val, resolveRef(unionA.type), tracker);
       }
     } else if (objType.type === "optional") {
       const valueType = objType.value;
@@ -477,25 +446,18 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         return tracker.nextFloatDiff(a as number);
       }
     } else if (objType.type === "boolean") {
-      const changed = tracker.nextBoolean();
-      return changed ? !(a as boolean) : (a as boolean);
+      return tracker.nextBoolean() ? !(a as boolean) : a;
     } else if (objType.type === "enum") {
-      const oldEnumObj = Object.fromEntries(objType.options.map((opt, i) => [opt, i]));
-      const oldIdx = oldEnumObj[a as string]!;
-      const newIdx = tracker.nextUIntDiff(oldIdx);
+      const newIdx = tracker.nextUIntDiff(enumIndices(objType.options)[a as string]!);
       return objType.options[newIdx];
     } else if (objType.type === "reference") {
-      const refType = schema[objType.reference];
-      if (!refType) {
-        throw new Error(`Unknown reference type: ${objType.reference}`);
-      }
-      return _decodeDiff(a, refType, tracker);
+      return _decodeDiff(a, resolveRef(objType.reference), tracker);
     } else if (objType.type === "object") {
       const changed = tracker.nextBoolean();
       if (!changed) return a;
-      const result: any = {};
+      const result: Record<string, unknown> = {};
       for (const [key, typeVal] of Object.entries(objType.properties)) {
-        result[key] = _decodeDiff((a as any)[key], typeVal, tracker);
+        result[key] = _decodeDiff(prop(a, key), typeVal, tracker);
       }
       return result;
     } else if (objType.type === "array") {
@@ -514,9 +476,8 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         (x) => _decodeDiff(x, objType.value, tracker)
       );
     } else if (objType.type === "union") {
-      const unionA = a as { type: string; val: unknown };
+      const unionA = a as UnionVal;
       const sameType = tracker.nextBoolean();
-
       if (!sameType) {
         // Type changed - decode new discriminator and value
         const variantIndex = tracker.nextUInt();
@@ -524,17 +485,15 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
         if (!variant) {
           throw new Error(`Invalid union variant index: ${variantIndex}`);
         }
-        const refType = schema[variant.reference]!;
         return {
           type: variant.reference,
-          val: _decode(refType, tracker),
+          val: _decode(resolveRef(variant.reference), tracker),
         };
       } else {
         // Same type - decode diff
-        const refType = schema[unionA.type]!;
         return {
           type: unionA.type,
-          val: _decodeDiff(unionA.val, refType, tracker),
+          val: _decodeDiff(unionA.val, resolveRef(unionA.type), tracker),
         };
       }
     } else if (objType.type === "optional") {
