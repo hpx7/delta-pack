@@ -13,60 +13,54 @@ async function main() {
 
   for (const example of examples) {
     const result = benchmarkExample(example);
+    const numStates = result.json.length;
 
     // Find smallest size for each state
-    const minState1 = Math.min(
-      result.json.state1,
-      result.msgpack.state1,
-      result.protobuf.state1,
-      result.deltaPack.state1,
-    );
-    const minState2 = Math.min(
-      result.json.state2,
-      result.msgpack.state2,
-      result.protobuf.state2,
-      result.deltaPack.state2,
+    const minSizes = result.json.map((_, i) =>
+      Math.min(result.json[i]!, result.msgpack[i]!, result.protobuf[i]!, result.deltaPack[i]!)
     );
 
     console.log(`${example}:`);
-    console.log("Format".padEnd(15), "State1".padStart(16), "State2".padStart(16));
-    console.log("=".repeat(50));
-    console.log(
-      "JSON".padEnd(15),
-      `${result.json.state1}B (${(result.json.state1 / minState1).toFixed(1)}x)`.padStart(16),
-      `${result.json.state2}B (${(result.json.state2 / minState2).toFixed(1)}x)`.padStart(16),
-    );
-    console.log(
-      "MessagePack".padEnd(15),
-      `${result.msgpack.state1}B (${(result.msgpack.state1 / minState1).toFixed(1)}x)`.padStart(16),
-      `${result.msgpack.state2}B (${(result.msgpack.state2 / minState2).toFixed(1)}x)`.padStart(16),
-    );
-    console.log(
-      "Protobuf".padEnd(15),
-      `${result.protobuf.state1}B (${(result.protobuf.state1 / minState1).toFixed(1)}x)`.padStart(16),
-      `${result.protobuf.state2}B (${(result.protobuf.state2 / minState2).toFixed(1)}x)`.padStart(16),
-    );
-    console.log(
-      "Delta-Pack".padEnd(15),
-      `${result.deltaPack.state1}B (${(result.deltaPack.state1 / minState1).toFixed(1)}x)`.padStart(16),
-      `${result.deltaPack.state2}B (${(result.deltaPack.state2 / minState2).toFixed(1)}x)`.padStart(16),
-    );
+    const colWidth = 16;
+    const stateHeaders = result.json.map((_, i) => `State${i + 1}`.padStart(colWidth)).join("");
+    console.log("Format".padEnd(15), stateHeaders);
+    console.log("=".repeat(15 + colWidth * numStates));
+
+    const formatResult = (name: string, sizes: number[]) => {
+      const cols = sizes
+        .map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`.padStart(colWidth))
+        .join("");
+      console.log(name.padEnd(15), cols);
+    };
+
+    formatResult("JSON", result.json);
+    formatResult("MessagePack", result.msgpack);
+    formatResult("Protobuf", result.protobuf);
+    formatResult("Delta-Pack", result.deltaPack);
     console.log();
   }
 }
 
 function benchmarkExample(example: string) {
-  // Read state files
-  const state1Content = fs.readFileSync(`${examplesDir}/${example}/state1.json`, "utf8");
-  const state2Content = fs.readFileSync(`${examplesDir}/${example}/state2.json`, "utf8");
-  const state1Json = JSON.parse(state1Content);
-  const state2Json = JSON.parse(state2Content);
+  // Find all state files
+  const exampleDir = `${examplesDir}/${example}`;
+  const stateFiles = fs
+    .readdirSync(exampleDir)
+    .filter((f) => f.match(/^state\d+\.json$/))
+    .sort((a, b) => {
+      const numA = parseInt(a.match(/\d+/)![0]!);
+      const numB = parseInt(b.match(/\d+/)![0]!);
+      return numA - numB;
+    });
+
+  // Read all state files
+  const states = stateFiles.map((f) => JSON.parse(fs.readFileSync(`${exampleDir}/${f}`, "utf8")));
 
   // Benchmark each format
-  const json = benchmarkJson(state1Json, state2Json);
-  const msgpack = benchmarkMessagePack(state1Json, state2Json);
-  const protobuf = benchmarkProtobuf(state1Json, state2Json, example);
-  const deltaPack = benchmarkDeltaPack(state1Json, state2Json, example);
+  const json = benchmarkJson(states);
+  const msgpack = benchmarkMessagePack(states);
+  const protobuf = benchmarkProtobuf(states, example);
+  const deltaPack = benchmarkDeltaPack(states, example);
 
   return {
     json,
@@ -76,82 +70,52 @@ function benchmarkExample(example: string) {
   };
 }
 
-function benchmarkJson(state1: any, state2: any) {
-  // Parse and encode states
-  const encoded1 = Buffer.from(JSON.stringify(state1));
-  const encoded2 = Buffer.from(JSON.stringify(state2));
-
-  // Verify encoding by decoding and comparing
-  const decoded1 = JSON.parse(encoded1.toString());
-  const decoded2 = JSON.parse(encoded2.toString());
-  assert(deepEquals(decoded1, state1), "JSON state1 decode mismatch");
-  assert(deepEquals(decoded2, state2), "JSON state2 decode mismatch");
-
-  return {
-    state1: encoded1.length,
-    state2: encoded2.length,
-  };
+function benchmarkJson(states: any[]): number[] {
+  return states.map((state, i) => {
+    const encoded = Buffer.from(JSON.stringify(state));
+    const decoded = JSON.parse(encoded.toString());
+    assert(deepEquals(decoded, state), `JSON state${i + 1} decode mismatch`);
+    return encoded.length;
+  });
 }
 
-function benchmarkMessagePack(state1: any, state2: any) {
-  // Parse and encode states
-  const encoded1 = msgpack.encode(state1);
-  const encoded2 = msgpack.encode(state2);
-
-  // Verify encoding by decoding and comparing
-  const decoded1 = msgpack.decode(encoded1);
-  const decoded2 = msgpack.decode(encoded2);
-  assert(deepEquals(decoded1, state1), "MessagePack state1 decode mismatch");
-  assert(deepEquals(decoded2, state2), "MessagePack state2 decode mismatch");
-
-  return {
-    state1: encoded1.length,
-    state2: encoded2.length,
-  };
+function benchmarkMessagePack(states: any[]): number[] {
+  return states.map((state, i) => {
+    const encoded = msgpack.encode(state);
+    const decoded = msgpack.decode(encoded);
+    assert(deepEquals(decoded, state), `MessagePack state${i + 1} decode mismatch`);
+    return encoded.length;
+  });
 }
 
-function benchmarkProtobuf(state1: any, state2: any, example: string) {
-  // Load protobuf schema
+function benchmarkProtobuf(states: any[], example: string): number[] {
   const protoPath = `${examplesDir}/${example}/schema.proto`;
   const root = new protobuf.Root().loadSync(protoPath, { keepCase: true });
   const MessageType = root.lookupType(example);
 
-  // Parse and encode states
-  const encoded1 = MessageType.encode(MessageType.fromObject(state1)).finish();
-  const encoded2 = MessageType.encode(MessageType.fromObject(state2)).finish();
-
-  // Verify encoding by decoding and comparing
-  const decoded1 = MessageType.toObject(MessageType.decode(encoded1), { enums: String, defaults: true });
-  const decoded2 = MessageType.toObject(MessageType.decode(encoded2), { enums: String, defaults: true });
-  assert(deepEquals(decoded1, state1), "Protobuf state1 round-trip mismatch");
-  assert(deepEquals(decoded2, state2), "Protobuf state2 round-trip mismatch");
-
-  return {
-    state1: encoded1.length,
-    state2: encoded2.length,
-  };
+  return states.map((state, i) => {
+    const encoded = MessageType.encode(MessageType.fromObject(state)).finish();
+    const decoded = MessageType.toObject(MessageType.decode(encoded), {
+      enums: String,
+      defaults: true,
+    });
+    assert(deepEquals(decoded, state), `Protobuf state${i + 1} round-trip mismatch`);
+    return encoded.length;
+  });
 }
 
-function benchmarkDeltaPack(state1: any, state2: any, example: string) {
-  // Load YAML schema
+function benchmarkDeltaPack(states: any[], example: string): number[] {
   const schemaContent = fs.readFileSync(`${examplesDir}/${example}/schema.yml`, "utf8");
   const parsedSchema = deltapack.parseSchemaYml(schemaContent);
   const State = deltapack.load(parsedSchema, example);
 
-  // Parse and encode states
-  const encoded1 = State.encode(State.fromJson(state1));
-  const encoded2 = State.encode(State.fromJson(state2));
+  return states.map((state, i) => {
+    const encoded = State.encode(State.fromJson(state));
 
-  // Verify encoding by decoding and comparing
-  const decoded1 = State.toJson(State.decode(encoded1));
-  const decoded2 = State.toJson(State.decode(encoded2));
-  assert(deepEquals(decoded1, state1), "Delta-Pack state1 round-trip mismatch");
-  assert(deepEquals(decoded2, state2), "Delta-Pack state2 round-trip mismatch");
-
-  return {
-    state1: encoded1.length,
-    state2: encoded2.length,
-  };
+    const decoded = State.toJson(State.decode(encoded));
+    assert(deepEquals(decoded, state), `Delta-pack state${i + 1} round-trip mismatch`);
+    return encoded.length;
+  });
 }
 
 // Deep equality comparison with float precision tolerance
@@ -159,8 +123,8 @@ function deepEquals(a: any, b: any, floatPrecision = 0.01): boolean {
   // Handle primitive types
   if (a === b) return true;
 
-  // Handle null/undefined
-  if (a == null || b == null) return a === b;
+  // Handle null/undefined - treat null and undefined as equivalent
+  if (a == null || b == null) return a == b;
 
   // Handle numbers (floats)
   if (typeof a === "number" && typeof b === "number") {
@@ -190,10 +154,8 @@ function deepEquals(a: any, b: any, floatPrecision = 0.01): boolean {
   if (typeof a === "object" && typeof b === "object") {
     const keysA = Object.keys(a);
     const keysB = Object.keys(b);
-
-    if (keysA.length !== keysB.length) return false;
-
-    return keysA.every((key) => deepEquals(a[key], b[key], floatPrecision));
+    const allKeys = new Set([...keysA, ...keysB]);
+    return [...allKeys].every((key) => deepEquals(a[key], b[key], floatPrecision));
   }
 
   return false;
