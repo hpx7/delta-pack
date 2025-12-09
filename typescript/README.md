@@ -102,8 +102,8 @@ Player:
   position: Position?
 
 Position:
-  x: float
-  y: float
+  x: float(precision=0.1)
+  y: float(precision=0.1)
 
 # Complex types
 GameState:

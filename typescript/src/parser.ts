@@ -48,14 +48,12 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
         const itemTypeStr = value.slice(0, -2);
         const childType = parseType(itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
         return ArrayType(childType);
-      }
-      if (value.endsWith("?")) {
+      } else if (value.endsWith("?")) {
         // optional type
         const itemTypeStr = value.slice(0, -1);
         const childType = parseType(itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
         return OptionalType(childType);
-      }
-      if (value.startsWith("<") && value.endsWith(">")) {
+      } else if (value.startsWith("<") && value.endsWith(">")) {
         // record type
         const inner = value.slice(1, -1);
         const commaIdx = inner.indexOf(",");
@@ -66,22 +64,19 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
         const keyType = parseType(keyTypeStr) as { type: "string" | "int" | "uint" };
         const valueType = parseType(valueTypeStr) as PrimitiveType | ContainerType | ReferenceType;
         return RecordType(keyType, valueType);
-      }
-      if (value in schema) {
-        // reference type
-        return ReferenceType(value);
-      }
-      // primitive type
-      if (value === "string") {
+      } else if (value.startsWith("string")) {
         return StringType();
-      } else if (value === "int") {
+      } else if (value.startsWith("int")) {
         return IntType();
-      } else if (value === "uint") {
+      } else if (value.startsWith("uint")) {
         return UIntType();
-      } else if (value === "float") {
-        return FloatType();
-      } else if (value === "boolean") {
+      } else if (value.startsWith("float")) {
+        const params = parseParams(value, "float");
+        return FloatType(params);
+      } else if (value.startsWith("boolean")) {
         return BooleanType();
+      } else if (value in schema) {
+        return ReferenceType(value);
       }
     }
     throw new Error(`Unsupported type format: ${value}`);
@@ -89,4 +84,24 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
 
   // parse the type definitions
   return mapValues(schema, (value) => parseType(value));
+}
+
+function parseParams(value: string, typeName: string): Record<string, string> {
+  if (value === typeName) {
+    return {};
+  }
+  // expect format: typeName(key=value, key2=value2, ...)
+  const match = value.match(new RegExp(`^${typeName}\\((.+)\\)$`));
+  if (!match) {
+    throw new Error(`Invalid ${typeName} format: ${value}`);
+  }
+  const params: Record<string, string> = {};
+  for (const part of match[1]!.split(",")) {
+    const [key, val] = part.split("=").map((s) => s.trim());
+    if (!key || !val) {
+      throw new Error(`Invalid parameter format in ${value}`);
+    }
+    params[key] = val;
+  }
+  return params;
 }

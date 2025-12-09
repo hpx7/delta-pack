@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { parseSchemaYml, EnumType, ObjectType, UnionType } from "@hpx7/delta-pack";
+import { parseSchemaYml, EnumType, ObjectType, UnionType, FloatType } from "@hpx7/delta-pack";
 import { schema as tsSchema } from "./schema.js";
 
 // Extract individual types from the TypeScript schema
@@ -53,14 +53,26 @@ describe("YAML Schema Parser", () => {
     expect(parsedSchema["Player"]).toEqual(Player);
   });
 
-  it("should parse Position as object type with floats", () => {
+  it("should parse Position as object type with quantized floats", () => {
     const positionType = parsedSchema["Position"] as ObjectType;
     expect(positionType.type).toBe("object");
-    expect(positionType.properties["x"]!.type).toBe("float");
-    expect(positionType.properties["y"]!.type).toBe("float");
+    const xType = positionType.properties["x"] as FloatType;
+    const yType = positionType.properties["y"] as FloatType;
+    expect(xType.type).toBe("float");
+    expect(yType.type).toBe("float");
+    expect(xType.precision).toBe(0.1);
+    expect(yType.precision).toBe(0.1);
+  });
 
-    // Note: YAML parser doesn't support float precision yet
-    // Position in schema.ts has precision: 0.1, but YAML schema uses plain float
+  it("should parse Velocity as object type with non-quantized floats", () => {
+    const velocityType = parsedSchema["Velocity"] as ObjectType;
+    expect(velocityType.type).toBe("object");
+    const vxType = velocityType.properties["vx"] as FloatType;
+    const vyType = velocityType.properties["vy"] as FloatType;
+    expect(vxType.type).toBe("float");
+    expect(vyType.type).toBe("float");
+    expect(vxType.precision).toBeUndefined();
+    expect(vyType.precision).toBeUndefined();
   });
 
   it("should parse MoveAction as object type", () => {
@@ -128,14 +140,13 @@ describe("YAML Schema Parser", () => {
     expect((gameStateType.properties["lastAction"] as any).value.reference).toBe("GameAction");
   });
 
-  it("should match TypeScript schema structure (except float precision)", () => {
+  it("should match TypeScript schema structure", () => {
     // Test that parsed YAML types match TypeScript types
-    // (excluding Position which has precision in TS but not in YAML)
-
     expect(parsedSchema["Color"]).toEqual(Color);
     expect(parsedSchema["MoveAction"]).toEqual(MoveAction);
     expect(parsedSchema["AttackAction"]).toEqual(AttackAction);
     expect(parsedSchema["UseItemAction"]).toEqual(UseItemAction);
+    expect(parsedSchema["Position"]).toEqual(tsSchema.Position);
 
     // GameAction should match structure
     const gameActionType = parsedSchema["GameAction"] as UnionType;

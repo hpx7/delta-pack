@@ -96,8 +96,13 @@ export function UIntType(): UIntType {
   return { type: "uint" };
 }
 
-export function FloatType(options?: { precision?: number }): FloatType {
-  return { type: "float", precision: options?.precision };
+export function FloatType(options?: { precision?: number | string }): FloatType {
+  if (typeof options?.precision === "number") {
+    return { type: "float", precision: options.precision };
+  } else if (typeof options?.precision === "string") {
+    return { type: "float", precision: parseFloat(options.precision) };
+  }
+  return { type: "float" };
 }
 
 export function BooleanType(): BooleanType {
