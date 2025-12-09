@@ -1,28 +1,35 @@
 {
   "compilerOptions": {
-    // Environment Settings
-    "esModuleInterop": true,
-    "moduleResolution": "node",
-    "module": "esnext",
-    "target": "esnext",
+    /* Output configuration */
     "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@hpx7/delta-pack": ["../typescript/src"]
+    },
 
-    // Style Options
-    "noImplicitReturns": true,
+    /* Module Resolution */
+    "moduleResolution": "bundler",
+    "declaration": true,
+    "esModuleInterop": true,
+    "module": "preserve",
+    "target": "esnext",
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+
+    /* Linting */
+    "strict": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noPropertyAccessFromIndexSignature": true,
-
-    // Recommended Options
-    "strict": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true
+    "forceConsistentCasingInFileNames": true
   }
 }
