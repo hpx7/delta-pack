@@ -33,24 +33,18 @@
           "itemId": "item1",
           "name": "Health Potion",
           "quantity": 3,
-          "rarity": "COMMON",
-          "durability": null,
-          "enchantmentLevel": null
+          "rarity": "COMMON"
         },
         {
           "itemId": "item2",
           "name": "Mana Crystal",
           "quantity": 5,
-          "rarity": "UNCOMMON",
-          "durability": null,
-          "enchantmentLevel": null
+          "rarity": "UNCOMMON"
         }
       ],
       "equipment": {
         "weapon": "SWORD",
-        "armor": "leather_armor",
-        "accessory1": null,
-        "accessory2": null
+        "armor": "leather_armor"
       },
       "activeEffects": [
         {
@@ -76,8 +70,7 @@
       "isJumping": false,
       "isCrouching": false,
       "isAiming": true,
-      "lastDamageTime": 2.0,
-      "respawnTime": null
+      "lastDamageTime": 2.0
     },
     "player2": {
       "playerId": "player2",
@@ -112,10 +105,7 @@
         }
       ],
       "equipment": {
-        "weapon": "BOW",
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
+        "weapon": "BOW"
       },
       "activeEffects": [],
       "abilityCooldowns": [],
@@ -127,9 +117,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player3": {
       "playerId": "player3",
@@ -154,12 +142,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -170,9 +153,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player4": {
       "playerId": "player4",
@@ -197,12 +178,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -213,9 +189,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": true,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player5": {
       "playerId": "player5",
@@ -240,12 +214,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -256,9 +225,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player6": {
       "playerId": "player6",
@@ -283,12 +250,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -299,9 +261,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player7": {
       "playerId": "player7",
@@ -326,12 +286,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -342,9 +297,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player8": {
       "playerId": "player8",
@@ -369,12 +322,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -385,9 +333,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     }
   },
   "enemies": {
@@ -426,7 +372,6 @@
       "maxHealth": 40,
       "level": 4,
       "isAggro": false,
-      "targetPlayerId": null,
       "lastAttackTime": 0.0,
       "lootTableId": "goblin_loot"
     }
@@ -461,9 +406,7 @@
         "itemId": "drop1",
         "name": "Gold Coins",
         "quantity": 50,
-        "rarity": "COMMON",
-        "durability": null,
-        "enchantmentLevel": null
+        "rarity": "COMMON"
       },
       "despawnTime": 40.0
     }
@@ -475,17 +418,14 @@
       "position": { "x": 180.0, "y": 220.0 },
       "health": 30,
       "isDestroyed": false,
-      "isInteractable": false,
-      "interactedBy": null
+      "isInteractable": false
     },
     "chest1": {
       "objectId": "chest1",
       "objectType": "loot_chest",
       "position": { "x": 350.0, "y": 380.0 },
-      "health": null,
       "isDestroyed": false,
-      "isInteractable": true,
-      "interactedBy": null
+      "isInteractable": true
     }
   },
   "teamScores": [
@@ -508,7 +448,6 @@
     "startingGold": 500,
     "gravityMultiplier": 1.0
   },
-  "winningTeam": null,
   "mapName": "Arena_01",
   "weatherIntensity": 0.0
 }

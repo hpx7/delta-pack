@@ -29,12 +29,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [
         {
           "effectType": "POISON",
@@ -59,8 +54,7 @@
       "isJumping": false,
       "isCrouching": false,
       "isAiming": true,
-      "lastDamageTime": 2.0,
-      "respawnTime": null
+      "lastDamageTime": 2.0
     },
     "player2": {
       "playerId": "player2",
@@ -85,12 +79,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 1,
@@ -101,9 +90,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player3": {
       "playerId": "player3",
@@ -128,12 +115,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -144,9 +126,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player4": {
       "playerId": "player4",
@@ -171,12 +151,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -187,9 +162,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": true,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     }
   },
   "enemies": {
@@ -241,7 +214,6 @@
     "startingGold": 500,
     "gravityMultiplier": 1.0
   },
-  "winningTeam": null,
   "mapName": "Arena_01",
   "weatherIntensity": 0.0
 }

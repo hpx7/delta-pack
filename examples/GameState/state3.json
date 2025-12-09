@@ -29,12 +29,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -45,9 +40,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": true,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": true
     },
     "player2": {
       "playerId": "player2",
@@ -72,12 +65,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -88,9 +76,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player3": {
       "playerId": "player3",
@@ -115,12 +101,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -131,9 +112,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": false,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     },
     "player4": {
       "playerId": "player4",
@@ -158,12 +137,7 @@
         "defense": 10
       },
       "inventory": [],
-      "equipment": {
-        "weapon": null,
-        "armor": null,
-        "accessory1": null,
-        "accessory2": null
-      },
+      "equipment": {},
       "activeEffects": [],
       "abilityCooldowns": [],
       "kills": 0,
@@ -174,9 +148,7 @@
       "ping": 50,
       "isJumping": false,
       "isCrouching": true,
-      "isAiming": false,
-      "lastDamageTime": null,
-      "respawnTime": null
+      "isAiming": false
     }
   },
   "enemies": {
@@ -189,7 +161,6 @@
       "maxHealth": 50,
       "level": 3,
       "isAggro": false,
-      "targetPlayerId": null,
       "lastAttackTime": 0.0,
       "lootTableId": "goblin_loot"
     }
@@ -228,7 +199,6 @@
     "startingGold": 500,
     "gravityMultiplier": 1.0
   },
-  "winningTeam": null,
   "mapName": "Arena_01",
   "weatherIntensity": 0.0
 }
