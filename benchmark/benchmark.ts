@@ -9,34 +9,33 @@ const examplesDir = "../examples";
 async function main() {
   const examples = fs.readdirSync(examplesDir);
 
-  console.log("Encoding Size Comparison (bytes)\n");
+  console.log("## Encoding Size Comparison (bytes)\n");
 
   for (const example of examples) {
     const result = benchmarkExample(example);
-    const numStates = result.json.length;
 
     // Find smallest size for each state
     const minSizes = result.json.map((_, i) =>
       Math.min(result.json[i]!, result.msgpack[i]!, result.protobuf[i]!, result.deltaPack[i]!)
     );
 
-    console.log(`${example}:`);
-    const colWidth = 16;
-    const stateHeaders = result.json.map((_, i) => `State${i + 1}`.padStart(colWidth)).join("");
-    console.log("Format".padEnd(15), stateHeaders);
-    console.log("=".repeat(15 + colWidth * numStates));
+    console.log(`### ${example}\n`);
 
-    const formatResult = (name: string, sizes: number[]) => {
-      const cols = sizes
-        .map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`.padStart(colWidth))
-        .join("");
-      console.log(name.padEnd(15), cols);
-    };
+    // Calculate column widths
+    const allRows = [
+      ["JSON", ...result.json.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
+      ["MessagePack", ...result.msgpack.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
+      ["Protobuf", ...result.protobuf.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
+      ["Delta-Pack", ...result.deltaPack.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
+    ];
+    const headers = ["Format", ...result.json.map((_, i) => `State${i + 1}`)];
+    const colWidths = headers.map((h, i) => Math.max(h.length, ...allRows.map((row) => row[i]!.length)));
 
-    formatResult("JSON", result.json);
-    formatResult("MessagePack", result.msgpack);
-    formatResult("Protobuf", result.protobuf);
-    formatResult("Delta-Pack", result.deltaPack);
+    const formatRow = (cols: string[]) => "| " + cols.map((col, i) => col.padEnd(colWidths[i]!)).join(" | ") + " |";
+
+    console.log(formatRow(headers));
+    console.log("| " + colWidths.map((w) => "-".repeat(w)).join(" | ") + " |");
+    allRows.forEach((row) => console.log(formatRow(row)));
     console.log();
   }
 }
