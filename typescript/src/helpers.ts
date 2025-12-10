@@ -4,22 +4,13 @@ import { rleDecode, rleEncode } from "./rle.js";
 
 const FLOAT_EPSILON = 0.001;
 
-type PrimitiveValue =
-  | { type: "string"; val: string; len: number }
-  | { type: "int"; val: number }
-  | { type: "uint"; val: number }
-  | { type: "float"; val: number };
 export class Tracker {
-  private bitsIdx = 0;
   private dict: string[] = [];
-  private data: PrimitiveValue[] = [];
-  private bits: boolean[];
-  private reader: Reader;
+  private bitsIdx = 0;
+  private bits: boolean[] = [];
+  private writer = new Writer();
+  private reader: Reader | undefined;
 
-  constructor(bits: boolean[] = [], reader: Reader = new Reader(new Uint8Array())) {
-    this.bits = bits;
-    this.reader = reader;
-  }
   static parse(buf: Uint8Array) {
     const reader = new Reader(buf);
 
@@ -27,30 +18,34 @@ export class Tracker {
     const rleBits = reader.readBits(numBits);
     const bits = rleDecode(rleBits);
 
-    return new Tracker(bits, reader);
+    const tracker = new Tracker();
+    tracker.bits = bits;
+    tracker.reader = reader;
+    return tracker;
   }
   pushString(val: string) {
     if (val === "") {
-      this.data.push({ type: "int", val: 0 });
+      this.writer.writeVarint(0);
       return;
     }
     const idx = this.dict.indexOf(val);
     if (idx < 0) {
       this.dict.push(val);
       const len = utf8BufferSize(val);
-      this.data.push({ type: "string", val, len });
+      this.writer.writeVarint(len);
+      this.writer.writeStringUtf8(val, len);
     } else {
-      this.data.push({ type: "int", val: -idx - 1 });
+      this.writer.writeVarint(-idx - 1);
     }
   }
   pushInt(val: number) {
-    this.data.push({ type: "int", val });
+    this.writer.writeVarint(val);
   }
   pushUInt(val: number) {
-    this.data.push({ type: "uint", val });
+    this.writer.writeUVarint(val);
   }
   pushFloat(val: number) {
-    this.data.push({ type: "float", val });
+    this.writer.writeFloat(val);
   }
   pushFloatQuantized(val: number, precision: number) {
     this.pushInt(Math.round(val / precision));
@@ -248,25 +243,25 @@ export class Tracker {
     });
   }
   nextString() {
-    const lenOrIdx = this.reader.readVarint();
+    const lenOrIdx = this.reader!.readVarint();
     if (lenOrIdx === 0) {
       return "";
     }
     if (lenOrIdx > 0) {
-      const str = this.reader.readStringUtf8(lenOrIdx);
+      const str = this.reader!.readStringUtf8(lenOrIdx);
       this.dict.push(str);
       return str;
     }
     return this.dict[-lenOrIdx - 1]!;
   }
   nextInt() {
-    return this.reader.readVarint();
+    return this.reader!.readVarint();
   }
   nextUInt() {
-    return this.reader.readUVarint();
+    return this.reader!.readUVarint();
   }
   nextFloat() {
-    return this.reader.readFloat();
+    return this.reader!.readFloat();
   }
   nextFloatQuantized(precision: number) {
     return this.nextInt() * precision;
@@ -391,26 +386,11 @@ export class Tracker {
     return result;
   }
   toBuffer() {
-    const buf = new Writer();
-
     const rleBits = rleEncode(this.bits);
-    buf.writeUVarint(rleBits.length);
-    buf.writeBits(rleBits);
-
-    this.data.forEach((x) => {
-      if (x.type === "string") {
-        buf.writeVarint(x.len);
-        buf.writeStringUtf8(x.val, x.len);
-      } else if (x.type === "int") {
-        buf.writeVarint(x.val);
-      } else if (x.type === "uint") {
-        buf.writeUVarint(x.val);
-      } else if (x.type === "float") {
-        buf.writeFloat(x.val);
-      }
-    });
-
-    return buf.toBuffer();
+    const out = new Writer(Math.ceil(this.writer.size * 1.1));
+    out.writeUVarint(rleBits.length);
+    out.writeBits(rleBits);
+    return out.concat(this.writer).toBuffer();
   }
 }
 
