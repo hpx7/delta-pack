@@ -1,5 +1,7 @@
 ## Encoding Size Comparison (bytes)
 
+Lower is better. The multiplier shows how much larger each format is compared to the smallest.
+
 ### GameState
 
 | Format      | State1       | State2       | State3       | State4       | State5       | State6       |
@@ -26,3 +28,34 @@
 | MessagePack | 257B (2.0x) | 283B (2.0x) |
 | Protobuf    | 151B (1.2x) | 173B (1.2x) |
 | Delta-Pack  | 129B (1.0x) | 145B (1.0x) |
+
+## Encoding Speed Comparison (ops/s)
+
+Higher is better. The multiplier shows how much slower each format is compared to the fastest.
+
+### GameState
+
+| Format      | State1        | State2        | State3        | State4        | State5        | State6        |
+| ----------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
+| JSON        | 517.0K (1.6x) | 310.9K (1.5x) | 232.4K (1.7x) | 221.3K (1.7x) | 114.8K (1.4x) | 110.3K (1.5x) |
+| MessagePack | 203.4K (4.1x) | 125.0K (3.7x) | 101.5K (3.9x) | 101.5K (3.8x) | 49.0K (3.3x)  | 47.6K (3.4x)  |
+| Protobuf    | 343.6K (2.4x) | 203.5K (2.3x) | 163.4K (2.4x) | 155.1K (2.5x) | 69.8K (2.3x)  | 69.3K (2.3x)  |
+| Delta-Pack  | 838.8K (1.0x) | 462.0K (1.0x) | 393.4K (1.0x) | 384.6K (1.0x) | 163.1K (1.0x) | 160.8K (1.0x) |
+
+### Primitives
+
+| Format      | State1      | State2      |
+| ----------- | ----------- | ----------- |
+| JSON        | 5.4M (1.0x) | 5.4M (1.0x) |
+| MessagePack | 1.7M (3.2x) | 1.7M (3.2x) |
+| Protobuf    | 5.2M (1.0x) | 5.2M (1.0x) |
+| Delta-Pack  | 2.7M (2.0x) | 2.7M (2.0x) |
+
+### User
+
+| Format      | State1        | State2        |
+| ----------- | ------------- | ------------- |
+| JSON        | 2.1M (1.0x)   | 2.0M (1.0x)   |
+| MessagePack | 849.9K (2.5x) | 772.2K (2.5x) |
+| Protobuf    | 1.1M (1.9x)   | 928.1K (2.1x) |
+| Delta-Pack  | 1.2M (1.7x)   | 1.1M (1.8x)   |
