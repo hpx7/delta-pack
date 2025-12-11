@@ -254,28 +254,30 @@ Objects are encoded in a compact binary format optimized for size and speed.
 ### Format Structure
 
 ```
-[metadata][data]
+[data][rle]
 ```
 
 Where:
 
-- **Metadata**: RLE-compressed boolean array containing all boolean fields and presence flags
 - **Data**: Sequential encoding of all non-boolean primitive values
+- **RLE**: RLE-compressed boolean array with length suffix
 
-### Metadata Section
+### RLE Section
 
-The metadata section contains:
+Format:
+
+```
+[rleBits][numRleBits: reverse varint]
+```
+
+The reverse varint at the end stores the exact number of RLE bits, allowing reading from the end of the buffer to determine where the RLE bits begin.
+
+The RLE bits contain:
 
 1. **Boolean fields**: All boolean values in field order
 2. **Optional presence flags**: One bit per optional field indicating presence
 3. **Array/Map change flags**: Bits indicating if collections changed (in diffs)
 4. **Quantized change flags**: Bits indicating if quantized values changed (in diffs)
-
-Format:
-
-```
-[numBits: varint][rleBits: RLE-compressed bits]
-```
 
 The boolean bits are RLE-compressed to handle long sequences of identical values efficiently.
 

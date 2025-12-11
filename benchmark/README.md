@@ -46,34 +46,34 @@ Higher is better. The multiplier shows how much slower each format is compared t
 
 | Format      | State1        | State2        | State3        | State4        | State5        | State6        |
 | ----------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- |
-| JSON        | 517.2K (1.9x) | 308.1K (1.8x) | 232.2K (2.0x) | 223.9K (2.0x) | 115.2K (1.5x) | 113.8K (1.5x) |
-| MessagePack | 213.5K (4.5x) | 131.9K (4.1x) | 113.3K (4.0x) | 104.0K (4.2x) | 50.8K (3.5x)  | 50.5K (3.5x)  |
-| Protobuf    | 349.9K (2.8x) | 208.0K (2.6x) | 173.6K (2.6x) | 163.6K (2.7x) | 72.0K (2.4x)  | 72.2K (2.4x)  |
-| Delta-Pack  | 970.6K (1.0x) | 543.5K (1.0x) | 453.0K (1.0x) | 437.9K (1.0x) | 175.4K (1.0x) | 175.8K (1.0x) |
+| JSON        | 471.0K (2.2x) | 289.8K (2.0x) | 217.3K (2.1x) | 205.7K (2.2x) | 107.2K (1.6x) | 104.7K (1.7x) |
+| MessagePack | 187.9K (5.4x) | 118.6K (4.8x) | 102.3K (4.5x) | 97.2K (4.6x)  | 46.5K (3.8x)  | 46.7K (3.8x)  |
+| Protobuf    | 327.7K (3.1x) | 199.3K (2.9x) | 165.3K (2.8x) | 154.7K (2.9x) | 69.0K (2.5x)  | 68.0K (2.6x)  |
+| Delta-Pack  | 1.0M (1.0x)   | 571.1K (1.0x) | 464.9K (1.0x) | 443.6K (1.0x) | 175.6K (1.0x) | 176.6K (1.0x) |
 
 ### Primitives
 
 | Format      | State1      | State2      |
 | ----------- | ----------- | ----------- |
-| JSON        | 5.7M (1.0x) | 5.7M (1.0x) |
-| MessagePack | 1.9M (3.0x) | 1.9M (3.0x) |
-| Protobuf    | 5.4M (1.1x) | 5.4M (1.1x) |
-| Delta-Pack  | 4.2M (1.3x) | 4.2M (1.3x) |
+| JSON        | 4.6M (1.4x) | 4.6M (1.4x) |
+| MessagePack | 1.7M (3.7x) | 1.8M (3.6x) |
+| Protobuf    | 5.5M (1.2x) | 5.4M (1.2x) |
+| Delta-Pack  | 6.4M (1.0x) | 6.4M (1.0x) |
 
 ### Test
 
 | Format      | State1      |
 | ----------- | ----------- |
-| JSON        | 2.3M (1.1x) |
-| MessagePack | 1.1M (2.1x) |
-| Protobuf    | 2.1M (1.2x) |
-| Delta-Pack  | 2.4M (1.0x) |
+| JSON        | 2.0M (1.4x) |
+| MessagePack | 1.1M (2.6x) |
+| Protobuf    | 2.0M (1.4x) |
+| Delta-Pack  | 2.9M (1.0x) |
 
 ### User
 
 | Format      | State1        | State2        |
 | ----------- | ------------- | ------------- |
-| JSON        | 2.2M (1.0x)   | 2.0M (1.0x)   |
-| MessagePack | 857.3K (2.6x) | 791.9K (2.5x) |
-| Protobuf    | 1.2M (1.9x)   | 960.8K (2.1x) |
-| Delta-Pack  | 1.6M (1.4x)   | 1.3M (1.5x)   |
+| JSON        | 1.9M (1.0x)   | 1.8M (1.0x)   |
+| MessagePack | 817.4K (2.4x) | 757.9K (2.3x) |
+| Protobuf    | 1.1M (1.7x)   | 913.1K (1.9x) |
+| Delta-Pack  | 1.7M (1.2x)   | 1.4M (1.2x)   |

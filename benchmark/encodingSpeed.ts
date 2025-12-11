@@ -98,7 +98,7 @@ function measureOps(fn: () => void): number {
 }
 
 function benchmarkJson(states: any[]): number[] {
-  return states.map((state) => measureOps(() => JSON.stringify(state)));
+  return states.map((state) => measureOps(() => Buffer.from(JSON.stringify(state))));
 }
 
 function benchmarkMessagePack(states: any[]): number[] {

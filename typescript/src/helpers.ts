@@ -12,15 +12,9 @@ export class Tracker {
   private reader: Reader | undefined;
 
   static parse(buf: Uint8Array) {
-    const reader = new Reader(buf);
-
-    const numBits = reader.readUVarint();
-    const rleBits = reader.readBits(numBits);
-    const bits = rleDecode(rleBits);
-
     const tracker = new Tracker();
-    tracker.bits = bits;
-    tracker.reader = reader;
+    tracker.bits = rleDecode(buf);
+    tracker.reader = new Reader(buf);
     return tracker;
   }
   pushString(val: string) {
@@ -386,11 +380,8 @@ export class Tracker {
     return result;
   }
   toBuffer() {
-    const rleBits = rleEncode(this.bits);
-    const out = new Writer(Math.ceil(this.writer.size * 1.1));
-    out.writeUVarint(rleBits.length);
-    out.writeBits(rleBits);
-    return out.concat(this.writer).toBuffer();
+    rleEncode(this.bits, this.writer);
+    return this.writer.toBuffer();
   }
 }
 
