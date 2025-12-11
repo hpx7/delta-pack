@@ -95,8 +95,9 @@ function benchmarkProtobuf(states: any[], example: string): number[] {
   return states.map((state, i) => {
     const encoded = MessageType.encode(MessageType.fromObject(state)).finish();
     const decoded = MessageType.toObject(MessageType.decode(encoded), {
-      enums: String,
       defaults: true,
+      enums: String,
+      longs: Number,
     });
     assert(deepEquals(decoded, state), `Protobuf state${i + 1} round-trip mismatch`);
     return encoded.length;

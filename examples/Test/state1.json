@@ -1,0 +1,17 @@
+{
+  "string": "Lorem ipsum dolor sit amet.",
+  "uint32": 9000,
+  "inner": {
+    "int32": 20161110,
+    "innerInner": {
+      "long": 649545084044315,
+      "enum": "TWO",
+      "sint32": -42
+    },
+    "outer": {
+      "bool": [true, false, false, true, false, false, true],
+      "double": 204.8
+    }
+  },
+  "float": 0.25
+}

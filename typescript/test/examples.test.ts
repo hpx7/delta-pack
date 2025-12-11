@@ -318,3 +318,76 @@ describe("Examples - Game", () => {
     expect(compressionRatio).toBeLessThan(0.1);
   });
 });
+
+describe("Examples - Test", () => {
+  const schemaPath = join(examplesDir, "Test/schema.yml");
+  const schemaYml = readFileSync(schemaPath, "utf8");
+  const schema = parseSchemaYml(schemaYml);
+
+  const state1Path = join(examplesDir, "Test/state1.json");
+  const state1Data = JSON.parse(readFileSync(state1Path, "utf8"));
+
+  type InnerInner = {
+    long: number;
+    enum: string;
+    sint32: number;
+  };
+
+  type Outer = {
+    bool: boolean[];
+    double: number;
+  };
+
+  type Inner = {
+    int32: number;
+    innerInner: InnerInner;
+    outer: Outer;
+  };
+
+  type Test = {
+    string: string;
+    uint32: number;
+    inner: Inner;
+    float: number;
+  };
+
+  const Test = load<Test>(schema, "Test");
+
+  it("should parse schema successfully", () => {
+    expect(schema["Test"]).toBeDefined();
+    expect(schema["Test"]!.type).toBe("object");
+    expect(schema["Enum"]).toBeDefined();
+    expect(schema["Enum"]!.type).toBe("enum");
+    expect(schema["Inner"]).toBeDefined();
+    expect(schema["InnerInner"]).toBeDefined();
+    expect(schema["Outer"]).toBeDefined();
+  });
+
+  it("should parse state1 JSON data", () => {
+    expect(() => Test.fromJson(state1Data)).not.toThrow();
+    const parsed = Test.fromJson(state1Data);
+    expect(parsed.string).toBe("Lorem ipsum dolor sit amet.");
+    expect(parsed.uint32).toBe(9000);
+    expect(parsed.inner.int32).toBe(20161110);
+    expect(parsed.inner.innerInner.long).toBe(649545084044315);
+    expect(parsed.inner.innerInner.enum).toBe("TWO");
+    expect(parsed.inner.innerInner.sint32).toBe(-42);
+    expect(parsed.inner.outer.bool).toEqual([true, false, false, true, false, false, true]);
+    expect(parsed.inner.outer.double).toBeCloseTo(204.8);
+    expect(parsed.float).toBeCloseTo(0.25);
+  });
+
+  it("should encode and decode state1", () => {
+    const state1 = Test.fromJson(state1Data);
+    const encoded = Test.encode(state1);
+    const decoded = Test.decode(encoded);
+    expect(Test.equals(decoded, state1)).toBe(true);
+  });
+
+  it("should handle large integers correctly", () => {
+    const state1 = Test.fromJson(state1Data);
+    const encoded = Test.encode(state1);
+    const decoded = Test.decode(encoded);
+    expect(decoded.inner.innerInner.long).toBe(649545084044315);
+  });
+});
