@@ -1,2 +1,3 @@
 node_modules
-generated*.ts
+generated
+dist

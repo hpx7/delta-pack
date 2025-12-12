@@ -1,19 +1,19 @@
 import * as fs from "node:fs";
-import * as deltapack from "@hpx7/delta-pack";
 import * as msgpack from "msgpackr";
-import protobuf from "protobufjs";
+import * as protobuf from "./generated/protobuf/index.js";
+import * as deltapack from "./generated/deltapack/index.js";
 
 const examplesDir = "../examples";
 const WARMUP_MS = 100;
 const BENCHMARK_MS = 1000;
 
-async function main() {
+function main() {
   const examples = fs.readdirSync(examplesDir);
 
   console.log("## Decoding Speed Comparison (ops/s)\n");
 
   for (const example of examples) {
-    const result = await benchmarkExample(example);
+    const result = benchmarkExample(example);
 
     // Find highest ops/s for each state
     const maxOps = result.json.map((_, i) =>
@@ -41,16 +41,7 @@ async function main() {
   }
 }
 
-function formatOps(ops: number): string {
-  if (ops >= 1_000_000) {
-    return `${(ops / 1_000_000).toFixed(1)}M`;
-  } else if (ops >= 1_000) {
-    return `${(ops / 1_000).toFixed(1)}K`;
-  }
-  return `${ops.toFixed(0)}`;
-}
-
-async function benchmarkExample(example: string) {
+function benchmarkExample(example: string) {
   // Find all state files
   const exampleDir = `${examplesDir}/${example}`;
   const stateFiles = fs
@@ -66,17 +57,59 @@ async function benchmarkExample(example: string) {
   const states = stateFiles.map((f) => JSON.parse(fs.readFileSync(`${exampleDir}/${f}`, "utf8")));
 
   // Benchmark each format
-  const json = benchmarkJson(states);
-  const msgpack = benchmarkMessagePack(states);
-  const protobuf = benchmarkProtobuf(states, example);
-  const deltaPack = await benchmarkDeltaPack(states, example);
+  const jsonResult = benchmarkJson(states);
+  const msgpackResult = benchmarkMessagePack(states);
+  const protobufResult = benchmarkProtobuf(states, example);
+  const deltaPackResult = benchmarkDeltaPack(states, example);
 
   return {
-    json,
-    msgpack,
-    protobuf,
-    deltaPack,
+    json: jsonResult,
+    msgpack: msgpackResult,
+    protobuf: protobufResult,
+    deltaPack: deltaPackResult,
   };
+}
+
+function benchmarkJson(states: any[]): number[] {
+  return states.map((state) => {
+    const encoded = Buffer.from(JSON.stringify(state));
+    return measureOps(() => JSON.parse(encoded.toString()));
+  });
+}
+
+function benchmarkMessagePack(states: any[]): number[] {
+  return states.map((state) => {
+    const encoded = msgpack.pack(state);
+    return measureOps(() => msgpack.unpack(encoded));
+  });
+}
+
+function benchmarkProtobuf(states: any[], example: string): number[] {
+  const MessageType = protobuf[example as keyof typeof protobuf] as {
+    fromObject: (object: any) => any;
+    encode: (message: any) => { finish: () => Uint8Array };
+    decode: (data: Uint8Array) => any;
+  };
+
+  return states.map((state) => {
+    const message = MessageType.fromObject(state);
+    const encoded = MessageType.encode(message).finish();
+    return measureOps(() => MessageType.decode(encoded));
+  });
+}
+
+function benchmarkDeltaPack(states: any[], example: string): number[] {
+  const State = deltapack[example as keyof typeof deltapack] as {
+    fromJson: (json: any) => any;
+    encode: (state: any) => Uint8Array;
+    decode: (data: Uint8Array) => any;
+  };
+
+  return states.map((state) => {
+    const loaded = State.fromJson(state);
+    const encoded = State.encode(loaded);
+    return measureOps(() => State.decode(encoded));
+  });
 }
 
 function measureOps(fn: () => void): number {
@@ -97,48 +130,13 @@ function measureOps(fn: () => void): number {
   return ops / (BENCHMARK_MS / 1000);
 }
 
-function benchmarkJson(states: any[]): number[] {
-  return states.map((state) => {
-    const encoded = Buffer.from(JSON.stringify(state));
-    return measureOps(() => JSON.parse(encoded.toString()));
-  });
-}
-
-function benchmarkMessagePack(states: any[]): number[] {
-  return states.map((state) => {
-    const encoded = msgpack.pack(state);
-    return measureOps(() => msgpack.unpack(encoded));
-  });
-}
-
-function benchmarkProtobuf(states: any[], example: string): number[] {
-  const protoPath = `${examplesDir}/${example}/schema.proto`;
-  const root = new protobuf.Root().loadSync(protoPath, { keepCase: true });
-  const MessageType = root.lookupType(example);
-
-  return states.map((state) => {
-    const message = MessageType.fromObject(state);
-    const encoded = MessageType.encode(message).finish();
-    return measureOps(() => MessageType.decode(encoded));
-  });
-}
-
-async function benchmarkDeltaPack(states: any[], example: string): Promise<number[]> {
-  const schemaContent = fs.readFileSync(`${examplesDir}/${example}/schema.yml`, "utf8");
-  const parsedSchema = deltapack.parseSchemaYml(schemaContent);
-  const generated = deltapack.codegenTypescript(parsedSchema);
-
-  // Write generated code to benchmark directory so it can resolve @hpx7/delta-pack/helpers
-  const tempPath = `./generated-${example}.ts`;
-  fs.writeFileSync(tempPath, generated);
-  const module = await import(tempPath);
-  const State = module[example];
-
-  return states.map((state) => {
-    const loaded = State.fromJson(state);
-    const encoded = State.encode(loaded);
-    return measureOps(() => State.decode(encoded));
-  });
+function formatOps(ops: number): string {
+  if (ops >= 1_000_000) {
+    return `${(ops / 1_000_000).toFixed(1)}M`;
+  } else if (ops >= 1_000) {
+    return `${(ops / 1_000).toFixed(1)}K`;
+  }
+  return `${ops.toFixed(0)}`;
 }
 
 main();

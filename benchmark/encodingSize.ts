@@ -1,12 +1,12 @@
 import * as fs from "node:fs";
 import assert from "assert";
-import * as deltapack from "@hpx7/delta-pack";
 import * as msgpack from "msgpackr";
-import protobuf from "protobufjs";
+import * as protobuf from "./generated/protobuf/index.js";
+import * as deltapack from "./generated/deltapack/index.js";
 
 const examplesDir = "../examples";
 
-async function main() {
+function main() {
   const examples = fs.readdirSync(examplesDir);
 
   console.log("## Encoding Size Comparison (bytes)\n");
@@ -56,16 +56,16 @@ function benchmarkExample(example: string) {
   const states = stateFiles.map((f) => JSON.parse(fs.readFileSync(`${exampleDir}/${f}`, "utf8")));
 
   // Benchmark each format
-  const json = benchmarkJson(states);
-  const msgpack = benchmarkMessagePack(states);
-  const protobuf = benchmarkProtobuf(states, example);
-  const deltaPack = benchmarkDeltaPack(states, example);
+  const jsonResult = benchmarkJson(states);
+  const msgpackResult = benchmarkMessagePack(states);
+  const protobufResult = benchmarkProtobuf(states, example);
+  const deltaPackResult = benchmarkDeltaPack(states, example);
 
   return {
-    json,
-    msgpack,
-    protobuf,
-    deltaPack,
+    json: jsonResult,
+    msgpack: msgpackResult,
+    protobuf: protobufResult,
+    deltaPack: deltaPackResult,
   };
 }
 
@@ -88,9 +88,12 @@ function benchmarkMessagePack(states: any[]): number[] {
 }
 
 function benchmarkProtobuf(states: any[], example: string): number[] {
-  const protoPath = `${examplesDir}/${example}/schema.proto`;
-  const root = new protobuf.Root().loadSync(protoPath, { keepCase: true });
-  const MessageType = root.lookupType(example);
+  const MessageType = protobuf[example as keyof typeof protobuf] as {
+    fromObject: (object: any) => any;
+    toObject: (message: any, options?: any) => any;
+    encode: (message: any) => { finish: () => Uint8Array };
+    decode: (data: Uint8Array) => any;
+  };
 
   return states.map((state, i) => {
     const encoded = MessageType.encode(MessageType.fromObject(state)).finish();
@@ -105,13 +108,15 @@ function benchmarkProtobuf(states: any[], example: string): number[] {
 }
 
 function benchmarkDeltaPack(states: any[], example: string): number[] {
-  const schemaContent = fs.readFileSync(`${examplesDir}/${example}/schema.yml`, "utf8");
-  const parsedSchema = deltapack.parseSchemaYml(schemaContent);
-  const State = deltapack.load(parsedSchema, example);
+  const State = deltapack[example as keyof typeof deltapack] as {
+    fromJson: (json: any) => any;
+    toJson: (state: any) => any;
+    encode: (state: any) => Uint8Array;
+    decode: (data: Uint8Array) => any;
+  };
 
   return states.map((state, i) => {
     const encoded = State.encode(State.fromJson(state));
-
     const decoded = State.toJson(State.decode(encoded));
     assert(deepEquals(decoded, state), `Delta-pack state${i + 1} round-trip mismatch`);
     return encoded.length;
