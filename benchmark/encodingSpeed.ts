@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as deltapack from "@hpx7/delta-pack";
-import msgpack from "@msgpack/msgpack";
+import { pack } from "msgpackr";
 import protobuf from "protobufjs";
 
 const examplesDir = "../examples";
@@ -102,7 +102,7 @@ function benchmarkJson(states: any[]): number[] {
 }
 
 function benchmarkMessagePack(states: any[]): number[] {
-  return states.map((state) => measureOps(() => msgpack.encode(state)));
+  return states.map((state) => measureOps(() => pack(state)));
 }
 
 function benchmarkProtobuf(states: any[], example: string): number[] {

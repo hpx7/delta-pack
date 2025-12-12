@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import assert from "assert";
 import * as deltapack from "@hpx7/delta-pack";
-import msgpack from "@msgpack/msgpack";
+import { pack, unpack } from "msgpackr";
 import protobuf from "protobufjs";
 
 const examplesDir = "../examples";
@@ -80,8 +80,8 @@ function benchmarkJson(states: any[]): number[] {
 
 function benchmarkMessagePack(states: any[]): number[] {
   return states.map((state, i) => {
-    const encoded = msgpack.encode(state);
-    const decoded = msgpack.decode(encoded);
+    const encoded = pack(state);
+    const decoded = unpack(encoded);
     assert(deepEquals(decoded, state), `MessagePack state${i + 1} decode mismatch`);
     return encoded.length;
   });
