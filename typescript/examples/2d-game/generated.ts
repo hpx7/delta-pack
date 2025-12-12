@@ -56,28 +56,28 @@ export const Player = {
       throw new Error(`Invalid Player: ${obj}`);
     }
     return {
-      id: _.tryParseField(() => _.parseString(obj.id), "Player.id"),
-      name: _.tryParseField(() => _.parseString(obj.name), "Player.name"),
-      x: _.tryParseField(() => _.parseFloat(obj.x), "Player.x"),
-      y: _.tryParseField(() => _.parseFloat(obj.y), "Player.y"),
-      vx: _.tryParseField(() => _.parseFloat(obj.vx), "Player.vx"),
-      vy: _.tryParseField(() => _.parseFloat(obj.vy), "Player.vy"),
-      health: _.tryParseField(() => _.parseInt(obj.health), "Player.health"),
-      score: _.tryParseField(() => _.parseInt(obj.score), "Player.score"),
-      isAlive: _.tryParseField(() => _.parseBoolean(obj.isAlive), "Player.isAlive"),
+      id: _.tryParseField(() => _.parseString(obj["id"]), "Player.id"),
+      name: _.tryParseField(() => _.parseString(obj["name"]), "Player.name"),
+      x: _.tryParseField(() => _.parseFloat(obj["x"]), "Player.x"),
+      y: _.tryParseField(() => _.parseFloat(obj["y"]), "Player.y"),
+      vx: _.tryParseField(() => _.parseFloat(obj["vx"]), "Player.vx"),
+      vy: _.tryParseField(() => _.parseFloat(obj["vy"]), "Player.vy"),
+      health: _.tryParseField(() => _.parseInt(obj["health"]), "Player.health"),
+      score: _.tryParseField(() => _.parseInt(obj["score"]), "Player.score"),
+      isAlive: _.tryParseField(() => _.parseBoolean(obj["isAlive"]), "Player.isAlive"),
     };
   },
   toJson(obj: Player): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    result.id = obj.id;
-    result.name = obj.name;
-    result.x = obj.x;
-    result.y = obj.y;
-    result.vx = obj.vx;
-    result.vy = obj.vy;
-    result.health = obj.health;
-    result.score = obj.score;
-    result.isAlive = obj.isAlive;
+    result["id"] = obj.id;
+    result["name"] = obj.name;
+    result["x"] = obj.x;
+    result["y"] = obj.y;
+    result["vx"] = obj.vx;
+    result["vy"] = obj.vy;
+    result["health"] = obj.health;
+    result["score"] = obj.score;
+    result["isAlive"] = obj.isAlive;
     return result;
   },
   clone(obj: Player): Player {
@@ -107,123 +107,123 @@ export const Player = {
     );
   },
   encode(obj: Player): Uint8Array {
-    const tracker = new _.Tracker();
-    Player._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    Player._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: Player, tracker: _.Tracker): void {
-    tracker.pushString(obj.id);
-    tracker.pushString(obj.name);
-    tracker.pushFloatQuantized(obj.x, 0.1);
-    tracker.pushFloatQuantized(obj.y, 0.1);
-    tracker.pushFloatQuantized(obj.vx, 0.1);
-    tracker.pushFloatQuantized(obj.vy, 0.1);
-    tracker.pushInt(obj.health);
-    tracker.pushInt(obj.score);
-    tracker.pushBoolean(obj.isAlive);
+  _encode(obj: Player, encoder: _.Encoder): void {
+    encoder.pushString(obj.id);
+    encoder.pushString(obj.name);
+    encoder.pushFloatQuantized(obj.x, 0.1);
+    encoder.pushFloatQuantized(obj.y, 0.1);
+    encoder.pushFloatQuantized(obj.vx, 0.1);
+    encoder.pushFloatQuantized(obj.vy, 0.1);
+    encoder.pushInt(obj.health);
+    encoder.pushInt(obj.score);
+    encoder.pushBoolean(obj.isAlive);
   },
   encodeDiff(a: Player, b: Player): Uint8Array {
-    const tracker = new _.Tracker();
-    Player._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    Player._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: Player, b: Player, tracker: _.Tracker): void {
+  _encodeDiff(a: Player, b: Player, encoder: _.Encoder): void {
     const dirty = b._dirty;
     const changed = dirty == null ? !Player.equals(a, b) : dirty.size > 0;
-    tracker.pushBoolean(changed);
+    encoder.pushBoolean(changed);
     if (!changed) {
       return;
     }
     // Field: id
     if (dirty != null && !dirty.has("id")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushStringDiff(a.id, b.id);
+      encoder.pushStringDiff(a.id, b.id);
     }
     // Field: name
     if (dirty != null && !dirty.has("name")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushStringDiff(a.name, b.name);
+      encoder.pushStringDiff(a.name, b.name);
     }
     // Field: x
     if (dirty != null && !dirty.has("x")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushFloatQuantizedDiff(a.x, b.x, 0.1);
+      encoder.pushFloatQuantizedDiff(a.x, b.x, 0.1);
     }
     // Field: y
     if (dirty != null && !dirty.has("y")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushFloatQuantizedDiff(a.y, b.y, 0.1);
+      encoder.pushFloatQuantizedDiff(a.y, b.y, 0.1);
     }
     // Field: vx
     if (dirty != null && !dirty.has("vx")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushFloatQuantizedDiff(a.vx, b.vx, 0.1);
+      encoder.pushFloatQuantizedDiff(a.vx, b.vx, 0.1);
     }
     // Field: vy
     if (dirty != null && !dirty.has("vy")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushFloatQuantizedDiff(a.vy, b.vy, 0.1);
+      encoder.pushFloatQuantizedDiff(a.vy, b.vy, 0.1);
     }
     // Field: health
     if (dirty != null && !dirty.has("health")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushIntDiff(a.health, b.health);
+      encoder.pushIntDiff(a.health, b.health);
     }
     // Field: score
     if (dirty != null && !dirty.has("score")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushIntDiff(a.score, b.score);
+      encoder.pushIntDiff(a.score, b.score);
     }
     // Field: isAlive
     if (dirty != null && !dirty.has("isAlive")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushBooleanDiff(a.isAlive, b.isAlive);
+      encoder.pushBooleanDiff(a.isAlive, b.isAlive);
     }
   },
   decode(input: Uint8Array): Player {
-    return Player._decode(_.Tracker.parse(input));
+    return Player._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): Player {
+  _decode(decoder: _.Decoder): Player {
     return {
-      id: tracker.nextString(),
-      name: tracker.nextString(),
-      x: tracker.nextFloatQuantized(0.1),
-      y: tracker.nextFloatQuantized(0.1),
-      vx: tracker.nextFloatQuantized(0.1),
-      vy: tracker.nextFloatQuantized(0.1),
-      health: tracker.nextInt(),
-      score: tracker.nextInt(),
-      isAlive: tracker.nextBoolean(),
+      id: decoder.nextString(),
+      name: decoder.nextString(),
+      x: decoder.nextFloatQuantized(0.1),
+      y: decoder.nextFloatQuantized(0.1),
+      vx: decoder.nextFloatQuantized(0.1),
+      vy: decoder.nextFloatQuantized(0.1),
+      health: decoder.nextInt(),
+      score: decoder.nextInt(),
+      isAlive: decoder.nextBoolean(),
     };
   },
   decodeDiff(obj: Player, input: Uint8Array): Player {
-    const tracker = _.Tracker.parse(input);
-    return Player._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return Player._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: Player, tracker: _.Tracker): Player {
-    const changed = tracker.nextBoolean();
+  _decodeDiff(obj: Player, decoder: _.Decoder): Player {
+    const changed = decoder.nextBoolean();
     if (!changed) {
       return obj;
     }
     return {
-      id: tracker.nextStringDiff(obj.id),
-      name: tracker.nextStringDiff(obj.name),
-      x: tracker.nextFloatQuantizedDiff(obj.x, 0.1),
-      y: tracker.nextFloatQuantizedDiff(obj.y, 0.1),
-      vx: tracker.nextFloatQuantizedDiff(obj.vx, 0.1),
-      vy: tracker.nextFloatQuantizedDiff(obj.vy, 0.1),
-      health: tracker.nextIntDiff(obj.health),
-      score: tracker.nextIntDiff(obj.score),
-      isAlive: tracker.nextBooleanDiff(obj.isAlive),
+      id: decoder.nextStringDiff(obj.id),
+      name: decoder.nextStringDiff(obj.name),
+      x: decoder.nextFloatQuantizedDiff(obj.x, 0.1),
+      y: decoder.nextFloatQuantizedDiff(obj.y, 0.1),
+      vx: decoder.nextFloatQuantizedDiff(obj.vx, 0.1),
+      vy: decoder.nextFloatQuantizedDiff(obj.vy, 0.1),
+      health: decoder.nextIntDiff(obj.health),
+      score: decoder.nextIntDiff(obj.score),
+      isAlive: decoder.nextBooleanDiff(obj.isAlive),
     };
   },
 };
@@ -241,16 +241,16 @@ export const GameState = {
       throw new Error(`Invalid GameState: ${obj}`);
     }
     return {
-      players: _.tryParseField(() => _.parseRecord(obj.players, (x) => _.parseString(x), (x) => Player.fromJson(x as Player)), "GameState.players"),
-      tick: _.tryParseField(() => _.parseInt(obj.tick), "GameState.tick"),
-      gameTime: _.tryParseField(() => _.parseFloat(obj.gameTime), "GameState.gameTime"),
+      players: _.tryParseField(() => _.parseRecord(obj["players"], (x) => _.parseString(x), (x) => Player.fromJson(x as Player)), "GameState.players"),
+      tick: _.tryParseField(() => _.parseInt(obj["tick"]), "GameState.tick"),
+      gameTime: _.tryParseField(() => _.parseFloat(obj["gameTime"]), "GameState.gameTime"),
     };
   },
   toJson(obj: GameState): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    result.players = _.mapToObject(obj.players, (x) => Player.toJson(x));
-    result.tick = obj.tick;
-    result.gameTime = obj.gameTime;
+    result["players"] = _.mapToObject(obj.players, (x) => Player.toJson(x));
+    result["tick"] = obj.tick;
+    result["gameTime"] = obj.gameTime;
     return result;
   },
   clone(obj: GameState): GameState {
@@ -268,81 +268,81 @@ export const GameState = {
     );
   },
   encode(obj: GameState): Uint8Array {
-    const tracker = new _.Tracker();
-    GameState._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    GameState._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: GameState, tracker: _.Tracker): void {
-    tracker.pushRecord(obj.players, (x) => tracker.pushString(x), (x) => Player._encode(x, tracker));
-    tracker.pushInt(obj.tick);
-    tracker.pushFloat(obj.gameTime);
+  _encode(obj: GameState, encoder: _.Encoder): void {
+    encoder.pushRecord(obj.players, (x) => encoder.pushString(x), (x) => Player._encode(x, encoder));
+    encoder.pushInt(obj.tick);
+    encoder.pushFloat(obj.gameTime);
   },
   encodeDiff(a: GameState, b: GameState): Uint8Array {
-    const tracker = new _.Tracker();
-    GameState._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    GameState._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: GameState, b: GameState, tracker: _.Tracker): void {
+  _encodeDiff(a: GameState, b: GameState, encoder: _.Encoder): void {
     const dirty = b._dirty;
     const changed = dirty == null ? !GameState.equals(a, b) : dirty.size > 0;
-    tracker.pushBoolean(changed);
+    encoder.pushBoolean(changed);
     if (!changed) {
       return;
     }
     // Field: players
     if (dirty != null && !dirty.has("players")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushRecordDiff<string, Player>(
+      encoder.pushRecordDiff<string, Player>(
         a.players,
         b.players,
         (x, y) => Player.equals(x, y),
-        (x) => tracker.pushString(x),
-        (x) => Player._encode(x, tracker),
-        (x, y) => Player._encodeDiff(x, y, tracker)
+        (x) => encoder.pushString(x),
+        (x) => Player._encode(x, encoder),
+        (x, y) => Player._encodeDiff(x, y, encoder)
       );
     }
     // Field: tick
     if (dirty != null && !dirty.has("tick")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushIntDiff(a.tick, b.tick);
+      encoder.pushIntDiff(a.tick, b.tick);
     }
     // Field: gameTime
     if (dirty != null && !dirty.has("gameTime")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushFloatDiff(a.gameTime, b.gameTime);
+      encoder.pushFloatDiff(a.gameTime, b.gameTime);
     }
   },
   decode(input: Uint8Array): GameState {
-    return GameState._decode(_.Tracker.parse(input));
+    return GameState._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): GameState {
+  _decode(decoder: _.Decoder): GameState {
     return {
-      players: tracker.nextRecord(() => tracker.nextString(), () => Player._decode(tracker)),
-      tick: tracker.nextInt(),
-      gameTime: tracker.nextFloat(),
+      players: decoder.nextRecord(() => decoder.nextString(), () => Player._decode(decoder)),
+      tick: decoder.nextInt(),
+      gameTime: decoder.nextFloat(),
     };
   },
   decodeDiff(obj: GameState, input: Uint8Array): GameState {
-    const tracker = _.Tracker.parse(input);
-    return GameState._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return GameState._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: GameState, tracker: _.Tracker): GameState {
-    const changed = tracker.nextBoolean();
+  _decodeDiff(obj: GameState, decoder: _.Decoder): GameState {
+    const changed = decoder.nextBoolean();
     if (!changed) {
       return obj;
     }
     return {
-      players: tracker.nextRecordDiff<string, Player>(
+      players: decoder.nextRecordDiff<string, Player>(
         obj.players,
-        () => tracker.nextString(),
-        () => Player._decode(tracker),
-        (x) => Player._decodeDiff(x, tracker)
+        () => decoder.nextString(),
+        () => Player._decode(decoder),
+        (x) => Player._decodeDiff(x, decoder)
       ),
-      tick: tracker.nextIntDiff(obj.tick),
-      gameTime: tracker.nextFloatDiff(obj.gameTime),
+      tick: decoder.nextIntDiff(obj.tick),
+      gameTime: decoder.nextFloatDiff(obj.gameTime),
     };
   },
 };
@@ -362,20 +362,20 @@ export const ClientInput = {
       throw new Error(`Invalid ClientInput: ${obj}`);
     }
     return {
-      up: _.tryParseField(() => _.parseBoolean(obj.up), "ClientInput.up"),
-      down: _.tryParseField(() => _.parseBoolean(obj.down), "ClientInput.down"),
-      left: _.tryParseField(() => _.parseBoolean(obj.left), "ClientInput.left"),
-      right: _.tryParseField(() => _.parseBoolean(obj.right), "ClientInput.right"),
-      shoot: _.tryParseField(() => _.parseBoolean(obj.shoot), "ClientInput.shoot"),
+      up: _.tryParseField(() => _.parseBoolean(obj["up"]), "ClientInput.up"),
+      down: _.tryParseField(() => _.parseBoolean(obj["down"]), "ClientInput.down"),
+      left: _.tryParseField(() => _.parseBoolean(obj["left"]), "ClientInput.left"),
+      right: _.tryParseField(() => _.parseBoolean(obj["right"]), "ClientInput.right"),
+      shoot: _.tryParseField(() => _.parseBoolean(obj["shoot"]), "ClientInput.shoot"),
     };
   },
   toJson(obj: ClientInput): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    result.up = obj.up;
-    result.down = obj.down;
-    result.left = obj.left;
-    result.right = obj.right;
-    result.shoot = obj.shoot;
+    result["up"] = obj.up;
+    result["down"] = obj.down;
+    result["left"] = obj.left;
+    result["right"] = obj.right;
+    result["shoot"] = obj.shoot;
     return result;
   },
   clone(obj: ClientInput): ClientInput {
@@ -397,87 +397,87 @@ export const ClientInput = {
     );
   },
   encode(obj: ClientInput): Uint8Array {
-    const tracker = new _.Tracker();
-    ClientInput._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    ClientInput._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: ClientInput, tracker: _.Tracker): void {
-    tracker.pushBoolean(obj.up);
-    tracker.pushBoolean(obj.down);
-    tracker.pushBoolean(obj.left);
-    tracker.pushBoolean(obj.right);
-    tracker.pushBoolean(obj.shoot);
+  _encode(obj: ClientInput, encoder: _.Encoder): void {
+    encoder.pushBoolean(obj.up);
+    encoder.pushBoolean(obj.down);
+    encoder.pushBoolean(obj.left);
+    encoder.pushBoolean(obj.right);
+    encoder.pushBoolean(obj.shoot);
   },
   encodeDiff(a: ClientInput, b: ClientInput): Uint8Array {
-    const tracker = new _.Tracker();
-    ClientInput._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    ClientInput._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: ClientInput, b: ClientInput, tracker: _.Tracker): void {
+  _encodeDiff(a: ClientInput, b: ClientInput, encoder: _.Encoder): void {
     const dirty = b._dirty;
     const changed = dirty == null ? !ClientInput.equals(a, b) : dirty.size > 0;
-    tracker.pushBoolean(changed);
+    encoder.pushBoolean(changed);
     if (!changed) {
       return;
     }
     // Field: up
     if (dirty != null && !dirty.has("up")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushBooleanDiff(a.up, b.up);
+      encoder.pushBooleanDiff(a.up, b.up);
     }
     // Field: down
     if (dirty != null && !dirty.has("down")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushBooleanDiff(a.down, b.down);
+      encoder.pushBooleanDiff(a.down, b.down);
     }
     // Field: left
     if (dirty != null && !dirty.has("left")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushBooleanDiff(a.left, b.left);
+      encoder.pushBooleanDiff(a.left, b.left);
     }
     // Field: right
     if (dirty != null && !dirty.has("right")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushBooleanDiff(a.right, b.right);
+      encoder.pushBooleanDiff(a.right, b.right);
     }
     // Field: shoot
     if (dirty != null && !dirty.has("shoot")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushBooleanDiff(a.shoot, b.shoot);
+      encoder.pushBooleanDiff(a.shoot, b.shoot);
     }
   },
   decode(input: Uint8Array): ClientInput {
-    return ClientInput._decode(_.Tracker.parse(input));
+    return ClientInput._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): ClientInput {
+  _decode(decoder: _.Decoder): ClientInput {
     return {
-      up: tracker.nextBoolean(),
-      down: tracker.nextBoolean(),
-      left: tracker.nextBoolean(),
-      right: tracker.nextBoolean(),
-      shoot: tracker.nextBoolean(),
+      up: decoder.nextBoolean(),
+      down: decoder.nextBoolean(),
+      left: decoder.nextBoolean(),
+      right: decoder.nextBoolean(),
+      shoot: decoder.nextBoolean(),
     };
   },
   decodeDiff(obj: ClientInput, input: Uint8Array): ClientInput {
-    const tracker = _.Tracker.parse(input);
-    return ClientInput._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return ClientInput._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: ClientInput, tracker: _.Tracker): ClientInput {
-    const changed = tracker.nextBoolean();
+  _decodeDiff(obj: ClientInput, decoder: _.Decoder): ClientInput {
+    const changed = decoder.nextBoolean();
     if (!changed) {
       return obj;
     }
     return {
-      up: tracker.nextBooleanDiff(obj.up),
-      down: tracker.nextBooleanDiff(obj.down),
-      left: tracker.nextBooleanDiff(obj.left),
-      right: tracker.nextBooleanDiff(obj.right),
-      shoot: tracker.nextBooleanDiff(obj.shoot),
+      up: decoder.nextBooleanDiff(obj.up),
+      down: decoder.nextBooleanDiff(obj.down),
+      left: decoder.nextBooleanDiff(obj.left),
+      right: decoder.nextBooleanDiff(obj.right),
+      shoot: decoder.nextBooleanDiff(obj.shoot),
     };
   },
 };
@@ -493,12 +493,12 @@ export const JoinMessage = {
       throw new Error(`Invalid JoinMessage: ${obj}`);
     }
     return {
-      name: _.tryParseField(() => _.parseString(obj.name), "JoinMessage.name"),
+      name: _.tryParseField(() => _.parseString(obj["name"]), "JoinMessage.name"),
     };
   },
   toJson(obj: JoinMessage): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    result.name = obj.name;
+    result["name"] = obj.name;
     return result;
   },
   clone(obj: JoinMessage): JoinMessage {
@@ -512,51 +512,51 @@ export const JoinMessage = {
     );
   },
   encode(obj: JoinMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    JoinMessage._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    JoinMessage._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: JoinMessage, tracker: _.Tracker): void {
-    tracker.pushString(obj.name);
+  _encode(obj: JoinMessage, encoder: _.Encoder): void {
+    encoder.pushString(obj.name);
   },
   encodeDiff(a: JoinMessage, b: JoinMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    JoinMessage._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    JoinMessage._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: JoinMessage, b: JoinMessage, tracker: _.Tracker): void {
+  _encodeDiff(a: JoinMessage, b: JoinMessage, encoder: _.Encoder): void {
     const dirty = b._dirty;
     const changed = dirty == null ? !JoinMessage.equals(a, b) : dirty.size > 0;
-    tracker.pushBoolean(changed);
+    encoder.pushBoolean(changed);
     if (!changed) {
       return;
     }
     // Field: name
     if (dirty != null && !dirty.has("name")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushStringDiff(a.name, b.name);
+      encoder.pushStringDiff(a.name, b.name);
     }
   },
   decode(input: Uint8Array): JoinMessage {
-    return JoinMessage._decode(_.Tracker.parse(input));
+    return JoinMessage._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): JoinMessage {
+  _decode(decoder: _.Decoder): JoinMessage {
     return {
-      name: tracker.nextString(),
+      name: decoder.nextString(),
     };
   },
   decodeDiff(obj: JoinMessage, input: Uint8Array): JoinMessage {
-    const tracker = _.Tracker.parse(input);
-    return JoinMessage._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return JoinMessage._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: JoinMessage, tracker: _.Tracker): JoinMessage {
-    const changed = tracker.nextBoolean();
+  _decodeDiff(obj: JoinMessage, decoder: _.Decoder): JoinMessage {
+    const changed = decoder.nextBoolean();
     if (!changed) {
       return obj;
     }
     return {
-      name: tracker.nextStringDiff(obj.name),
+      name: decoder.nextStringDiff(obj.name),
     };
   },
 };
@@ -572,12 +572,12 @@ export const InputMessage = {
       throw new Error(`Invalid InputMessage: ${obj}`);
     }
     return {
-      input: _.tryParseField(() => ClientInput.fromJson(obj.input as ClientInput), "InputMessage.input"),
+      input: _.tryParseField(() => ClientInput.fromJson(obj["input"] as ClientInput), "InputMessage.input"),
     };
   },
   toJson(obj: InputMessage): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    result.input = ClientInput.toJson(obj.input);
+    result["input"] = ClientInput.toJson(obj.input);
     return result;
   },
   clone(obj: InputMessage): InputMessage {
@@ -591,51 +591,51 @@ export const InputMessage = {
     );
   },
   encode(obj: InputMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    InputMessage._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    InputMessage._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: InputMessage, tracker: _.Tracker): void {
-    ClientInput._encode(obj.input, tracker);
+  _encode(obj: InputMessage, encoder: _.Encoder): void {
+    ClientInput._encode(obj.input, encoder);
   },
   encodeDiff(a: InputMessage, b: InputMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    InputMessage._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    InputMessage._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: InputMessage, b: InputMessage, tracker: _.Tracker): void {
+  _encodeDiff(a: InputMessage, b: InputMessage, encoder: _.Encoder): void {
     const dirty = b._dirty;
     const changed = dirty == null ? !InputMessage.equals(a, b) : dirty.size > 0;
-    tracker.pushBoolean(changed);
+    encoder.pushBoolean(changed);
     if (!changed) {
       return;
     }
     // Field: input
     if (dirty != null && !dirty.has("input")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      ClientInput._encodeDiff(a.input, b.input, tracker);
+      ClientInput._encodeDiff(a.input, b.input, encoder);
     }
   },
   decode(input: Uint8Array): InputMessage {
-    return InputMessage._decode(_.Tracker.parse(input));
+    return InputMessage._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): InputMessage {
+  _decode(decoder: _.Decoder): InputMessage {
     return {
-      input: ClientInput._decode(tracker),
+      input: ClientInput._decode(decoder),
     };
   },
   decodeDiff(obj: InputMessage, input: Uint8Array): InputMessage {
-    const tracker = _.Tracker.parse(input);
-    return InputMessage._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return InputMessage._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: InputMessage, tracker: _.Tracker): InputMessage {
-    const changed = tracker.nextBoolean();
+  _decodeDiff(obj: InputMessage, decoder: _.Decoder): InputMessage {
+    const changed = decoder.nextBoolean();
     if (!changed) {
       return obj;
     }
     return {
-      input: ClientInput._decodeDiff(obj.input, tracker),
+      input: ClientInput._decodeDiff(obj.input, decoder),
     };
   },
 };
@@ -655,17 +655,17 @@ export const ClientMessage = {
       throw new Error(`Invalid ClientMessage: ${obj}`);
     }
     // check if it's delta-pack format: { type: "TypeName", val: ... }
-    if ("type" in obj && typeof obj.type === "string" && "val" in obj) {
-      if (obj.type === "JoinMessage") {
+    if ("type" in obj && typeof obj["type"] === "string" && "val" in obj) {
+      if (obj["type"] === "JoinMessage") {
         return {
           type: "JoinMessage",
-          val: JoinMessage.fromJson(obj.val as JoinMessage),
+          val: JoinMessage.fromJson(obj["val"] as JoinMessage),
         };
       }
-      else if (obj.type === "InputMessage") {
+      else if (obj["type"] === "InputMessage") {
         return {
           type: "InputMessage",
-          val: InputMessage.fromJson(obj.val as InputMessage),
+          val: InputMessage.fromJson(obj["val"] as InputMessage),
         };
       }
       else {
@@ -675,7 +675,7 @@ export const ClientMessage = {
     // check if it's protobuf format: { TypeName: ... }
     const entries = Object.entries(obj);
     if (entries.length === 1) {
-      const [fieldName, fieldValue] = entries[0];
+      const [fieldName, fieldValue] = entries[0]!;
       if (fieldName === "JoinMessage") {
         return {
           type: "JoinMessage",
@@ -729,89 +729,89 @@ export const ClientMessage = {
     return false;
   },
   encode(obj: ClientMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    ClientMessage._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    ClientMessage._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: ClientMessage, tracker: _.Tracker): void {
+  _encode(obj: ClientMessage, encoder: _.Encoder): void {
     if (obj.type === "JoinMessage") {
-      tracker.pushUInt(0);
-      JoinMessage._encode(obj.val, tracker);
+      encoder.pushUInt(0);
+      JoinMessage._encode(obj.val, encoder);
     }
     else if (obj.type === "InputMessage") {
-      tracker.pushUInt(1);
-      InputMessage._encode(obj.val, tracker);
+      encoder.pushUInt(1);
+      InputMessage._encode(obj.val, encoder);
     }
   },
   encodeDiff(a: ClientMessage, b: ClientMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    ClientMessage._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    ClientMessage._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: ClientMessage, b: ClientMessage, tracker: _.Tracker): void {
-    tracker.pushBoolean(a.type === b.type);
+  _encodeDiff(a: ClientMessage, b: ClientMessage, encoder: _.Encoder): void {
+    encoder.pushBoolean(a.type === b.type);
     if (b.type === "JoinMessage") {
       if (a.type === "JoinMessage") {
-        JoinMessage._encodeDiff(a.val, b.val, tracker);
+        JoinMessage._encodeDiff(a.val, b.val, encoder);
       } else {
-        tracker.pushUInt(0);
-        JoinMessage._encode(b.val, tracker);
+        encoder.pushUInt(0);
+        JoinMessage._encode(b.val, encoder);
       }
     }
     else if (b.type === "InputMessage") {
       if (a.type === "InputMessage") {
-        InputMessage._encodeDiff(a.val, b.val, tracker);
+        InputMessage._encodeDiff(a.val, b.val, encoder);
       } else {
-        tracker.pushUInt(1);
-        InputMessage._encode(b.val, tracker);
+        encoder.pushUInt(1);
+        InputMessage._encode(b.val, encoder);
       }
     }
   },
   decode(input: Uint8Array): ClientMessage {
-    return ClientMessage._decode(_.Tracker.parse(input));
+    return ClientMessage._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): ClientMessage {
-    const type = tracker.nextUInt();
+  _decode(decoder: _.Decoder): ClientMessage {
+    const type = decoder.nextUInt();
     if (type === 0) {
-      return { type: "JoinMessage", val: JoinMessage._decode(tracker) };
+      return { type: "JoinMessage", val: JoinMessage._decode(decoder) };
     }
     else if (type === 1) {
-      return { type: "InputMessage", val: InputMessage._decode(tracker) };
+      return { type: "InputMessage", val: InputMessage._decode(decoder) };
     }
     throw new Error("Invalid union");
   },
   decodeDiff(obj: ClientMessage, input: Uint8Array): ClientMessage {
-    const tracker = _.Tracker.parse(input);
-    return ClientMessage._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return ClientMessage._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: ClientMessage, tracker: _.Tracker): ClientMessage {
-    const isSameType = tracker.nextBoolean();
+  _decodeDiff(obj: ClientMessage, decoder: _.Decoder): ClientMessage {
+    const isSameType = decoder.nextBoolean();
     if (isSameType) {
       if (obj.type === "JoinMessage") {
         return {
           type: "JoinMessage",
-          val: JoinMessage._decodeDiff(obj.val, tracker),
+          val: JoinMessage._decodeDiff(obj.val, decoder),
         };
       }
       else if (obj.type === "InputMessage") {
         return {
           type: "InputMessage",
-          val: InputMessage._decodeDiff(obj.val, tracker),
+          val: InputMessage._decodeDiff(obj.val, decoder),
         };
       }
       throw new Error("Invalid union diff");
     } else {
-      const type = tracker.nextUInt();
+      const type = decoder.nextUInt();
       if (type === 0) {
         return {
           type: "JoinMessage",
-          val: JoinMessage._decode(tracker),
+          val: JoinMessage._decode(decoder),
         };
       }
       else if (type === 1) {
         return {
           type: "InputMessage",
-          val: InputMessage._decode(tracker),
+          val: InputMessage._decode(decoder),
         };
       }
       throw new Error("Invalid union diff");
@@ -831,14 +831,14 @@ export const StateMessage = {
       throw new Error(`Invalid StateMessage: ${obj}`);
     }
     return {
-      playerId: _.tryParseField(() => _.parseString(obj.playerId), "StateMessage.playerId"),
-      state: _.tryParseField(() => GameState.fromJson(obj.state as GameState), "StateMessage.state"),
+      playerId: _.tryParseField(() => _.parseString(obj["playerId"]), "StateMessage.playerId"),
+      state: _.tryParseField(() => GameState.fromJson(obj["state"] as GameState), "StateMessage.state"),
     };
   },
   toJson(obj: StateMessage): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    result.playerId = obj.playerId;
-    result.state = GameState.toJson(obj.state);
+    result["playerId"] = obj.playerId;
+    result["state"] = GameState.toJson(obj.state);
     return result;
   },
   clone(obj: StateMessage): StateMessage {
@@ -854,60 +854,60 @@ export const StateMessage = {
     );
   },
   encode(obj: StateMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    StateMessage._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    StateMessage._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: StateMessage, tracker: _.Tracker): void {
-    tracker.pushString(obj.playerId);
-    GameState._encode(obj.state, tracker);
+  _encode(obj: StateMessage, encoder: _.Encoder): void {
+    encoder.pushString(obj.playerId);
+    GameState._encode(obj.state, encoder);
   },
   encodeDiff(a: StateMessage, b: StateMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    StateMessage._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    StateMessage._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: StateMessage, b: StateMessage, tracker: _.Tracker): void {
+  _encodeDiff(a: StateMessage, b: StateMessage, encoder: _.Encoder): void {
     const dirty = b._dirty;
     const changed = dirty == null ? !StateMessage.equals(a, b) : dirty.size > 0;
-    tracker.pushBoolean(changed);
+    encoder.pushBoolean(changed);
     if (!changed) {
       return;
     }
     // Field: playerId
     if (dirty != null && !dirty.has("playerId")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      tracker.pushStringDiff(a.playerId, b.playerId);
+      encoder.pushStringDiff(a.playerId, b.playerId);
     }
     // Field: state
     if (dirty != null && !dirty.has("state")) {
-      tracker.pushBoolean(false);
+      encoder.pushBoolean(false);
     } else {
-      GameState._encodeDiff(a.state, b.state, tracker);
+      GameState._encodeDiff(a.state, b.state, encoder);
     }
   },
   decode(input: Uint8Array): StateMessage {
-    return StateMessage._decode(_.Tracker.parse(input));
+    return StateMessage._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): StateMessage {
+  _decode(decoder: _.Decoder): StateMessage {
     return {
-      playerId: tracker.nextString(),
-      state: GameState._decode(tracker),
+      playerId: decoder.nextString(),
+      state: GameState._decode(decoder),
     };
   },
   decodeDiff(obj: StateMessage, input: Uint8Array): StateMessage {
-    const tracker = _.Tracker.parse(input);
-    return StateMessage._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return StateMessage._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: StateMessage, tracker: _.Tracker): StateMessage {
-    const changed = tracker.nextBoolean();
+  _decodeDiff(obj: StateMessage, decoder: _.Decoder): StateMessage {
+    const changed = decoder.nextBoolean();
     if (!changed) {
       return obj;
     }
     return {
-      playerId: tracker.nextStringDiff(obj.playerId),
-      state: GameState._decodeDiff(obj.state, tracker),
+      playerId: decoder.nextStringDiff(obj.playerId),
+      state: GameState._decodeDiff(obj.state, decoder),
     };
   },
 };
@@ -927,11 +927,11 @@ export const ServerMessage = {
       throw new Error(`Invalid ServerMessage: ${obj}`);
     }
     // check if it's delta-pack format: { type: "TypeName", val: ... }
-    if ("type" in obj && typeof obj.type === "string" && "val" in obj) {
-      if (obj.type === "StateMessage") {
+    if ("type" in obj && typeof obj["type"] === "string" && "val" in obj) {
+      if (obj["type"] === "StateMessage") {
         return {
           type: "StateMessage",
-          val: StateMessage.fromJson(obj.val as StateMessage),
+          val: StateMessage.fromJson(obj["val"] as StateMessage),
         };
       }
       else {
@@ -941,7 +941,7 @@ export const ServerMessage = {
     // check if it's protobuf format: { TypeName: ... }
     const entries = Object.entries(obj);
     if (entries.length === 1) {
-      const [fieldName, fieldValue] = entries[0];
+      const [fieldName, fieldValue] = entries[0]!;
       if (fieldName === "StateMessage") {
         return {
           type: "StateMessage",
@@ -975,62 +975,62 @@ export const ServerMessage = {
     return false;
   },
   encode(obj: ServerMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    ServerMessage._encode(obj, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    ServerMessage._encode(obj, encoder);
+    return encoder.toBuffer();
   },
-  _encode(obj: ServerMessage, tracker: _.Tracker): void {
+  _encode(obj: ServerMessage, encoder: _.Encoder): void {
     if (obj.type === "StateMessage") {
-      tracker.pushUInt(0);
-      StateMessage._encode(obj.val, tracker);
+      encoder.pushUInt(0);
+      StateMessage._encode(obj.val, encoder);
     }
   },
   encodeDiff(a: ServerMessage, b: ServerMessage): Uint8Array {
-    const tracker = new _.Tracker();
-    ServerMessage._encodeDiff(a, b, tracker);
-    return tracker.toBuffer();
+    const encoder = new _.Encoder();
+    ServerMessage._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
   },
-  _encodeDiff(a: ServerMessage, b: ServerMessage, tracker: _.Tracker): void {
-    tracker.pushBoolean(a.type === b.type);
+  _encodeDiff(a: ServerMessage, b: ServerMessage, encoder: _.Encoder): void {
+    encoder.pushBoolean(a.type === b.type);
     if (b.type === "StateMessage") {
       if (a.type === "StateMessage") {
-        StateMessage._encodeDiff(a.val, b.val, tracker);
+        StateMessage._encodeDiff(a.val, b.val, encoder);
       } else {
-        tracker.pushUInt(0);
-        StateMessage._encode(b.val, tracker);
+        encoder.pushUInt(0);
+        StateMessage._encode(b.val, encoder);
       }
     }
   },
   decode(input: Uint8Array): ServerMessage {
-    return ServerMessage._decode(_.Tracker.parse(input));
+    return ServerMessage._decode(new _.Decoder(input));
   },
-  _decode(tracker: _.Tracker): ServerMessage {
-    const type = tracker.nextUInt();
+  _decode(decoder: _.Decoder): ServerMessage {
+    const type = decoder.nextUInt();
     if (type === 0) {
-      return { type: "StateMessage", val: StateMessage._decode(tracker) };
+      return { type: "StateMessage", val: StateMessage._decode(decoder) };
     }
     throw new Error("Invalid union");
   },
   decodeDiff(obj: ServerMessage, input: Uint8Array): ServerMessage {
-    const tracker = _.Tracker.parse(input);
-    return ServerMessage._decodeDiff(obj, tracker);
+    const decoder = new _.Decoder(input);
+    return ServerMessage._decodeDiff(obj, decoder);
   },
-  _decodeDiff(obj: ServerMessage, tracker: _.Tracker): ServerMessage {
-    const isSameType = tracker.nextBoolean();
+  _decodeDiff(obj: ServerMessage, decoder: _.Decoder): ServerMessage {
+    const isSameType = decoder.nextBoolean();
     if (isSameType) {
       if (obj.type === "StateMessage") {
         return {
           type: "StateMessage",
-          val: StateMessage._decodeDiff(obj.val, tracker),
+          val: StateMessage._decodeDiff(obj.val, decoder),
         };
       }
       throw new Error("Invalid union diff");
     } else {
-      const type = tracker.nextUInt();
+      const type = decoder.nextUInt();
       if (type === 0) {
         return {
           type: "StateMessage",
-          val: StateMessage._decode(tracker),
+          val: StateMessage._decode(decoder),
         };
       }
       throw new Error("Invalid union diff");

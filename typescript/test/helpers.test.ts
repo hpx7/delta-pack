@@ -11,7 +11,8 @@ import {
   parseRecord,
   tryParseField,
   mapValues,
-  Tracker,
+  Encoder,
+  Decoder,
 } from "@hpx7/delta-pack/helpers";
 
 describe("Helper Functions - Parse and Validation", () => {
@@ -338,133 +339,133 @@ describe("Helper Functions - Parse and Validation", () => {
   });
 });
 
-describe("Tracker - RLE Boolean Encoding", () => {
+describe("Encoder/Decoder - RLE Boolean Encoding", () => {
   it("should handle empty boolean sequences", () => {
-    const tracker = new Tracker();
-    const buf = tracker.toBuffer();
+    const encoder = new Encoder();
+    const buf = encoder.toBuffer();
     // No booleans pushed, parsing should still succeed
     expect(buf.length).toBeGreaterThan(0);
-    expect(() => Tracker.parse(buf)).not.toThrow();
+    expect(() => new Decoder(buf)).not.toThrow();
   });
 
   it("should encode and decode single boolean", () => {
-    const tracker = new Tracker();
-    tracker.pushBoolean(true);
-    const buf = tracker.toBuffer();
-    const parsed = Tracker.parse(buf);
-    expect(parsed.nextBoolean()).toBe(true);
+    const encoder = new Encoder();
+    encoder.pushBoolean(true);
+    const buf = encoder.toBuffer();
+    const decoder = new Decoder(buf);
+    expect(decoder.nextBoolean()).toBe(true);
   });
 
   it("should encode and decode run of 1 (alternating pattern)", () => {
-    const tracker = new Tracker();
-    tracker.pushBoolean(true);
-    tracker.pushBoolean(false);
-    tracker.pushBoolean(true);
-    tracker.pushBoolean(false);
-    const buf = tracker.toBuffer();
-    const parsed = Tracker.parse(buf);
-    expect(parsed.nextBoolean()).toBe(true);
-    expect(parsed.nextBoolean()).toBe(false);
-    expect(parsed.nextBoolean()).toBe(true);
-    expect(parsed.nextBoolean()).toBe(false);
+    const encoder = new Encoder();
+    encoder.pushBoolean(true);
+    encoder.pushBoolean(false);
+    encoder.pushBoolean(true);
+    encoder.pushBoolean(false);
+    const buf = encoder.toBuffer();
+    const decoder = new Decoder(buf);
+    expect(decoder.nextBoolean()).toBe(true);
+    expect(decoder.nextBoolean()).toBe(false);
+    expect(decoder.nextBoolean()).toBe(true);
+    expect(decoder.nextBoolean()).toBe(false);
   });
 
   it("should encode and decode runs of 2-3 (previously buggy)", () => {
     // Run of 2
-    const tracker2 = new Tracker();
-    for (let i = 0; i < 2; i++) tracker2.pushBoolean(true);
-    for (let i = 0; i < 2; i++) tracker2.pushBoolean(false);
-    const buf2 = tracker2.toBuffer();
-    const parsed2 = Tracker.parse(buf2);
-    expect(parsed2.nextBoolean()).toBe(true);
-    expect(parsed2.nextBoolean()).toBe(true);
-    expect(parsed2.nextBoolean()).toBe(false);
-    expect(parsed2.nextBoolean()).toBe(false);
+    const encoder2 = new Encoder();
+    for (let i = 0; i < 2; i++) encoder2.pushBoolean(true);
+    for (let i = 0; i < 2; i++) encoder2.pushBoolean(false);
+    const buf2 = encoder2.toBuffer();
+    const decoder2 = new Decoder(buf2);
+    expect(decoder2.nextBoolean()).toBe(true);
+    expect(decoder2.nextBoolean()).toBe(true);
+    expect(decoder2.nextBoolean()).toBe(false);
+    expect(decoder2.nextBoolean()).toBe(false);
 
     // Run of 3
-    const tracker3 = new Tracker();
-    for (let i = 0; i < 3; i++) tracker3.pushBoolean(false);
-    for (let i = 0; i < 3; i++) tracker3.pushBoolean(true);
-    const buf3 = tracker3.toBuffer();
-    const parsed3 = Tracker.parse(buf3);
-    for (let i = 0; i < 3; i++) expect(parsed3.nextBoolean()).toBe(false);
-    for (let i = 0; i < 3; i++) expect(parsed3.nextBoolean()).toBe(true);
+    const encoder3 = new Encoder();
+    for (let i = 0; i < 3; i++) encoder3.pushBoolean(false);
+    for (let i = 0; i < 3; i++) encoder3.pushBoolean(true);
+    const buf3 = encoder3.toBuffer();
+    const decoder3 = new Decoder(buf3);
+    for (let i = 0; i < 3; i++) expect(decoder3.nextBoolean()).toBe(false);
+    for (let i = 0; i < 3; i++) expect(decoder3.nextBoolean()).toBe(true);
   });
 
   it("should encode and decode runs of 4-5 (previously buggy)", () => {
     // Run of 4
-    const tracker4 = new Tracker();
-    for (let i = 0; i < 4; i++) tracker4.pushBoolean(true);
-    const buf4 = tracker4.toBuffer();
-    const parsed4 = Tracker.parse(buf4);
-    for (let i = 0; i < 4; i++) expect(parsed4.nextBoolean()).toBe(true);
+    const encoder4 = new Encoder();
+    for (let i = 0; i < 4; i++) encoder4.pushBoolean(true);
+    const buf4 = encoder4.toBuffer();
+    const decoder4 = new Decoder(buf4);
+    for (let i = 0; i < 4; i++) expect(decoder4.nextBoolean()).toBe(true);
 
     // Run of 5
-    const tracker5 = new Tracker();
-    for (let i = 0; i < 5; i++) tracker5.pushBoolean(false);
-    const buf5 = tracker5.toBuffer();
-    const parsed5 = Tracker.parse(buf5);
-    for (let i = 0; i < 5; i++) expect(parsed5.nextBoolean()).toBe(false);
+    const encoder5 = new Encoder();
+    for (let i = 0; i < 5; i++) encoder5.pushBoolean(false);
+    const buf5 = encoder5.toBuffer();
+    const decoder5 = new Decoder(buf5);
+    for (let i = 0; i < 5; i++) expect(decoder5.nextBoolean()).toBe(false);
   });
 
   it("should encode and decode runs of 6-13 (previously buggy)", () => {
     for (const runLength of [6, 7, 10, 13]) {
-      const tracker = new Tracker();
-      for (let i = 0; i < runLength; i++) tracker.pushBoolean(true);
-      for (let i = 0; i < runLength; i++) tracker.pushBoolean(false);
-      const buf = tracker.toBuffer();
-      const parsed = Tracker.parse(buf);
+      const encoder = new Encoder();
+      for (let i = 0; i < runLength; i++) encoder.pushBoolean(true);
+      for (let i = 0; i < runLength; i++) encoder.pushBoolean(false);
+      const buf = encoder.toBuffer();
+      const decoder = new Decoder(buf);
       for (let i = 0; i < runLength; i++) {
-        expect(parsed.nextBoolean()).toBe(true);
+        expect(decoder.nextBoolean()).toBe(true);
       }
       for (let i = 0; i < runLength; i++) {
-        expect(parsed.nextBoolean()).toBe(false);
+        expect(decoder.nextBoolean()).toBe(false);
       }
     }
   });
 
   it("should encode and decode runs of 14-269", () => {
     for (const runLength of [14, 50, 100, 269]) {
-      const tracker = new Tracker();
-      for (let i = 0; i < runLength; i++) tracker.pushBoolean(true);
-      const buf = tracker.toBuffer();
-      const parsed = Tracker.parse(buf);
+      const encoder = new Encoder();
+      for (let i = 0; i < runLength; i++) encoder.pushBoolean(true);
+      const buf = encoder.toBuffer();
+      const decoder = new Decoder(buf);
       for (let i = 0; i < runLength; i++) {
-        expect(parsed.nextBoolean()).toBe(true);
+        expect(decoder.nextBoolean()).toBe(true);
       }
     }
   });
 
   it("should handle mixed run lengths", () => {
-    const tracker = new Tracker();
+    const encoder = new Encoder();
     // Run of 1
-    tracker.pushBoolean(true);
+    encoder.pushBoolean(true);
     // Run of 3
-    for (let i = 0; i < 3; i++) tracker.pushBoolean(false);
+    for (let i = 0; i < 3; i++) encoder.pushBoolean(false);
     // Run of 5
-    for (let i = 0; i < 5; i++) tracker.pushBoolean(true);
+    for (let i = 0; i < 5; i++) encoder.pushBoolean(true);
     // Run of 10
-    for (let i = 0; i < 10; i++) tracker.pushBoolean(false);
+    for (let i = 0; i < 10; i++) encoder.pushBoolean(false);
     // Run of 20
-    for (let i = 0; i < 20; i++) tracker.pushBoolean(true);
+    for (let i = 0; i < 20; i++) encoder.pushBoolean(true);
 
-    const buf = tracker.toBuffer();
-    const parsed = Tracker.parse(buf);
+    const buf = encoder.toBuffer();
+    const decoder = new Decoder(buf);
 
-    expect(parsed.nextBoolean()).toBe(true);
-    for (let i = 0; i < 3; i++) expect(parsed.nextBoolean()).toBe(false);
-    for (let i = 0; i < 5; i++) expect(parsed.nextBoolean()).toBe(true);
-    for (let i = 0; i < 10; i++) expect(parsed.nextBoolean()).toBe(false);
-    for (let i = 0; i < 20; i++) expect(parsed.nextBoolean()).toBe(true);
+    expect(decoder.nextBoolean()).toBe(true);
+    for (let i = 0; i < 3; i++) expect(decoder.nextBoolean()).toBe(false);
+    for (let i = 0; i < 5; i++) expect(decoder.nextBoolean()).toBe(true);
+    for (let i = 0; i < 10; i++) expect(decoder.nextBoolean()).toBe(false);
+    for (let i = 0; i < 20; i++) expect(decoder.nextBoolean()).toBe(true);
   });
 
   it("should handle long sequences of same value", () => {
-    const tracker = new Tracker();
-    for (let i = 0; i < 100; i++) tracker.pushBoolean(false);
-    const buf = tracker.toBuffer();
-    const parsed = Tracker.parse(buf);
+    const encoder = new Encoder();
+    for (let i = 0; i < 100; i++) encoder.pushBoolean(false);
+    const buf = encoder.toBuffer();
+    const decoder = new Decoder(buf);
     for (let i = 0; i < 100; i++) {
-      expect(parsed.nextBoolean()).toBe(false);
+      expect(decoder.nextBoolean()).toBe(false);
     }
   });
 });

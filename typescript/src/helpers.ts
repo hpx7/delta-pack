@@ -4,19 +4,11 @@ import { rleDecode, rleEncode } from "./rle.js";
 
 const FLOAT_EPSILON = 0.001;
 
-export class Tracker {
+export class Encoder {
   private dict: string[] = [];
-  private bitsIdx = 0;
   private bits: boolean[] = [];
   private writer = new Writer();
-  private reader: Reader | undefined;
 
-  static parse(buf: Uint8Array) {
-    const tracker = new Tracker();
-    tracker.bits = rleDecode(buf);
-    tracker.reader = new Reader(buf);
-    return tracker;
-  }
   pushString(val: string) {
     if (val === "") {
       this.writer.writeVarint(0);
@@ -236,26 +228,42 @@ export class Tracker {
       encodeVal(val);
     });
   }
+  toBuffer() {
+    rleEncode(this.bits, this.writer);
+    return this.writer.toBuffer();
+  }
+}
+
+export class Decoder {
+  private dict: string[] = [];
+  private bitsIdx = 0;
+  private bits: boolean[];
+  private reader: Reader;
+
+  constructor(buf: Uint8Array) {
+    this.bits = rleDecode(buf);
+    this.reader = new Reader(buf);
+  }
   nextString() {
-    const lenOrIdx = this.reader!.readVarint();
+    const lenOrIdx = this.reader.readVarint();
     if (lenOrIdx === 0) {
       return "";
     }
     if (lenOrIdx > 0) {
-      const str = this.reader!.readStringUtf8(lenOrIdx);
+      const str = this.reader.readStringUtf8(lenOrIdx);
       this.dict.push(str);
       return str;
     }
     return this.dict[-lenOrIdx - 1]!;
   }
   nextInt() {
-    return this.reader!.readVarint();
+    return this.reader.readVarint();
   }
   nextUInt() {
-    return this.reader!.readUVarint();
+    return this.reader.readUVarint();
   }
   nextFloat() {
-    return this.reader!.readFloat();
+    return this.reader.readFloat();
   }
   nextFloatQuantized(precision: number) {
     return this.nextInt() * precision;
@@ -378,10 +386,6 @@ export class Tracker {
     }
 
     return result;
-  }
-  toBuffer() {
-    rleEncode(this.bits, this.writer);
-    return this.writer.toBuffer();
   }
 }
 
