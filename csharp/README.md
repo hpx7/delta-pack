@@ -4,10 +4,8 @@ Binary serialization library optimized for delta encoding of game state.
 
 ## Installation
 
-Add the project reference to your `.csproj`:
-
-```xml
-<ProjectReference Include="path/to/DeltaPack.csproj" />
+```bash
+dotnet add package DeltaPack
 ```
 
 ## Quick Start
