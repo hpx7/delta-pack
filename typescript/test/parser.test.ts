@@ -27,6 +27,7 @@ describe("YAML Schema Parser", () => {
     expect(parsedSchema["Player"]).toBeDefined();
     expect(parsedSchema["Position"]).toBeDefined();
     expect(parsedSchema["Velocity"]).toBeDefined();
+    expect(parsedSchema["Entity"]).toBeDefined();
     expect(parsedSchema["MoveAction"]).toBeDefined();
     expect(parsedSchema["AttackAction"]).toBeDefined();
     expect(parsedSchema["UseItemAction"]).toBeDefined();
@@ -46,7 +47,7 @@ describe("YAML Schema Parser", () => {
     const playerType = parsedSchema["Player"] as ObjectType;
     expect(playerType.type).toBe("object");
     expect(playerType.properties).toBeDefined();
-    expect(playerType.properties["id"]!.type).toBe("reference");
+    expect(playerType.properties["id"]!.type).toBe("string");
     expect(playerType.properties["name"]!.type).toBe("string");
     expect(playerType.properties["score"]!.type).toBe("int");
     expect(playerType.properties["isActive"]!.type).toBe("boolean");
@@ -73,6 +74,15 @@ describe("YAML Schema Parser", () => {
     expect(vyType.type).toBe("float");
     expect(vxType.precision).toBeUndefined();
     expect(vyType.precision).toBeUndefined();
+  });
+
+  it("should parse Entity as object type with nested object reference", () => {
+    const entityType = parsedSchema["Entity"] as ObjectType;
+    expect(entityType.type).toBe("object");
+    expect(entityType.properties["id"]!.type).toBe("string");
+    expect(entityType.properties["position"]!.type).toBe("reference");
+    expect((entityType.properties["position"] as any).reference).toBe("Position");
+    expect(parsedSchema["Entity"]).toEqual(tsSchema.Entity);
   });
 
   it("should parse MoveAction as object type", () => {
@@ -147,6 +157,7 @@ describe("YAML Schema Parser", () => {
     expect(parsedSchema["AttackAction"]).toEqual(AttackAction);
     expect(parsedSchema["UseItemAction"]).toEqual(UseItemAction);
     expect(parsedSchema["Position"]).toEqual(tsSchema.Position);
+    expect(parsedSchema["Entity"]).toEqual(tsSchema.Entity);
 
     // GameAction should match structure
     const gameActionType = parsedSchema["GameAction"] as UnionType;

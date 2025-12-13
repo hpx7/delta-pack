@@ -17,11 +17,8 @@ import {
 // Define test schema with multiple types
 const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
-// Type alias
-const PlayerId = StringType();
-
 const Player = ObjectType({
-  id: ReferenceType("PlayerId"),
+  id: StringType(),
   name: StringType(),
   score: IntType(),
   isActive: BooleanType(),
@@ -38,6 +35,12 @@ const Position = ObjectType({
 const Velocity = ObjectType({
   vx: FloatType(),
   vy: FloatType(),
+});
+
+// Entity with nested object reference (Position)
+const Entity = ObjectType({
+  id: StringType(),
+  position: ReferenceType("Position"),
 });
 
 // Union type for different game actions
@@ -83,10 +86,10 @@ const PlayerRegistry = ObjectType({
 // Export schema for interpreter tests
 export const schema = defineSchema({
   Color,
-  PlayerId,
   Player,
   Position,
   Velocity,
+  Entity,
   MoveAction,
   AttackAction,
   UseItemAction,

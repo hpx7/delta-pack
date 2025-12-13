@@ -71,16 +71,19 @@
   },
   "dependencies": {
     "bin-serde": "^1.6.9",
+    "reflect-metadata": "^0.2.2",
     "utf8-buffer-size": "^0.0.4",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
+    "@swc/core": "^1.15.4",
     "@types/node": "^20.10.5",
     "@vitest/coverage-v8": "^4.0.13",
     "@vitest/ui": "^4.0.13",
     "prettier": "^3.7.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
+    "unplugin-swc": "^1.5.9",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.13"
   }

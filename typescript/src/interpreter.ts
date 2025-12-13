@@ -1,7 +1,7 @@
 import * as _ from "./helpers.js";
 import { Type, isPrimitiveType } from "./schema.js";
 
-type DeltaPackApi<T> = {
+export type DeltaPackApi<T> = {
   fromJson: (obj: Record<string, unknown>) => T;
   toJson: (obj: T) => Record<string, unknown>;
   encode: (obj: T) => Uint8Array;

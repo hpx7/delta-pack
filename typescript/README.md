@@ -10,10 +10,11 @@ npm install @hpx7/delta-pack
 
 ## Quick Start
 
-Delta-pack provides two approaches for working with schemas:
+Delta-pack provides three approaches for working with schemas:
 
 1. **Interpreter Mode** - Runtime schema parsing with dynamic API
-2. **Codegen Mode** - Generate TypeScript code from schemas for compile-time type safety
+2. **Decorator Mode** - Use TypeScript decorators for class-based schemas (builds on interpreter mode)
+3. **Codegen Mode** - Generate TypeScript code from schemas for compile-time type safety
 
 ### Interpreter Mode (Recommended for prototyping)
 
@@ -40,6 +41,35 @@ const Player = load<Player>(schema, "Player");
 const player = { id: "p1", name: "Alice", score: 100 };
 const encoded = Player.encode(player);
 const decoded = Player.decode(encoded);
+```
+
+### Decorator Mode (Recommended for class-based code)
+
+```typescript
+import { DeltaPackString, DeltaPackInt, loadClass } from "@hpx7/delta-pack";
+
+class Player {
+  @DeltaPackString()
+  id: string = "";
+
+  @DeltaPackString()
+  name: string = "";
+
+  @DeltaPackInt()
+  score: number = 0;
+}
+
+// Load API from decorated class
+const PlayerApi = loadClass(Player);
+
+// Use the API
+const player = new Player();
+player.id = "p1";
+player.name = "Alice";
+player.score = 100;
+
+const encoded = PlayerApi.encode(player);
+const decoded = PlayerApi.decode(encoded);
 ```
 
 ### Codegen Mode (Recommended for production)
@@ -322,6 +352,129 @@ Creates a default instance:
 const defaultPlayer = Player.default();
 // { id: '', name: '', score: 0 }
 ```
+
+## Decorator API
+
+The decorator mode provides a class-based API using TypeScript decorators. Schemas are inferred from decorated classes at runtime.
+
+### Decorators
+
+| Decorator | Description |
+|-----------|-------------|
+| `@DeltaPackString()` | String property |
+| `@DeltaPackInt()` | Signed integer (use `{ unsigned: true }` for unsigned) |
+| `@DeltaPackBool()` | Boolean property |
+| `@DeltaPackFloat()` | IEEE 754 float (use `{ precision: 0.01 }` for quantized) |
+| `@DeltaPackRef(Type)` | Reference to a class or TypeScript string enum (use `{ enumName }` for enums) |
+| `@DeltaPackArrayOf(Type)` | Array property |
+| `@DeltaPackMapOf(Type)` | Map with string keys |
+| `@DeltaPackOptionalOf(Type)` | Optional property |
+| `@DeltaPackUnion([A, B])` | Class decorator for union types |
+
+For container types (`@DeltaPackArrayOf`, `@DeltaPackMapOf`, `@DeltaPackOptionalOf`):
+- `Type` can be: `String`, `Number`, `Boolean`, a class, `[A, B, ...]` for unions, a TypeScript string enum, or another container decorator for nesting
+- For `Number`, pass options as second arg: `@DeltaPackArrayOf(Number, { unsigned: true })` or `{ float: 0.01 }`
+- For enums, use `{ enumName: "Name" }` to specify the schema name (otherwise auto-generated from values)
+
+### Example
+
+```typescript
+import {
+  DeltaPackString, DeltaPackInt, DeltaPackFloat, DeltaPackBool,
+  DeltaPackRef, DeltaPackArrayOf, DeltaPackMapOf, DeltaPackOptionalOf,
+  DeltaPackUnion, loadClass,
+} from "@hpx7/delta-pack";
+
+// Enums
+enum Team { RED = "red", BLUE = "blue" }
+enum Status { ACTIVE = "active", IDLE = "idle" }
+
+// Nested object
+class Position {
+  @DeltaPackFloat({ precision: 0.1 })
+  x: number = 0;
+
+  @DeltaPackFloat({ precision: 0.1 })
+  y: number = 0;
+}
+
+// Union types
+class MoveAction {
+  @DeltaPackInt() x: number = 0;
+  @DeltaPackInt() y: number = 0;
+}
+
+class AttackAction {
+  @DeltaPackString() targetId: string = "";
+  @DeltaPackInt({ unsigned: true }) damage: number = 0;
+}
+
+@DeltaPackUnion([MoveAction, AttackAction])
+abstract class GameAction {}
+
+// Main class demonstrating all features
+class Player {
+  // Primitives
+  @DeltaPackString() id: string = "";
+  @DeltaPackString() name: string = "";
+  @DeltaPackInt() score: number = 0;
+  @DeltaPackInt({ unsigned: true }) level: number = 1;
+  @DeltaPackBool() isOnline: boolean = false;
+  @DeltaPackFloat() velocity: number = 0;
+
+  // References
+  @DeltaPackRef(Position) position: Position = new Position();
+  @DeltaPackRef(Team) team: Team = Team.RED;
+
+  // Arrays
+  @DeltaPackArrayOf(String) tags: string[] = [];
+  @DeltaPackArrayOf(Position) waypoints: Position[] = [];
+  @DeltaPackArrayOf(Number, { float: 0.01 }) scores: number[] = [];
+  @DeltaPackArrayOf(Status) statuses: Status[] = [];
+  @DeltaPackArrayOf([MoveAction, AttackAction]) actions: GameAction[] = [];
+
+  // Maps
+  @DeltaPackMapOf(Number) inventory: Map<string, number> = new Map();
+  @DeltaPackMapOf(Position) markers: Map<string, Position> = new Map();
+  @DeltaPackMapOf(Number, { unsigned: true }) counts: Map<string, number> = new Map();
+
+  // Optionals
+  @DeltaPackOptionalOf(String) nickname?: string;
+  @DeltaPackOptionalOf(Position) target?: Position;
+  @DeltaPackOptionalOf(Number, { float: 0.01 }) rating?: number;
+  @DeltaPackOptionalOf([MoveAction, AttackAction]) lastAction?: GameAction;
+
+  // Self-reference (circular)
+  @DeltaPackOptionalOf(Player) partner?: Player;
+
+  // Nested containers
+  @DeltaPackArrayOf(DeltaPackArrayOf(Number)) matrix: number[][] = [];
+  @DeltaPackMapOf(DeltaPackArrayOf(Number)) vectorsById: Map<string, number[]> = new Map();
+  @DeltaPackOptionalOf(DeltaPackArrayOf(Number)) optionalScores?: number[];
+  @DeltaPackArrayOf(DeltaPackArrayOf(Number, { float: 0.01 })) floatMatrix: number[][] = [];
+}
+
+// Load API and use
+const PlayerApi = loadClass(Player);
+const player = new Player();
+player.name = "Alice";
+const encoded = PlayerApi.encode(player);
+const decoded = PlayerApi.decode(encoded);
+```
+
+### Requirements
+
+**tsconfig.json:** Enable `"experimentalDecorators": true`
+
+**Class requirements:**
+1. Parameterless constructor (instantiable with `new Class()`)
+2. Properties must have default values (discovered via `Object.keys(new Class())`)
+3. Every property needs a type decorator
+4. Unique class names (used as schema identifiers)
+
+### API Methods
+
+`loadClass()` returns the same API as interpreter mode: `encode`, `decode`, `encodeDiff`, `decodeDiff`, `equals`, `clone`, `toJson`, `fromJson`
 
 ## Codegen API
 

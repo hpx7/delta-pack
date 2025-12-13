@@ -7,6 +7,7 @@ import {
   Player,
   Position,
   Velocity,
+  Entity,
   GameState,
   GameAction,
   MoveAction,
@@ -615,6 +616,108 @@ describe("Delta Pack Codegen - Unified API", () => {
       // Velocity should preserve full precision
       expect(equalsFloat(decodedVel.vx, 123.456)).toBe(true);
       expect(equalsFloat(decodedVel.vy, 78.912)).toBe(true);
+    });
+  });
+
+  describe("Entity Type - Nested Object Reference", () => {
+    it("should create default entity", () => {
+      const defaultEntity = Entity.default();
+      expect(defaultEntity).toEqual({ id: "", position: { x: 0, y: 0 } });
+    });
+
+    it("should parse correct entity data", () => {
+      const entity: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      expect(() => Entity.fromJson(entity)).not.toThrow();
+    });
+
+    it("should detect validation errors for id", () => {
+      const invalidEntity = { id: 123, position: { x: 10.5, y: 20.3 } };
+      expect(() => Entity.fromJson(invalidEntity)).toThrow(/id/);
+    });
+
+    it("should detect validation errors for position", () => {
+      const invalidEntity = { id: "entity1", position: "invalid" };
+      expect(() => Entity.fromJson(invalidEntity)).toThrow(/position/);
+    });
+
+    it("should detect validation errors for nested position fields", () => {
+      const invalidEntity = { id: "entity1", position: { x: "invalid", y: 20.3 } };
+      expect(() => Entity.fromJson(invalidEntity)).toThrow(/position/);
+    });
+
+    it("should encode and decode entity data", () => {
+      const entity: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      const encoded = Entity.encode(entity);
+      expect(encoded).toBeInstanceOf(Uint8Array);
+
+      const decoded = Entity.decode(encoded);
+      expect(decoded.id).toBe("entity1");
+      // Position fields are quantized to 0.1 precision
+      expect(decoded.position.x).toBe(10.5);
+      expect(decoded.position.y).toBe(20.3);
+    });
+
+    it("should check equality correctly", () => {
+      const entity1: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      const entity2: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      const entity3: Entity = { id: "entity1", position: { x: 10.6, y: 20.3 } };
+
+      expect(Entity.equals(entity1, entity2)).toBe(true);
+      expect(Entity.equals(entity1, entity3)).toBe(false);
+    });
+
+    it("should encode and decode diff", () => {
+      const entity1: Entity = { id: "entity1", position: { x: 10.0, y: 20.0 } };
+      const entity2: Entity = { id: "entity1", position: { x: 15.5, y: 20.0 } };
+
+      const encodedDiff = Entity.encodeDiff(entity1, entity2);
+      expect(encodedDiff).toBeInstanceOf(Uint8Array);
+
+      const result = Entity.decodeDiff(entity1, encodedDiff);
+      expect(result.id).toBe("entity1");
+      expect(result.position.x).toBe(15.5);
+      expect(result.position.y).toBe(20.0);
+    });
+
+    it("should have smaller diff encoding than full encoding for partial changes", () => {
+      const entity1: Entity = { id: "entity1", position: { x: 10.0, y: 20.0 } };
+      const entity2: Entity = { id: "entity1", position: { x: 10.5, y: 20.0 } };
+
+      const fullEncoded = Entity.encode(entity2);
+      const diffEncoded = Entity.encodeDiff(entity1, entity2);
+
+      // Diff should be smaller when only position.x changes
+      expect(diffEncoded.length).toBeLessThanOrEqual(fullEncoded.length);
+    });
+
+    it("should convert entity to JSON", () => {
+      const entity: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      const json = Entity.toJson(entity);
+      expect(json).toEqual({
+        id: "entity1",
+        position: { x: 10.5, y: 20.3 },
+      });
+    });
+
+    it("should round-trip fromJson/toJson", () => {
+      const entity: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      const json = Entity.toJson(entity);
+      const parsed = Entity.fromJson(json);
+      expect(Entity.equals(parsed, entity)).toBe(true);
+    });
+
+    it("should clone entity deeply", () => {
+      const entity: Entity = { id: "entity1", position: { x: 10.5, y: 20.3 } };
+      const cloned = Entity.clone(entity);
+
+      expect(cloned).toEqual(entity);
+      expect(cloned).not.toBe(entity);
+      expect(cloned.position).not.toBe(entity.position);
+
+      // Modifying clone shouldn't affect original
+      cloned.position.x = 999;
+      expect(entity.position.x).toBe(10.5);
+      expect(cloned.position.x).toBe(999);
     });
   });
 

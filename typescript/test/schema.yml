@@ -7,11 +7,8 @@ Color:
   - GREEN
   - YELLOW
 
-# Type alias
-PlayerId: string
-
 Player:
-  id: PlayerId
+  id: string
   name: string
   score: int
   isActive: boolean
@@ -24,6 +21,10 @@ Position:
 Velocity:
   vx: float
   vy: float
+
+Entity:
+  id: string
+  position: Position
 
 MoveAction:
   x: int

@@ -3,9 +3,8 @@ import * as _ from "@hpx7/delta-pack/helpers";
 
 export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
     
-export type PlayerId = string;
 export type Player = {
-  id: PlayerId;
+  id: string;
   name: string;
   score: number;
   isActive: boolean;
@@ -19,6 +18,10 @@ export type Velocity = {
   vx: number;
   vy: number;
 } & { _dirty?: Set<keyof Velocity> };
+export type Entity = {
+  id: string;
+  position: Position;
+} & { _dirty?: Set<keyof Entity> };
 export type MoveAction = {
   x: number;
   y: number;
@@ -57,7 +60,6 @@ const Color = {
   GREEN: 2,
   YELLOW: 3,
 };
-
 
 export const Player = {
   default(): Player {
@@ -387,6 +389,99 @@ export const Velocity = {
     return {
       vx: decoder.nextFloatDiff(obj.vx),
       vy: decoder.nextFloatDiff(obj.vy),
+    };
+  },
+};
+
+export const Entity = {
+  default(): Entity {
+    return {
+      id: "",
+      position: Position.default(),
+    };
+  },
+  fromJson(obj: Record<string, unknown>): Entity {
+    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+      throw new Error(`Invalid Entity: ${obj}`);
+    }
+    return {
+      id: _.tryParseField(() => _.parseString(obj["id"]), "Entity.id"),
+      position: _.tryParseField(() => Position.fromJson(obj["position"] as Position), "Entity.position"),
+    };
+  },
+  toJson(obj: Entity): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    result["id"] = obj.id;
+    result["position"] = Position.toJson(obj.position);
+    return result;
+  },
+  clone(obj: Entity): Entity {
+    return {
+      id: obj.id,
+      position: Position.clone(obj.position),
+    };
+  },
+  equals(a: Entity, b: Entity): boolean {
+    return (
+      a.id === b.id &&
+      Position.equals(a.position, b.position)
+    );
+  },
+  encode(obj: Entity): Uint8Array {
+    const encoder = new _.Encoder();
+    Entity._encode(obj, encoder);
+    return encoder.toBuffer();
+  },
+  _encode(obj: Entity, encoder: _.Encoder): void {
+    encoder.pushString(obj.id);
+    Position._encode(obj.position, encoder);
+  },
+  encodeDiff(a: Entity, b: Entity): Uint8Array {
+    const encoder = new _.Encoder();
+    Entity._encodeDiff(a, b, encoder);
+    return encoder.toBuffer();
+  },
+  _encodeDiff(a: Entity, b: Entity, encoder: _.Encoder): void {
+    const dirty = b._dirty;
+    const changed = dirty == null ? !Entity.equals(a, b) : dirty.size > 0;
+    encoder.pushBoolean(changed);
+    if (!changed) {
+      return;
+    }
+    // Field: id
+    if (dirty != null && !dirty.has("id")) {
+      encoder.pushBoolean(false);
+    } else {
+      encoder.pushStringDiff(a.id, b.id);
+    }
+    // Field: position
+    if (dirty != null && !dirty.has("position")) {
+      encoder.pushBoolean(false);
+    } else {
+      Position._encodeDiff(a.position, b.position, encoder);
+    }
+  },
+  decode(input: Uint8Array): Entity {
+    return Entity._decode(new _.Decoder(input));
+  },
+  _decode(decoder: _.Decoder): Entity {
+    return {
+      id: decoder.nextString(),
+      position: Position._decode(decoder),
+    };
+  },
+  decodeDiff(obj: Entity, input: Uint8Array): Entity {
+    const decoder = new _.Decoder(input);
+    return Entity._decodeDiff(obj, decoder);
+  },
+  _decodeDiff(obj: Entity, decoder: _.Decoder): Entity {
+    const changed = decoder.nextBoolean();
+    if (!changed) {
+      return obj;
+    }
+    return {
+      id: decoder.nextStringDiff(obj.id),
+      position: Position._decodeDiff(obj.position, decoder),
     };
   },
 };

@@ -1,8 +1,9 @@
 import { defineConfig } from "vitest/config";
 import tsconfigPaths from "vite-tsconfig-paths";
+import swc from "unplugin-swc";
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [tsconfigPaths(), swc.vite()],
   test: {
     include: ["test/**/*.test.ts"],
     coverage: {

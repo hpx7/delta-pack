@@ -1,5 +1,5 @@
 {
-  "include": ["src", "test"],
+  "include": ["src", "test", "vitest.config.ts"],
   "compilerOptions": {
     /* Output configuration */
     "noEmit": true,
@@ -22,7 +22,9 @@
     "target": "esnext",
     "skipLibCheck": true,
     "isolatedModules": true,
-    "erasableSyntaxOnly": true,
+
+    /* Decorators */
+    "experimentalDecorators": true,
 
     /* Linting */
     "strict": true,
