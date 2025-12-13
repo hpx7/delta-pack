@@ -30,6 +30,22 @@ public sealed class DeltaPackUnionAttribute : Attribute
 }
 
 /// <summary>
+/// Builds a schema from a C# type using reflection.
+/// Useful for inspecting the generated schema or comparing with manual schema definitions.
+/// </summary>
+/// <typeparam name="T">The root type to build a schema for</typeparam>
+/// <returns>A dictionary mapping type names to their schema definitions</returns>
+public static class ReflectionSchema
+{
+    public static IReadOnlyDictionary<string, SchemaType> BuildSchema<T>() where T : class
+    {
+        var builder = new SchemaBuilder();
+        builder.BuildMapping(typeof(T));
+        return builder.GetSchema();
+    }
+}
+
+/// <summary>
 /// Unity-friendly codec for encoding/decoding C# types.
 /// Create once during initialization, reuse in hot paths.
 /// </summary>
@@ -45,6 +61,7 @@ public sealed class DeltaPackCodec<T> where T : class
 {
     private readonly IDeltaPackApi<object?> _api;
     private readonly TypeMapping _rootMapping;
+    private readonly IReadOnlyDictionary<Type, TypeMapping> _mappings;
     private readonly Func<T> _factory;
 
     /// <summary>
@@ -62,6 +79,7 @@ public sealed class DeltaPackCodec<T> where T : class
         var builder = new SchemaBuilder();
         _rootMapping = builder.BuildMapping(typeof(T));
         var schema = builder.GetSchema();
+        _mappings = builder.GetMappings();
         _api = Interpreter.Load<object?>(schema, typeof(T).Name);
         _factory = factory ?? CreateDefaultFactory();
     }
@@ -111,8 +129,13 @@ public sealed class DeltaPackCodec<T> where T : class
 
     private Dictionary<string, object?> ToUntypedObject(object obj, ObjectMapping mapping)
     {
+        // If Members is null, this is a self-reference placeholder - resolve from cache
+        var actualMapping = mapping.Members is null
+            ? (ObjectMapping)_mappings[mapping.Type]
+            : mapping;
+
         var result = new Dictionary<string, object?>();
-        foreach (var (name, member, memberMapping) in mapping.Members)
+        foreach (var (name, member, memberMapping) in actualMapping.Members)
         {
             var value = member switch
             {
@@ -198,15 +221,20 @@ public sealed class DeltaPackCodec<T> where T : class
 
     private object ToTypedObject(Dictionary<string, object?> dict, ObjectMapping mapping)
     {
+        // If Members is null, this is a self-reference placeholder - resolve from cache
+        var actualMapping = mapping.Members is null
+            ? (ObjectMapping)_mappings[mapping.Type]
+            : mapping;
+
         object obj;
 
         // Check if this is the root type or a nested type
-        if (mapping.Type == typeof(T))
+        if (actualMapping.Type == typeof(T))
             obj = _factory();
         else
-            obj = CreateInstance(mapping.Type);
+            obj = CreateInstance(actualMapping.Type);
 
-        foreach (var (name, member, memberMapping) in mapping.Members)
+        foreach (var (name, member, memberMapping) in actualMapping.Members)
         {
             if (!dict.TryGetValue(name, out var value))
                 continue;
@@ -295,6 +323,7 @@ internal sealed class SchemaBuilder
     private readonly HashSet<Type> _processing = new();
 
     public IReadOnlyDictionary<string, SchemaType> GetSchema() => _schema;
+    public IReadOnlyDictionary<Type, TypeMapping> GetMappings() => _mappings;
 
     public TypeMapping BuildMapping(Type type)
     {
@@ -358,6 +387,14 @@ internal sealed class SchemaBuilder
                 $"Abstract type {type.Name} must have [DeltaPackUnion(typeof(Variant1), typeof(Variant2), ...)] attribute");
         }
 
+        // Check cache first (handles self-references)
+        if (_mappings.TryGetValue(type, out var cached))
+            return cached;
+
+        // Return placeholder for circular references (will be resolved later)
+        if (_processing.Contains(type))
+            return new ObjectMapping(type, null!);
+
         // Complex objects
         return BuildObjectMapping(type);
     }
@@ -420,12 +457,6 @@ internal sealed class SchemaBuilder
 
     private TypeMapping BuildObjectMapping(Type type)
     {
-        if (_mappings.TryGetValue(type, out var existing))
-            return existing;
-
-        if (_processing.Contains(type))
-            throw new InvalidOperationException($"Circular reference detected for type {type.Name}");
-
         _processing.Add(type);
 
         var members = new List<(string, MemberInfo, TypeMapping)>();

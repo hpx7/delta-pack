@@ -52,7 +52,9 @@ GameState result = codec.DecodeDiff(stateA, diff);
 - **Enums**: Encoded as varints
 - **Collections**: `List<T>`, `Dictionary<string, T>`
 - **Nullable value types**: `int?`, `float?`, etc.
+- **Nullable reference types**: `Player?`, `string?`, etc.
 - **Nested objects**: Any class with public properties
+- **Self-referencing types**: Types that reference themselves (e.g., linked lists, trees)
 - **Union types**: Abstract classes with `[DeltaPackUnion]` attribute
 
 ## Attributes

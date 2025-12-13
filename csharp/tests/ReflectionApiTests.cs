@@ -12,6 +12,140 @@ public class ReflectionApiTests
         public bool Active { get; set; }
     }
 
+    // ==================== Schema Equivalence Tests ====================
+
+    [Fact]
+    public void SchemaEquivalence_SimpleObject()
+    {
+        var schema = ReflectionSchema.BuildSchema<Player>();
+        var player = (ObjectType)schema["Player"];
+
+        Assert.Equal(3, player.Properties.Count);
+        Assert.IsType<StringType>(player.Properties["name"]);
+        Assert.IsType<IntType>(player.Properties["score"]);
+        Assert.IsType<BooleanType>(player.Properties["active"]);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_NestedObject()
+    {
+        var schema = ReflectionSchema.BuildSchema<Entity>();
+
+        var position = (ObjectType)schema["Position"];
+        Assert.Equal(2, position.Properties.Count);
+        Assert.IsType<FloatType>(position.Properties["x"]);
+        Assert.IsType<FloatType>(position.Properties["y"]);
+
+        var entity = (ObjectType)schema["Entity"];
+        Assert.Equal(2, entity.Properties.Count);
+        Assert.IsType<StringType>(entity.Properties["name"]);
+        Assert.Equal("Position", ((ReferenceType)entity.Properties["position"]).Reference);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithArraysAndDictionaries()
+    {
+        var schema = ReflectionSchema.BuildSchema<Guild>();
+
+        var guild = (ObjectType)schema["Guild"];
+        Assert.Equal(3, guild.Properties.Count);
+        Assert.IsType<StringType>(guild.Properties["name"]);
+
+        var members = (ArrayType)guild.Properties["members"];
+        Assert.Equal("Player", ((ReferenceType)members.Value).Reference);
+
+        var resources = (RecordType)guild.Properties["resources"];
+        Assert.IsType<StringType>(resources.Key);
+        Assert.IsType<IntType>(resources.Value);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithEnum()
+    {
+        var schema = ReflectionSchema.BuildSchema<Attack>();
+
+        var damageType = (EnumType)schema["DamageType"];
+        Assert.Equal(new[] { "Fire", "Ice", "Lightning" }, damageType.Options);
+
+        var attack = (ObjectType)schema["Attack"];
+        Assert.IsType<StringType>(attack.Properties["name"]);
+        Assert.Equal("DamageType", ((ReferenceType)attack.Properties["type"]).Reference);
+        Assert.IsType<IntType>(attack.Properties["damage"]);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithOptionals()
+    {
+        var schema = ReflectionSchema.BuildSchema<Character>();
+
+        var character = (ObjectType)schema["Character"];
+        Assert.IsType<StringType>(character.Properties["name"]);
+
+        var level = (OptionalType)character.Properties["level"];
+        Assert.IsType<IntType>(level.Value);
+
+        var health = (OptionalType)character.Properties["health"];
+        Assert.IsType<FloatType>(health.Value);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithUnion()
+    {
+        var schema = ReflectionSchema.BuildSchema<Warrior>();
+
+        var sword = (ObjectType)schema["Sword"];
+        Assert.IsType<StringType>(sword.Properties["name"]);
+        Assert.IsType<IntType>(sword.Properties["slashDamage"]);
+
+        var bow = (ObjectType)schema["Bow"];
+        Assert.IsType<StringType>(bow.Properties["name"]);
+        Assert.IsType<IntType>(bow.Properties["arrowDamage"]);
+        Assert.IsType<FloatType>(bow.Properties["range"]);
+
+        var weapon = (UnionType)schema["Weapon"];
+        Assert.Equal(2, weapon.Options.Count);
+        Assert.Equal("Sword", weapon.Options[0].Reference);
+        Assert.Equal("Bow", weapon.Options[1].Reference);
+
+        var warrior = (ObjectType)schema["Warrior"];
+        Assert.IsType<StringType>(warrior.Properties["name"]);
+        Assert.Equal("Weapon", ((ReferenceType)warrior.Properties["weapon"]).Reference);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithPrecisionAttribute()
+    {
+        var schema = ReflectionSchema.BuildSchema<PrecisePosition>();
+
+        var position = (ObjectType)schema["PrecisePosition"];
+        Assert.Equal(0.01, ((FloatType)position.Properties["x"]).Precision);
+        Assert.Equal(0.01, ((FloatType)position.Properties["y"]).Precision);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithUnsignedAttribute()
+    {
+        var schema = ReflectionSchema.BuildSchema<NetworkPacket>();
+
+        var packet = (ObjectType)schema["NetworkPacket"];
+        Assert.IsType<UIntType>(packet.Properties["sequenceNumber"]);
+        Assert.IsType<IntType>(packet.Properties["payload"]);
+    }
+
+    [Fact]
+    public void SchemaEquivalence_SelfReferencing()
+    {
+        var schema = ReflectionSchema.BuildSchema<LinkedNode>();
+
+        var node = (ObjectType)schema["LinkedNode"];
+        Assert.IsType<StringType>(node.Properties["value"]);
+
+        var next = (OptionalType)node.Properties["next"];
+        Assert.Equal("LinkedNode", ((ReferenceType)next.Value).Reference);
+    }
+
+    // ==================== Round-trip Tests ====================
+
     [Fact]
     public void SimpleObject_RoundTrips()
     {
@@ -361,6 +495,66 @@ public class ReflectionApiTests
             Assert.Equal(player.Score, decoded.Score);
             Assert.Equal(player.Active, decoded.Active);
         }
+    }
+
+    // Self-referencing types
+    public class LinkedNode
+    {
+        public string Value { get; set; } = "";
+        public LinkedNode? Next { get; set; }
+    }
+
+    [Fact]
+    public void SelfReferencingType_RoundTrips()
+    {
+        var codec = new DeltaPackCodec<LinkedNode>();
+        var node = new LinkedNode
+        {
+            Value = "first",
+            Next = new LinkedNode
+            {
+                Value = "second",
+                Next = new LinkedNode
+                {
+                    Value = "third",
+                    Next = null
+                }
+            }
+        };
+
+        var encoded = codec.Encode(node);
+        var decoded = codec.Decode(encoded);
+
+        Assert.Equal("first", decoded.Value);
+        Assert.NotNull(decoded.Next);
+        Assert.Equal("second", decoded.Next!.Value);
+        Assert.NotNull(decoded.Next.Next);
+        Assert.Equal("third", decoded.Next.Next!.Value);
+        Assert.Null(decoded.Next.Next.Next);
+    }
+
+    [Fact]
+    public void SelfReferencingType_DiffEncoding_RoundTrips()
+    {
+        var codec = new DeltaPackCodec<LinkedNode>();
+
+        var nodeA = new LinkedNode
+        {
+            Value = "first",
+            Next = new LinkedNode { Value = "second", Next = null }
+        };
+
+        var nodeB = new LinkedNode
+        {
+            Value = "first",
+            Next = new LinkedNode { Value = "modified", Next = null }
+        };
+
+        var diff = codec.EncodeDiff(nodeA, nodeB);
+        var result = codec.DecodeDiff(nodeA, diff);
+
+        Assert.Equal("first", result.Value);
+        Assert.Equal("modified", result.Next!.Value);
     }
 
     // Custom factory for types without parameterless constructors
