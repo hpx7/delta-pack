@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "typescript/package.json"
-      - ".github/workflows/publish.yml"
+      - ".github/workflows/typescript-publish.yml"
 
 jobs:
   publish:
