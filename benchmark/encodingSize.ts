@@ -3,6 +3,7 @@ import assert from "assert";
 import * as msgpack from "msgpackr";
 import * as protobuf from "./generated/protobuf/index.js";
 import * as deltapack from "./generated/deltapack/index.js";
+import { deepEquals } from "./utils.js";
 
 const examplesDir = "../examples";
 
@@ -121,49 +122,6 @@ function benchmarkDeltaPack(states: any[], example: string): number[] {
     assert(deepEquals(decoded, state), `Delta-pack state${i + 1} round-trip mismatch`);
     return encoded.length;
   });
-}
-
-// Deep equality comparison with float precision tolerance
-function deepEquals(a: any, b: any, floatPrecision = 0.01): boolean {
-  // Handle primitive types
-  if (a === b) return true;
-
-  // Handle null/undefined - treat null and undefined as equivalent
-  if (a == null || b == null) return a == b;
-
-  // Handle numbers (floats)
-  if (typeof a === "number" && typeof b === "number") {
-    return Math.abs(a - b) <= floatPrecision;
-  }
-
-  // Handle different types
-  if (typeof a !== typeof b) return false;
-
-  // Handle arrays
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    return a.every((val, idx) => deepEquals(val, b[idx], floatPrecision));
-  }
-
-  // Handle Maps
-  if (a instanceof Map && b instanceof Map) {
-    if (a.size !== b.size) return false;
-    for (const [key, val] of a) {
-      if (!b.has(key)) return false;
-      if (!deepEquals(val, b.get(key), floatPrecision)) return false;
-    }
-    return true;
-  }
-
-  // Handle objects
-  if (typeof a === "object" && typeof b === "object") {
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
-    const allKeys = new Set([...keysA, ...keysB]);
-    return [...allKeys].every((key) => deepEquals(a[key], b[key], floatPrecision));
-  }
-
-  return false;
 }
 
 main();

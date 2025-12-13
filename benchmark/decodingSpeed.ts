@@ -2,10 +2,9 @@ import * as fs from "node:fs";
 import * as msgpack from "msgpackr";
 import * as protobuf from "./generated/protobuf/index.js";
 import * as deltapack from "./generated/deltapack/index.js";
+import { measureOps, formatOps } from "./utils.js";
 
 const examplesDir = "../examples";
-const WARMUP_MS = 100;
-const BENCHMARK_MS = 1000;
 
 function main() {
   const examples = fs.readdirSync(examplesDir);
@@ -110,33 +109,6 @@ function benchmarkDeltaPack(states: any[], example: string): number[] {
     const encoded = State.encode(loaded);
     return measureOps(() => State.decode(encoded));
   });
-}
-
-function measureOps(fn: () => void): number {
-  // Warmup
-  const warmupEnd = performance.now() + WARMUP_MS;
-  while (performance.now() < warmupEnd) {
-    fn();
-  }
-
-  // Benchmark
-  let ops = 0;
-  const benchmarkEnd = performance.now() + BENCHMARK_MS;
-  while (performance.now() < benchmarkEnd) {
-    fn();
-    ops++;
-  }
-
-  return ops / (BENCHMARK_MS / 1000);
-}
-
-function formatOps(ops: number): string {
-  if (ops >= 1_000_000) {
-    return `${(ops / 1_000_000).toFixed(1)}M`;
-  } else if (ops >= 1_000) {
-    return `${(ops / 1_000).toFixed(1)}K`;
-  }
-  return `${ops.toFixed(0)}`;
 }
 
 main();
