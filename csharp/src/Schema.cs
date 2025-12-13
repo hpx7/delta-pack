@@ -1,0 +1,36 @@
+namespace DeltaPack;
+
+public abstract record SchemaType;
+
+// Primitive types
+public sealed record StringType : SchemaType;
+public sealed record IntType : SchemaType;
+public sealed record UIntType : SchemaType;
+public sealed record FloatType(double? Precision = null) : SchemaType;
+public sealed record BooleanType : SchemaType;
+public sealed record EnumType(IReadOnlyList<string> Options) : SchemaType;
+
+// Reference to another type in the schema
+public sealed record ReferenceType(string Reference) : SchemaType;
+
+// Container types
+public sealed record ArrayType(SchemaType Value) : SchemaType;
+public sealed record OptionalType(SchemaType Value) : SchemaType;
+public sealed record RecordType(SchemaType Key, SchemaType Value) : SchemaType;
+
+// Composite types
+public sealed record ObjectType(IReadOnlyDictionary<string, SchemaType> Properties) : SchemaType;
+public sealed record UnionType(IReadOnlyList<ReferenceType> Options) : SchemaType;
+
+public static class Schema
+{
+    public static bool IsPrimitiveType(SchemaType type, IReadOnlyDictionary<string, SchemaType> schema) =>
+        type switch
+        {
+            ReferenceType refType => schema.TryGetValue(refType.Reference, out var resolved)
+                ? IsPrimitiveType(resolved, schema)
+                : throw new InvalidOperationException($"Unknown reference type: {refType.Reference}"),
+            StringType or IntType or UIntType or FloatType or BooleanType or EnumType => true,
+            _ => false
+        };
+}

@@ -1,0 +1,39 @@
+name: C# - Publish to NuGet
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "csharp/src/DeltaPack.csproj"
+      - ".github/workflows/csharp-publish.yml"
+
+jobs:
+  publish:
+    name: Build and publish to NuGet
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: csharp
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Run tests
+        run: dotnet test --verbosity normal
+      - name: Pack
+        run: dotnet pack src/DeltaPack.csproj -c Release --no-restore
+      - name: Login to NuGet
+        uses: nuget/login@v1
+        id: nuget-login
+        with:
+          user: hpx77
+      - name: Publish to NuGet
+        run: dotnet nuget push src/bin/Release/*.nupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

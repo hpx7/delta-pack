@@ -1,0 +1,180 @@
+# DeltaPack for C#
+
+Binary serialization library optimized for delta encoding of game state.
+
+## Installation
+
+Add the project reference to your `.csproj`:
+
+```xml
+<ProjectReference Include="path/to/DeltaPack.csproj" />
+```
+
+## Quick Start
+
+```csharp
+using DeltaPack;
+
+// Define your types
+public class Player
+{
+    public string Name { get; set; } = "";
+    public int Score { get; set; }
+    public bool Active { get; set; }
+}
+
+// Create a codec (do this once during initialization)
+var codec = new DeltaPackCodec<Player>();
+
+// Encode
+var player = new Player { Name = "Alice", Score = 100, Active = true };
+byte[] encoded = codec.Encode(player);
+
+// Decode
+Player decoded = codec.Decode(encoded);
+```
+
+## Delta Encoding
+
+Send only what changed between two states:
+
+```csharp
+var stateA = new GameState { Score = 100, Health = 100 };
+var stateB = new GameState { Score = 150, Health = 100 }; // Only score changed
+
+byte[] diff = codec.EncodeDiff(stateA, stateB);
+GameState result = codec.DecodeDiff(stateA, diff);
+
+// diff is smaller than full encode when few fields change
+```
+
+## Supported Types
+
+- **Primitives**: `string`, `bool`, `int`, `long`, `float`, `double`, `byte`, `short`, etc.
+- **Enums**: Encoded as varints
+- **Collections**: `List<T>`, `Dictionary<string, T>`
+- **Nullable value types**: `int?`, `float?`, etc.
+- **Nested objects**: Any class with public properties
+- **Union types**: Abstract classes with `[DeltaPackUnion]` attribute
+
+## Attributes
+
+### `[DeltaPackPrecision]`
+
+Quantize floats for smaller encoding:
+
+```csharp
+public class Position
+{
+    [DeltaPackPrecision(0.01)]
+    public float X { get; set; }
+
+    [DeltaPackPrecision(0.01)]
+    public float Y { get; set; }
+}
+```
+
+### `[DeltaPackUnsigned]`
+
+Encode an `int` as unsigned (for values that are always non-negative):
+
+```csharp
+public class Packet
+{
+    [DeltaPackUnsigned]
+    public int SequenceNumber { get; set; }
+}
+```
+
+### `[DeltaPackUnion]`
+
+Define polymorphic types:
+
+```csharp
+[DeltaPackUnion(typeof(Sword), typeof(Bow), typeof(Staff))]
+public abstract class Weapon
+{
+    public string Name { get; set; } = "";
+}
+
+public class Sword : Weapon
+{
+    public int SlashDamage { get; set; }
+}
+
+public class Bow : Weapon
+{
+    public int ArrowDamage { get; set; }
+    public float Range { get; set; }
+}
+```
+
+## API Reference
+
+### `DeltaPackCodec<T>`
+
+| Method | Description |
+|--------|-------------|
+| `Encode(T obj)` | Serialize object to bytes |
+| `Decode(byte[] buf)` | Deserialize bytes to object |
+| `EncodeDiff(T a, T b)` | Encode only the differences between a and b |
+| `DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b |
+| `Equals(T a, T b)` | Deep equality comparison |
+| `Clone(T obj)` | Deep clone |
+
+### Custom Factory
+
+For types without parameterless constructors:
+
+```csharp
+var codec = new DeltaPackCodec<ImmutablePlayer>(
+    () => new ImmutablePlayer("", 0)
+);
+```
+
+## Unity Compatibility
+
+This library targets `netstandard2.1` and is compatible with Unity 2021.2+.
+
+**Recommended usage pattern:**
+
+```csharp
+public class NetworkManager : MonoBehaviour
+{
+    // Create codecs once during initialization
+    private DeltaPackCodec<GameState> _stateCodec;
+    private DeltaPackCodec<PlayerInput> _inputCodec;
+
+    void Awake()
+    {
+        _stateCodec = new DeltaPackCodec<GameState>();
+        _inputCodec = new DeltaPackCodec<PlayerInput>();
+    }
+
+    void SendState(GameState state)
+    {
+        byte[] data = _stateCodec.Encode(state);
+        // Send data...
+    }
+
+    GameState ReceiveState(byte[] data)
+    {
+        return _stateCodec.Decode(data);
+    }
+}
+```
+
+## Requirements
+
+- .NET 6.0+ or .NET Standard 2.1 (Unity 2021.2+)
+- All types must have parameterless constructors (or provide a factory)
+- Dictionary keys must be strings
+
+## Binary Format
+
+Data layout: `[field data][RLE bits][numRleBits: reverse varint]`
+
+- Integers use varint encoding (zigzag for signed)
+- Booleans are collected and RLE-compressed at the end of the buffer
+- Floats can be quantized to reduce precision and size
+- Strings are length-prefixed UTF-8
