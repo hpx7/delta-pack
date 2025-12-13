@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as deltapack from "@hpx7/delta-pack";
 import * as pbjs from "protobufjs-cli/pbjs.js";
+import * as pbts from "protobufjs-cli/pbts.js";
 
 const examplesDir = "../examples";
 
@@ -24,9 +25,10 @@ async function main() {
     fs.writeFileSync(deltapackOutPath, generated);
     console.log(`Generated ${deltapackOutPath}`);
 
-    // Generate protobuf JS
+    // Generate protobuf JS + TypeScript definitions
     const protoPath = `${examplesDir}/${example}/schema.proto`;
     const protobufJsPath = `./generated/protobuf/${example}.js`;
+    const protobufDtsPath = `./generated/protobuf/${example}.d.ts`;
 
     let jsOutput = await runPbjs(["-t", "static-module", "-w", "es6", "--es6", "--keep-case", protoPath]);
     // Fix import for ES modules - use default import since protobufjs is CommonJS
@@ -36,6 +38,10 @@ async function main() {
     );
     fs.writeFileSync(protobufJsPath, jsOutput);
     console.log(`Generated ${protobufJsPath}`);
+
+    const dtsOutput = await runPbts([protobufJsPath]);
+    fs.writeFileSync(protobufDtsPath, dtsOutput);
+    console.log(`Generated ${protobufDtsPath}`);
 
     generatedExamples.push(example);
   }
@@ -54,6 +60,15 @@ async function main() {
 function runPbjs(args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     pbjs.main(args, (err, output) => {
+      if (err) reject(err);
+      else resolve(output ?? "");
+    });
+  });
+}
+
+function runPbts(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    pbts.main(args, (err, output) => {
       if (err) reject(err);
       else resolve(output ?? "");
     });
