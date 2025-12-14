@@ -33,7 +33,7 @@ export class Player {
   @BooleanType()
   isActive: boolean = false;
 
-  @OptionalType(Player)
+  @OptionalType(ReferenceType(Player))
   partner?: Player;
 }
 
@@ -89,36 +89,35 @@ export class UseItemAction {
 @UnionType([MoveAction, AttackAction, UseItemAction])
 export abstract class GameAction {}
 
-// GameState - simplified without recursive Player.partner reference
 export class GameState {
-  @ArrayType(Player)
+  @ArrayType(ReferenceType(Player))
   players: Player[] = [];
 
-  @OptionalType(String)
+  @OptionalType(StringType())
   currentPlayer?: string;
 
   @UIntType()
   round: number = 0;
 
-  @RecordType(StringType(), String)
+  @RecordType(StringType(), StringType())
   metadata: Map<string, string> = new Map();
 
-  @OptionalType(Color, { enumName: "Color" })
+  @OptionalType(ReferenceType(Color, { enumName: "Color" }))
   winningColor?: Color;
 
-  @OptionalType(GameAction)
+  @OptionalType(ReferenceType(GameAction))
   lastAction?: GameAction;
 }
 
 // Inventory with nested containers: optional array of maps
 export class Inventory {
-  @OptionalType(ArrayType(RecordType(StringType(), Number)))
+  @OptionalType(ArrayType(RecordType(StringType(), IntType())))
   items?: Map<string, number>[];
 }
 
 // PlayerRegistry - map with object values
 export class PlayerRegistry {
-  @RecordType(StringType(), Player)
+  @RecordType(StringType(), ReferenceType(Player))
   players: Map<string, Player> = new Map();
 }
 
@@ -129,22 +128,22 @@ export class CoverageTestSchema {
   directEnum: Color = Color.RED;
 
   // Nested optional via container descriptor
-  @OptionalType(OptionalType(String))
+  @OptionalType(OptionalType(StringType()))
   nestedOptional?: string;
 
   // Primitive targetClass (Boolean) in nested containers
-  @ArrayType(ArrayType(Boolean))
+  @ArrayType(ArrayType(BooleanType()))
   boolMatrix: boolean[][] = [];
 
   // Primitive targetClass (String) in nested containers
-  @ArrayType(ArrayType(String))
+  @ArrayType(ArrayType(StringType()))
   stringMatrix: string[][] = [];
 
   // Primitive targetClass (Number) in nested containers
-  @ArrayType(ArrayType(Number))
+  @ArrayType(ArrayType(IntType()))
   intMatrix: number[][] = [];
 
   // Union type to trigger the wrapped API path
-  @OptionalType(GameAction)
+  @OptionalType(ReferenceType(GameAction))
   action?: GameAction;
 }

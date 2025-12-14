@@ -402,12 +402,10 @@ The same type functions used to build schemas (`StringType()`, `IntType()`, `Arr
 | `@UnionType([A, B])` | Class decorator for defining union types |
 | `@ReferenceType(Class)` | Reference a class or TypeScript string enum |
 
-**Container type shortcuts** (for `@ArrayType`, `@OptionalType`, `@RecordType`):
-- Use `String`, `Number`, `Boolean` instead of `StringType()`, `IntType()`, `BooleanType()`
-- For `Number`, pass options as second arg: `{ unsigned: true }` or `{ float: 0.01 }`
-- For unions, pass an array: `[ClassA, ClassB]`
-- For nesting, pass another decorator: `ArrayType(ArrayType(Number))`
-- For enums, use `{ enumName: "Name" }` to specify the schema name
+**Referencing classes and enums:**
+- Use `ReferenceType(ClassName)` to reference another class
+- Use `ReferenceType(EnumValue)` for TypeScript enums (optionally pass `{ enumName: "Name" }` to specify schema name)
+- For unions, create a class with `@UnionType([A, B])` decorator and reference it
 
 ### Example
 
@@ -419,7 +417,7 @@ import {
 } from "@hpx7/delta-pack";
 
 // Enum (TypeScript string enum)
-enum Team { RED = "red", BLUE = "blue" }
+enum Team { RED = "RED", BLUE = "BLUE" }
 
 // Nested object
 class Position {
@@ -451,12 +449,12 @@ class Player {
   @ReferenceType(Position) position: Position = new Position();
   @ReferenceType(Team) team: Team = Team.RED;
 
-  @ArrayType(String) tags: string[] = [];
-  @ArrayType(Position) waypoints: Position[] = [];
-  @RecordType(StringType(), Number) inventory: Map<string, number> = new Map();
+  @ArrayType(StringType()) tags: string[] = [];
+  @ArrayType(ReferenceType(Position)) waypoints: Position[] = [];
+  @RecordType(StringType(), IntType()) inventory: Map<string, number> = new Map();
 
-  @OptionalType(String) nickname?: string;
-  @OptionalType([MoveAction, AttackAction]) lastAction?: GameAction;
+  @OptionalType(StringType()) nickname?: string;
+  @OptionalType(ReferenceType(GameAction)) lastAction?: GameAction;
 }
 
 // Load API and use
@@ -471,11 +469,11 @@ const decoded = PlayerApi.decode(encoded);
 
 ```typescript
 class AdvancedExample {
-  @ArrayType(Number, { unsigned: true }) unsignedInts: number[] = [];
-  @ArrayType(Number, { float: 0.01 }) floats: number[] = [];
-  @ArrayType(ArrayType(Number)) matrix: number[][] = [];
-  @RecordType(StringType(), ArrayType(Number)) vectorsById: Map<string, number[]> = new Map();
-  @OptionalType(Player) partner?: Player;  // Self-reference
+  @ArrayType(UIntType()) unsignedInts: number[] = [];
+  @ArrayType(FloatType({ precision: 0.01 })) floats: number[] = [];
+  @ArrayType(ArrayType(IntType())) matrix: number[][] = [];
+  @RecordType(StringType(), ArrayType(IntType())) vectorsById: Map<string, number[]> = new Map();
+  @OptionalType(ReferenceType(Player)) partner?: Player;  // Self-reference
 }
 ```
 
@@ -509,9 +507,32 @@ Note: When using `buildSchema()` + `load()` with union types, you must manually 
 
 ### API Methods
 
-`loadClass()` returns the same API as interpreter mode: `encode`, `decode`, `encodeDiff`, `decodeDiff`, `equals`, `clone`, `toJson`, `fromJson`
+`loadClass()` returns the same API as `load()` in interpreter mode:
 
-**Class instance preservation:** Unlike interpreter mode, `decode`, `decodeDiff`, `clone`, and `fromJson` return proper class instances with methods intact—not plain objects.
+| Method | Description |
+|--------|-------------|
+| `encode(obj)` | Serialize to binary |
+| `decode(bytes)` | Deserialize from binary |
+| `encodeDiff(old, new)` | Encode delta between two states |
+| `decodeDiff(old, diff)` | Apply delta to reconstruct new state |
+| `equals(a, b)` | Deep equality comparison |
+| `clone(obj)` | Deep clone |
+| `toJson(obj)` | Convert to JSON-serializable format |
+| `fromJson(obj)` | Validate and parse JSON data |
+
+**Key difference:** In decorator mode, `decode`, `decodeDiff`, `clone`, and `fromJson` return proper class instances with methods intact—not plain objects.
+
+### Schema API vs Decorator API
+
+| Aspect | Schema API | Decorator API |
+|--------|-----------|---------------|
+| Type constructors | `StringType()`, `ArrayType()`, etc. | Same - work as decorators too |
+| Object types | `ObjectType({ ... })` | Class with decorated properties |
+| Enums | `EnumType([...])` at schema root | TypeScript `enum` + `ReferenceType()` |
+| Unions | `UnionType([ReferenceType("A"), ...])` | `@UnionType([A, B])` class decorator |
+| References | String names: `ReferenceType("Player")` | Class references: `ReferenceType(Player)` |
+| Loading | `load(schema, "TypeName")` | `loadClass(Class)` |
+| Return types | Plain objects | Class instances with methods |
 
 ## Codegen API
 
@@ -656,7 +677,7 @@ class Player {
 }
 
 class GameState {
-  @RecordType(StringType(), Player) players: Map<string, Player> = new Map();
+  @RecordType(StringType(), ReferenceType(Player)) players: Map<string, Player> = new Map();
   @UIntType() round: number = 0;
   @FloatType() timeRemaining: number = 0;
 }

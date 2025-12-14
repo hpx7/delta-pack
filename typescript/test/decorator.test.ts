@@ -9,6 +9,10 @@ import {
   OptionalType,
   StringType,
   IntType,
+  UIntType,
+  FloatType,
+  ReferenceType,
+  UnionType,
   type Infer,
 } from "@hpx7/delta-pack";
 import { schema } from "./schema.js";
@@ -41,10 +45,10 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Containers", () => {
     it("should generate correct schema for arrays", () => {
       class WithArrays {
-        @ArrayType(String)
+        @ArrayType(StringType())
         strings: string[] = [];
 
-        @ArrayType(Number)
+        @ArrayType(IntType())
         numbers: number[] = [];
       }
 
@@ -60,13 +64,13 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for arrays with number modifiers", () => {
       class WithModifiedArrays {
-        @ArrayType(Number, { unsigned: true })
+        @ArrayType(UIntType())
         unsignedInts: number[] = [];
 
-        @ArrayType(Number, { float: true })
+        @ArrayType(FloatType())
         floats: number[] = [];
 
-        @ArrayType(Number, { float: 0.1 })
+        @ArrayType(FloatType({ precision: 0.1 }))
         quantizedFloats: number[] = [];
       }
 
@@ -83,10 +87,10 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for maps with number modifiers", () => {
       class WithModifiedMaps {
-        @RecordType(StringType(), Number, { unsigned: true })
+        @RecordType(StringType(), UIntType())
         unsignedMap: Map<string, number> = new Map();
 
-        @RecordType(StringType(), Number, { float: 0.01 })
+        @RecordType(StringType(), FloatType({ precision: 0.01 }))
         floatMap: Map<string, number> = new Map();
       }
 
@@ -102,16 +106,16 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for optionals", () => {
       class WithOptionals {
-        @OptionalType(String)
+        @OptionalType(StringType())
         optString?: string;
 
-        @OptionalType(Number)
+        @OptionalType(IntType())
         optNumber?: number;
 
-        @OptionalType(Number, { unsigned: true })
+        @OptionalType(UIntType())
         optUnsigned?: number;
 
-        @OptionalType(Number, { float: 0.1 })
+        @OptionalType(FloatType({ precision: 0.1 }))
         optFloat?: number;
       }
 
@@ -140,11 +144,14 @@ describe("Delta Pack Reflection", () => {
         target: string = "";
       }
 
+      @UnionType([MoveCmd, FireCmd])
+      class Command {}
+
       class CommandQueue {
-        @ArrayType([MoveCmd, FireCmd])
+        @ArrayType(ReferenceType(Command))
         commands: (MoveCmd | FireCmd)[] = [];
 
-        @RecordType(StringType(), [MoveCmd, FireCmd])
+        @RecordType(StringType(), ReferenceType(Command))
         commandsById: Map<string, MoveCmd | FireCmd> = new Map();
       }
 
@@ -154,14 +161,22 @@ describe("Delta Pack Reflection", () => {
         properties: {
           commands: {
             type: "array",
-            value: { type: "reference", reference: "MoveCmdOrFireCmd" },
+            value: { type: "reference", reference: "Command" },
           },
           commandsById: {
             type: "record",
             key: { type: "string" },
-            value: { type: "reference", reference: "MoveCmdOrFireCmd" },
+            value: { type: "reference", reference: "Command" },
           },
         },
+      });
+      // Verify union was generated
+      expect(generatedSchema["Command"]).toEqual({
+        type: "union",
+        options: [
+          { type: "reference", reference: "MoveCmd" },
+          { type: "reference", reference: "FireCmd" },
+        ],
       });
     });
   });
@@ -169,7 +184,7 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Nested Containers", () => {
     it("should generate correct schema for array of arrays (int[][])", () => {
       class Matrix {
-        @ArrayType(ArrayType(Number))
+        @ArrayType(ArrayType(IntType()))
         data: number[][] = [];
       }
 
@@ -187,13 +202,13 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for nested containers with modifiers", () => {
       class NestedWithModifiers {
-        @ArrayType(ArrayType(Number, { float: 0.01 }))
+        @ArrayType(ArrayType(FloatType({ precision: 0.01 })))
         floatMatrix: number[][] = [];
 
-        @RecordType(StringType(), ArrayType(Number, { unsigned: true }))
+        @RecordType(StringType(), ArrayType(UIntType()))
         vectorMap: Map<string, number[]> = new Map();
 
-        @OptionalType(ArrayType(Number))
+        @OptionalType(ArrayType(IntType()))
         optionalArray?: number[];
       }
 
@@ -220,7 +235,7 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for deeply nested containers (int[][][])", () => {
       class Cube {
-        @ArrayType(ArrayType(ArrayType(Number)))
+        @ArrayType(ArrayType(ArrayType(IntType())))
         data: number[][][] = [];
       }
 

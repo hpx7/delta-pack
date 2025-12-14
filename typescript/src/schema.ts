@@ -1,10 +1,8 @@
-import "reflect-metadata";
-import { load, DeltaPackApi } from "./interpreter.js";
-
 // ============ Type Interfaces ============
 
 export type PrimitiveType = EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
 export type ContainerType = ArrayType | OptionalType | RecordType;
+export type PropertyType = StringType | IntType | UIntType | FloatType | BooleanType | ContainerType | ReferenceType;
 export type Type = ReferenceType | ObjectType | UnionType | ContainerType | PrimitiveType;
 
 // Each type has both an interface (for type annotations) and a function (for creating instances)
@@ -17,7 +15,7 @@ export interface ReferenceType {
 
 export interface ObjectType {
   type: "object";
-  properties: Record<string, PrimitiveType | ContainerType | ReferenceType>;
+  properties: Record<string, PropertyType>;
 }
 
 export interface UnionType {
@@ -27,18 +25,18 @@ export interface UnionType {
 
 export interface ArrayType {
   type: "array";
-  value: PrimitiveType | ContainerType | ReferenceType;
+  value: PropertyType;
 }
 
 export interface OptionalType {
   type: "optional";
-  value: PrimitiveType | ContainerType | ReferenceType;
+  value: PropertyType;
 }
 
 export interface RecordType {
   type: "record";
   key: StringType | IntType | UIntType;
-  value: PrimitiveType | ContainerType | ReferenceType;
+  value: PropertyType;
 }
 
 export interface EnumType {
@@ -95,112 +93,18 @@ const UNION_VARIANTS = "deltapack:union";
 
 // ============ Internal Types ============
 
-type SchemaTypeOrRef = PrimitiveType | ContainerType | ReferenceType | { __class: Function };
+interface EnumDef {
+  options: string[];
+  name: string;
+}
+
+// Types that can be used as values in containers (both schema mode and decorator mode)
+type ValueType = PrimitiveType | ContainerType | ReferenceType | { __class: Function } | { __enum: EnumDef };
 
 // A unified type that works as both a PropertyDecorator and a schema type
 type UnifiedType<T> = PropertyDecorator & T;
 
-// ============ Helper Types ============
-
-export type TsStringEnum = { [key: string]: string };
-
-export type ElementType =
-  | typeof String
-  | typeof Number
-  | typeof Boolean
-  | Function
-  | Function[]
-  | TsStringEnum
-  | SchemaTypeOrRef;
-
-export interface NumberOptions {
-  unsigned?: boolean;
-  float?: boolean | number;
-}
-
-export interface EnumOptions {
-  enumName?: string;
-}
-
 // ============ Internal Helpers ============
-
-export function isTsStringEnum(value: unknown): value is TsStringEnum {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false;
-  }
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj);
-  return keys.length > 0 && keys.every((key) => typeof obj[key] === "string");
-}
-
-export function getTsEnumValues(enumObj: TsStringEnum): string[] {
-  return Object.values(enumObj);
-}
-
-export function getTsEnumName(enumObj: TsStringEnum): string {
-  const values = getTsEnumValues(enumObj);
-  return values.map((v) => v.charAt(0).toUpperCase() + v.slice(1)).join("Or");
-}
-
-function isSchemaType(value: unknown): value is SchemaTypeOrRef {
-  if (value === null) return false;
-  if (typeof value === "object" || typeof value === "function") {
-    return "type" in value;
-  }
-  return false;
-}
-
-function toKeyType(elementType: ElementType): StringType | IntType | UIntType {
-  if (isSchemaType(elementType)) {
-    const t = elementType as { type: string };
-    if (t.type === "string" || t.type === "int" || t.type === "uint") {
-      return elementType as StringType | IntType | UIntType;
-    }
-  }
-  if (elementType === String) {
-    return { type: "string" };
-  }
-  if (elementType === Number) {
-    return { type: "int" };
-  }
-  return { type: "string" };
-}
-
-function toSchemaType(elementType: ElementType, options?: NumberOptions & EnumOptions): SchemaTypeOrRef {
-  if (isSchemaType(elementType)) {
-    return elementType;
-  }
-
-  if (elementType === String) {
-    return { type: "string" };
-  }
-  if (elementType === Boolean) {
-    return { type: "boolean" };
-  }
-  if (elementType === Number) {
-    if (options?.float !== undefined) {
-      return typeof options.float === "number" ? { type: "float", precision: options.float } : { type: "float" };
-    }
-    if (options?.unsigned) {
-      return { type: "uint" };
-    }
-    return { type: "int" };
-  }
-
-  if (isTsStringEnum(elementType)) {
-    return {
-      type: "enum" as const,
-      options: getTsEnumValues(elementType),
-      __enumName: options?.enumName ?? getTsEnumName(elementType),
-    } as unknown as SchemaTypeOrRef;
-  }
-
-  if (Array.isArray(elementType)) {
-    return { __union: elementType } as unknown as SchemaTypeOrRef;
-  }
-
-  return { __class: elementType };
-}
 
 function createUnifiedType<T>(schemaType: T): UnifiedType<T> {
   const decorator: PropertyDecorator = (target, propertyKey) => {
@@ -255,126 +159,89 @@ function stripDecorator<T extends PrimitiveType | ContainerType | ReferenceType>
 // ============ Primitive Type Constructors ============
 
 export function StringType(): UnifiedType<StringType> {
-  return createUnifiedType({ type: "string" as const });
+  return createUnifiedType({ type: "string" });
 }
 
 export function BooleanType(): UnifiedType<BooleanType> {
-  return createUnifiedType({ type: "boolean" as const });
+  return createUnifiedType({ type: "boolean" });
 }
 
 export function IntType(): UnifiedType<IntType> {
-  return createUnifiedType({ type: "int" as const });
+  return createUnifiedType({ type: "int" });
 }
 
 export function UIntType(): UnifiedType<UIntType> {
-  return createUnifiedType({ type: "uint" as const });
+  return createUnifiedType({ type: "uint" });
 }
 
 export function FloatType(options?: { precision?: number | string }): UnifiedType<FloatType> {
   if (typeof options?.precision === "number") {
-    return createUnifiedType({ type: "float" as const, precision: options.precision });
+    return createUnifiedType({ type: "float", precision: options.precision });
   } else if (typeof options?.precision === "string") {
-    return createUnifiedType({ type: "float" as const, precision: parseFloat(options.precision) });
+    return createUnifiedType({ type: "float", precision: parseFloat(options.precision) });
   }
-  return createUnifiedType({ type: "float" as const });
+  return createUnifiedType({ type: "float" });
 }
 
 // ============ Container Type Constructors ============
 
-// Schema mode overload
-export function ArrayType<const V extends PrimitiveType | ContainerType | ReferenceType>(
-  value: V
-): { type: "array"; value: V };
-// Decorator mode overload
-export function ArrayType(
-  elementType: ElementType,
-  options?: NumberOptions & EnumOptions
-): UnifiedType<{ type: "array"; value: SchemaTypeOrRef }>;
-// Implementation
-export function ArrayType(
-  elementType: ElementType,
-  options?: NumberOptions & EnumOptions
-): { type: "array"; value: PrimitiveType | ContainerType | ReferenceType | SchemaTypeOrRef } {
-  const valueType = toSchemaType(elementType, options);
+export function ArrayType<const V extends ValueType>(value: V): UnifiedType<{ type: "array"; value: V }> {
   const schemaType = {
     type: "array" as const,
-    value: stripDecorator(valueType as PrimitiveType | ContainerType | ReferenceType),
+    value: stripDecorator(value as PrimitiveType | ContainerType | ReferenceType) as V,
   };
-  if (typeof elementType === "object" && elementType !== null && "type" in elementType) {
-    return schemaType;
-  }
   return createUnifiedType(schemaType);
 }
 
-// Schema mode overload
-export function RecordType<
-  const K extends StringType | IntType | UIntType,
-  const V extends PrimitiveType | ContainerType | ReferenceType,
->(key: K, value: V): { type: "record"; key: K; value: V };
-// Decorator mode overload
-export function RecordType(
-  keyType: ElementType,
-  valueType: ElementType,
-  options?: NumberOptions & EnumOptions
-): UnifiedType<{ type: "record"; key: StringType | IntType | UIntType; value: SchemaTypeOrRef }>;
-// Implementation
-export function RecordType(
-  keyType: ElementType,
-  valueType: ElementType,
-  options?: NumberOptions & EnumOptions
-): { type: "record"; key: StringType | IntType | UIntType; value: SchemaTypeOrRef } {
-  const resolvedKey = stripDecorator(toKeyType(keyType) as StringType | IntType | UIntType);
-  const resolvedValue = stripDecorator(
-    toSchemaType(valueType, options) as PrimitiveType | ContainerType | ReferenceType
-  );
-  const schemaType = { type: "record" as const, key: resolvedKey, value: resolvedValue };
-  if (typeof keyType === "object" && keyType !== null && "type" in keyType) {
-    return schemaType;
-  }
-  return createUnifiedType(schemaType);
-}
-
-// Schema mode overload
-export function OptionalType<const V extends PrimitiveType | ContainerType | ReferenceType>(
+export function RecordType<const K extends StringType | IntType | UIntType, const V extends ValueType>(
+  key: K,
   value: V
-): { type: "optional"; value: V };
-// Decorator mode overload
-export function OptionalType(
-  elementType: ElementType,
-  options?: NumberOptions & EnumOptions
-): UnifiedType<{ type: "optional"; value: SchemaTypeOrRef }>;
-// Implementation
-export function OptionalType(
-  elementType: ElementType,
-  options?: NumberOptions & EnumOptions
-): { type: "optional"; value: PrimitiveType | ContainerType | ReferenceType | SchemaTypeOrRef } {
-  const valueType = toSchemaType(elementType, options);
+): UnifiedType<{ type: "record"; key: K; value: V }> {
+  const schemaType = {
+    type: "record" as const,
+    key: stripDecorator(key),
+    value: stripDecorator(value as PrimitiveType | ContainerType | ReferenceType) as V,
+  };
+  return createUnifiedType(schemaType);
+}
+
+export function OptionalType<const V extends ValueType>(value: V): UnifiedType<{ type: "optional"; value: V }> {
   const schemaType = {
     type: "optional" as const,
-    value: stripDecorator(valueType as PrimitiveType | ContainerType | ReferenceType),
+    value: stripDecorator(value as PrimitiveType | ContainerType | ReferenceType) as V,
   };
-  if (typeof elementType === "object" && elementType !== null && "type" in elementType) {
-    return schemaType;
-  }
   return createUnifiedType(schemaType);
 }
 
 // ============ Reference Type Constructors ============
 
-// Schema mode overload
-export function ReferenceType<const R extends string>(reference: R): { type: "reference"; reference: R };
-// Decorator mode overload
-export function ReferenceType(typeRef: Function | TsStringEnum, options?: EnumOptions): UnifiedType<SchemaTypeOrRef>;
+// Schema mode - string reference
+export function ReferenceType<const R extends string>(reference: R): UnifiedType<{ type: "reference"; reference: R }>;
+// Decorator mode - class reference
+export function ReferenceType<C extends Function>(cls: C): UnifiedType<{ __class: C }>;
+// Decorator mode - enum reference
+export function ReferenceType<E extends Record<string, string>>(
+  enumObj: E,
+  options?: { enumName?: string }
+): UnifiedType<{ __enum: EnumDef }>;
 // Implementation
 export function ReferenceType(
-  typeRef: Function | TsStringEnum | string,
-  options?: EnumOptions
-): { type: "reference"; reference: string } | UnifiedType<SchemaTypeOrRef> {
-  if (typeof typeRef === "string") {
-    return { type: "reference", reference: typeRef };
+  ref: string | Function | Record<string, string>,
+  options?: { enumName?: string }
+):
+  | UnifiedType<{ type: "reference"; reference: string }>
+  | UnifiedType<{ __class: Function }>
+  | UnifiedType<{ __enum: EnumDef }> {
+  if (typeof ref === "string") {
+    return createUnifiedType({ type: "reference" as const, reference: ref });
   }
-  const schemaType = toSchemaType(typeRef, options);
-  return createUnifiedType(schemaType);
+  if (typeof ref === "function") {
+    return createUnifiedType({ __class: ref });
+  }
+  // Enum object - generate name from options if not provided
+  const enumOptions = Object.values(ref);
+  const enumName = options?.enumName ?? `Enum_${enumOptions.join("_")}`;
+  return createUnifiedType({ __enum: { options: enumOptions, name: enumName } });
 }
 
 // ============ Schema-Only Type Constructors ============
@@ -383,12 +250,12 @@ export function EnumType<const O extends readonly string[]>(options: O): { type:
   return { type: "enum", options };
 }
 
-export function ObjectType<const P extends Record<string, PrimitiveType | ContainerType | ReferenceType>>(
+export function ObjectType<const P extends Record<string, PropertyType>>(
   properties: P
 ): { type: "object"; properties: P } {
-  const cleanProperties: Record<string, PrimitiveType | ContainerType | ReferenceType> = {};
+  const cleanProperties: Record<string, PropertyType> = {};
   for (const [key, value] of Object.entries(properties)) {
-    cleanProperties[key] = stripDecorator(value as PrimitiveType | ContainerType | ReferenceType);
+    cleanProperties[key] = stripDecorator(value as PropertyType);
   }
   return { type: "object", properties: cleanProperties as P };
 }
@@ -401,385 +268,13 @@ export function UnionType(variants: Function[]): ClassDecorator;
 export function UnionType(
   variantsOrOptions: Function[] | readonly ReferenceType[]
 ): ClassDecorator | { type: "union"; options: readonly ReferenceType[] } {
-  if (variantsOrOptions.length > 0 && typeof variantsOrOptions[0] === "object" && "type" in variantsOrOptions[0]) {
+  // Check if first item has "type" property with value "reference" (schema mode)
+  // UnifiedType is a function with properties, so we check for the "type" property value
+  const first = variantsOrOptions[0];
+  if (first && "type" in first && (first as { type: unknown }).type === "reference") {
     return { type: "union", options: variantsOrOptions as readonly ReferenceType[] };
   }
   return (target) => {
     Reflect.defineMetadata(UNION_VARIANTS, variantsOrOptions, target);
   };
-}
-
-// ============ Types ============
-
-type Constructor<T = unknown> = new (...args: unknown[]) => T;
-
-function isClassRef(value: unknown): value is { __class: Function } {
-  return typeof value === "object" && value !== null && "__class" in value;
-}
-
-// ============ Schema Builder ============
-
-export function buildSchema<T extends object>(rootClass: Constructor<T>): Record<string, Type> {
-  const schema: Record<string, Type> = {};
-  const visited = new Set<Function>();
-
-  function processClass(cls: Function): void {
-    if (visited.has(cls)) return;
-    visited.add(cls);
-
-    const unionVariants = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-    if (unionVariants) {
-      for (const variant of unionVariants) {
-        processClass(variant);
-      }
-      schema[cls.name] = {
-        type: "union",
-        options: unionVariants.map((v) => ({ type: "reference" as const, reference: v.name })),
-      };
-      return;
-    }
-
-    let instance: object;
-    try {
-      instance = new (cls as Constructor)() as object;
-    } catch {
-      throw new Error(
-        `Cannot instantiate ${cls.name}. Classes must have a parameterless constructor. ` +
-          `For abstract union types, use @UnionType([Variant1, Variant2]).`
-      );
-    }
-
-    const propertyKeys = Object.keys(instance);
-    const properties: Record<string, PrimitiveType | ContainerType | ReferenceType> = {};
-
-    for (const key of propertyKeys) {
-      const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
-      if (schemaType) {
-        properties[key] = resolveSchemaType(schemaType);
-      }
-      // Properties without decorators are ignored (not serialized)
-    }
-
-    if (Object.keys(properties).length === 0) {
-      throw new Error(
-        `Class ${cls.name} must have at least one property decorator. ` + `Use @StringType(), @IntType(), etc.`
-      );
-    }
-
-    schema[cls.name] = { type: "object", properties };
-  }
-
-  function resolveSchemaType(schemaType: SchemaTypeOrRef): PrimitiveType | ContainerType | ReferenceType {
-    if (isClassRef(schemaType)) {
-      const cls = schemaType.__class;
-      processClass(cls);
-      return { type: "reference", reference: cls.name };
-    }
-
-    if ("__union" in schemaType) {
-      const variants = (schemaType as { __union: Function[] }).__union;
-      const unionName = variants.map((v) => v.name).join("Or");
-
-      for (const variant of variants) {
-        processClass(variant);
-      }
-      if (!schema[unionName]) {
-        schema[unionName] = {
-          type: "union",
-          options: variants.map((v) => ({ type: "reference" as const, reference: v.name })),
-        };
-      }
-      return { type: "reference", reference: unionName };
-    }
-
-    if ("__enumName" in schemaType) {
-      const enumType = schemaType as { type: "enum"; options: string[]; __enumName: string };
-      const enumName = enumType.__enumName;
-      if (!schema[enumName]) {
-        schema[enumName] = { type: "enum", options: enumType.options };
-      }
-      return { type: "reference", reference: enumName };
-    }
-
-    if (schemaType.type === "array") {
-      const arrayType = schemaType as { type: "array"; value: SchemaTypeOrRef };
-      return { type: "array", value: resolveSchemaType(arrayType.value) };
-    }
-    if (schemaType.type === "optional") {
-      const optType = schemaType as { type: "optional"; value: SchemaTypeOrRef };
-      return { type: "optional", value: resolveSchemaType(optType.value) };
-    }
-    if (schemaType.type === "record") {
-      const recType = schemaType as { type: "record"; key: StringType; value: SchemaTypeOrRef };
-      return { type: "record", key: recType.key, value: resolveSchemaType(recType.value) };
-    }
-
-    return schemaType as PrimitiveType;
-  }
-
-  processClass(rootClass);
-  return schema;
-}
-
-// ============ Class Loader ============
-
-export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPackApi<T> {
-  const schema = buildSchema(rootClass);
-  const rawApi = load<T>(schema, rootClass.name);
-
-  const unionVariants = new Set<string>();
-  collectUnionVariants(rootClass, unionVariants, new Set());
-
-  // Collect all class constructors for hydration
-  const classMap = new Map<string, Constructor>();
-  collectClasses(rootClass, classMap, new Set());
-
-  // Hydrate plain objects into class instances
-  function hydrate(obj: unknown, typeName: string): unknown {
-    const type = schema[typeName];
-    if (!type) return obj;
-
-    if (type.type === "object") {
-      const cls = classMap.get(typeName);
-      if (cls && obj && typeof obj === "object") {
-        const instance = Object.create(cls.prototype);
-        for (const [key, propType] of Object.entries(type.properties)) {
-          const value = (obj as Record<string, unknown>)[key];
-          instance[key] = hydrateValue(value, propType);
-        }
-        return instance;
-      }
-    }
-    return obj;
-  }
-
-  function hydrateValue(value: unknown, propType: PrimitiveType | ContainerType | ReferenceType): unknown {
-    if (value === null || value === undefined) return value;
-
-    if (propType.type === "reference") {
-      return hydrate(value, propType.reference);
-    } else if (propType.type === "array") {
-      return (value as unknown[]).map((item) => hydrateValue(item, propType.value));
-    } else if (propType.type === "record") {
-      const map = value as Map<unknown, unknown>;
-      const hydrated = new Map<unknown, unknown>();
-      for (const [k, v] of map) {
-        hydrated.set(k, hydrateValue(v, propType.value));
-      }
-      return hydrated;
-    } else if (propType.type === "optional") {
-      return hydrateValue(value, propType.value);
-    }
-    return value;
-  }
-
-  const rootType = schema[rootClass.name];
-  if (!rootType) {
-    throw new Error(`Type ${rootClass.name} not found in schema`);
-  }
-  const wrap = (obj: T) => wrapUnions(obj, rootType, schema, unionVariants) as T;
-
-  return {
-    ...rawApi,
-    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as T)), rootClass.name) as T,
-    encode: (obj: T) => rawApi.encode(wrap(obj)),
-    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootClass.name) as T,
-    encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrap(a), wrap(b)),
-    decodeDiff: (a: T, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootClass.name) as T,
-    equals: (a: T, b: T) => rawApi.equals(wrap(a), wrap(b)),
-    clone: (obj: T) => hydrate(rawApi.clone(wrap(obj)), rootClass.name) as T,
-    toJson: (obj: T) => rawApi.toJson(wrap(obj)),
-  };
-}
-
-function collectClasses(cls: Function, classMap: Map<string, Constructor>, visited: Set<Function>): void {
-  if (visited.has(cls)) return;
-  visited.add(cls);
-
-  const unionVariants = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-  if (unionVariants) {
-    for (const variant of unionVariants) {
-      collectClasses(variant, classMap, visited);
-    }
-    return;
-  }
-
-  // Store the constructor
-  classMap.set(cls.name, cls as Constructor);
-
-  // Process referenced classes from property metadata
-  let instance: object;
-  try {
-    instance = new (cls as Constructor)() as object;
-  } catch {
-    return;
-  }
-
-  for (const key of Object.keys(instance)) {
-    const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
-    if (schemaType) {
-      collectClassesFromType(schemaType, classMap, visited);
-    }
-  }
-}
-
-function collectClassesFromType(
-  schemaType: SchemaTypeOrRef,
-  classMap: Map<string, Constructor>,
-  visited: Set<Function>
-): void {
-  if (isClassRef(schemaType)) {
-    collectClasses(schemaType.__class, classMap, visited);
-  } else if (typeof schemaType === "object" && "type" in schemaType) {
-    const type = schemaType as ContainerType;
-    if (type.type === "array" || type.type === "optional") {
-      collectClassesFromType(type.value as SchemaTypeOrRef, classMap, visited);
-    } else if (type.type === "record") {
-      collectClassesFromType(type.value as SchemaTypeOrRef, classMap, visited);
-    }
-  }
-  // Enums and primitives don't need hydration
-}
-
-function collectUnionVariants(cls: Function, variants: Set<string>, visited: Set<Function>): void {
-  if (visited.has(cls)) return;
-  visited.add(cls);
-
-  const unionVariantClasses = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-  if (unionVariantClasses) {
-    for (const variant of unionVariantClasses) {
-      variants.add(variant.name);
-      collectUnionVariants(variant, variants, visited);
-    }
-    return;
-  }
-
-  let instance: object;
-  try {
-    instance = new (cls as Constructor)() as object;
-  } catch {
-    return;
-  }
-
-  for (const key of Object.keys(instance)) {
-    const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
-    if (schemaType) {
-      collectFromSchemaType(schemaType, variants, visited);
-    }
-  }
-}
-
-function collectFromSchemaType(schemaType: unknown, variants: Set<string>, visited: Set<Function>): void {
-  if (!schemaType || typeof schemaType !== "object") return;
-
-  if ("__class" in schemaType) {
-    const cls = (schemaType as { __class: Function }).__class;
-    collectUnionVariants(cls, variants, visited);
-    return;
-  }
-
-  if ("__union" in schemaType) {
-    const unionClasses = (schemaType as { __union: Function[] }).__union;
-    for (const variant of unionClasses) {
-      variants.add(variant.name);
-      collectUnionVariants(variant, variants, visited);
-    }
-    return;
-  }
-
-  const type = (schemaType as Record<string, unknown>)["type"];
-  if (type === "array" || type === "optional") {
-    collectFromSchemaType((schemaType as { value: unknown }).value, variants, visited);
-  } else if (type === "record") {
-    collectFromSchemaType((schemaType as { value: unknown }).value, variants, visited);
-  }
-}
-
-function wrapUnions(obj: unknown, objType: Type, schema: Record<string, Type>, unionVariants: Set<string>): unknown {
-  if (obj === null || obj === undefined) return obj;
-
-  if (objType.type === "union") {
-    // Check if obj is already in { type, val } format
-    if (
-      typeof obj === "object" &&
-      obj !== null &&
-      "type" in obj &&
-      "val" in obj &&
-      typeof (obj as { type: unknown }).type === "string"
-    ) {
-      const unionVal = obj as { type: string; val: unknown };
-      const variantType = schema[unionVal.type];
-      return {
-        type: unionVal.type,
-        val: variantType ? wrapUnions(unionVal.val, variantType, schema, unionVariants) : unionVal.val,
-      };
-    }
-
-    // Check if obj is a class instance that's a union variant
-    const proto = Object.getPrototypeOf(obj);
-    if (proto && proto.constructor && proto.constructor !== Object) {
-      const className = proto.constructor.name;
-      if (className && unionVariants.has(className)) {
-        const variantType = schema[className];
-        return {
-          type: className,
-          val: variantType ? wrapUnions(obj, variantType, schema, unionVariants) : obj,
-        };
-      }
-    }
-    return obj;
-  }
-
-  if (objType.type === "object") {
-    const proto = Object.getPrototypeOf(obj);
-    const wrappedObj: Record<string, unknown> =
-      proto && proto.constructor && proto.constructor !== Object ? Object.create(proto) : {};
-
-    // Only process schema-defined properties
-    for (const [key, propType] of Object.entries(objType.properties)) {
-      const value = (obj as Record<string, unknown>)[key];
-      wrappedObj[key] = wrapUnionValue(value, propType, schema, unionVariants);
-    }
-    return wrappedObj;
-  }
-
-  if (objType.type === "reference") {
-    const refType = schema[objType.reference];
-    return refType ? wrapUnions(obj, refType, schema, unionVariants) : obj;
-  }
-
-  return obj;
-}
-
-function wrapUnionValue(
-  value: unknown,
-  propType: PrimitiveType | ContainerType | ReferenceType,
-  schema: Record<string, Type>,
-  unionVariants: Set<string>
-): unknown {
-  if (value === null || value === undefined) return value;
-
-  if (propType.type === "reference") {
-    const refType = schema[propType.reference];
-    return refType ? wrapUnions(value, refType, schema, unionVariants) : value;
-  }
-
-  if (propType.type === "array") {
-    return (value as unknown[]).map((item) => wrapUnionValue(item, propType.value, schema, unionVariants));
-  }
-
-  if (propType.type === "record") {
-    const map = value as Map<unknown, unknown>;
-    const wrapped = new Map<unknown, unknown>();
-    for (const [k, v] of map) {
-      wrapped.set(k, wrapUnionValue(v, propType.value, schema, unionVariants));
-    }
-    return wrapped;
-  }
-
-  if (propType.type === "optional") {
-    return wrapUnionValue(value, propType.value, schema, unionVariants);
-  }
-
-  return value;
 }

@@ -1,5 +1,6 @@
 // Re-export everything from all modules
 export * from "./schema.js";
+export * from "./decorator.js";
 export * from "./parser.js";
 export * from "./interpreter.js";
 export * from "./infer.js";

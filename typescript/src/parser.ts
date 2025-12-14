@@ -2,13 +2,12 @@ import yaml from "yaml";
 import {
   ArrayType,
   BooleanType,
-  ContainerType,
   EnumType,
   FloatType,
   IntType,
   ObjectType,
   OptionalType,
-  PrimitiveType,
+  PropertyType,
   RecordType,
   ReferenceType,
   StringType,
@@ -36,9 +35,9 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
     }
     if (typeof value === "object") {
       // object type
-      const properties: Record<string, PrimitiveType | ContainerType | ReferenceType> = {};
+      const properties: Record<string, PropertyType> = {};
       for (const [propKey, propValue] of Object.entries(value)) {
-        properties[propKey] = parseType(propValue) as PrimitiveType | ContainerType | ReferenceType;
+        properties[propKey] = parseType(propValue) as PropertyType;
       }
       return ObjectType(properties);
     }
@@ -46,12 +45,12 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
       if (value.endsWith("[]")) {
         // array type
         const itemTypeStr = value.slice(0, -2);
-        const childType = parseType(itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
+        const childType = parseType(itemTypeStr) as PropertyType;
         return ArrayType(childType);
       } else if (value.endsWith("?")) {
         // optional type
         const itemTypeStr = value.slice(0, -1);
-        const childType = parseType(itemTypeStr) as PrimitiveType | ContainerType | ReferenceType;
+        const childType = parseType(itemTypeStr) as PropertyType;
         return OptionalType(childType);
       } else if (value.startsWith("<") && value.endsWith(">")) {
         // record type
@@ -62,7 +61,7 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
         }
         const [keyTypeStr, valueTypeStr] = [inner.slice(0, commaIdx).trim(), inner.slice(commaIdx + 1).trim()];
         const keyType = parseType(keyTypeStr) as { type: "string" | "int" | "uint" };
-        const valueType = parseType(valueTypeStr) as PrimitiveType | ContainerType | ReferenceType;
+        const valueType = parseType(valueTypeStr) as PropertyType;
         return RecordType(keyType, valueType);
       } else if (value.startsWith("string")) {
         return StringType();
