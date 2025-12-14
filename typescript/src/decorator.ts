@@ -1,11 +1,6 @@
 import "reflect-metadata";
 import { load, DeltaPackApi } from "./interpreter.js";
-import { Type, PrimitiveType, ContainerType, ReferenceType, PropertyType } from "./schema.js";
-
-// ============ Metadata Keys ============
-
-const SCHEMA_TYPE = "deltapack:schemaType";
-const UNION_VARIANTS = "deltapack:union";
+import { Type, PropertyType, SCHEMA_TYPE, UNION_VARIANTS } from "./schema.js";
 
 // ============ Types ============
 
@@ -16,7 +11,7 @@ interface EnumDef {
   name: string;
 }
 
-type SchemaTypeOrRef = PrimitiveType | ContainerType | ReferenceType | { __class: Function } | { __enum: EnumDef };
+type SchemaTypeOrRef = PropertyType | { __class: Function } | { __enum: EnumDef };
 
 // ============ Helper Functions ============
 
@@ -87,22 +82,6 @@ export function buildSchema<T extends object>(rootClass: Constructor<T>): Record
       return { type: "reference", reference: cls.name };
     }
 
-    if ("__union" in schemaType) {
-      const variants = (schemaType as { __union: Function[] }).__union;
-      const unionName = variants.map((v) => v.name).join("Or");
-
-      for (const variant of variants) {
-        processClass(variant);
-      }
-      if (!schema[unionName]) {
-        schema[unionName] = {
-          type: "union",
-          options: variants.map((v) => ({ type: "reference" as const, reference: v.name })),
-        };
-      }
-      return { type: "reference", reference: unionName };
-    }
-
     if (isEnumRef(schemaType)) {
       const enumDef = schemaType.__enum;
       if (!schema[enumDef.name]) {
@@ -138,12 +117,13 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
   const schema = buildSchema(rootClass);
   const rawApi = load<T>(schema, rootClass.name);
 
-  const unionVariants = new Set<string>();
-  collectUnionVariants(rootClass, unionVariants, new Set());
-
-  // Collect all class constructors for hydration
-  const classMap = new Map<string, Constructor>();
-  collectClasses(rootClass, classMap, new Set());
+  // Collect class constructors and union variants in a single traversal
+  const info: CollectedInfo = {
+    classMap: new Map<string, Constructor>(),
+    unionVariants: new Set<string>(),
+  };
+  collectClassInfo(rootClass, info, new Set());
+  const { classMap, unionVariants } = info;
 
   // Hydrate plain objects into class instances
   function hydrate(obj: unknown, typeName: string): unknown {
@@ -205,20 +185,26 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
 
 // ============ Internal Helpers ============
 
-function collectClasses(cls: Function, classMap: Map<string, Constructor>, visited: Set<Function>): void {
+interface CollectedInfo {
+  classMap: Map<string, Constructor>;
+  unionVariants: Set<string>;
+}
+
+function collectClassInfo(cls: Function, info: CollectedInfo, visited: Set<Function>): void {
   if (visited.has(cls)) return;
   visited.add(cls);
 
-  const unionVariants = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-  if (unionVariants) {
-    for (const variant of unionVariants) {
-      collectClasses(variant, classMap, visited);
+  const unionVariantClasses = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
+  if (unionVariantClasses) {
+    for (const variant of unionVariantClasses) {
+      info.unionVariants.add(variant.name);
+      collectClassInfo(variant, info, visited);
     }
     return;
   }
 
   // Store the constructor
-  classMap.set(cls.name, cls as Constructor);
+  info.classMap.set(cls.name, cls as Constructor);
 
   // Process referenced classes from property metadata
   let instance: object;
@@ -231,80 +217,22 @@ function collectClasses(cls: Function, classMap: Map<string, Constructor>, visit
   for (const key of Object.keys(instance)) {
     const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
     if (schemaType) {
-      collectClassesFromType(schemaType, classMap, visited);
+      collectFromSchemaType(schemaType, info, visited);
     }
   }
 }
 
-function collectClassesFromType(
-  schemaType: SchemaTypeOrRef,
-  classMap: Map<string, Constructor>,
-  visited: Set<Function>
-): void {
-  if (isClassRef(schemaType)) {
-    collectClasses(schemaType.__class, classMap, visited);
-  } else if (typeof schemaType === "object" && "type" in schemaType) {
-    const type = schemaType as ContainerType;
-    if (type.type === "array" || type.type === "optional") {
-      collectClassesFromType(type.value as SchemaTypeOrRef, classMap, visited);
-    } else if (type.type === "record") {
-      collectClassesFromType(type.value as SchemaTypeOrRef, classMap, visited);
-    }
-  }
-  // Enums and primitives don't need hydration
-}
-
-function collectUnionVariants(cls: Function, variants: Set<string>, visited: Set<Function>): void {
-  if (visited.has(cls)) return;
-  visited.add(cls);
-
-  const unionVariantClasses = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-  if (unionVariantClasses) {
-    for (const variant of unionVariantClasses) {
-      variants.add(variant.name);
-      collectUnionVariants(variant, variants, visited);
-    }
-    return;
-  }
-
-  let instance: object;
-  try {
-    instance = new (cls as Constructor)() as object;
-  } catch {
-    return;
-  }
-
-  for (const key of Object.keys(instance)) {
-    const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
-    if (schemaType) {
-      collectFromSchemaType(schemaType, variants, visited);
-    }
-  }
-}
-
-function collectFromSchemaType(schemaType: unknown, variants: Set<string>, visited: Set<Function>): void {
+function collectFromSchemaType(schemaType: unknown, info: CollectedInfo, visited: Set<Function>): void {
   if (!schemaType || typeof schemaType !== "object") return;
 
   if ("__class" in schemaType) {
-    const cls = (schemaType as { __class: Function }).__class;
-    collectUnionVariants(cls, variants, visited);
-    return;
-  }
-
-  if ("__union" in schemaType) {
-    const unionClasses = (schemaType as { __union: Function[] }).__union;
-    for (const variant of unionClasses) {
-      variants.add(variant.name);
-      collectUnionVariants(variant, variants, visited);
-    }
+    collectClassInfo((schemaType as { __class: Function }).__class, info, visited);
     return;
   }
 
   const type = (schemaType as Record<string, unknown>)["type"];
-  if (type === "array" || type === "optional") {
-    collectFromSchemaType((schemaType as { value: unknown }).value, variants, visited);
-  } else if (type === "record") {
-    collectFromSchemaType((schemaType as { value: unknown }).value, variants, visited);
+  if (type === "array" || type === "optional" || type === "record") {
+    collectFromSchemaType((schemaType as { value: unknown }).value, info, visited);
   }
 }
 

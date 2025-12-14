@@ -1,9 +1,16 @@
 // ============ Type Interfaces ============
 
-export type PrimitiveType = EnumType | StringType | IntType | UIntType | FloatType | BooleanType;
-export type ContainerType = ArrayType | OptionalType | RecordType;
-export type PropertyType = StringType | IntType | UIntType | FloatType | BooleanType | ContainerType | ReferenceType;
-export type Type = ReferenceType | ObjectType | UnionType | ContainerType | PrimitiveType;
+export type PropertyType =
+  | StringType
+  | IntType
+  | UIntType
+  | FloatType
+  | BooleanType
+  | ArrayType
+  | OptionalType
+  | RecordType
+  | ReferenceType;
+export type Type = ObjectType | UnionType | EnumType | PropertyType;
 
 // Each type has both an interface (for type annotations) and a function (for creating instances)
 // TypeScript's declaration merging allows them to share the same name
@@ -88,8 +95,8 @@ export function isPrimitiveType(type: Type, schema: Record<string, Type>): boole
 
 // ============ Metadata Keys ============
 
-const SCHEMA_TYPE = "deltapack:schemaType";
-const UNION_VARIANTS = "deltapack:union";
+export const SCHEMA_TYPE = "deltapack:schemaType";
+export const UNION_VARIANTS = "deltapack:union";
 
 // ============ Internal Types ============
 
@@ -99,7 +106,7 @@ interface EnumDef {
 }
 
 // Types that can be used as values in containers (both schema mode and decorator mode)
-type ValueType = PrimitiveType | ContainerType | ReferenceType | { __class: Function } | { __enum: EnumDef };
+type ValueType = PropertyType | { __class: Function } | { __enum: EnumDef };
 
 // A unified type that works as both a PropertyDecorator and a schema type
 type UnifiedType<T> = PropertyDecorator & T;
@@ -113,43 +120,30 @@ function createUnifiedType<T>(schemaType: T): UnifiedType<T> {
   return Object.assign(decorator, schemaType) as UnifiedType<T>;
 }
 
-function stripDecorator<T extends PrimitiveType | ContainerType | ReferenceType>(type: T): T {
+function stripDecorator<T>(type: T): T {
+  // If it's a function (UnifiedType), extract its enumerable properties
   if (typeof type === "function") {
+    const keys = Object.keys(type);
+    if (keys.length === 0) return type;
     const result: Record<string, unknown> = {};
-    for (const key of Object.keys(type)) {
-      const value = (type as unknown as Record<string, unknown>)[key];
-      if (typeof value === "object" && value !== null && "type" in (value as Record<string, unknown>)) {
-        result[key] = stripDecorator(value as unknown as PrimitiveType | ContainerType | ReferenceType);
-      } else {
-        result[key] = value;
-      }
+    for (const key of keys) {
+      result[key] = stripDecorator((type as Record<string, unknown>)[key]);
     }
     return result as T;
   }
 
+  // If it's an object, recursively strip nested "value" and "key" properties
   if (typeof type === "object" && type !== null) {
-    const t = type as unknown as Record<string, unknown>;
-    if ("value" in t && typeof t["value"] === "function") {
-      return {
-        ...type,
-        value: stripDecorator(t["value"] as unknown as PrimitiveType | ContainerType | ReferenceType),
-      } as T;
-    }
-    if ("value" in t && typeof t["value"] === "object" && t["value"] !== null) {
-      return {
-        ...type,
-        value: stripDecorator(t["value"] as unknown as PrimitiveType | ContainerType | ReferenceType),
-      } as T;
-    }
-    if ("key" in t && typeof t["key"] === "function") {
-      const stripped: Record<string, unknown> = {
-        ...type,
-        key: stripDecorator(t["key"] as unknown as StringType | IntType | UIntType),
-      };
-      if ("value" in t && (typeof t["value"] === "function" || typeof t["value"] === "object")) {
-        stripped["value"] = stripDecorator(t["value"] as unknown as PrimitiveType | ContainerType | ReferenceType);
+    const t = type as Record<string, unknown>;
+    if ("value" in t || "key" in t) {
+      const result = { ...t };
+      if ("value" in result) {
+        result["value"] = stripDecorator(result["value"]);
       }
-      return stripped as T;
+      if ("key" in result) {
+        result["key"] = stripDecorator(result["key"]);
+      }
+      return result as T;
     }
   }
 
@@ -188,7 +182,7 @@ export function FloatType(options?: { precision?: number | string }): UnifiedTyp
 export function ArrayType<const V extends ValueType>(value: V): UnifiedType<{ type: "array"; value: V }> {
   const schemaType = {
     type: "array" as const,
-    value: stripDecorator(value as PrimitiveType | ContainerType | ReferenceType) as V,
+    value: stripDecorator(value as PropertyType) as V,
   };
   return createUnifiedType(schemaType);
 }
@@ -200,7 +194,7 @@ export function RecordType<const K extends StringType | IntType | UIntType, cons
   const schemaType = {
     type: "record" as const,
     key: stripDecorator(key),
-    value: stripDecorator(value as PrimitiveType | ContainerType | ReferenceType) as V,
+    value: stripDecorator(value as PropertyType) as V,
   };
   return createUnifiedType(schemaType);
 }
@@ -208,7 +202,7 @@ export function RecordType<const K extends StringType | IntType | UIntType, cons
 export function OptionalType<const V extends ValueType>(value: V): UnifiedType<{ type: "optional"; value: V }> {
   const schemaType = {
     type: "optional" as const,
-    value: stripDecorator(value as PrimitiveType | ContainerType | ReferenceType) as V,
+    value: stripDecorator(value as PropertyType) as V,
   };
   return createUnifiedType(schemaType);
 }
