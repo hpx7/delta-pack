@@ -230,7 +230,7 @@ const schema = defineSchema({
 });
 ```
 
-**Union value format:** When working with union types, values use the format `{ type: "VariantName", val: {...} }`:
+**Union value format:** In schema/interpreter mode, union values use the format `{ type: "VariantName", val: {...} }`:
 
 ```typescript
 // Creating a union value
@@ -477,6 +477,66 @@ class AdvancedExample {
 }
 ```
 
+### Working with Union Types
+
+With the decorator API, union types are defined using the `@UnionType` decorator on an abstract class:
+
+```typescript
+// Define variant classes
+class JoinMessage {
+  @StringType() name: string = "";
+}
+
+class InputMessage {
+  @ReferenceType(ClientInput) input: ClientInput = new ClientInput();
+}
+
+// Define the union (abstract class as a marker)
+@UnionType([JoinMessage, InputMessage])
+abstract class ClientMessage {}
+
+// Load the API
+const ClientMessageApi = loadClass(ClientMessage);
+```
+
+**Encoding:** Pass variant class instances directly:
+
+```typescript
+const joinMsg = new JoinMessage();
+joinMsg.name = "Alice";
+const encoded = ClientMessageApi.encode(joinMsg);
+```
+
+**Decoding:** Returns variant class instances. Use `instanceof` to narrow the type:
+
+```typescript
+const message = ClientMessageApi.decode(encoded);
+
+if (message instanceof JoinMessage) {
+  console.log(message.name);  // TypeScript knows this is JoinMessage
+} else if (message instanceof InputMessage) {
+  console.log(message.input);
+}
+```
+
+**For exhaustiveness checking:** TypeScript doesn't know which classes are variants of a union. For compile-time exhaustiveness checking, define a type alias:
+
+```typescript
+// Optional: for exhaustiveness checking
+type ClientMessageVariant = JoinMessage | InputMessage;
+
+function handleMessage(message: ClientMessageVariant) {
+  if (message instanceof JoinMessage) {
+    // handle join
+  } else if (message instanceof InputMessage) {
+    // handle input
+  } else {
+    // TypeScript error if a variant is missing
+    const _exhaustive: never = message;
+  }
+}
+```
+
 ### buildSchema()
 
 If you need access to the generated schema (e.g., for inspection or to use with `load()` directly), use `buildSchema()`:
@@ -490,8 +550,6 @@ console.log(schema); // { Player: { type: "object", properties: { ... } } }
 // Use with load() for more control
 const PlayerApi = load(schema, "Player");
 ```
-
-Note: When using `buildSchema()` + `load()` with union types, you must manually wrap values in `{ type: "TypeName", val: {...} }` format. The `loadClass()` convenience method handles this automatically.
 
 ### Requirements
 
@@ -520,7 +578,7 @@ Note: When using `buildSchema()` + `load()` with union types, you must manually 
 | `toJson(obj)` | Convert to JSON-serializable format |
 | `fromJson(obj)` | Validate and parse JSON data |
 
-**Key difference:** In decorator mode, `decode`, `decodeDiff`, `clone`, and `fromJson` return proper class instances with methods intact—not plain objects.
+**Key difference:** In decorator mode, `decode`, `decodeDiff`, `clone`, and `fromJson` return proper class instances—not plain objects. This includes union variants (e.g., decoding a `ClientMessage` returns a `JoinMessage` or `InputMessage` instance).
 
 ### Schema API vs Decorator API
 

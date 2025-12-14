@@ -111,9 +111,20 @@ export function buildSchema<T extends object>(rootClass: Constructor<T>): Record
   return schema;
 }
 
+// ============ Dirty Tracking Types ============
+
+/** Add _dirty tracking to an object type */
+export type WithDirty<T> = T & { _dirty?: Set<keyof T> };
+
+/** Add _dirty tracking to an array (tracks dirty indices) */
+export type DirtyArray<T> = T[] & { _dirty?: Set<number> };
+
+/** Add _dirty tracking to a Map (tracks dirty keys) */
+export type DirtyMap<K, V> = Map<K, V> & { _dirty?: Set<K> };
+
 // ============ Class Loader ============
 
-export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPackApi<T> {
+export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPackApi<WithDirty<T>> {
   const schema = buildSchema(rootClass);
   const rawApi = load<T>(schema, rootClass.name);
 
@@ -141,6 +152,16 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
         return instance;
       }
     }
+
+    if (type.type === "union") {
+      // Union values are { type: "VariantName", val: {...} }
+      // Hydrate val to a class instance of the variant type
+      if (obj && typeof obj === "object" && "type" in obj && "val" in obj) {
+        const unionObj = obj as { type: string; val: unknown };
+        return hydrate(unionObj.val, unionObj.type);
+      }
+    }
+
     return obj;
   }
 
@@ -168,18 +189,18 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
   if (!rootType) {
     throw new Error(`Type ${rootClass.name} not found in schema`);
   }
-  const wrap = (obj: T) => wrapUnions(obj, rootType, schema, unionVariants) as T;
+  type D = WithDirty<T>;
+  const wrap = (obj: D) => wrapUnions(obj, rootType, schema, unionVariants) as T;
 
   return {
-    ...rawApi,
-    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as T)), rootClass.name) as T,
-    encode: (obj: T) => rawApi.encode(wrap(obj)),
-    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootClass.name) as T,
-    encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrap(a), wrap(b)),
-    decodeDiff: (a: T, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootClass.name) as T,
-    equals: (a: T, b: T) => rawApi.equals(wrap(a), wrap(b)),
-    clone: (obj: T) => hydrate(rawApi.clone(wrap(obj)), rootClass.name) as T,
-    toJson: (obj: T) => rawApi.toJson(wrap(obj)),
+    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as D)), rootClass.name) as D,
+    encode: (obj: D) => rawApi.encode(wrap(obj)),
+    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootClass.name) as D,
+    encodeDiff: (a: D, b: D) => rawApi.encodeDiff(wrap(a), wrap(b)),
+    decodeDiff: (a: D, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootClass.name) as D,
+    equals: (a: D, b: D) => rawApi.equals(wrap(a), wrap(b)),
+    clone: (obj: D) => hydrate(rawApi.clone(wrap(obj)), rootClass.name) as D,
+    toJson: (obj: D) => rawApi.toJson(wrap(obj)),
   };
 }
 

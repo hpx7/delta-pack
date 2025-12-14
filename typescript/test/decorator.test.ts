@@ -452,7 +452,7 @@ describe("Delta Pack Reflection", () => {
         value: number = 0;
 
         // Auxiliary property not part of schema
-        _dirty?: Set<string>;
+        _dirty?: Set<keyof StateWithDirtyTracking>;
       }
 
       const api = loadClass(StateWithDirtyTracking);
@@ -535,7 +535,11 @@ describe("Delta Pack Reflection", () => {
         [true, false],
         [false, true],
       ]);
-      expect(decoded.action).toEqual({ type: "AttackAction", val: { targetId: "enemy1", damage: 50 } });
+      // Union values are hydrated to class instances
+      expect(decoded.action).toBeInstanceOf(AttackAction);
+      const decodedAttack = decoded.action as AttackAction;
+      expect(decodedAttack.targetId).toBe("enemy1");
+      expect(decodedAttack.damage).toBe(50);
 
       // Test encodeDiff/decodeDiff
       const obj2 = new CoverageTestSchema();
@@ -549,7 +553,10 @@ describe("Delta Pack Reflection", () => {
       const applied = api.decodeDiff(decoded, diff);
 
       expect(applied.directEnum).toBe("GREEN");
-      expect(applied.action).toEqual({ type: "MoveAction", val: { x: 10, y: 20 } });
+      expect(applied.action).toBeInstanceOf(MoveAction);
+      const appliedMove = applied.action as MoveAction;
+      expect(appliedMove.x).toBe(10);
+      expect(appliedMove.y).toBe(20);
 
       // Test equals
       const obj3 = new CoverageTestSchema();
@@ -587,7 +594,7 @@ describe("Delta Pack Reflection", () => {
     it("should handle pre-wrapped { type, val } union objects", () => {
       const api = loadClass(CoverageTestSchema);
 
-      // Pass already-wrapped union format
+      // Pass already-wrapped union format (for backwards compatibility)
       const obj = {
         directEnum: "RED" as Color,
         boolMatrix: [] as boolean[][],
@@ -599,7 +606,11 @@ describe("Delta Pack Reflection", () => {
       const encoded = api.encode(obj as unknown as CoverageTestSchema);
       const decoded = api.decode(encoded);
 
-      expect(decoded.action).toEqual({ type: "MoveAction", val: { x: 5, y: 10 } });
+      // Decoded union is hydrated to class instance
+      expect(decoded.action).toBeInstanceOf(MoveAction);
+      const action = decoded.action as MoveAction;
+      expect(action.x).toBe(5);
+      expect(action.y).toBe(10);
     });
 
     it("should handle nested optional values", () => {

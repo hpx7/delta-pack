@@ -986,13 +986,13 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
     const player2: Player = { id: "p2", name: "Bob", score: 50, isActive: true };
 
     const gameState1: GameState = {
-      players: [player1, player2] as GameState["players"],
+      players: [player1, player2],
       currentPlayer: "p1",
       round: 1,
       metadata: new Map([
         ["mode", "classic"],
         ["difficulty", "hard"],
-      ]) as GameState["metadata"],
+      ]),
       lastAction: { type: "MoveAction", val: { x: 10, y: 20 } },
     };
 
@@ -1083,9 +1083,9 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
 
     it("should handle empty players array", () => {
       const emptyState: GameState = {
-        players: [] as GameState["players"],
+        players: [],
         round: 0,
-        metadata: new Map() as GameState["metadata"],
+        metadata: new Map(),
       };
 
       const encoded = GameState.encode(emptyState);
@@ -1110,7 +1110,7 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
           ["mode", "tournament"],
           ["difficulty", "hard"],
           ["newKey", "newValue"],
-        ]) as GameState["metadata"],
+        ]),
       };
 
       const encodedDiff = GameState.encodeDiff(gameState1, gameState2);
@@ -1185,10 +1185,10 @@ export function runDirtyTrackingTests(Player: DeltaPackApi<Player>, GameState: D
         players: [
           { id: "p1", name: "Alice", score: 100, isActive: true },
           { id: "p2", name: "Bob", score: 50, isActive: true },
-        ] as GameState["players"],
+        ],
         currentPlayer: "p1",
         round: 1,
-        metadata: new Map([["mode", "classic"]]) as GameState["metadata"],
+        metadata: new Map([["mode", "classic"]]),
       };
 
       const state2WithoutDirty: GameState = {
@@ -1240,10 +1240,10 @@ export function runDirtyTrackingTests(Player: DeltaPackApi<Player>, GameState: D
           { id: "p1", name: "Alice", score: 100, isActive: true },
           { id: "p2", name: "Bob", score: 50, isActive: true },
           { id: "p3", name: "Charlie", score: 75, isActive: true },
-        ] as GameState["players"],
+        ],
         currentPlayer: "p1",
         round: 1,
-        metadata: new Map() as GameState["metadata"],
+        metadata: new Map(),
       };
 
       const players = state1.players;
@@ -1264,14 +1264,14 @@ export function runDirtyTrackingTests(Player: DeltaPackApi<Player>, GameState: D
 
     it("should support dirty tracking for records", () => {
       const state1: GameState = {
-        players: [] as GameState["players"],
+        players: [],
         currentPlayer: "p1",
         round: 1,
         metadata: new Map([
           ["mode", "classic"],
           ["difficulty", "hard"],
           ["map", "desert"],
-        ]) as GameState["metadata"],
+        ]),
       };
 
       const metadata = state1.metadata;
@@ -1423,9 +1423,9 @@ export function runCloneTests(
       };
 
       const gameState: GameState = {
-        players: [player1, player2] as GameState["players"],
+        players: [player1, player2],
         round: 5,
-        metadata: new Map() as GameState["metadata"],
+        metadata: new Map(),
       };
 
       const clonedState = GameState.clone(gameState);
@@ -1441,12 +1441,12 @@ export function runCloneTests(
 
     it("should clone maps/records", () => {
       const gameState: GameState = {
-        players: [] as GameState["players"],
+        players: [],
         round: 1,
         metadata: new Map([
           ["key1", "value1"],
           ["key2", "value2"],
-        ]) as GameState["metadata"],
+        ]),
       };
 
       const clonedState = GameState.clone(gameState);
@@ -1536,9 +1536,9 @@ export function runCloneTests(
       };
 
       const gameState: GameState = {
-        players: [player1] as GameState["players"],
+        players: [player1],
         round: 1,
-        metadata: new Map([["key1", "value1"]]) as GameState["metadata"],
+        metadata: new Map([["key1", "value1"]]),
       };
 
       gameState.players._dirty = new Set([0]);
@@ -1682,13 +1682,13 @@ export function runDeterminismTests(
         players: [
           { id: "p1", name: "Alice", score: 100, isActive: true },
           { id: "p2", name: "Bob", score: 50, isActive: false },
-        ] as GameState["players"],
+        ],
         currentPlayer: "p1",
         round: 5,
         metadata: new Map([
           ["mode", "classic"],
           ["map", "arena"],
-        ]) as GameState["metadata"],
+        ]),
       };
 
       const encoded1 = GameState.encode(state);
@@ -1711,15 +1711,15 @@ export function runDeterminismTests(
 
     it("should produce identical diff bytes for same state transition", () => {
       const state1: GameState = {
-        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }] as GameState["players"],
+        players: [{ id: "p1", name: "Alice", score: 100, isActive: true }],
         round: 1,
-        metadata: new Map() as GameState["metadata"],
+        metadata: new Map(),
       };
 
       const state2: GameState = {
-        players: [{ id: "p1", name: "Alice", score: 150, isActive: true }] as GameState["players"],
+        players: [{ id: "p1", name: "Alice", score: 150, isActive: true }],
         round: 2,
-        metadata: new Map() as GameState["metadata"],
+        metadata: new Map(),
       };
 
       const diff1 = GameState.encodeDiff(state1, state2);
@@ -1752,10 +1752,10 @@ export function runEncodingTests(GameState: DeltaPackApi<GameState>) {
         players: [
           { id: "p1", name: "Alice", score: 100, isActive: true },
           { id: "p2", name: "Bob", score: 50, isActive: true },
-        ] as GameState["players"],
+        ],
         currentPlayer: "p1",
         round: 1,
-        metadata: new Map([["mode", "classic"]]) as GameState["metadata"],
+        metadata: new Map([["mode", "classic"]]),
       };
 
       const state2: GameState = {
@@ -1771,9 +1771,9 @@ export function runEncodingTests(GameState: DeltaPackApi<GameState>) {
 
     it("should have reasonable encoding sizes for minimal state", () => {
       const minimalState: GameState = {
-        players: [] as GameState["players"],
+        players: [],
         round: 0,
-        metadata: new Map() as GameState["metadata"],
+        metadata: new Map(),
       };
 
       const encoded = GameState.encode(minimalState);
