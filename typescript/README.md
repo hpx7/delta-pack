@@ -75,17 +75,17 @@ const decoded = PlayerApi.decode(encoded);
 ### Codegen Mode (Recommended for production)
 
 ```typescript
-import { codegenTypescript, ObjectType, StringType, IntType } from "@hpx7/delta-pack";
+import { codegenTypescript, ObjectType, StringType, IntType, defineSchema } from "@hpx7/delta-pack";
 import { writeFileSync } from "fs";
 
 // Define schema in TypeScript
-const schema = {
+const schema = defineSchema({
   Player: ObjectType({
     id: StringType(),
     name: StringType(),
     score: IntType(),
   }),
-};
+});
 
 // Generate TypeScript code
 const code = codegenTypescript(schema);
@@ -118,7 +118,7 @@ Create a `schema.yml` file:
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
 
-# Enums
+# Enums (list of string literals)
 Team:
   - RED
   - BLUE
@@ -135,9 +135,24 @@ Position:
   x: float(precision=0.1)
   y: float(precision=0.1)
 
+# Union types (list of type references)
+# A union is a list where all items are defined type names
+MoveAction:
+  x: int
+  y: int
+
+AttackAction:
+  targetId: string
+  damage: uint
+
+GameAction:
+  - MoveAction
+  - AttackAction
+
 # Complex types
 GameState:
-  players: string,Player # Map<string, Player>
+  players: <string, Player>
+  actions: GameAction[]
   round: uint
   phase: string
 ```
@@ -156,50 +171,78 @@ See the [main README](../README.md) for complete schema syntax reference.
 
 ### TypeScript Schema
 
-Define schemas using the type definition API:
+Define schemas using `defineSchema()` and the type constructor functions. The `defineSchema()` wrapper is an identity function that preserves type information, enabling the `Infer<>` utility to derive TypeScript types from your schema:
 
 ```typescript
 import {
+  defineSchema,
   ObjectType,
   StringType,
   IntType,
   UIntType,
   FloatType,
-  BooleanType,
   ArrayType,
   OptionalType,
   RecordType,
   EnumType,
+  UnionType,
   ReferenceType,
 } from "@hpx7/delta-pack";
 
-const Team = EnumType(["RED", "BLUE"]);
+const schema = defineSchema({
+  // Enum type
+  Team: EnumType(["RED", "BLUE"]),
 
-const Position = ObjectType({
-  x: FloatType({ precision: 0.1 }),
-  y: FloatType({ precision: 0.1 }),
+  // Object types
+  Position: ObjectType({
+    x: FloatType({ precision: 0.1 }),
+    y: FloatType({ precision: 0.1 }),
+  }),
+  Player: ObjectType({
+    id: StringType(),
+    name: StringType(),
+    score: IntType(),
+    team: ReferenceType("Team"),
+    position: OptionalType(ReferenceType("Position")),
+  }),
+
+  // Union type (define variant types first, then the union)
+  MoveAction: ObjectType({
+    x: IntType(),
+    y: IntType(),
+  }),
+  AttackAction: ObjectType({
+    targetId: StringType(),
+    damage: UIntType(),
+  }),
+  GameAction: UnionType([
+    ReferenceType("MoveAction"),
+    ReferenceType("AttackAction"),
+  ]),
+
+  // Using unions in other types
+  GameState: ObjectType({
+    players: RecordType(StringType(), ReferenceType("Player")),
+    actions: ArrayType(ReferenceType("GameAction")),
+    round: UIntType(),
+    phase: StringType(),
+  }),
 });
+```
 
-const Player = ObjectType({
-  id: StringType(),
-  name: StringType(),
-  score: IntType(),
-  team: ReferenceType("Team"),
-  position: OptionalType(ReferenceType("Position")),
-});
+**Union value format:** When working with union types, values use the format `{ type: "VariantName", val: {...} }`:
 
-const GameState = ObjectType({
-  players: RecordType(StringType(), ReferenceType("Player")),
-  round: UIntType(),
-  phase: StringType(),
-});
-
-const schema = {
-  Team,
-  Position,
-  Player,
-  GameState,
+```typescript
+// Creating a union value
+const action: GameAction = {
+  type: "MoveAction",
+  val: { x: 10, y: 20 },
 };
+
+// Type narrowing with discriminant
+if (action.type === "MoveAction") {
+  console.log(action.val.x, action.val.y);
+}
 ```
 
 ## Interpreter API
@@ -359,23 +402,21 @@ The decorator mode provides a class-based API using TypeScript decorators. Schem
 
 ### Decorators
 
+The same type functions used to build schemas (`StringType()`, `IntType()`, `ArrayType()`, etc.) also work as property decorators. See [Type Reference](#type-reference) for the complete list.
+
+**Additional decorator-specific features:**
+
 | Decorator | Description |
 |-----------|-------------|
-| `@StringType()` | String property |
-| `@IntType()` | Signed integer |
-| `@UIntType()` | Unsigned integer |
-| `@BooleanType()` | Boolean property |
-| `@FloatType()` | IEEE 754 float (use `{ precision: 0.01 }` for quantized) |
-| `@ReferenceType(Type)` | Reference to a class or TypeScript string enum (use `{ enumName }` for enums) |
-| `@ArrayType(Type)` | Array property |
-| `@RecordType(Type)` | Map with string keys |
-| `@OptionalType(Type)` | Optional property |
-| `@UnionType([A, B])` | Class decorator for union types |
+| `@UnionType([A, B])` | Class decorator for defining union types |
+| `@ReferenceType(Class)` | Reference a class or TypeScript string enum |
 
-For container types (`@ArrayType`, `@RecordType`, `@OptionalType`):
-- `Type` can be: `String`, `Number`, `Boolean`, a class, `[A, B, ...]` for unions, a TypeScript string enum, or another container decorator for nesting
-- For `Number`, pass options as second arg: `@ArrayType(Number, { unsigned: true })` or `{ float: 0.01 }`
-- For enums, use `{ enumName: "Name" }` to specify the schema name (otherwise auto-generated from values)
+**Container type shortcuts** (for `@ArrayType`, `@OptionalType`, `@RecordType`):
+- Use `String`, `Number`, `Boolean` instead of `StringType()`, `IntType()`, `BooleanType()`
+- For `Number`, pass options as second arg: `{ unsigned: true }` or `{ float: 0.01 }`
+- For unions, pass an array: `[ClassA, ClassB]`
+- For nesting, pass another decorator: `ArrayType(ArrayType(Number))`
+- For enums, use `{ enumName: "Name" }` to specify the schema name
 
 ### Example
 
@@ -386,17 +427,13 @@ import {
   UnionType, loadClass,
 } from "@hpx7/delta-pack";
 
-// Enums
+// Enum (TypeScript string enum)
 enum Team { RED = "red", BLUE = "blue" }
-enum Status { ACTIVE = "active", IDLE = "idle" }
 
 // Nested object
 class Position {
-  @FloatType({ precision: 0.1 })
-  x: number = 0;
-
-  @FloatType({ precision: 0.1 })
-  y: number = 0;
+  @FloatType({ precision: 0.1 }) x: number = 0;
+  @FloatType({ precision: 0.1 }) y: number = 0;
 }
 
 // Union types
@@ -413,46 +450,22 @@ class AttackAction {
 @UnionType([MoveAction, AttackAction])
 abstract class GameAction {}
 
-// Main class demonstrating all features
+// Main class
 class Player {
-  // Primitives
   @StringType() id: string = "";
   @StringType() name: string = "";
   @IntType() score: number = 0;
-  @UIntType() level: number = 1;
   @BooleanType() isOnline: boolean = false;
-  @FloatType() velocity: number = 0;
 
-  // References
   @ReferenceType(Position) position: Position = new Position();
   @ReferenceType(Team) team: Team = Team.RED;
 
-  // Arrays
   @ArrayType(String) tags: string[] = [];
   @ArrayType(Position) waypoints: Position[] = [];
-  @ArrayType(Number, { float: 0.01 }) scores: number[] = [];
-  @ArrayType(Status) statuses: Status[] = [];
-  @ArrayType([MoveAction, AttackAction]) actions: GameAction[] = [];
+  @RecordType(StringType(), Number) inventory: Map<string, number> = new Map();
 
-  // Maps
-  @RecordType(Number) inventory: Map<string, number> = new Map();
-  @RecordType(Position) markers: Map<string, Position> = new Map();
-  @RecordType(Number, { unsigned: true }) counts: Map<string, number> = new Map();
-
-  // Optionals
   @OptionalType(String) nickname?: string;
-  @OptionalType(Position) target?: Position;
-  @OptionalType(Number, { float: 0.01 }) rating?: number;
   @OptionalType([MoveAction, AttackAction]) lastAction?: GameAction;
-
-  // Self-reference (circular)
-  @OptionalType(Player) partner?: Player;
-
-  // Nested containers
-  @ArrayType(ArrayType(Number)) matrix: number[][] = [];
-  @RecordType(ArrayType(Number)) vectorsById: Map<string, number[]> = new Map();
-  @OptionalType(ArrayType(Number)) optionalScores?: number[];
-  @ArrayType(ArrayType(Number, { float: 0.01 })) floatMatrix: number[][] = [];
 }
 
 // Load API and use
@@ -461,6 +474,18 @@ const player = new Player();
 player.name = "Alice";
 const encoded = PlayerApi.encode(player);
 const decoded = PlayerApi.decode(encoded);
+```
+
+**Advanced patterns** (nested containers, number modifiers):
+
+```typescript
+class AdvancedExample {
+  @ArrayType(Number, { unsigned: true }) unsignedInts: number[] = [];
+  @ArrayType(Number, { float: 0.01 }) floats: number[] = [];
+  @ArrayType(ArrayType(Number)) matrix: number[][] = [];
+  @RecordType(StringType(), ArrayType(Number)) vectorsById: Map<string, number[]> = new Map();
+  @OptionalType(Player) partner?: Player;  // Self-reference
+}
 ```
 
 ### buildSchema()
@@ -491,7 +516,7 @@ Note: When using `buildSchema()` + `load()` with union types, you must manually 
 
 ### API Methods
 
-`loadClass()` returns the same API as interpreter mode: `encode`, `decode`, `encodeDiff`, `decodeDiff`, `equals`, `clone`, `toJson`, `fromJson`
+`loadClass()` returns the same API as interpreter mode: `encode`, `decode`, `encodeDiff`, `decodeDiff`, `equals`, `clone`, `toJson`, `fromJson`, `default`
 
 ## Codegen API
 
@@ -544,46 +569,13 @@ The generated code provides the same methods as interpreter mode:
 
 ### Multiplayer Game State Sync
 
-**schema.yml:**
-
-```yaml
-Team:
-  - RED
-  - BLUE
-
-Position:
-  x: float
-  y: float
-
-Player:
-  id: string
-  username: string
-  team: Team
-  position: Position
-  health: uint
-  score: int
-
-GameState:
-  players: string,Player
-  round: uint
-  timeRemaining: float
-```
-
 **Using Interpreter Mode:**
 
 ```typescript
 import {
-  ObjectType,
-  StringType,
-  UIntType,
-  FloatType,
-  IntType,
-  EnumType,
-  ReferenceType,
-  RecordType,
-  load,
-  Infer,
-  defineSchema,
+  ObjectType, StringType, UIntType, FloatType, IntType,
+  EnumType, ReferenceType, RecordType,
+  load, Infer, defineSchema,
 } from "@hpx7/delta-pack";
 
 // Define schema
@@ -610,25 +602,21 @@ const schema = defineSchema({
 
 // Infer types
 type GameState = Infer<typeof schema.GameState, typeof schema>;
-type Player = Infer<typeof schema.Player, typeof schema>;
 
 // Load API
-const GameState = load<GameState>(schema, "GameState");
+const GameStateApi = load<GameState>(schema, "GameState");
 
-// Initial state
+// Create initial state
 const state1: GameState = {
   players: new Map([
-    [
-      "p1",
-      {
-        id: "p1",
-        username: "Alice",
-        team: "RED",
-        position: { x: 100, y: 100 },
-        health: 100,
-        score: 0,
-      },
-    ],
+    ["p1", {
+      id: "p1",
+      username: "Alice",
+      team: "RED",
+      position: { x: 100, y: 100 },
+      health: 100,
+      score: 0,
+    }],
   ]),
   round: 1,
   timeRemaining: 600.0,
@@ -638,70 +626,81 @@ const state1: GameState = {
 const state2: GameState = {
   ...state1,
   players: new Map([
-    [
-      "p1",
-      {
-        ...state1.players.get("p1")!,
-        position: { x: 105.5, y: 102.3 },
-      },
-    ],
+    ["p1", { ...state1.players.get("p1")!, position: { x: 105, y: 102 } }],
   ]),
   timeRemaining: 599.0,
 };
 
-// Full encoding
-const fullBytes = GameState.encode(state2);
-console.log(`Full state: ${fullBytes.length} bytes`);
+// Delta encoding
+const diff = GameStateApi.encodeDiff(state1, state2);
+const reconstructed = GameStateApi.decodeDiff(state1, diff);
+```
 
-// Delta encoding (much smaller!)
-const diffBytes = GameState.encodeDiff(state1, state2);
-console.log(`Delta: ${diffBytes.length} bytes`);
-console.log(`Savings: ${((1 - diffBytes.length / fullBytes.length) * 100).toFixed(1)}%`);
+**Using Decorator Mode:**
 
-// Client applies delta
-const reconstructed = GameState.decodeDiff(state1, diffBytes);
-console.log("State synchronized!", GameState.equals(reconstructed, state2)); // true
+```typescript
+import {
+  StringType, UIntType, FloatType, IntType,
+  ReferenceType, RecordType, loadClass,
+} from "@hpx7/delta-pack";
+
+enum Team { RED = "RED", BLUE = "BLUE" }
+
+class Position {
+  @FloatType() x: number = 0;
+  @FloatType() y: number = 0;
+}
+
+class Player {
+  @StringType() id: string = "";
+  @StringType() username: string = "";
+  @ReferenceType(Team) team: Team = Team.RED;
+  @ReferenceType(Position) position: Position = new Position();
+  @UIntType() health: number = 0;
+  @IntType() score: number = 0;
+}
+
+class GameState {
+  @RecordType(StringType(), Player) players: Map<string, Player> = new Map();
+  @UIntType() round: number = 0;
+  @FloatType() timeRemaining: number = 0;
+}
+
+// Load API
+const GameStateApi = loadClass(GameState);
+
+// Create initial state
+const state1 = new GameState();
+state1.round = 1;
+state1.timeRemaining = 600.0;
+
+const player = new Player();
+player.id = "p1";
+player.username = "Alice";
+player.team = Team.RED;
+player.position.x = 100;
+player.position.y = 100;
+player.health = 100;
+state1.players.set("p1", player);
+
+// Updated state (player moved)
+const state2 = GameStateApi.clone(state1);
+state2.players.get("p1")!.position.x = 105;
+state2.players.get("p1")!.position.y = 102;
+state2.timeRemaining = 599.0;
+
+// Delta encoding
+const diff = GameStateApi.encodeDiff(state1, state2);
+const reconstructed = GameStateApi.decodeDiff(state1, diff);
 ```
 
 **Using Codegen Mode:**
 
 ```typescript
-import {
-  codegenTypescript,
-  ObjectType,
-  StringType,
-  UIntType,
-  FloatType,
-  IntType,
-  EnumType,
-  ReferenceType,
-  RecordType,
-} from "@hpx7/delta-pack";
+import { codegenTypescript } from "@hpx7/delta-pack";
 import { writeFileSync } from "fs";
 
-// Define schema
-const schema = {
-  Team: EnumType(["RED", "BLUE"]),
-  Position: ObjectType({
-    x: FloatType(),
-    y: FloatType(),
-  }),
-  Player: ObjectType({
-    id: StringType(),
-    username: StringType(),
-    team: ReferenceType("Team"),
-    position: ReferenceType("Position"),
-    health: UIntType(),
-    score: IntType(),
-  }),
-  GameState: ObjectType({
-    players: RecordType(StringType(), ReferenceType("Player")),
-    round: UIntType(),
-    timeRemaining: FloatType(),
-  }),
-};
-
-// Generate code
+// Using the same schema from above
 const code = codegenTypescript(schema);
 writeFileSync("generated.ts", code);
 ```
@@ -871,11 +870,12 @@ Each example includes:
 
 ### Complex Types
 
-| Function              | TypeScript Type          | Description                         |
-| --------------------- | ------------------------ | ----------------------------------- |
-| `ObjectType({ ... })` | `{ ... }`                | Object with defined properties      |
-| `EnumType([...])`     | Union of string literals | Enumerated string values            |
-| `ReferenceType(name)` | Named type               | Reference to another type in schema |
+| Function              | TypeScript Type                   | Description                         |
+| --------------------- | --------------------------------- | ----------------------------------- |
+| `ObjectType({ ... })` | `{ ... }`                         | Object with defined properties      |
+| `EnumType([...])`     | Union of string literals          | Enumerated string values            |
+| `UnionType([...])`    | `{ type: string, val: T }`        | Tagged union of reference types     |
+| `ReferenceType(name)` | Named type                        | Reference to another type in schema |
 
 ## Development
 
