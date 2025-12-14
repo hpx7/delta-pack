@@ -425,6 +425,47 @@ describe("Delta Pack Reflection", () => {
       expect(cloned instanceof PlayerWithMethod).toBe(true);
       expect(cloned.greet()).toBe("Hi, I'm Alice!");
     });
+
+    it("should not corrupt auxiliary Set/Map properties during encodeDiff", () => {
+      // This tests that wrapUnions only processes schema-defined properties,
+      // not auxiliary properties like _dirty used for dirty tracking
+      class StateWithDirtyTracking {
+        @StringType()
+        name: string = "";
+
+        @IntType()
+        value: number = 0;
+
+        // Auxiliary property not part of schema
+        _dirty?: Set<string>;
+      }
+
+      const api = loadClass(StateWithDirtyTracking);
+
+      const state1 = new StateWithDirtyTracking();
+      state1.name = "test";
+      state1.value = 100;
+      state1._dirty = new Set(["value"]);
+
+      const state2 = new StateWithDirtyTracking();
+      state2.name = "test";
+      state2.value = 200;
+      state2._dirty = new Set(["value"]);
+
+      // encodeDiff should work without corrupting the Set
+      const diff = api.encodeDiff(state1, state2);
+      expect(diff).toBeDefined();
+      expect(diff.length).toBeGreaterThan(0);
+
+      // Verify the original Sets are still valid
+      expect(state1._dirty!.size).toBe(1);
+      expect(state2._dirty!.size).toBe(1);
+      expect(state1._dirty!.has("value")).toBe(true);
+
+      // Decode the diff
+      const decoded = api.decodeDiff(state1, diff);
+      expect(decoded.value).toBe(200);
+    });
   });
 
   describe("Coverage - Obscure Decorator Combinations", () => {

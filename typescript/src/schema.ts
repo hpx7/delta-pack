@@ -573,17 +573,22 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
     return value;
   }
 
+  const rootType = schema[rootClass.name];
+  if (!rootType) {
+    throw new Error(`Type ${rootClass.name} not found in schema`);
+  }
+  const wrap = (obj: T) => wrapUnions(obj, rootType, schema, unionVariants) as T;
+
   return {
     ...rawApi,
-    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrapUnions(obj, unionVariants) as object), rootClass.name) as T,
-    encode: (obj: T) => rawApi.encode(wrapUnions(obj, unionVariants) as T),
+    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as T)), rootClass.name) as T,
+    encode: (obj: T) => rawApi.encode(wrap(obj)),
     decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootClass.name) as T,
-    encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrapUnions(a, unionVariants) as T, wrapUnions(b, unionVariants) as T),
-    decodeDiff: (a: T, diff: Uint8Array) =>
-      hydrate(rawApi.decodeDiff(wrapUnions(a, unionVariants) as T, diff), rootClass.name) as T,
-    equals: (a: T, b: T) => rawApi.equals(wrapUnions(a, unionVariants) as T, wrapUnions(b, unionVariants) as T),
-    clone: (obj: T) => hydrate(rawApi.clone(wrapUnions(obj, unionVariants) as T), rootClass.name) as T,
-    toJson: (obj: T) => rawApi.toJson(wrapUnions(obj, unionVariants) as T),
+    encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrap(a), wrap(b)),
+    decodeDiff: (a: T, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootClass.name) as T,
+    equals: (a: T, b: T) => rawApi.equals(wrap(a), wrap(b)),
+    clone: (obj: T) => hydrate(rawApi.clone(wrap(obj)), rootClass.name) as T,
+    toJson: (obj: T) => rawApi.toJson(wrap(obj)),
   };
 }
 
@@ -690,50 +695,91 @@ function collectFromSchemaType(schemaType: unknown, variants: Set<string>, visit
   }
 }
 
-function wrapUnions(obj: unknown, unionVariants: Set<string>): unknown {
+function wrapUnions(obj: unknown, objType: Type, schema: Record<string, Type>, unionVariants: Set<string>): unknown {
   if (obj === null || obj === undefined) return obj;
 
-  if (Array.isArray(obj)) {
-    return obj.map((item) => wrapUnions(item, unionVariants));
-  }
-
-  if (obj instanceof Map) {
-    const wrapped = new Map<string, unknown>();
-    for (const [key, value] of obj) {
-      wrapped.set(key, wrapUnions(value, unionVariants));
+  if (objType.type === "union") {
+    // Check if obj is already in { type, val } format
+    if (
+      typeof obj === "object" &&
+      obj !== null &&
+      "type" in obj &&
+      "val" in obj &&
+      typeof (obj as { type: unknown }).type === "string"
+    ) {
+      const unionVal = obj as { type: string; val: unknown };
+      const variantType = schema[unionVal.type];
+      return {
+        type: unionVal.type,
+        val: variantType ? wrapUnions(unionVal.val, variantType, schema, unionVariants) : unionVal.val,
+      };
     }
-    return wrapped;
-  }
 
-  if (typeof obj === "object") {
+    // Check if obj is a class instance that's a union variant
     const proto = Object.getPrototypeOf(obj);
-
     if (proto && proto.constructor && proto.constructor !== Object) {
-      const cls = proto.constructor;
-      const className = cls.name;
-
+      const className = proto.constructor.name;
       if (className && unionVariants.has(className)) {
-        const wrappedObj: Record<string, unknown> = {};
-        for (const key of Object.keys(obj as object)) {
-          wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
-        }
-        return { type: className, val: wrappedObj };
+        const variantType = schema[className];
+        return {
+          type: className,
+          val: variantType ? wrapUnions(obj, variantType, schema, unionVariants) : obj,
+        };
       }
-
-      // Preserve prototype for class instances
-      const wrappedObj: Record<string, unknown> = Object.create(proto);
-      for (const key of Object.keys(obj as object)) {
-        wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
-      }
-      return wrappedObj;
     }
+    return obj;
+  }
 
-    const wrappedObj: Record<string, unknown> = {};
-    for (const key of Object.keys(obj)) {
-      wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
+  if (objType.type === "object") {
+    const proto = Object.getPrototypeOf(obj);
+    const wrappedObj: Record<string, unknown> =
+      proto && proto.constructor && proto.constructor !== Object ? Object.create(proto) : {};
+
+    // Only process schema-defined properties
+    for (const [key, propType] of Object.entries(objType.properties)) {
+      const value = (obj as Record<string, unknown>)[key];
+      wrappedObj[key] = wrapUnionValue(value, propType, schema, unionVariants);
     }
     return wrappedObj;
   }
 
+  if (objType.type === "reference") {
+    const refType = schema[objType.reference];
+    return refType ? wrapUnions(obj, refType, schema, unionVariants) : obj;
+  }
+
   return obj;
+}
+
+function wrapUnionValue(
+  value: unknown,
+  propType: PrimitiveType | ContainerType | ReferenceType,
+  schema: Record<string, Type>,
+  unionVariants: Set<string>
+): unknown {
+  if (value === null || value === undefined) return value;
+
+  if (propType.type === "reference") {
+    const refType = schema[propType.reference];
+    return refType ? wrapUnions(value, refType, schema, unionVariants) : value;
+  }
+
+  if (propType.type === "array") {
+    return (value as unknown[]).map((item) => wrapUnionValue(item, propType.value, schema, unionVariants));
+  }
+
+  if (propType.type === "record") {
+    const map = value as Map<unknown, unknown>;
+    const wrapped = new Map<unknown, unknown>();
+    for (const [k, v] of map) {
+      wrapped.set(k, wrapUnionValue(v, propType.value, schema, unionVariants));
+    }
+    return wrapped;
+  }
+
+  if (propType.type === "optional") {
+    return wrapUnionValue(value, propType.value, schema, unionVariants);
+  }
+
+  return value;
 }
