@@ -120,3 +120,30 @@ export class PlayerRegistry {
   @DeltaPackMapOf(Player)
   players: Map<string, Player> = new Map();
 }
+
+// Comprehensive test class for coverage of obscure decorator combinations
+export class CoverageTestSchema {
+  // Direct enum via @DeltaPackRef (not @DeltaPackOptionalOf)
+  @DeltaPackRef(Color, { enumName: "Color" })
+  directEnum: Color = Color.RED;
+
+  // Nested optional via container descriptor
+  @DeltaPackOptionalOf(DeltaPackOptionalOf(String))
+  nestedOptional?: string;
+
+  // Primitive targetClass (Boolean) in nested containers
+  @DeltaPackArrayOf(DeltaPackArrayOf(Boolean))
+  boolMatrix: boolean[][] = [];
+
+  // Primitive targetClass (String) in nested containers
+  @DeltaPackArrayOf(DeltaPackArrayOf(String))
+  stringMatrix: string[][] = [];
+
+  // Primitive targetClass (Number) in nested containers
+  @DeltaPackArrayOf(DeltaPackArrayOf(Number))
+  intMatrix: number[][] = [];
+
+  // Union type to trigger the wrapped API path
+  @DeltaPackOptionalOf(GameAction)
+  action?: GameAction;
+}

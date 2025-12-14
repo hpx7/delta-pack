@@ -71,16 +71,17 @@ export const Player = {
       partner: undefined,
     };
   },
-  fromJson(obj: Record<string, unknown>): Player {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): Player {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid Player: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      id: _.tryParseField(() => _.parseString(obj["id"]), "Player.id"),
-      name: _.tryParseField(() => _.parseString(obj["name"]), "Player.name"),
-      score: _.tryParseField(() => _.parseInt(obj["score"]), "Player.score"),
-      isActive: _.tryParseField(() => _.parseBoolean(obj["isActive"]), "Player.isActive"),
-      partner: _.tryParseField(() => _.parseOptional(obj["partner"], (x) => Player.fromJson(x as Player)), "Player.partner"),
+      id: _.tryParseField(() => _.parseString(o["id"]), "Player.id"),
+      name: _.tryParseField(() => _.parseString(o["name"]), "Player.name"),
+      score: _.tryParseField(() => _.parseInt(o["score"]), "Player.score"),
+      isActive: _.tryParseField(() => _.parseBoolean(o["isActive"]), "Player.isActive"),
+      partner: _.tryParseField(() => _.parseOptional(o["partner"], (x) => Player.fromJson(x as Player)), "Player.partner"),
     };
   },
   toJson(obj: Player): Record<string, unknown> {
@@ -214,13 +215,14 @@ export const Position = {
       y: 0.0,
     };
   },
-  fromJson(obj: Record<string, unknown>): Position {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): Position {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid Position: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      x: _.tryParseField(() => _.parseFloat(obj["x"]), "Position.x"),
-      y: _.tryParseField(() => _.parseFloat(obj["y"]), "Position.y"),
+      x: _.tryParseField(() => _.parseFloat(o["x"]), "Position.x"),
+      y: _.tryParseField(() => _.parseFloat(o["y"]), "Position.y"),
     };
   },
   toJson(obj: Position): Record<string, unknown> {
@@ -307,13 +309,14 @@ export const Velocity = {
       vy: 0.0,
     };
   },
-  fromJson(obj: Record<string, unknown>): Velocity {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): Velocity {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid Velocity: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      vx: _.tryParseField(() => _.parseFloat(obj["vx"]), "Velocity.vx"),
-      vy: _.tryParseField(() => _.parseFloat(obj["vy"]), "Velocity.vy"),
+      vx: _.tryParseField(() => _.parseFloat(o["vx"]), "Velocity.vx"),
+      vy: _.tryParseField(() => _.parseFloat(o["vy"]), "Velocity.vy"),
     };
   },
   toJson(obj: Velocity): Record<string, unknown> {
@@ -400,13 +403,14 @@ export const Entity = {
       position: Position.default(),
     };
   },
-  fromJson(obj: Record<string, unknown>): Entity {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): Entity {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid Entity: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      id: _.tryParseField(() => _.parseString(obj["id"]), "Entity.id"),
-      position: _.tryParseField(() => Position.fromJson(obj["position"] as Position), "Entity.position"),
+      id: _.tryParseField(() => _.parseString(o["id"]), "Entity.id"),
+      position: _.tryParseField(() => Position.fromJson(o["position"] as Position), "Entity.position"),
     };
   },
   toJson(obj: Entity): Record<string, unknown> {
@@ -493,13 +497,14 @@ export const MoveAction = {
       y: 0,
     };
   },
-  fromJson(obj: Record<string, unknown>): MoveAction {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): MoveAction {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid MoveAction: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      x: _.tryParseField(() => _.parseInt(obj["x"]), "MoveAction.x"),
-      y: _.tryParseField(() => _.parseInt(obj["y"]), "MoveAction.y"),
+      x: _.tryParseField(() => _.parseInt(o["x"]), "MoveAction.x"),
+      y: _.tryParseField(() => _.parseInt(o["y"]), "MoveAction.y"),
     };
   },
   toJson(obj: MoveAction): Record<string, unknown> {
@@ -586,13 +591,14 @@ export const AttackAction = {
       damage: 0,
     };
   },
-  fromJson(obj: Record<string, unknown>): AttackAction {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): AttackAction {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid AttackAction: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      targetId: _.tryParseField(() => _.parseString(obj["targetId"]), "AttackAction.targetId"),
-      damage: _.tryParseField(() => _.parseUInt(obj["damage"]), "AttackAction.damage"),
+      targetId: _.tryParseField(() => _.parseString(o["targetId"]), "AttackAction.targetId"),
+      damage: _.tryParseField(() => _.parseUInt(o["damage"]), "AttackAction.damage"),
     };
   },
   toJson(obj: AttackAction): Record<string, unknown> {
@@ -678,12 +684,13 @@ export const UseItemAction = {
       itemId: "",
     };
   },
-  fromJson(obj: Record<string, unknown>): UseItemAction {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): UseItemAction {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid UseItemAction: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      itemId: _.tryParseField(() => _.parseString(obj["itemId"]), "UseItemAction.itemId"),
+      itemId: _.tryParseField(() => _.parseString(o["itemId"]), "UseItemAction.itemId"),
     };
   },
   toJson(obj: UseItemAction): Record<string, unknown> {
@@ -761,12 +768,12 @@ export const GameAction = {
   values() {
     return ["MoveAction", "AttackAction", "UseItemAction"];
   },
-  fromJson(obj: Record<string, unknown>): GameAction {
+  fromJson(obj: object): GameAction {
     if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid GameAction: ${obj}`);
     }
     // check if it's delta-pack format: { type: "TypeName", val: ... }
-    if ("type" in obj && typeof obj["type"] === "string" && "val" in obj) {
+    if ("type" in obj && typeof (obj as Record<string, unknown>)["type"] === "string" && "val" in obj) {
       if (obj["type"] === "MoveAction") {
         return {
           type: "MoveAction",
@@ -994,17 +1001,18 @@ export const GameState = {
       lastAction: undefined,
     };
   },
-  fromJson(obj: Record<string, unknown>): GameState {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): GameState {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid GameState: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      players: _.tryParseField(() => _.parseArray(obj["players"], (x) => Player.fromJson(x as Player)), "GameState.players"),
-      currentPlayer: _.tryParseField(() => _.parseOptional(obj["currentPlayer"], (x) => _.parseString(x)), "GameState.currentPlayer"),
-      round: _.tryParseField(() => _.parseUInt(obj["round"]), "GameState.round"),
-      metadata: _.tryParseField(() => _.parseRecord(obj["metadata"], (x) => _.parseString(x), (x) => _.parseString(x)), "GameState.metadata"),
-      winningColor: _.tryParseField(() => _.parseOptional(obj["winningColor"], (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
-      lastAction: _.tryParseField(() => _.parseOptional(obj["lastAction"], (x) => GameAction.fromJson(x as GameAction)), "GameState.lastAction"),
+      players: _.tryParseField(() => _.parseArray(o["players"], (x) => Player.fromJson(x as Player)), "GameState.players"),
+      currentPlayer: _.tryParseField(() => _.parseOptional(o["currentPlayer"], (x) => _.parseString(x)), "GameState.currentPlayer"),
+      round: _.tryParseField(() => _.parseUInt(o["round"]), "GameState.round"),
+      metadata: _.tryParseField(() => _.parseRecord(o["metadata"], (x) => _.parseString(x), (x) => _.parseString(x)), "GameState.metadata"),
+      winningColor: _.tryParseField(() => _.parseOptional(o["winningColor"], (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
+      lastAction: _.tryParseField(() => _.parseOptional(o["lastAction"], (x) => GameAction.fromJson(x as GameAction)), "GameState.lastAction"),
     };
   },
   toJson(obj: GameState): Record<string, unknown> {
@@ -1189,12 +1197,13 @@ export const Inventory = {
       items: undefined,
     };
   },
-  fromJson(obj: Record<string, unknown>): Inventory {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): Inventory {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid Inventory: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      items: _.tryParseField(() => _.parseOptional(obj["items"], (x) => _.parseArray(x, (x) => _.parseRecord(x, (x) => _.parseString(x), (x) => _.parseInt(x)))), "Inventory.items"),
+      items: _.tryParseField(() => _.parseOptional(o["items"], (x) => _.parseArray(x, (x) => _.parseRecord(x, (x) => _.parseString(x), (x) => _.parseInt(x)))), "Inventory.items"),
     };
   },
   toJson(obj: Inventory): Record<string, unknown> {
@@ -1301,12 +1310,13 @@ export const PlayerRegistry = {
       players: new Map(),
     };
   },
-  fromJson(obj: Record<string, unknown>): PlayerRegistry {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): PlayerRegistry {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(`Invalid PlayerRegistry: ${obj}`);
     }
+    const o = obj as Record<string, unknown>;
     return {
-      players: _.tryParseField(() => _.parseRecord(obj["players"], (x) => _.parseString(x), (x) => Player.fromJson(x as Player)), "PlayerRegistry.players"),
+      players: _.tryParseField(() => _.parseRecord(o["players"], (x) => _.parseString(x), (x) => Player.fromJson(x as Player)), "PlayerRegistry.players"),
     };
   },
   toJson(obj: PlayerRegistry): Record<string, unknown> {

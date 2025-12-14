@@ -2,7 +2,7 @@ import * as _ from "./helpers.js";
 import { Type, isPrimitiveType } from "./schema.js";
 
 export type DeltaPackApi<T> = {
-  fromJson: (obj: Record<string, unknown>) => T;
+  fromJson: (obj: object) => T;
   toJson: (obj: T) => Record<string, unknown>;
   encode: (obj: T) => Uint8Array;
   decode: (buf: Uint8Array) => T;
@@ -56,7 +56,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "reference") {
       return _fromJson(objVal, resolveRef(objType.reference));
     } else if (objType.type === "object") {
-      if (typeof objVal !== "object" || objVal == null || Object.getPrototypeOf(objVal) !== Object.prototype) {
+      if (typeof objVal !== "object" || objVal == null) {
         throw new Error(`Invalid object: ${objVal}`);
       }
       return _.mapValues(objType.properties, (typeVal, key) => {
@@ -513,7 +513,7 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
   }
 
   return {
-    fromJson: (obj: Record<string, unknown>) => _fromJson(obj, typeVal) as T,
+    fromJson: (obj: object) => _fromJson(obj, typeVal) as T,
     toJson: (obj: T) => _toJson(obj, typeVal) as Record<string, unknown>,
     encode: (obj: T) => {
       const encoder = new _.Encoder();

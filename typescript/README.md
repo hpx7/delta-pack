@@ -462,6 +462,22 @@ const encoded = PlayerApi.encode(player);
 const decoded = PlayerApi.decode(encoded);
 ```
 
+### buildSchema()
+
+If you need access to the generated schema (e.g., for inspection or to use with `load()` directly), use `buildSchema()`:
+
+```typescript
+import { buildSchema, load } from "@hpx7/delta-pack";
+
+const schema = buildSchema(Player);
+console.log(schema); // { Player: { type: "object", properties: { ... } } }
+
+// Use with load() for more control
+const PlayerApi = load(schema, "Player");
+```
+
+Note: When using `buildSchema()` + `load()` with union types, you must manually wrap values in `{ type: "TypeName", val: {...} }` format. The `loadClass()` convenience method handles this automatically.
+
 ### Requirements
 
 **tsconfig.json:** Enable `"experimentalDecorators": true`

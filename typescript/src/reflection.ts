@@ -1,9 +1,6 @@
 import "reflect-metadata";
 import { load, DeltaPackApi } from "./interpreter.js";
 import {
-  Type,
-  PrimitiveType,
-  ContainerType,
   StringType,
   IntType,
   UIntType,
@@ -12,688 +9,536 @@ import {
   ArrayType,
   OptionalType,
   RecordType,
-  EnumType,
   ReferenceType,
-  ObjectType,
+  EnumType,
   UnionType,
+  type PrimitiveType,
+  type ContainerType,
+  type Type,
 } from "./schema.js";
-import {
-  DELTA_PACK_PROP_TYPE,
-  DELTA_PACK_FLOAT,
-  DELTA_PACK_UNSIGNED,
-  DELTA_PACK_UNION,
-  DELTA_PACK_ARRAY_ELEMENT,
-  DELTA_PACK_ARRAY_MODIFIERS,
-  DELTA_PACK_MAP_VALUE,
-  DELTA_PACK_MAP_MODIFIERS,
-  DELTA_PACK_OPTIONAL_ELEMENT,
-  DELTA_PACK_OPTIONAL_MODIFIERS,
-  DELTA_PACK_ENUM_NAME,
-  isTsStringEnum,
-  isContainerDescriptor,
-  getTsEnumValues,
-  getTsEnumName,
-  type ElementType,
-  type TsStringEnum,
-  type NumberModifiers,
-  type ContainerDescriptor,
-} from "./decorators.js";
 
-// Type constructor
+// ============ Metadata Keys ============
+
+const DELTA_PACK_SCHEMA_TYPE = "deltapack:schemaType";
+const DELTA_PACK_UNION = "deltapack:union";
+
+// ============ Types ============
+
 type Constructor<T = unknown> = new (...args: unknown[]) => T;
 
+// Type for schema types that may contain unresolved class references
+type SchemaTypeOrRef = PrimitiveType | ContainerType | ReturnType<typeof ReferenceType> | { __class: Function };
+
 /**
- * Internal mapping for typed/untyped conversion
+ * TypeScript string enum object type.
  */
-interface TypeMapping {
-  kind: "primitive" | "enum" | "object" | "array" | "record" | "optional" | "union";
-  targetClass?: Constructor;
-  elementMapping?: TypeMapping;
-  valueMapping?: TypeMapping;
-  unionVariants?: Map<string, { cls: Constructor; mapping: TypeMapping }>;
-  members?: Map<string, TypeMapping>;
-  // Number modifiers for primitives
+export type TsStringEnum = { [key: string]: string };
+
+/**
+ * Element type for container decorators.
+ * - String/Number/Boolean: primitive constructors
+ * - Function: class reference
+ * - Function[]: union of classes
+ * - TsStringEnum: TypeScript string enum
+ * - SchemaType: nested schema type from another decorator call
+ */
+export type ElementType =
+  | typeof String
+  | typeof Number
+  | typeof Boolean
+  | Function
+  | Function[]
+  | TsStringEnum
+  | SchemaTypeOrRef;
+
+/**
+ * Options for number types in containers.
+ */
+export interface NumberOptions {
   unsigned?: boolean;
   float?: boolean | number;
-  // TypeScript string enum
-  tsEnum?: TsStringEnum;
-  // Explicit enum name (from enumName option)
+}
+
+/**
+ * Options for enum references.
+ */
+export interface EnumOptions {
   enumName?: string;
 }
 
+// ============ Helper Functions ============
+
 /**
- * Builds a delta-pack schema from a decorated TypeScript class.
+ * Type guard to check if a value is a TypeScript string enum.
  */
-class SchemaBuilder {
-  private schema: Record<string, Type> = {};
-  private mappings = new Map<Constructor, TypeMapping>();
-  private processing = new Set<Constructor>();
-
-  build(rootClass: Constructor): {
-    schema: Record<string, Type>;
-    rootMapping: TypeMapping;
-    mappings: Map<Constructor, TypeMapping>;
-  } {
-    const rootMapping = this.buildMapping(rootClass);
-    return {
-      schema: this.schema,
-      rootMapping,
-      mappings: this.mappings,
-    };
+export function isTsStringEnum(value: unknown): value is TsStringEnum {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
   }
-
-  private buildMapping(type: Constructor): TypeMapping {
-    // Check cache
-    const cached = this.mappings.get(type);
-    if (cached) return cached;
-
-    // Check for circular reference - return a reference instead of recursing
-    if (this.processing.has(type)) {
-      // Return a reference mapping - the actual type will be in the schema
-      return { kind: "object", targetClass: type };
-    }
-
-    this.processing.add(type);
-
-    // Check for union type
-    const unionVariants = Reflect.getMetadata(DELTA_PACK_UNION, type) as Constructor[] | undefined;
-    if (unionVariants) {
-      const mapping = this.buildUnionMapping(type, unionVariants);
-      this.processing.delete(type);
-      return mapping;
-    }
-
-    // Validate class has DeltaPack property decorators
-    if (!this.hasDeltaPackProperties(type)) {
-      this.processing.delete(type);
-      throw new Error(`Class ${type.name} must have DeltaPack property decorators`);
-    }
-
-    // Build object mapping
-    const mapping = this.buildObjectMapping(type);
-    this.processing.delete(type);
-    return mapping;
-  }
-
-  private buildObjectMapping(type: Constructor): TypeMapping {
-    // Create instance to get property keys
-    const instance = new type();
-    const propertyKeys = Object.keys(instance as object);
-
-    const properties: Record<string, PrimitiveType | ContainerType | ReturnType<typeof ReferenceType>> = {};
-    const members = new Map<string, TypeMapping>();
-
-    for (const propertyKey of propertyKeys) {
-      const memberMapping = this.buildMemberMapping(type.prototype, propertyKey);
-      properties[propertyKey] = this.mappingToSchemaType(memberMapping, type.prototype, propertyKey);
-      members.set(propertyKey, memberMapping);
-    }
-
-    const objectMapping: TypeMapping = {
-      kind: "object",
-      targetClass: type,
-      members,
-    };
-
-    this.mappings.set(type, objectMapping);
-    this.schema[type.name] = ObjectType(properties);
-
-    return objectMapping;
-  }
-
-  private buildVariantMappings(variants: Constructor[]): Map<string, { cls: Constructor; mapping: TypeMapping }> {
-    const variantMappings = new Map<string, { cls: Constructor; mapping: TypeMapping }>();
-    for (const variant of variants) {
-      const variantMapping = this.buildMapping(variant);
-      variantMappings.set(variant.name, { cls: variant, mapping: variantMapping });
-    }
-    return variantMappings;
-  }
-
-  private buildUnionMapping(baseType: Constructor, variants: Constructor[]): TypeMapping {
-    const variantMappings = this.buildVariantMappings(variants);
-
-    const unionMapping: TypeMapping = {
-      kind: "union",
-      targetClass: baseType,
-      unionVariants: variantMappings,
-    };
-
-    this.mappings.set(baseType, unionMapping);
-    this.schema[baseType.name] = UnionType(Array.from(variantMappings.keys()).map((name) => ReferenceType(name)));
-
-    return unionMapping;
-  }
-
-  private buildMemberMapping(target: object, propertyKey: string): TypeMapping {
-    // Get explicit enum name if provided
-    const enumName = Reflect.getMetadata(DELTA_PACK_ENUM_NAME, target, propertyKey) as string | undefined;
-
-    // Check for @DeltaPackOptionalOf
-    const optionalElementType = Reflect.getMetadata(DELTA_PACK_OPTIONAL_ELEMENT, target, propertyKey) as
-      | ElementType
-      | undefined;
-    if (optionalElementType) {
-      const modifiers = Reflect.getMetadata(DELTA_PACK_OPTIONAL_MODIFIERS, target, propertyKey) as
-        | NumberModifiers
-        | undefined;
-      const innerMapping = this.buildElementMapping(optionalElementType, modifiers, enumName);
-      return { kind: "optional", elementMapping: innerMapping };
-    }
-
-    // Check for explicit type decorator (@DeltaPackString, @DeltaPackInt, @DeltaPackBool, @DeltaPackRef, @DeltaPackArrayOf, @DeltaPackMapOf)
-    const explicitType = Reflect.getMetadata(DELTA_PACK_PROP_TYPE, target, propertyKey) as
-      | string
-      | Constructor
-      | TsStringEnum
-      | undefined;
-    if (explicitType) {
-      return this.buildMappingFromExplicitType(explicitType, propertyKey, target, enumName);
-    }
-
-    throw new Error(
-      `Cannot determine type for property ${propertyKey}. ` +
-        `Use @DeltaPackString(), @DeltaPackInt(), @DeltaPackBool(), @DeltaPackFloat(), ` +
-        `@DeltaPackRef(Type), @DeltaPackArrayOf(Type), @DeltaPackMapOf(Type), or @DeltaPackOptionalOf(Type).`
-    );
-  }
-
-  private hasDeltaPackProperties(cls: Constructor): boolean {
-    // Check if any property has DeltaPack metadata
-    try {
-      const instance = new cls();
-      const propertyKeys = Object.keys(instance as object);
-      const proto = cls.prototype;
-      return propertyKeys.some((key) => {
-        // DELTA_PACK_PROP_TYPE covers @DeltaPackString, @DeltaPackInt, @DeltaPackBool,
-        // @DeltaPackFloat, @DeltaPackUnsigned, @DeltaPackRef, @DeltaPackArrayOf, @DeltaPackMapOf
-        // Only need separate check for @DeltaPackOptionalOf
-        return (
-          Reflect.getMetadata(DELTA_PACK_PROP_TYPE, proto, key) !== undefined ||
-          Reflect.getMetadata(DELTA_PACK_OPTIONAL_ELEMENT, proto, key) !== undefined
-        );
-      });
-    } catch {
-      return false;
-    }
-  }
-
-  private buildMappingFromExplicitType(
-    explicitType: string | Constructor | TsStringEnum,
-    propertyKey: string,
-    target: object,
-    enumName?: string
-  ): TypeMapping {
-    if (explicitType === "string" || explicitType === "boolean" || explicitType === "int") {
-      return { kind: "primitive" };
-    } else if (explicitType === "array") {
-      return this.buildArrayMapping(target, propertyKey);
-    } else if (explicitType === "map") {
-      return this.buildMapMapping(target, propertyKey);
-    } else if (isTsStringEnum(explicitType)) {
-      // It's a TypeScript string enum (@DeltaPackRef(TsEnum))
-      const mapping: TypeMapping = { kind: "enum", tsEnum: explicitType };
-      if (enumName) mapping.enumName = enumName;
-      return mapping;
-    } else if (typeof explicitType === "function") {
-      // It's a class reference (@DeltaPackRef)
-      this.buildMapping(explicitType);
-      return { kind: "object", targetClass: explicitType };
-    } else {
-      throw new Error(`Unknown explicit type: ${explicitType}`);
-    }
-  }
-
-  private buildElementMapping(elementType: ElementType, modifiers?: NumberModifiers, enumName?: string): TypeMapping {
-    // Handle nested container descriptors
-    if (isContainerDescriptor(elementType)) {
-      return this.buildContainerDescriptorMapping(elementType);
-    }
-
-    // Handle TypeScript string enums
-    if (isTsStringEnum(elementType)) {
-      const mapping: TypeMapping = { kind: "enum", tsEnum: elementType };
-      if (enumName) mapping.enumName = enumName;
-      return mapping;
-    }
-
-    // Handle union arrays (Function[])
-    if (Array.isArray(elementType)) {
-      return this.buildPropertyUnionMapping(elementType as Constructor[]);
-    }
-
-    // Handle primitives
-    if (elementType === String || elementType === Number || elementType === Boolean) {
-      const mapping: TypeMapping = { kind: "primitive", targetClass: elementType as Constructor };
-      // Apply number modifiers if this is a Number type
-      if (elementType === Number && modifiers) {
-        if (modifiers.unsigned !== undefined) mapping.unsigned = modifiers.unsigned;
-        if (modifiers.float !== undefined) mapping.float = modifiers.float;
-      }
-      return mapping;
-    }
-
-    // Handle class references
-    return this.buildMapping(elementType as Constructor);
-  }
-
-  private buildContainerDescriptorMapping(descriptor: ContainerDescriptor): TypeMapping {
-    switch (descriptor.__container) {
-      case "array": {
-        const innerMapping = this.buildElementMapping(descriptor.element!, descriptor.modifiers);
-        return { kind: "array", elementMapping: innerMapping };
-      }
-      case "map": {
-        const innerMapping = this.buildElementMapping(descriptor.value!, descriptor.modifiers);
-        return { kind: "record", valueMapping: innerMapping };
-      }
-      case "optional": {
-        const innerMapping = this.buildElementMapping(descriptor.element!, descriptor.modifiers);
-        return { kind: "optional", elementMapping: innerMapping };
-      }
-      default:
-        throw new Error(`Unknown container type: ${(descriptor as ContainerDescriptor).__container}`);
-    }
-  }
-
-  private buildArrayMapping(target: object, propertyKey: string): TypeMapping {
-    const elementType = Reflect.getMetadata(DELTA_PACK_ARRAY_ELEMENT, target, propertyKey) as ElementType | undefined;
-    const modifiers = Reflect.getMetadata(DELTA_PACK_ARRAY_MODIFIERS, target, propertyKey) as
-      | NumberModifiers
-      | undefined;
-
-    if (!elementType) {
-      throw new Error(`Property ${propertyKey} requires @DeltaPackArrayOf(ElementType) decorator.`);
-    }
-
-    return {
-      kind: "array",
-      elementMapping: this.buildElementMapping(elementType, modifiers),
-    };
-  }
-
-  private buildMapMapping(target: object, propertyKey: string): TypeMapping {
-    const valueType = Reflect.getMetadata(DELTA_PACK_MAP_VALUE, target, propertyKey) as ElementType | undefined;
-    const modifiers = Reflect.getMetadata(DELTA_PACK_MAP_MODIFIERS, target, propertyKey) as NumberModifiers | undefined;
-
-    if (!valueType) {
-      throw new Error(`Property ${propertyKey} requires @DeltaPackMapOf(ValueType) decorator.`);
-    }
-
-    return {
-      kind: "record",
-      valueMapping: this.buildElementMapping(valueType, modifiers),
-    };
-  }
-
-  private buildPropertyUnionMapping(variants: Constructor[]): TypeMapping {
-    return {
-      kind: "union",
-      unionVariants: this.buildVariantMappings(variants),
-    };
-  }
-
-  private mappingToSchemaType(
-    mapping: TypeMapping,
-    target: object,
-    propertyKey: string
-  ): PrimitiveType | ContainerType | ReturnType<typeof ReferenceType> {
-    const floatMeta = Reflect.getMetadata(DELTA_PACK_FLOAT, target, propertyKey) as number | boolean | undefined;
-    const unsigned = Reflect.getMetadata(DELTA_PACK_UNSIGNED, target, propertyKey) as boolean | undefined;
-
-    switch (mapping.kind) {
-      case "primitive": {
-        const explicitType = Reflect.getMetadata(DELTA_PACK_PROP_TYPE, target, propertyKey) as string | undefined;
-
-        // For array/map elements with primitive targetClass
-        if (mapping.targetClass) {
-          if (mapping.targetClass === String) return StringType();
-          if (mapping.targetClass === Boolean) return BooleanType();
-          if (mapping.targetClass === Number) return IntType();
-        }
-
-        if (explicitType === "string") return StringType();
-        if (explicitType === "boolean") return BooleanType();
-        if (explicitType === "int") {
-          if (floatMeta !== undefined) {
-            return typeof floatMeta === "number" ? FloatType({ precision: floatMeta }) : FloatType();
-          }
-          if (unsigned) return UIntType();
-          return IntType();
-        }
-
-        throw new Error(`Unknown primitive type for ${propertyKey}`);
-      }
-
-      case "enum": {
-        if (!mapping.tsEnum) throw new Error(`TypeScript enum not specified for ${propertyKey}`);
-        const enumName = mapping.enumName ?? getTsEnumName(mapping.tsEnum);
-        if (!this.schema[enumName]) {
-          this.schema[enumName] = EnumType(getTsEnumValues(mapping.tsEnum));
-        }
-        return ReferenceType(enumName);
-      }
-
-      case "object":
-        if (!mapping.targetClass) throw new Error(`Object type missing for ${propertyKey}`);
-        return ReferenceType(mapping.targetClass.name);
-
-      case "array":
-        if (!mapping.elementMapping) throw new Error(`Array element type missing for ${propertyKey}`);
-        return ArrayType(this.elementMappingToSchemaType(mapping.elementMapping));
-
-      case "record":
-        if (!mapping.valueMapping) throw new Error(`Record value type missing for ${propertyKey}`);
-        return RecordType(StringType(), this.elementMappingToSchemaType(mapping.valueMapping));
-
-      case "optional":
-        if (!mapping.elementMapping) throw new Error(`Optional inner type missing for ${propertyKey}`);
-        return OptionalType(this.elementMappingToSchemaType(mapping.elementMapping));
-
-      case "union": {
-        if (!mapping.unionVariants || mapping.unionVariants.size === 0) {
-          throw new Error(`Union variants missing for ${propertyKey}`);
-        }
-        // Use targetClass name if available (from @DeltaPackUnion), otherwise generate from variants
-        const unionName = mapping.targetClass?.name ?? Array.from(mapping.unionVariants.keys()).join("Or");
-        if (!this.schema[unionName]) {
-          this.schema[unionName] = UnionType(
-            Array.from(mapping.unionVariants.keys()).map((name) => ReferenceType(name))
-          );
-        }
-        return ReferenceType(unionName);
-      }
-
-      default:
-        throw new Error(`Unknown mapping kind: ${mapping.kind}`);
-    }
-  }
-
-  private elementMappingToSchemaType(
-    mapping: TypeMapping
-  ): PrimitiveType | ContainerType | ReturnType<typeof ReferenceType> {
-    switch (mapping.kind) {
-      case "primitive":
-        if (mapping.targetClass === String) return StringType();
-        if (mapping.targetClass === Boolean) return BooleanType();
-        if (mapping.targetClass === Number) {
-          // Apply number modifiers
-          if (mapping.float !== undefined) {
-            return typeof mapping.float === "number" ? FloatType({ precision: mapping.float }) : FloatType();
-          }
-          if (mapping.unsigned) return UIntType();
-          return IntType();
-        }
-        throw new Error("Unknown primitive element type");
-
-      case "enum": {
-        if (!mapping.tsEnum) throw new Error("TypeScript enum missing for element type");
-        const enumName = mapping.enumName ?? getTsEnumName(mapping.tsEnum);
-        if (!this.schema[enumName]) {
-          this.schema[enumName] = EnumType(getTsEnumValues(mapping.tsEnum));
-        }
-        return ReferenceType(enumName);
-      }
-
-      case "object":
-        if (!mapping.targetClass) throw new Error("Object element type missing");
-        return ReferenceType(mapping.targetClass.name);
-
-      case "array":
-        if (!mapping.elementMapping) throw new Error("Array element type missing");
-        return ArrayType(this.elementMappingToSchemaType(mapping.elementMapping));
-
-      case "record":
-        if (!mapping.valueMapping) throw new Error("Record value type missing");
-        return RecordType(StringType(), this.elementMappingToSchemaType(mapping.valueMapping));
-
-      case "optional":
-        if (!mapping.elementMapping) throw new Error("Optional inner type missing");
-        return OptionalType(this.elementMappingToSchemaType(mapping.elementMapping));
-
-      case "union": {
-        if (!mapping.unionVariants || mapping.unionVariants.size === 0) {
-          throw new Error("Union variants missing for element type");
-        }
-        // Use targetClass name if available (from @DeltaPackUnion), otherwise generate from variants
-        const unionName = mapping.targetClass?.name ?? Array.from(mapping.unionVariants.keys()).join("Or");
-        if (!this.schema[unionName]) {
-          this.schema[unionName] = UnionType(
-            Array.from(mapping.unionVariants.keys()).map((name) => ReferenceType(name))
-          );
-        }
-        return ReferenceType(unionName);
-      }
-
-      default:
-        throw new Error(`Unsupported element mapping kind: ${mapping.kind}`);
-    }
-  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj);
+  return keys.length > 0 && keys.every((key) => typeof obj[key] === "string");
 }
 
 /**
- * Load a decorated class and return a DeltaPackApi for encoding/decoding.
- *
- * @param rootClass - A class with DeltaPack property decorators
- * @returns DeltaPackApi with encode/decode/etc methods
- *
- * @example
- * ```typescript
- * import { DeltaPackFloat, DeltaPackString, DeltaPackInt, loadClass } from "@hpx7/delta-pack";
- *
- * class Player {
- *   @DeltaPackString()
- *   name: string = "";
- *
- *   @DeltaPackInt()
- *   score: number = 0;
- *
- *   @DeltaPackFloat(0.01)
- *   x: number = 0;
- * }
- *
- * const playerApi = loadClass(Player);
- * const encoded = playerApi.encode(player);
- * const decoded = playerApi.decode(encoded);
- * ```
+ * Gets enum values from a TypeScript string enum.
  */
-export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPackApi<T> {
-  const builder = new SchemaBuilder();
-  const { schema, rootMapping, mappings } = builder.build(rootClass);
+export function getTsEnumValues(enumObj: TsStringEnum): string[] {
+  return Object.values(enumObj);
+}
 
-  // Get the raw interpreter API (works with untyped objects)
-  const rawApi = load(schema, rootClass.name);
+/**
+ * Gets a default name for a TypeScript enum based on its values.
+ */
+export function getTsEnumName(enumObj: TsStringEnum): string {
+  const values = getTsEnumValues(enumObj);
+  return values.map((v) => v.charAt(0).toUpperCase() + v.slice(1)).join("Or");
+}
 
-  // Create wrapper that converts between typed and untyped
-  return {
-    fromJson: (obj: Record<string, unknown>) => {
-      const untyped = rawApi.fromJson(obj);
-      return toTyped(untyped, rootMapping, mappings, rootClass) as T;
-    },
-    toJson: (obj: T) => {
-      const untyped = toUntyped(obj, rootMapping, mappings) as Record<string, unknown>;
-      return rawApi.toJson(untyped);
-    },
-    encode: (obj: T) => {
-      const untyped = toUntyped(obj, rootMapping, mappings) as Record<string, unknown>;
-      return rawApi.encode(untyped);
-    },
-    decode: (buf: Uint8Array) => {
-      const untyped = rawApi.decode(buf);
-      return toTyped(untyped, rootMapping, mappings, rootClass) as T;
-    },
-    encodeDiff: (a: T, b: T) => {
-      const untypedA = toUntyped(a, rootMapping, mappings) as Record<string, unknown>;
-      const untypedB = toUntyped(b, rootMapping, mappings) as Record<string, unknown>;
-      return rawApi.encodeDiff(untypedA, untypedB);
-    },
-    decodeDiff: (a: T, diff: Uint8Array) => {
-      const untypedA = toUntyped(a, rootMapping, mappings) as Record<string, unknown>;
-      const untypedResult = rawApi.decodeDiff(untypedA, diff);
-      return toTyped(untypedResult, rootMapping, mappings, rootClass) as T;
-    },
-    equals: (a: T, b: T) => {
-      const untypedA = toUntyped(a, rootMapping, mappings) as Record<string, unknown>;
-      const untypedB = toUntyped(b, rootMapping, mappings) as Record<string, unknown>;
-      return rawApi.equals(untypedA, untypedB);
-    },
-    clone: (obj: T) => {
-      const untyped = toUntyped(obj, rootMapping, mappings) as Record<string, unknown>;
-      const clonedUntyped = rawApi.clone(untyped);
-      return toTyped(clonedUntyped, rootMapping, mappings, rootClass) as T;
-    },
+/**
+ * Check if value is a schema type object (has a "type" property).
+ * Also handles functions with schema properties (from nested decorator calls).
+ */
+function isSchemaType(value: unknown): value is SchemaTypeOrRef {
+  if (value === null) return false;
+  // Handle both objects and functions with schema properties (nested decorator results)
+  if (typeof value === "object" || typeof value === "function") {
+    return "type" in value;
+  }
+  return false;
+}
+
+/**
+ * Check if value is an unresolved class reference.
+ */
+function isClassRef(value: unknown): value is { __class: Function } {
+  return typeof value === "object" && value !== null && "__class" in value;
+}
+
+/**
+ * Convert an element type to a schema type.
+ * Class references become { __class: Constructor } for later resolution.
+ */
+function toSchemaType(elementType: ElementType, options?: NumberOptions & EnumOptions): SchemaTypeOrRef {
+  // Already a schema type (from nested decorator call)
+  if (isSchemaType(elementType)) {
+    return elementType;
+  }
+
+  // Primitive constructors
+  if (elementType === String) {
+    return StringType();
+  }
+  if (elementType === Boolean) {
+    return BooleanType();
+  }
+  if (elementType === Number) {
+    if (options?.float !== undefined) {
+      return typeof options.float === "number" ? FloatType({ precision: options.float }) : FloatType();
+    }
+    if (options?.unsigned) {
+      return UIntType();
+    }
+    return IntType();
+  }
+
+  // TypeScript string enum
+  if (isTsStringEnum(elementType)) {
+    // Store enum info for later resolution
+    return {
+      type: "enum" as const,
+      options: getTsEnumValues(elementType),
+      __enumName: options?.enumName ?? getTsEnumName(elementType),
+    } as unknown as SchemaTypeOrRef;
+  }
+
+  // Union (array of classes)
+  if (Array.isArray(elementType)) {
+    return {
+      __union: elementType,
+    } as unknown as SchemaTypeOrRef;
+  }
+
+  // Class reference
+  return { __class: elementType };
+}
+
+// ============ Property Decorators ============
+
+/**
+ * String property decorator.
+ */
+export function DeltaPackString(): PropertyDecorator {
+  return (target, propertyKey) => {
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, StringType(), target, propertyKey);
   };
 }
 
 /**
- * Build a schema from a decorated class without creating the full API.
- * Useful for inspecting the generated schema or comparing with other schema definitions.
- *
- * @param rootClass - A class with DeltaPack property decorators
- * @returns The generated schema object
+ * Boolean property decorator.
+ */
+export function DeltaPackBool(): PropertyDecorator {
+  return (target, propertyKey) => {
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, BooleanType(), target, propertyKey);
+  };
+}
+
+/**
+ * Integer property decorator.
+ */
+export function DeltaPackInt(options?: { unsigned?: boolean }): PropertyDecorator {
+  return (target, propertyKey) => {
+    const schemaType = options?.unsigned ? UIntType() : IntType();
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, schemaType, target, propertyKey);
+  };
+}
+
+/**
+ * Float property decorator.
+ */
+export function DeltaPackFloat(options?: { precision?: number }): PropertyDecorator {
+  return (target, propertyKey) => {
+    const schemaType = options?.precision ? FloatType({ precision: options.precision }) : FloatType();
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, schemaType, target, propertyKey);
+  };
+}
+
+/**
+ * Reference to another class or enum.
+ */
+export function DeltaPackRef(typeRef: Function | TsStringEnum, options?: EnumOptions): PropertyDecorator {
+  return (target, propertyKey) => {
+    const schemaType = toSchemaType(typeRef, options);
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, schemaType, target, propertyKey);
+  };
+}
+
+/**
+ * Array property decorator.
+ * Returns both a PropertyDecorator and a schema type for nesting.
+ */
+export function DeltaPackArrayOf(
+  elementType: ElementType,
+  options?: NumberOptions & EnumOptions
+): PropertyDecorator & { type: "array"; value: SchemaTypeOrRef } {
+  const valueType = toSchemaType(elementType, options);
+  const schemaType = { type: "array" as const, value: valueType };
+
+  const decorator: PropertyDecorator = (target, propertyKey) => {
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, schemaType, target, propertyKey);
+  };
+
+  return Object.assign(decorator, schemaType);
+}
+
+/**
+ * Map property decorator (string keys).
+ * Returns both a PropertyDecorator and a schema type for nesting.
+ */
+export function DeltaPackMapOf(
+  valueType: ElementType,
+  options?: NumberOptions & EnumOptions
+): PropertyDecorator & { type: "record"; key: ReturnType<typeof StringType>; value: SchemaTypeOrRef } {
+  const resolvedValue = toSchemaType(valueType, options);
+  const schemaType = { type: "record" as const, key: StringType(), value: resolvedValue };
+
+  const decorator: PropertyDecorator = (target, propertyKey) => {
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, schemaType, target, propertyKey);
+  };
+
+  return Object.assign(decorator, schemaType);
+}
+
+/**
+ * Optional property decorator.
+ * Returns both a PropertyDecorator and a schema type for nesting.
+ */
+export function DeltaPackOptionalOf(
+  elementType: ElementType,
+  options?: NumberOptions & EnumOptions
+): PropertyDecorator & { type: "optional"; value: SchemaTypeOrRef } {
+  const valueType = toSchemaType(elementType, options);
+  const schemaType = { type: "optional" as const, value: valueType };
+
+  const decorator: PropertyDecorator = (target, propertyKey) => {
+    Reflect.defineMetadata(DELTA_PACK_SCHEMA_TYPE, schemaType, target, propertyKey);
+  };
+
+  return Object.assign(decorator, schemaType);
+}
+
+/**
+ * Union class decorator.
+ */
+export function DeltaPackUnion(variants: Function[]): ClassDecorator {
+  return (target) => {
+    Reflect.defineMetadata(DELTA_PACK_UNION, variants, target);
+  };
+}
+
+// ============ Schema Builder ============
+
+/**
+ * Build a schema from a decorated class.
+ * This function traverses the class and its references to generate a complete schema.
  */
 export function buildSchema<T extends object>(rootClass: Constructor<T>): Record<string, Type> {
-  const builder = new SchemaBuilder();
-  const { schema } = builder.build(rootClass);
+  const schema: Record<string, Type> = {};
+  const visited = new Set<Function>();
+
+  function processClass(cls: Function): void {
+    if (visited.has(cls)) return;
+    visited.add(cls);
+
+    // Check for union FIRST (before trying to instantiate)
+    const unionVariants = Reflect.getMetadata(DELTA_PACK_UNION, cls) as Function[] | undefined;
+    if (unionVariants) {
+      // Process each variant
+      for (const variant of unionVariants) {
+        processClass(variant);
+      }
+      // Create union type
+      schema[cls.name] = UnionType(unionVariants.map((v) => ReferenceType(v.name)));
+      return;
+    }
+
+    // Regular class - get properties by instantiating
+    let instance: object;
+    try {
+      instance = new (cls as Constructor)() as object;
+    } catch {
+      throw new Error(
+        `Cannot instantiate ${cls.name}. Classes must have a parameterless constructor. ` +
+          `For abstract union types, use @DeltaPackUnion([Variant1, Variant2]).`
+      );
+    }
+
+    const propertyKeys = Object.keys(instance);
+    if (propertyKeys.length === 0) {
+      throw new Error(
+        `Class ${cls.name} must have DeltaPack property decorators. ` + `Use @DeltaPackString(), @DeltaPackInt(), etc.`
+      );
+    }
+
+    const properties: Record<string, PrimitiveType | ContainerType | ReturnType<typeof ReferenceType>> = {};
+
+    for (const key of propertyKeys) {
+      const schemaType = Reflect.getMetadata(DELTA_PACK_SCHEMA_TYPE, cls.prototype, key);
+      if (!schemaType) {
+        throw new Error(
+          `Cannot determine type for property ${cls.name}.${key}. ` +
+            `Use @DeltaPackString(), @DeltaPackInt(), @DeltaPackArrayOf(), etc.`
+        );
+      }
+      properties[key] = resolveSchemaType(schemaType);
+    }
+
+    schema[cls.name] = { type: "object", properties };
+  }
+
+  function resolveSchemaType(
+    schemaType: SchemaTypeOrRef
+  ): PrimitiveType | ContainerType | ReturnType<typeof ReferenceType> {
+    // Class reference
+    if (isClassRef(schemaType)) {
+      const cls = schemaType.__class;
+      processClass(cls);
+      return ReferenceType(cls.name);
+    }
+
+    // Union reference
+    if ("__union" in schemaType) {
+      const variants = (schemaType as { __union: Function[] }).__union;
+      const unionName = variants.map((v) => v.name).join("Or");
+
+      // Process each variant and create union
+      for (const variant of variants) {
+        processClass(variant);
+      }
+      if (!schema[unionName]) {
+        schema[unionName] = UnionType(variants.map((v) => ReferenceType(v.name)));
+      }
+      return ReferenceType(unionName);
+    }
+
+    // Enum with name
+    if ("__enumName" in schemaType) {
+      const enumType = schemaType as { type: "enum"; options: string[]; __enumName: string };
+      const enumName = enumType.__enumName;
+      if (!schema[enumName]) {
+        schema[enumName] = EnumType(enumType.options);
+      }
+      return ReferenceType(enumName);
+    }
+
+    // Container types - recurse into value
+    if (schemaType.type === "array") {
+      const arrayType = schemaType as { type: "array"; value: SchemaTypeOrRef };
+      return ArrayType(resolveSchemaType(arrayType.value));
+    }
+    if (schemaType.type === "optional") {
+      const optType = schemaType as { type: "optional"; value: SchemaTypeOrRef };
+      return OptionalType(resolveSchemaType(optType.value));
+    }
+    if (schemaType.type === "record") {
+      const recType = schemaType as { type: "record"; key: ReturnType<typeof StringType>; value: SchemaTypeOrRef };
+      return RecordType(recType.key, resolveSchemaType(recType.value));
+    }
+
+    // Primitive types - return as-is
+    return schemaType as PrimitiveType;
+  }
+
+  processClass(rootClass);
   return schema;
 }
 
+// ============ Class Loader ============
+
 /**
- * Convert typed object to untyped representation for interpreter.
+ * Load a DeltaPack API from a decorated class.
+ * This is a convenience wrapper that builds a schema from the class and loads it.
  */
-function toUntyped(obj: unknown, mapping: TypeMapping, mappings: Map<Constructor, TypeMapping>): unknown {
-  if (obj === null || obj === undefined) {
-    return obj;
+export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPackApi<T> {
+  const schema = buildSchema(rootClass);
+  const rawApi = load<T>(schema, rootClass.name);
+
+  // Build a set of union variant class names
+  const unionVariants = new Set<string>();
+  collectUnionVariants(rootClass, unionVariants, new Set());
+
+  // Wrap API methods to handle class instances with union types
+  return {
+    ...rawApi,
+    fromJson: (obj: object) => rawApi.fromJson(wrapUnions(obj, unionVariants) as object),
+    encode: (obj: T) => rawApi.encode(wrapUnions(obj, unionVariants) as T),
+    encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrapUnions(a, unionVariants) as T, wrapUnions(b, unionVariants) as T),
+    equals: (a: T, b: T) => rawApi.equals(wrapUnions(a, unionVariants) as T, wrapUnions(b, unionVariants) as T),
+    clone: (obj: T) => rawApi.clone(wrapUnions(obj, unionVariants) as T),
+    toJson: (obj: T) => rawApi.toJson(wrapUnions(obj, unionVariants) as T),
+  };
+}
+
+/**
+ * Collect all union variant class names by traversing the class hierarchy.
+ */
+function collectUnionVariants(cls: Function, variants: Set<string>, visited: Set<Function>): void {
+  if (visited.has(cls)) return;
+  visited.add(cls);
+
+  // Check if this class is a union
+  const unionVariantClasses = Reflect.getMetadata(DELTA_PACK_UNION, cls) as Function[] | undefined;
+  if (unionVariantClasses) {
+    for (const variant of unionVariantClasses) {
+      variants.add(variant.name);
+      collectUnionVariants(variant, variants, visited);
+    }
+    return;
   }
 
-  switch (mapping.kind) {
-    case "primitive":
-    case "enum":
-      return obj;
+  // Regular class - check its properties for references
+  let instance: object;
+  try {
+    instance = new (cls as Constructor)() as object;
+  } catch {
+    return; // Can't instantiate, skip
+  }
 
-    case "object": {
-      // If this mapping doesn't have members, look up the full mapping from cache
-      const fullMapping = mapping.members
-        ? mapping
-        : mapping.targetClass
-          ? mappings.get(mapping.targetClass)
-          : undefined;
-      if (!fullMapping?.members) {
-        throw new Error(`Object mapping missing members for ${mapping.targetClass?.name}`);
-      }
-
-      const result: Record<string, unknown> = {};
-      for (const [propertyKey, memberMapping] of fullMapping.members) {
-        const value = (obj as Record<string, unknown>)[propertyKey];
-        result[propertyKey] = toUntyped(value, memberMapping, mappings);
-      }
-      return result;
+  for (const key of Object.keys(instance)) {
+    const schemaType = Reflect.getMetadata(DELTA_PACK_SCHEMA_TYPE, cls.prototype, key);
+    if (schemaType) {
+      collectFromSchemaType(schemaType, variants, visited);
     }
-
-    case "array": {
-      const arr = obj as unknown[];
-      return arr.map((item) => toUntyped(item, mapping.elementMapping!, mappings));
-    }
-
-    case "record": {
-      const map = obj as Map<string, unknown>;
-      const result = new Map<string, unknown>();
-      for (const [key, value] of map) {
-        result.set(key, toUntyped(value, mapping.valueMapping!, mappings));
-      }
-      return result;
-    }
-
-    case "optional":
-      return toUntyped(obj, mapping.elementMapping!, mappings);
-
-    case "union": {
-      // Determine which variant this is
-      const objClass = (obj as object).constructor as Constructor;
-      const variant = mapping.unionVariants!.get(objClass.name);
-      if (!variant) {
-        throw new Error(`Unknown union variant: ${objClass.name}`);
-      }
-      return {
-        type: objClass.name,
-        val: toUntyped(obj, variant.mapping, mappings),
-      };
-    }
-
-    default:
-      throw new Error(`Unknown mapping kind: ${mapping.kind}`);
   }
 }
 
 /**
- * Convert untyped representation back to typed object.
+ * Collect union variants from a schema type object.
  */
-function toTyped(
-  obj: unknown,
-  mapping: TypeMapping,
-  mappings: Map<Constructor, TypeMapping>,
-  targetClass?: Constructor
-): unknown {
-  if (obj === null || obj === undefined) {
-    return obj;
+function collectFromSchemaType(schemaType: unknown, variants: Set<string>, visited: Set<Function>): void {
+  if (!schemaType || typeof schemaType !== "object") return;
+
+  // Class reference
+  if ("__class" in schemaType) {
+    const cls = (schemaType as { __class: Function }).__class;
+    collectUnionVariants(cls, variants, visited);
+    return;
   }
 
-  switch (mapping.kind) {
-    case "primitive":
-    case "enum":
-      return obj;
-
-    case "object": {
-      const cls = mapping.targetClass ?? targetClass;
-      if (!cls) throw new Error("Cannot create typed object without target class");
-
-      // If this mapping doesn't have members, look up the full mapping from cache
-      const fullMapping = mapping.members ? mapping : mappings.get(cls);
-      if (!fullMapping?.members) {
-        throw new Error(`Object mapping missing members for ${cls.name}`);
-      }
-
-      const instance = new cls();
-      const objRecord = obj as Record<string, unknown>;
-
-      for (const [propertyKey, memberMapping] of fullMapping.members) {
-        (instance as Record<string, unknown>)[propertyKey] = toTyped(
-          objRecord[propertyKey],
-          memberMapping,
-          mappings,
-          memberMapping.targetClass
-        );
-      }
-      return instance;
+  // Inline union
+  if ("__union" in schemaType) {
+    const unionClasses = (schemaType as { __union: Function[] }).__union;
+    for (const variant of unionClasses) {
+      variants.add(variant.name);
+      collectUnionVariants(variant, variants, visited);
     }
-
-    case "array": {
-      const arr = obj as unknown[];
-      return arr.map((item) => toTyped(item, mapping.elementMapping!, mappings, mapping.elementMapping!.targetClass));
-    }
-
-    case "record": {
-      const map = obj as Map<string, unknown>;
-      const result = new Map<string, unknown>();
-      for (const [key, value] of map) {
-        result.set(key, toTyped(value, mapping.valueMapping!, mappings, mapping.valueMapping!.targetClass));
-      }
-      return result;
-    }
-
-    case "optional":
-      return toTyped(obj, mapping.elementMapping!, mappings, mapping.elementMapping!.targetClass);
-
-    case "union": {
-      const unionObj = obj as { type: string; val: unknown };
-      const variant = mapping.unionVariants!.get(unionObj.type);
-      if (!variant) {
-        throw new Error(`Unknown union variant: ${unionObj.type}`);
-      }
-      return toTyped(unionObj.val, variant.mapping, mappings, variant.cls);
-    }
-
-    default:
-      throw new Error(`Unknown mapping kind: ${mapping.kind}`);
+    return;
   }
+
+  // Container types
+  const type = (schemaType as Record<string, unknown>)["type"];
+  if (type === "array" || type === "optional") {
+    collectFromSchemaType((schemaType as { value: unknown }).value, variants, visited);
+  } else if (type === "record") {
+    collectFromSchemaType((schemaType as { value: unknown }).value, variants, visited);
+  }
+}
+
+/**
+ * Recursively wrap class instances that are union variants into { type, val } format.
+ * Only wraps classes that are known to be union variants.
+ */
+function wrapUnions(obj: unknown, unionVariants: Set<string>): unknown {
+  if (obj === null || obj === undefined) return obj;
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map((item) => wrapUnions(item, unionVariants));
+  }
+
+  // Handle Maps
+  if (obj instanceof Map) {
+    const wrapped = new Map<string, unknown>();
+    for (const [key, value] of obj) {
+      wrapped.set(key, wrapUnions(value, unionVariants));
+    }
+    return wrapped;
+  }
+
+  // Handle objects (including class instances)
+  if (typeof obj === "object") {
+    const proto = Object.getPrototypeOf(obj);
+
+    // Check if this is a class instance
+    if (proto && proto.constructor && proto.constructor !== Object) {
+      const cls = proto.constructor;
+      const className = cls.name;
+
+      // Only wrap if this class is a known union variant
+      if (className && unionVariants.has(className)) {
+        // Recursively wrap properties
+        const wrappedObj: Record<string, unknown> = {};
+        for (const key of Object.keys(obj as object)) {
+          wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
+        }
+        return { type: className, val: wrappedObj };
+      }
+
+      // Not a union variant - just recursively wrap properties
+      const wrappedObj: Record<string, unknown> = {};
+      for (const key of Object.keys(obj as object)) {
+        wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
+      }
+      return wrappedObj;
+    }
+
+    // Regular plain object - recursively wrap properties
+    const wrappedObj: Record<string, unknown> = {};
+    for (const key of Object.keys(obj)) {
+      wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
+    }
+    return wrappedObj;
+  }
+
+  return obj;
 }

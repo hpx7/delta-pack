@@ -40,14 +40,15 @@ export const ${name} = {
         .join("\n      ")}
     };
   },
-  fromJson(obj: Record<string, unknown>): ${name} {
-    if (typeof obj !== "object" || obj == null || Object.getPrototypeOf(obj) !== Object.prototype) {
+  fromJson(obj: object): ${name} {
+    if (typeof obj !== "object" || obj == null) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
+    const o = obj as Record<string, unknown>;
     return {
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
-          return `${childName}: _.tryParseField(() => ${renderFromJson(childType, childName, `obj["${childName}"]`)}, "${name}.${childName}"),`;
+          return `${childName}: _.tryParseField(() => ${renderFromJson(childType, childName, `o["${childName}"]`)}, "${name}.${childName}"),`;
         })
         .join("\n      ")}
     };
@@ -162,12 +163,12 @@ export const ${name} = {
   values() {
     return [${type.options.map((option) => `"${option.reference}"`).join(", ")}];
   },
-  fromJson(obj: Record<string, unknown>): ${name} {
+  fromJson(obj: object): ${name} {
     if (typeof obj !== "object" || obj == null) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
     // check if it's delta-pack format: { type: "TypeName", val: ... }
-    if ("type" in obj && typeof obj["type"] === "string" && "val" in obj) {
+    if ("type" in obj && typeof (obj as Record<string, unknown>)["type"] === "string" && "val" in obj) {
       ${type.options
         .map((reference, i) => {
           return `${i > 0 ? "else " : ""}if (obj["type"] === "${reference.reference}") {
