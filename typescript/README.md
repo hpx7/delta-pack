@@ -510,9 +510,11 @@ Note: When using `buildSchema()` + `load()` with union types, you must manually 
 
 **Class requirements:**
 1. Parameterless constructor (instantiable with `new Class()`)
-2. Properties must have default values (discovered via `Object.keys(new Class())`)
-3. Every property needs a type decorator
+2. Decorated properties must have default values (discovered via `Object.keys(new Class())`)
+3. At least one property must have a type decorator
 4. Unique class names (used as schema identifiers)
+
+**Note:** Properties without decorators are ignored (not serialized). Methods are also allowed. This lets you add helper methods or transient state to your classes.
 
 ### API Methods
 

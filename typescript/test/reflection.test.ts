@@ -339,45 +339,49 @@ describe("Delta Pack Reflection", () => {
   });
 
   describe("Error Cases", () => {
-    it("should throw for class without property decorators", () => {
+    it("should throw for class without any property decorators", () => {
       class NoDecorators {
         value: number = 0;
       }
 
-      expect(() => loadClass(NoDecorators)).toThrow(/Cannot determine type/);
+      expect(() => loadClass(NoDecorators)).toThrow(/must have at least one property decorator/);
     });
 
-    it("should throw for property without type decorator", () => {
+    it("should ignore properties without decorators", () => {
       class PartialDecorators {
         @IntType()
         decorated: number = 0;
 
         undecorated: number = 0;
+        untrackedArray: string[] = [];
+        untrackedMap: Map<string, number> = new Map();
       }
 
-      expect(() => loadClass(PartialDecorators)).toThrow(/Cannot determine type/);
-    });
+      const api = loadClass(PartialDecorators);
+      const schema = buildSchema(PartialDecorators);
 
-    it("should throw for array property without @ArrayType decorator", () => {
-      class BadArray {
-        @StringType()
-        name: string = "";
+      // Only decorated property should be in schema
+      expect(schema["PartialDecorators"]).toEqual({
+        type: "object",
+        properties: {
+          decorated: { type: "int" },
+        },
+      });
 
-        items: string[] = [];
-      }
+      // Undecorated properties are not serialized
+      const obj = new PartialDecorators();
+      obj.decorated = 42;
+      obj.undecorated = 100;
+      obj.untrackedArray = ["a", "b"];
+      obj.untrackedMap.set("key", 999);
 
-      expect(() => loadClass(BadArray)).toThrow(/Cannot determine type/);
-    });
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
 
-    it("should throw for map property without @RecordType decorator", () => {
-      class BadMap {
-        @StringType()
-        name: string = "";
-
-        data: Map<string, number> = new Map();
-      }
-
-      expect(() => loadClass(BadMap)).toThrow(/Cannot determine type/);
+      expect(decoded.decorated).toBe(42);
+      expect(decoded.undecorated).toBeUndefined();
+      expect(decoded.untrackedArray).toBeUndefined();
+      expect(decoded.untrackedMap).toBeUndefined();
     });
   });
 

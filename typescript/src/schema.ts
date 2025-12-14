@@ -450,21 +450,20 @@ export function buildSchema<T extends object>(rootClass: Constructor<T>): Record
     }
 
     const propertyKeys = Object.keys(instance);
-    if (propertyKeys.length === 0) {
-      throw new Error(`Class ${cls.name} must have property decorators. ` + `Use @StringType(), @IntType(), etc.`);
-    }
-
     const properties: Record<string, PrimitiveType | ContainerType | ReferenceType> = {};
 
     for (const key of propertyKeys) {
       const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
-      if (!schemaType) {
-        throw new Error(
-          `Cannot determine type for property ${cls.name}.${key}. ` +
-            `Use @StringType(), @IntType(), @ArrayType(), etc.`
-        );
+      if (schemaType) {
+        properties[key] = resolveSchemaType(schemaType);
       }
-      properties[key] = resolveSchemaType(schemaType);
+      // Properties without decorators are ignored (not serialized)
+    }
+
+    if (Object.keys(properties).length === 0) {
+      throw new Error(
+        `Class ${cls.name} must have at least one property decorator. ` + `Use @StringType(), @IntType(), etc.`
+      );
     }
 
     schema[cls.name] = { type: "object", properties };
