@@ -5,4 +5,3 @@ export * from "./interpreter.js";
 export * from "./infer.js";
 export * from "./helpers.js";
 export * from "./codegen.js";
-export * from "./reflection.js";

@@ -46,16 +46,16 @@ const decoded = Player.decode(encoded);
 ### Decorator Mode (Recommended for class-based code)
 
 ```typescript
-import { DeltaPackString, DeltaPackInt, loadClass } from "@hpx7/delta-pack";
+import { StringType, IntType, loadClass } from "@hpx7/delta-pack";
 
 class Player {
-  @DeltaPackString()
+  @StringType()
   id: string = "";
 
-  @DeltaPackString()
+  @StringType()
   name: string = "";
 
-  @DeltaPackInt()
+  @IntType()
   score: number = 0;
 }
 
@@ -361,28 +361,29 @@ The decorator mode provides a class-based API using TypeScript decorators. Schem
 
 | Decorator | Description |
 |-----------|-------------|
-| `@DeltaPackString()` | String property |
-| `@DeltaPackInt()` | Signed integer (use `{ unsigned: true }` for unsigned) |
-| `@DeltaPackBool()` | Boolean property |
-| `@DeltaPackFloat()` | IEEE 754 float (use `{ precision: 0.01 }` for quantized) |
-| `@DeltaPackRef(Type)` | Reference to a class or TypeScript string enum (use `{ enumName }` for enums) |
-| `@DeltaPackArrayOf(Type)` | Array property |
-| `@DeltaPackMapOf(Type)` | Map with string keys |
-| `@DeltaPackOptionalOf(Type)` | Optional property |
-| `@DeltaPackUnion([A, B])` | Class decorator for union types |
+| `@StringType()` | String property |
+| `@IntType()` | Signed integer |
+| `@UIntType()` | Unsigned integer |
+| `@BooleanType()` | Boolean property |
+| `@FloatType()` | IEEE 754 float (use `{ precision: 0.01 }` for quantized) |
+| `@ReferenceType(Type)` | Reference to a class or TypeScript string enum (use `{ enumName }` for enums) |
+| `@ArrayType(Type)` | Array property |
+| `@RecordType(Type)` | Map with string keys |
+| `@OptionalType(Type)` | Optional property |
+| `@UnionType([A, B])` | Class decorator for union types |
 
-For container types (`@DeltaPackArrayOf`, `@DeltaPackMapOf`, `@DeltaPackOptionalOf`):
+For container types (`@ArrayType`, `@RecordType`, `@OptionalType`):
 - `Type` can be: `String`, `Number`, `Boolean`, a class, `[A, B, ...]` for unions, a TypeScript string enum, or another container decorator for nesting
-- For `Number`, pass options as second arg: `@DeltaPackArrayOf(Number, { unsigned: true })` or `{ float: 0.01 }`
+- For `Number`, pass options as second arg: `@ArrayType(Number, { unsigned: true })` or `{ float: 0.01 }`
 - For enums, use `{ enumName: "Name" }` to specify the schema name (otherwise auto-generated from values)
 
 ### Example
 
 ```typescript
 import {
-  DeltaPackString, DeltaPackInt, DeltaPackFloat, DeltaPackBool,
-  DeltaPackRef, DeltaPackArrayOf, DeltaPackMapOf, DeltaPackOptionalOf,
-  DeltaPackUnion, loadClass,
+  StringType, IntType, UIntType, FloatType, BooleanType,
+  ReferenceType, ArrayType, RecordType, OptionalType,
+  UnionType, loadClass,
 } from "@hpx7/delta-pack";
 
 // Enums
@@ -391,67 +392,67 @@ enum Status { ACTIVE = "active", IDLE = "idle" }
 
 // Nested object
 class Position {
-  @DeltaPackFloat({ precision: 0.1 })
+  @FloatType({ precision: 0.1 })
   x: number = 0;
 
-  @DeltaPackFloat({ precision: 0.1 })
+  @FloatType({ precision: 0.1 })
   y: number = 0;
 }
 
 // Union types
 class MoveAction {
-  @DeltaPackInt() x: number = 0;
-  @DeltaPackInt() y: number = 0;
+  @IntType() x: number = 0;
+  @IntType() y: number = 0;
 }
 
 class AttackAction {
-  @DeltaPackString() targetId: string = "";
-  @DeltaPackInt({ unsigned: true }) damage: number = 0;
+  @StringType() targetId: string = "";
+  @UIntType() damage: number = 0;
 }
 
-@DeltaPackUnion([MoveAction, AttackAction])
+@UnionType([MoveAction, AttackAction])
 abstract class GameAction {}
 
 // Main class demonstrating all features
 class Player {
   // Primitives
-  @DeltaPackString() id: string = "";
-  @DeltaPackString() name: string = "";
-  @DeltaPackInt() score: number = 0;
-  @DeltaPackInt({ unsigned: true }) level: number = 1;
-  @DeltaPackBool() isOnline: boolean = false;
-  @DeltaPackFloat() velocity: number = 0;
+  @StringType() id: string = "";
+  @StringType() name: string = "";
+  @IntType() score: number = 0;
+  @UIntType() level: number = 1;
+  @BooleanType() isOnline: boolean = false;
+  @FloatType() velocity: number = 0;
 
   // References
-  @DeltaPackRef(Position) position: Position = new Position();
-  @DeltaPackRef(Team) team: Team = Team.RED;
+  @ReferenceType(Position) position: Position = new Position();
+  @ReferenceType(Team) team: Team = Team.RED;
 
   // Arrays
-  @DeltaPackArrayOf(String) tags: string[] = [];
-  @DeltaPackArrayOf(Position) waypoints: Position[] = [];
-  @DeltaPackArrayOf(Number, { float: 0.01 }) scores: number[] = [];
-  @DeltaPackArrayOf(Status) statuses: Status[] = [];
-  @DeltaPackArrayOf([MoveAction, AttackAction]) actions: GameAction[] = [];
+  @ArrayType(String) tags: string[] = [];
+  @ArrayType(Position) waypoints: Position[] = [];
+  @ArrayType(Number, { float: 0.01 }) scores: number[] = [];
+  @ArrayType(Status) statuses: Status[] = [];
+  @ArrayType([MoveAction, AttackAction]) actions: GameAction[] = [];
 
   // Maps
-  @DeltaPackMapOf(Number) inventory: Map<string, number> = new Map();
-  @DeltaPackMapOf(Position) markers: Map<string, Position> = new Map();
-  @DeltaPackMapOf(Number, { unsigned: true }) counts: Map<string, number> = new Map();
+  @RecordType(Number) inventory: Map<string, number> = new Map();
+  @RecordType(Position) markers: Map<string, Position> = new Map();
+  @RecordType(Number, { unsigned: true }) counts: Map<string, number> = new Map();
 
   // Optionals
-  @DeltaPackOptionalOf(String) nickname?: string;
-  @DeltaPackOptionalOf(Position) target?: Position;
-  @DeltaPackOptionalOf(Number, { float: 0.01 }) rating?: number;
-  @DeltaPackOptionalOf([MoveAction, AttackAction]) lastAction?: GameAction;
+  @OptionalType(String) nickname?: string;
+  @OptionalType(Position) target?: Position;
+  @OptionalType(Number, { float: 0.01 }) rating?: number;
+  @OptionalType([MoveAction, AttackAction]) lastAction?: GameAction;
 
   // Self-reference (circular)
-  @DeltaPackOptionalOf(Player) partner?: Player;
+  @OptionalType(Player) partner?: Player;
 
   // Nested containers
-  @DeltaPackArrayOf(DeltaPackArrayOf(Number)) matrix: number[][] = [];
-  @DeltaPackMapOf(DeltaPackArrayOf(Number)) vectorsById: Map<string, number[]> = new Map();
-  @DeltaPackOptionalOf(DeltaPackArrayOf(Number)) optionalScores?: number[];
-  @DeltaPackArrayOf(DeltaPackArrayOf(Number, { float: 0.01 })) floatMatrix: number[][] = [];
+  @ArrayType(ArrayType(Number)) matrix: number[][] = [];
+  @RecordType(ArrayType(Number)) vectorsById: Map<string, number[]> = new Map();
+  @OptionalType(ArrayType(Number)) optionalScores?: number[];
+  @ArrayType(ArrayType(Number, { float: 0.01 })) floatMatrix: number[][] = [];
 }
 
 // Load API and use
