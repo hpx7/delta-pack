@@ -4,11 +4,11 @@ import {
   loadClass,
   buildSchema,
   load,
-  DeltaPackArrayOf,
-  DeltaPackMapOf,
-  DeltaPackOptionalOf,
-  DeltaPackString,
-  DeltaPackInt,
+  ArrayType,
+  RecordType,
+  OptionalType,
+  StringType,
+  IntType,
   type Infer,
 } from "@hpx7/delta-pack";
 import { schema } from "./schema.js";
@@ -41,10 +41,10 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Containers", () => {
     it("should generate correct schema for arrays", () => {
       class WithArrays {
-        @DeltaPackArrayOf(String)
+        @ArrayType(String)
         strings: string[] = [];
 
-        @DeltaPackArrayOf(Number)
+        @ArrayType(Number)
         numbers: number[] = [];
       }
 
@@ -60,13 +60,13 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for arrays with number modifiers", () => {
       class WithModifiedArrays {
-        @DeltaPackArrayOf(Number, { unsigned: true })
+        @ArrayType(Number, { unsigned: true })
         unsignedInts: number[] = [];
 
-        @DeltaPackArrayOf(Number, { float: true })
+        @ArrayType(Number, { float: true })
         floats: number[] = [];
 
-        @DeltaPackArrayOf(Number, { float: 0.1 })
+        @ArrayType(Number, { float: 0.1 })
         quantizedFloats: number[] = [];
       }
 
@@ -83,10 +83,10 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for maps with number modifiers", () => {
       class WithModifiedMaps {
-        @DeltaPackMapOf(Number, { unsigned: true })
+        @RecordType(StringType(), Number, { unsigned: true })
         unsignedMap: Map<string, number> = new Map();
 
-        @DeltaPackMapOf(Number, { float: 0.01 })
+        @RecordType(StringType(), Number, { float: 0.01 })
         floatMap: Map<string, number> = new Map();
       }
 
@@ -102,16 +102,16 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for optionals", () => {
       class WithOptionals {
-        @DeltaPackOptionalOf(String)
+        @OptionalType(String)
         optString?: string;
 
-        @DeltaPackOptionalOf(Number)
+        @OptionalType(Number)
         optNumber?: number;
 
-        @DeltaPackOptionalOf(Number, { unsigned: true })
+        @OptionalType(Number, { unsigned: true })
         optUnsigned?: number;
 
-        @DeltaPackOptionalOf(Number, { float: 0.1 })
+        @OptionalType(Number, { float: 0.1 })
         optFloat?: number;
       }
 
@@ -131,20 +131,20 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Unions", () => {
     it("should generate correct schema for union arrays and maps", () => {
       class MoveCmd {
-        @DeltaPackInt()
+        @IntType()
         x: number = 0;
       }
 
       class FireCmd {
-        @DeltaPackString()
+        @StringType()
         target: string = "";
       }
 
       class CommandQueue {
-        @DeltaPackArrayOf([MoveCmd, FireCmd])
+        @ArrayType([MoveCmd, FireCmd])
         commands: (MoveCmd | FireCmd)[] = [];
 
-        @DeltaPackMapOf([MoveCmd, FireCmd])
+        @RecordType(StringType(), [MoveCmd, FireCmd])
         commandsById: Map<string, MoveCmd | FireCmd> = new Map();
       }
 
@@ -169,7 +169,7 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Nested Containers", () => {
     it("should generate correct schema for array of arrays (int[][])", () => {
       class Matrix {
-        @DeltaPackArrayOf(DeltaPackArrayOf(Number))
+        @ArrayType(ArrayType(Number))
         data: number[][] = [];
       }
 
@@ -187,13 +187,13 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for nested containers with modifiers", () => {
       class NestedWithModifiers {
-        @DeltaPackArrayOf(DeltaPackArrayOf(Number, { float: 0.01 }))
+        @ArrayType(ArrayType(Number, { float: 0.01 }))
         floatMatrix: number[][] = [];
 
-        @DeltaPackMapOf(DeltaPackArrayOf(Number, { unsigned: true }))
+        @RecordType(StringType(), ArrayType(Number, { unsigned: true }))
         vectorMap: Map<string, number[]> = new Map();
 
-        @DeltaPackOptionalOf(DeltaPackArrayOf(Number))
+        @OptionalType(ArrayType(Number))
         optionalArray?: number[];
       }
 
@@ -220,7 +220,7 @@ describe("Delta Pack Reflection", () => {
 
     it("should generate correct schema for deeply nested containers (int[][][])", () => {
       class Cube {
-        @DeltaPackArrayOf(DeltaPackArrayOf(DeltaPackArrayOf(Number)))
+        @ArrayType(ArrayType(ArrayType(Number)))
         data: number[][][] = [];
       }
 
@@ -349,7 +349,7 @@ describe("Delta Pack Reflection", () => {
 
     it("should throw for property without type decorator", () => {
       class PartialDecorators {
-        @DeltaPackInt()
+        @IntType()
         decorated: number = 0;
 
         undecorated: number = 0;
@@ -358,9 +358,9 @@ describe("Delta Pack Reflection", () => {
       expect(() => loadClass(PartialDecorators)).toThrow(/Cannot determine type/);
     });
 
-    it("should throw for array property without @DeltaPackArrayOf decorator", () => {
+    it("should throw for array property without @ArrayType decorator", () => {
       class BadArray {
-        @DeltaPackString()
+        @StringType()
         name: string = "";
 
         items: string[] = [];
@@ -369,9 +369,9 @@ describe("Delta Pack Reflection", () => {
       expect(() => loadClass(BadArray)).toThrow(/Cannot determine type/);
     });
 
-    it("should throw for map property without @DeltaPackMapOf decorator", () => {
+    it("should throw for map property without @RecordType decorator", () => {
       class BadMap {
-        @DeltaPackString()
+        @StringType()
         name: string = "";
 
         data: Map<string, number> = new Map();

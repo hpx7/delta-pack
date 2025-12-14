@@ -1,14 +1,15 @@
 import "reflect-metadata";
 import {
-  DeltaPackString,
-  DeltaPackInt,
-  DeltaPackBool,
-  DeltaPackFloat,
-  DeltaPackArrayOf,
-  DeltaPackMapOf,
-  DeltaPackOptionalOf,
-  DeltaPackUnion,
-  DeltaPackRef,
+  StringType,
+  IntType,
+  UIntType,
+  BooleanType,
+  FloatType,
+  ArrayType,
+  RecordType,
+  OptionalType,
+  UnionType,
+  ReferenceType,
 } from "@hpx7/delta-pack";
 
 // Enum matching schema.ts Color
@@ -20,130 +21,130 @@ export enum Color {
 }
 
 export class Player {
-  @DeltaPackString()
+  @StringType()
   id: string = "";
 
-  @DeltaPackString()
+  @StringType()
   name: string = "";
 
-  @DeltaPackInt()
+  @IntType()
   score: number = 0;
 
-  @DeltaPackBool()
+  @BooleanType()
   isActive: boolean = false;
 
-  @DeltaPackOptionalOf(Player)
+  @OptionalType(Player)
   partner?: Player;
 }
 
 // Position with quantized floats
 export class Position {
-  @DeltaPackFloat({ precision: 0.1 })
+  @FloatType({ precision: 0.1 })
   x: number = 0;
 
-  @DeltaPackFloat({ precision: 0.1 })
+  @FloatType({ precision: 0.1 })
   y: number = 0;
 }
 
 // Velocity with non-quantized floats
 export class Velocity {
-  @DeltaPackFloat()
+  @FloatType()
   vx: number = 0;
 
-  @DeltaPackFloat()
+  @FloatType()
   vy: number = 0;
 }
 
 // Entity with nested object reference (Position)
 export class Entity {
-  @DeltaPackString()
+  @StringType()
   id: string = "";
 
-  @DeltaPackRef(Position)
+  @ReferenceType(Position)
   position: Position = new Position();
 }
 
 // Union variant types
 export class MoveAction {
-  @DeltaPackInt()
+  @IntType()
   x: number = 0;
 
-  @DeltaPackInt()
+  @IntType()
   y: number = 0;
 }
 
 export class AttackAction {
-  @DeltaPackString()
+  @StringType()
   targetId: string = "";
 
-  @DeltaPackInt({ unsigned: true })
+  @UIntType()
   damage: number = 0;
 }
 
 export class UseItemAction {
-  @DeltaPackString()
+  @StringType()
   itemId: string = "";
 }
 
-@DeltaPackUnion([MoveAction, AttackAction, UseItemAction])
+@UnionType([MoveAction, AttackAction, UseItemAction])
 export abstract class GameAction {}
 
 // GameState - simplified without recursive Player.partner reference
 export class GameState {
-  @DeltaPackArrayOf(Player)
+  @ArrayType(Player)
   players: Player[] = [];
 
-  @DeltaPackOptionalOf(String)
+  @OptionalType(String)
   currentPlayer?: string;
 
-  @DeltaPackInt({ unsigned: true })
+  @UIntType()
   round: number = 0;
 
-  @DeltaPackMapOf(String)
+  @RecordType(StringType(), String)
   metadata: Map<string, string> = new Map();
 
-  @DeltaPackOptionalOf(Color, { enumName: "Color" })
+  @OptionalType(Color, { enumName: "Color" })
   winningColor?: Color;
 
-  @DeltaPackOptionalOf(GameAction)
+  @OptionalType(GameAction)
   lastAction?: GameAction;
 }
 
 // Inventory with nested containers: optional array of maps
 export class Inventory {
-  @DeltaPackOptionalOf(DeltaPackArrayOf(DeltaPackMapOf(Number)))
+  @OptionalType(ArrayType(RecordType(StringType(), Number)))
   items?: Map<string, number>[];
 }
 
 // PlayerRegistry - map with object values
 export class PlayerRegistry {
-  @DeltaPackMapOf(Player)
+  @RecordType(StringType(), Player)
   players: Map<string, Player> = new Map();
 }
 
 // Comprehensive test class for coverage of obscure decorator combinations
 export class CoverageTestSchema {
-  // Direct enum via @DeltaPackRef (not @DeltaPackOptionalOf)
-  @DeltaPackRef(Color, { enumName: "Color" })
+  // Direct enum via @ReferenceType (not @OptionalType)
+  @ReferenceType(Color, { enumName: "Color" })
   directEnum: Color = Color.RED;
 
   // Nested optional via container descriptor
-  @DeltaPackOptionalOf(DeltaPackOptionalOf(String))
+  @OptionalType(OptionalType(String))
   nestedOptional?: string;
 
   // Primitive targetClass (Boolean) in nested containers
-  @DeltaPackArrayOf(DeltaPackArrayOf(Boolean))
+  @ArrayType(ArrayType(Boolean))
   boolMatrix: boolean[][] = [];
 
   // Primitive targetClass (String) in nested containers
-  @DeltaPackArrayOf(DeltaPackArrayOf(String))
+  @ArrayType(ArrayType(String))
   stringMatrix: string[][] = [];
 
   // Primitive targetClass (Number) in nested containers
-  @DeltaPackArrayOf(DeltaPackArrayOf(Number))
+  @ArrayType(ArrayType(Number))
   intMatrix: number[][] = [];
 
   // Union type to trigger the wrapped API path
-  @DeltaPackOptionalOf(GameAction)
+  @OptionalType(GameAction)
   action?: GameAction;
 }
