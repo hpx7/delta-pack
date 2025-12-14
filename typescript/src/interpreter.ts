@@ -320,7 +320,8 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "reference") {
       return _clone(obj, resolveRef(objType.reference));
     } else if (objType.type === "object") {
-      const result: Record<string, unknown> = {};
+      // Preserve prototype from source object (supports class instances)
+      const result: Record<string, unknown> = Object.create(Object.getPrototypeOf(obj));
       for (const [key, typeVal] of Object.entries(objType.properties)) {
         result[key] = _clone(prop(obj, key), typeVal);
       }
@@ -455,7 +456,8 @@ export function load<T>(schema: Record<string, Type>, objectName: string): Delta
     } else if (objType.type === "object") {
       const changed = decoder.nextBoolean();
       if (!changed) return a;
-      const result: Record<string, unknown> = {};
+      // Preserve prototype from old object (supports class instances)
+      const result: Record<string, unknown> = Object.create(Object.getPrototypeOf(a));
       for (const [key, typeVal] of Object.entries(objType.properties)) {
         result[key] = _decodeDiff(prop(a, key), typeVal, decoder);
       }

@@ -383,6 +383,48 @@ describe("Delta Pack Reflection", () => {
       expect(decoded.untrackedArray).toBeUndefined();
       expect(decoded.untrackedMap).toBeUndefined();
     });
+
+    it("should return class instances from decode, decodeDiff, clone, and default", () => {
+      class PlayerWithMethod {
+        @StringType()
+        name: string = "";
+
+        @IntType()
+        score: number = 0;
+
+        greet() {
+          return `Hi, I'm ${this.name}!`;
+        }
+      }
+
+      const api = loadClass(PlayerWithMethod);
+
+      const player1 = new PlayerWithMethod();
+      player1.name = "Alice";
+      player1.score = 100;
+
+      const player2 = new PlayerWithMethod();
+      player2.name = "Alice";
+      player2.score = 150;
+
+      // Test decode returns class instance
+      const encoded = api.encode(player1);
+      const decoded = api.decode(encoded);
+      expect(decoded instanceof PlayerWithMethod).toBe(true);
+      expect(decoded.greet()).toBe("Hi, I'm Alice!");
+
+      // Test decodeDiff returns class instance
+      const diff = api.encodeDiff(player1, player2);
+      const diffDecoded = api.decodeDiff(player1, diff);
+      expect(diffDecoded instanceof PlayerWithMethod).toBe(true);
+      expect(diffDecoded.score).toBe(150);
+      expect(diffDecoded.greet()).toBe("Hi, I'm Alice!");
+
+      // Test clone returns class instance
+      const cloned = api.clone(player1);
+      expect(cloned instanceof PlayerWithMethod).toBe(true);
+      expect(cloned.greet()).toBe("Hi, I'm Alice!");
+    });
   });
 
   describe("Coverage - Obscure Decorator Combinations", () => {

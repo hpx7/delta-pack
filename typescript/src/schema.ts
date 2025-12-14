@@ -530,15 +530,110 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
   const unionVariants = new Set<string>();
   collectUnionVariants(rootClass, unionVariants, new Set());
 
+  // Collect all class constructors for hydration
+  const classMap = new Map<string, Constructor>();
+  collectClasses(rootClass, classMap, new Set());
+
+  // Hydrate plain objects into class instances
+  function hydrate(obj: unknown, typeName: string): unknown {
+    const type = schema[typeName];
+    if (!type) return obj;
+
+    if (type.type === "object") {
+      const cls = classMap.get(typeName);
+      if (cls && obj && typeof obj === "object") {
+        const instance = Object.create(cls.prototype);
+        for (const [key, propType] of Object.entries(type.properties)) {
+          const value = (obj as Record<string, unknown>)[key];
+          instance[key] = hydrateValue(value, propType);
+        }
+        return instance;
+      }
+    }
+    return obj;
+  }
+
+  function hydrateValue(value: unknown, propType: PrimitiveType | ContainerType | ReferenceType): unknown {
+    if (value === null || value === undefined) return value;
+
+    if (propType.type === "reference") {
+      return hydrate(value, propType.reference);
+    } else if (propType.type === "array") {
+      return (value as unknown[]).map((item) => hydrateValue(item, propType.value));
+    } else if (propType.type === "record") {
+      const map = value as Map<unknown, unknown>;
+      const hydrated = new Map<unknown, unknown>();
+      for (const [k, v] of map) {
+        hydrated.set(k, hydrateValue(v, propType.value));
+      }
+      return hydrated;
+    } else if (propType.type === "optional") {
+      return hydrateValue(value, propType.value);
+    }
+    return value;
+  }
+
   return {
     ...rawApi,
-    fromJson: (obj: object) => rawApi.fromJson(wrapUnions(obj, unionVariants) as object),
+    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrapUnions(obj, unionVariants) as object), rootClass.name) as T,
     encode: (obj: T) => rawApi.encode(wrapUnions(obj, unionVariants) as T),
+    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootClass.name) as T,
     encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrapUnions(a, unionVariants) as T, wrapUnions(b, unionVariants) as T),
+    decodeDiff: (a: T, diff: Uint8Array) =>
+      hydrate(rawApi.decodeDiff(wrapUnions(a, unionVariants) as T, diff), rootClass.name) as T,
     equals: (a: T, b: T) => rawApi.equals(wrapUnions(a, unionVariants) as T, wrapUnions(b, unionVariants) as T),
-    clone: (obj: T) => rawApi.clone(wrapUnions(obj, unionVariants) as T),
+    clone: (obj: T) => hydrate(rawApi.clone(wrapUnions(obj, unionVariants) as T), rootClass.name) as T,
     toJson: (obj: T) => rawApi.toJson(wrapUnions(obj, unionVariants) as T),
   };
+}
+
+function collectClasses(cls: Function, classMap: Map<string, Constructor>, visited: Set<Function>): void {
+  if (visited.has(cls)) return;
+  visited.add(cls);
+
+  const unionVariants = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
+  if (unionVariants) {
+    for (const variant of unionVariants) {
+      collectClasses(variant, classMap, visited);
+    }
+    return;
+  }
+
+  // Store the constructor
+  classMap.set(cls.name, cls as Constructor);
+
+  // Process referenced classes from property metadata
+  let instance: object;
+  try {
+    instance = new (cls as Constructor)() as object;
+  } catch {
+    return;
+  }
+
+  for (const key of Object.keys(instance)) {
+    const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
+    if (schemaType) {
+      collectClassesFromType(schemaType, classMap, visited);
+    }
+  }
+}
+
+function collectClassesFromType(
+  schemaType: SchemaTypeOrRef,
+  classMap: Map<string, Constructor>,
+  visited: Set<Function>
+): void {
+  if (isClassRef(schemaType)) {
+    collectClasses(schemaType.__class, classMap, visited);
+  } else if (typeof schemaType === "object" && "type" in schemaType) {
+    const type = schemaType as ContainerType;
+    if (type.type === "array" || type.type === "optional") {
+      collectClassesFromType(type.value as SchemaTypeOrRef, classMap, visited);
+    } else if (type.type === "record") {
+      collectClassesFromType(type.value as SchemaTypeOrRef, classMap, visited);
+    }
+  }
+  // Enums and primitives don't need hydration
 }
 
 function collectUnionVariants(cls: Function, variants: Set<string>, visited: Set<Function>): void {
@@ -625,7 +720,8 @@ function wrapUnions(obj: unknown, unionVariants: Set<string>): unknown {
         return { type: className, val: wrappedObj };
       }
 
-      const wrappedObj: Record<string, unknown> = {};
+      // Preserve prototype for class instances
+      const wrappedObj: Record<string, unknown> = Object.create(proto);
       for (const key of Object.keys(obj as object)) {
         wrappedObj[key] = wrapUnions((obj as Record<string, unknown>)[key], unionVariants);
       }

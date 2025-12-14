@@ -387,15 +387,6 @@ console.log(player2.score); // 200
 - The `_dirty` field is **not** preserved in clones (clones always start clean)
 - Useful for creating modified copies without mutating the original state
 
-#### `default(): T`
-
-Creates a default instance:
-
-```typescript
-const defaultPlayer = Player.default();
-// { id: '', name: '', score: 0 }
-```
-
 ## Decorator API
 
 The decorator mode provides a class-based API using TypeScript decorators. Schemas are inferred from decorated classes at runtime.
@@ -518,7 +509,9 @@ Note: When using `buildSchema()` + `load()` with union types, you must manually 
 
 ### API Methods
 
-`loadClass()` returns the same API as interpreter mode: `encode`, `decode`, `encodeDiff`, `decodeDiff`, `equals`, `clone`, `toJson`, `fromJson`, `default`
+`loadClass()` returns the same API as interpreter mode: `encode`, `decode`, `encodeDiff`, `decodeDiff`, `equals`, `clone`, `toJson`, `fromJson`
+
+**Class instance preservation:** Unlike interpreter mode, `decode`, `decodeDiff`, `clone`, and `fromJson` return proper class instances with methods intact—not plain objects.
 
 ## Codegen API
 
