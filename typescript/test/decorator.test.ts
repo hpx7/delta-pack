@@ -13,7 +13,6 @@ import {
   FloatType,
   ReferenceType,
   UnionType,
-  type Infer,
 } from "@hpx7/delta-pack";
 import { schema } from "./schema.js";
 import {
@@ -38,7 +37,7 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Nested Objects", () => {
     it("should generate correct schema for self-referencing type", () => {
       const generatedSchema = buildSchema(Player);
-      expect(generatedSchema["Player"]).toEqual(schema["Player"]);
+      expect(generatedSchema["Player"]).toEqual(schema.Player);
     });
   });
 
@@ -59,6 +58,7 @@ describe("Delta Pack Reflection", () => {
           strings: { type: "array", value: { type: "string" } },
           numbers: { type: "array", value: { type: "int" } },
         },
+        name: "WithArrays",
       });
     });
 
@@ -82,6 +82,7 @@ describe("Delta Pack Reflection", () => {
           floats: { type: "array", value: { type: "float" } },
           quantizedFloats: { type: "array", value: { type: "float", precision: 0.1 } },
         },
+        name: "WithModifiedArrays",
       });
     });
 
@@ -101,6 +102,7 @@ describe("Delta Pack Reflection", () => {
           unsignedMap: { type: "record", key: { type: "string" }, value: { type: "uint" } },
           floatMap: { type: "record", key: { type: "string" }, value: { type: "float", precision: 0.01 } },
         },
+        name: "WithModifiedMaps",
       });
     });
 
@@ -128,6 +130,7 @@ describe("Delta Pack Reflection", () => {
           optUnsigned: { type: "optional", value: { type: "uint" } },
           optFloat: { type: "optional", value: { type: "float", precision: 0.1 } },
         },
+        name: "WithOptionals",
       });
     });
   });
@@ -145,7 +148,7 @@ describe("Delta Pack Reflection", () => {
       }
 
       @UnionType([MoveCmd, FireCmd])
-      class Command {}
+      abstract class Command {}
 
       class CommandQueue {
         @ArrayType(ReferenceType(Command))
@@ -161,22 +164,21 @@ describe("Delta Pack Reflection", () => {
         properties: {
           commands: {
             type: "array",
-            value: { type: "reference", reference: "Command" },
+            value: { type: "reference", ref: generatedSchema["Command"] },
           },
           commandsById: {
             type: "record",
             key: { type: "string" },
-            value: { type: "reference", reference: "Command" },
+            value: { type: "reference", ref: generatedSchema["Command"] },
           },
         },
+        name: "CommandQueue",
       });
       // Verify union was generated
       expect(generatedSchema["Command"]).toEqual({
         type: "union",
-        options: [
-          { type: "reference", reference: "MoveCmd" },
-          { type: "reference", reference: "FireCmd" },
-        ],
+        options: [generatedSchema["MoveCmd"], generatedSchema["FireCmd"]],
+        name: "Command",
       });
     });
   });
@@ -197,6 +199,7 @@ describe("Delta Pack Reflection", () => {
             value: { type: "array", value: { type: "int" } },
           },
         },
+        name: "Matrix",
       });
     });
 
@@ -230,6 +233,7 @@ describe("Delta Pack Reflection", () => {
             value: { type: "array", value: { type: "int" } },
           },
         },
+        name: "NestedWithModifiers",
       });
     });
 
@@ -251,6 +255,7 @@ describe("Delta Pack Reflection", () => {
             },
           },
         },
+        name: "Cube",
       });
     });
   });
@@ -258,22 +263,22 @@ describe("Delta Pack Reflection", () => {
   describe("Schema Structure - Complex Types from schema.ts", () => {
     it("should generate equivalent Inventory schema", () => {
       const generatedSchema = buildSchema(Inventory);
-      expect(generatedSchema["Inventory"]).toEqual(schema["Inventory"]);
+      expect(generatedSchema["Inventory"]).toEqual(schema.Inventory);
     });
 
     it("should generate equivalent Velocity schema", () => {
       const generatedSchema = buildSchema(Velocity);
-      expect(generatedSchema["Velocity"]).toEqual(schema["Velocity"]);
+      expect(generatedSchema["Velocity"]).toEqual(schema.Velocity);
     });
 
     it("should generate equivalent Entity schema", () => {
       const generatedSchema = buildSchema(Entity);
-      expect(generatedSchema["Entity"]).toEqual(schema["Entity"]);
+      expect(generatedSchema["Entity"]).toEqual(schema.Entity);
     });
 
     it("should generate equivalent GameState schema", () => {
       const generatedSchema = buildSchema(GameState);
-      expect(generatedSchema["GameState"]).toEqual(schema["GameState"]);
+      expect(generatedSchema["GameState"]).toEqual(schema.GameState);
     });
   });
 
@@ -281,8 +286,7 @@ describe("Delta Pack Reflection", () => {
     it("should produce identical encoding via loadClass and load", () => {
       // This test verifies that loadClass correctly wires to the interpreter
       const reflectionApi = loadClass(GameState);
-      type SchemaGameState = Infer<typeof schema.GameState, typeof schema>;
-      const schemaApi = load<SchemaGameState>(schema, "GameState");
+      const schemaApi = load(schema.GameState);
 
       // Create equivalent state via both APIs
       const state = new GameState();
@@ -373,14 +377,15 @@ describe("Delta Pack Reflection", () => {
       }
 
       const api = loadClass(PartialDecorators);
-      const schema = buildSchema(PartialDecorators);
+      const generatedSchema = buildSchema(PartialDecorators);
 
       // Only decorated property should be in schema
-      expect(schema["PartialDecorators"]).toEqual({
+      expect(generatedSchema["PartialDecorators"]).toEqual({
         type: "object",
         properties: {
           decorated: { type: "int" },
         },
+        name: "PartialDecorators",
       });
 
       // Undecorated properties are not serialized
@@ -490,19 +495,21 @@ describe("Delta Pack Reflection", () => {
       expect(generatedSchema["CoverageTestSchema"]).toEqual({
         type: "object",
         properties: {
-          directEnum: { type: "reference", reference: "Color" },
+          directEnum: { type: "reference", ref: generatedSchema["Color"] },
           nestedOptional: { type: "optional", value: { type: "optional", value: { type: "string" } } },
           boolMatrix: { type: "array", value: { type: "array", value: { type: "boolean" } } },
           stringMatrix: { type: "array", value: { type: "array", value: { type: "string" } } },
           intMatrix: { type: "array", value: { type: "array", value: { type: "int" } } },
-          action: { type: "optional", value: { type: "reference", reference: "GameAction" } },
+          action: { type: "optional", value: { type: "reference", ref: generatedSchema["GameAction"] } },
         },
+        name: "CoverageTestSchema",
       });
 
       // Verify enum was generated
       expect(generatedSchema["Color"]).toEqual({
         type: "enum",
         options: ["RED", "BLUE", "GREEN", "YELLOW"],
+        name: "Color",
       });
     });
 

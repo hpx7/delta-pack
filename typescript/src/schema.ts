@@ -1,56 +1,15 @@
+import { createUnifiedType, createUnionDecorator, stripDecorator, UnifiedType, ClassRef, EnumRef } from "./unified.js";
+
 // ============ Type Interfaces ============
 
-export type PropertyType =
-  | StringType
-  | IntType
-  | UIntType
-  | FloatType
-  | BooleanType
-  | ArrayType
-  | OptionalType
-  | RecordType
-  | ReferenceType;
-export type Type = ObjectType | UnionType | EnumType | PropertyType;
+// Type categories
+export type PrimitiveType = StringType | IntType | UIntType | FloatType | BooleanType;
+export type ContainerType = ArrayType | OptionalType | RecordType;
+export type PropertyType = PrimitiveType | ContainerType | ReferenceType | SelfReferenceType;
+export type NamedType = ObjectType | UnionType | EnumType;
+export type Type = NamedType | PropertyType;
 
-// Each type has both an interface (for type annotations) and a function (for creating instances)
-// TypeScript's declaration merging allows them to share the same name
-
-export interface ReferenceType {
-  type: "reference";
-  reference: string;
-}
-
-export interface ObjectType {
-  type: "object";
-  properties: Record<string, PropertyType>;
-}
-
-export interface UnionType {
-  type: "union";
-  options: readonly ReferenceType[];
-}
-
-export interface ArrayType {
-  type: "array";
-  value: PropertyType;
-}
-
-export interface OptionalType {
-  type: "optional";
-  value: PropertyType;
-}
-
-export interface RecordType {
-  type: "record";
-  key: StringType | IntType | UIntType;
-  value: PropertyType;
-}
-
-export interface EnumType {
-  type: "enum";
-  options: readonly string[];
-}
-
+// Primitive types
 export interface StringType {
   type: "string";
 }
@@ -72,15 +31,57 @@ export interface BooleanType {
   type: "boolean";
 }
 
+// Container types
+export interface ArrayType {
+  type: "array";
+  value: PropertyType;
+}
+
+export interface OptionalType {
+  type: "optional";
+  value: PropertyType;
+}
+
+export interface RecordType {
+  type: "record";
+  key: StringType | IntType | UIntType;
+  value: PropertyType;
+}
+
+// Reference types
+export interface ReferenceType {
+  type: "reference";
+  ref: NamedType;
+}
+
+export interface SelfReferenceType {
+  type: "self-reference";
+}
+
+// Named types
+export interface ObjectType {
+  type: "object";
+  properties: Record<string, PropertyType>;
+  name: string;
+}
+
+export interface UnionType {
+  type: "union";
+  options: readonly NamedType[];
+  name: string;
+}
+
+export interface EnumType {
+  type: "enum";
+  options: readonly string[];
+  name: string;
+}
+
 // ============ Utility Functions ============
 
-export function isPrimitiveType(type: Type, schema: Record<string, Type>): boolean {
-  if (type.type === "reference" && schema) {
-    const refType = schema[type.reference];
-    if (!refType) {
-      throw new Error(`Unknown reference type: ${type.reference}`);
-    }
-    return isPrimitiveType(refType, schema);
+export function isPrimitiveOrEnum(type: Type): boolean {
+  if (type.type === "reference") {
+    return isPrimitiveOrEnum(type.ref);
   }
 
   return (
@@ -91,63 +92,6 @@ export function isPrimitiveType(type: Type, schema: Record<string, Type>): boole
     type.type === "boolean" ||
     type.type === "enum"
   );
-}
-
-// ============ Metadata Keys ============
-
-export const SCHEMA_TYPE = "deltapack:schemaType";
-export const UNION_VARIANTS = "deltapack:union";
-
-// ============ Internal Types ============
-
-interface EnumDef {
-  options: string[];
-  name: string;
-}
-
-// Types that can be used as values in containers (both schema mode and decorator mode)
-type ValueType = PropertyType | { __class: Function } | { __enum: EnumDef };
-
-// A unified type that works as both a PropertyDecorator and a schema type
-type UnifiedType<T> = PropertyDecorator & T;
-
-// ============ Internal Helpers ============
-
-function createUnifiedType<T>(schemaType: T): UnifiedType<T> {
-  const decorator: PropertyDecorator = (target, propertyKey) => {
-    Reflect.defineMetadata(SCHEMA_TYPE, schemaType, target, propertyKey);
-  };
-  return Object.assign(decorator, schemaType) as UnifiedType<T>;
-}
-
-function stripDecorator<T>(type: T): T {
-  // If it's a function (UnifiedType), extract its enumerable properties
-  if (typeof type === "function") {
-    const keys = Object.keys(type);
-    if (keys.length === 0) return type;
-    const result: Record<string, unknown> = {};
-    for (const key of keys) {
-      result[key] = stripDecorator((type as Record<string, unknown>)[key]);
-    }
-    return result as T;
-  }
-
-  // If it's an object, recursively strip nested "value" and "key" properties
-  if (typeof type === "object" && type !== null) {
-    const t = type as Record<string, unknown>;
-    if ("value" in t || "key" in t) {
-      const result = { ...t };
-      if ("value" in result) {
-        result["value"] = stripDecorator(result["value"]);
-      }
-      if ("key" in result) {
-        result["key"] = stripDecorator(result["key"]);
-      }
-      return result as T;
-    }
-  }
-
-  return type;
 }
 
 // ============ Primitive Type Constructors ============
@@ -179,6 +123,9 @@ export function FloatType(options?: { precision?: number | string }): UnifiedTyp
 
 // ============ Container Type Constructors ============
 
+// Types that can be used as values in containers (both schema mode and decorator mode)
+type ValueType = PropertyType | ClassRef | EnumRef;
+
 export function ArrayType<const V extends ValueType>(value: V): UnifiedType<{ type: "array"; value: V }> {
   const schemaType = {
     type: "array" as const,
@@ -209,66 +156,75 @@ export function OptionalType<const V extends ValueType>(value: V): UnifiedType<{
 
 // ============ Reference Type Constructors ============
 
-// Schema mode - string reference
-export function ReferenceType<const R extends string>(reference: R): UnifiedType<{ type: "reference"; reference: R }>;
+// Schema mode - direct type reference
+export function ReferenceType<T extends NamedType>(ref: T): UnifiedType<{ type: "reference"; ref: T }>;
 // Decorator mode - class reference
-export function ReferenceType<C extends Function>(cls: C): UnifiedType<{ __class: C }>;
+export function ReferenceType<C extends Function>(cls: C): UnifiedType<ClassRef & { __class: C }>;
 // Decorator mode - enum reference
 export function ReferenceType<E extends Record<string, string>>(
   enumObj: E,
-  options?: { enumName?: string }
-): UnifiedType<{ __enum: EnumDef }>;
+  options: { enumName: string }
+): UnifiedType<EnumRef>;
 // Implementation
 export function ReferenceType(
-  ref: string | Function | Record<string, string>,
-  options?: { enumName?: string }
-):
-  | UnifiedType<{ type: "reference"; reference: string }>
-  | UnifiedType<{ __class: Function }>
-  | UnifiedType<{ __enum: EnumDef }> {
-  if (typeof ref === "string") {
-    return createUnifiedType({ type: "reference" as const, reference: ref });
-  }
+  ref: NamedType | Function | Record<string, string>,
+  options?: { enumName: string }
+): UnifiedType<{ type: "reference"; ref: NamedType }> | UnifiedType<ClassRef> | UnifiedType<EnumRef> {
+  // Decorator mode - class reference
   if (typeof ref === "function") {
-    return createUnifiedType({ __class: ref });
+    return createUnifiedType({ __class: ref }) as UnifiedType<ClassRef>;
   }
-  // Enum object - generate name from options if not provided
-  const enumOptions = Object.values(ref);
+  // Schema mode - direct type reference (has "type" property)
+  if (typeof ref === "object" && ref !== null && "type" in ref) {
+    return createUnifiedType({ type: "reference" as const, ref: ref as NamedType }) as UnifiedType<ReferenceType>;
+  }
+  // Decorator mode - enum reference (plain object without "type")
+  const enumOptions = Object.values(ref as Record<string, string>);
   const enumName = options?.enumName ?? `Enum_${enumOptions.join("_")}`;
-  return createUnifiedType({ __enum: { options: enumOptions, name: enumName } });
+  return createUnifiedType({ __enum: { options: enumOptions, name: enumName } }) as UnifiedType<EnumRef>;
 }
 
-// ============ Schema-Only Type Constructors ============
-
-export function EnumType<const O extends readonly string[]>(options: O): { type: "enum"; options: O } {
-  return { type: "enum", options };
+// Self-reference (for recursive types)
+export function SelfReferenceType(): UnifiedType<SelfReferenceType> {
+  return createUnifiedType({ type: "self-reference" });
 }
 
-export function ObjectType<const P extends Record<string, PropertyType>>(
+// ============ Named Type Constructors ============
+
+// EnumType - name first, required
+export function EnumType<const N extends string, const O extends readonly string[]>(
+  name: N,
+  options: O
+): { type: "enum"; options: O; name: N } {
+  return { type: "enum", options, name };
+}
+
+// ObjectType - name first, required
+export function ObjectType<const N extends string, const P extends Record<string, PropertyType>>(
+  name: N,
   properties: P
-): { type: "object"; properties: P } {
+): { type: "object"; properties: P; name: N } {
   const cleanProperties: Record<string, PropertyType> = {};
   for (const [key, value] of Object.entries(properties)) {
     cleanProperties[key] = stripDecorator(value as PropertyType);
   }
-  return { type: "object", properties: cleanProperties as P };
+  return { type: "object", properties: cleanProperties as P, name };
 }
 
-// Schema mode overload
-export function UnionType<const O extends readonly ReferenceType[]>(options: O): { type: "union"; options: O };
-// Decorator mode overload
-export function UnionType(variants: Function[]): ClassDecorator;
-// Implementation
-export function UnionType(
-  variantsOrOptions: Function[] | readonly ReferenceType[]
-): ClassDecorator | { type: "union"; options: readonly ReferenceType[] } {
-  // Check if first item has "type" property with value "reference" (schema mode)
-  // UnifiedType is a function with properties, so we check for the "type" property value
-  const first = variantsOrOptions[0];
-  if (first && "type" in first && (first as { type: unknown }).type === "reference") {
-    return { type: "union", options: variantsOrOptions as readonly ReferenceType[] };
+// UnionType - schema mode (name first, required) or decorator mode (class array only)
+export function UnionType<const N extends string, const V extends readonly NamedType[]>(
+  name: N,
+  options: V
+): { type: "union"; options: V; name: N };
+export function UnionType(options: Function[]): ClassDecorator;
+export function UnionType<const N extends string, const V extends readonly NamedType[]>(
+  nameOrClasses: N | Function[],
+  options?: V
+): ClassDecorator | { type: "union"; options: V; name: N } {
+  // Schema mode - name string with array of NamedType
+  if (typeof nameOrClasses === "string") {
+    return { type: "union", options: options as V, name: nameOrClasses };
   }
-  return (target) => {
-    Reflect.defineMetadata(UNION_VARIANTS, variantsOrOptions, target);
-  };
+  // Decorator mode - array of classes
+  return createUnionDecorator(nameOrClasses);
 }

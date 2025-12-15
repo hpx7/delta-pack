@@ -27,7 +27,7 @@ describe("Examples - Primitives", () => {
     booleanField: boolean;
   };
 
-  const Primitives = load<Primitives>(schema, "Primitives");
+  const Primitives = load<Primitives>(schema["Primitives"]!);
 
   it("should parse schema successfully", () => {
     expect(schema["Primitives"]).toBeDefined();
@@ -91,7 +91,7 @@ describe("Examples - User", () => {
 
   type User = any; // Type would be complex to define manually
 
-  const User = load<User>(schema, "User");
+  const User = load<User>(schema["User"]!);
 
   it("should parse schema successfully", () => {
     expect(schema["User"]).toBeDefined();
@@ -164,7 +164,7 @@ describe("Examples - Game", () => {
 
   type GameState = any; // Type would be very complex to define manually
 
-  const GameState = load<GameState>(schema, "GameState");
+  const GameState = load<GameState>(schema["GameState"]!);
 
   it("should parse schema successfully", () => {
     expect(schema["GameState"]).toBeDefined();
@@ -351,7 +351,7 @@ describe("Examples - Test", () => {
     float: number;
   };
 
-  const Test = load<Test>(schema, "Test");
+  const Test = load<Test>(schema["Test"]!);
 
   it("should parse schema successfully", () => {
     expect(schema["Test"]).toBeDefined();

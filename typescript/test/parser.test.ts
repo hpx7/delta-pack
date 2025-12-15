@@ -2,7 +2,16 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { parseSchemaYml, EnumType, ObjectType, UnionType, FloatType } from "@hpx7/delta-pack";
+import {
+  parseSchemaYml,
+  EnumType,
+  ObjectType,
+  UnionType,
+  FloatType,
+  ReferenceType,
+  ArrayType,
+  OptionalType,
+} from "@hpx7/delta-pack";
 import { schema as tsSchema } from "./schema.js";
 
 // Extract individual types from the TypeScript schema
@@ -80,8 +89,9 @@ describe("YAML Schema Parser", () => {
     const entityType = parsedSchema["Entity"] as ObjectType;
     expect(entityType.type).toBe("object");
     expect(entityType.properties["id"]!.type).toBe("string");
-    expect(entityType.properties["position"]!.type).toBe("reference");
-    expect((entityType.properties["position"] as any).reference).toBe("Position");
+    const positionProp = entityType.properties["position"] as ReferenceType;
+    expect(positionProp.type).toBe("reference");
+    expect(positionProp.ref.name).toBe("Position");
     expect(parsedSchema["Entity"]).toEqual(tsSchema.Entity);
   });
 
@@ -112,10 +122,11 @@ describe("YAML Schema Parser", () => {
     const gameActionType = parsedSchema["GameAction"] as UnionType;
     expect(gameActionType.type).toBe("union");
     expect(gameActionType.options).toHaveLength(3);
-    expect(gameActionType.options[0]!.type).toBe("reference");
-    expect(gameActionType.options[0]!.reference).toBe("MoveAction");
-    expect(gameActionType.options[1]!.reference).toBe("AttackAction");
-    expect(gameActionType.options[2]!.reference).toBe("UseItemAction");
+    // Union options are now direct NamedTypes (ObjectType), not ReferenceType wrappers
+    expect(gameActionType.options[0]!.type).toBe("object");
+    expect(gameActionType.options[0]!.name).toBe("MoveAction");
+    expect(gameActionType.options[1]!.name).toBe("AttackAction");
+    expect(gameActionType.options[2]!.name).toBe("UseItemAction");
   });
 
   it("should parse GameState as object type with complex fields", () => {
@@ -123,31 +134,38 @@ describe("YAML Schema Parser", () => {
     expect(gameStateType.type).toBe("object");
 
     // Array field
-    expect(gameStateType.properties["players"]!.type).toBe("array");
-    expect((gameStateType.properties["players"] as any).value.type).toBe("reference");
-    expect((gameStateType.properties["players"] as any).value.reference).toBe("Player");
+    const playersField = gameStateType.properties["players"] as ArrayType;
+    expect(playersField.type).toBe("array");
+    const playersValueRef = playersField.value as ReferenceType;
+    expect(playersValueRef.type).toBe("reference");
+    expect(playersValueRef.ref.name).toBe("Player");
 
     // Optional fields
-    expect(gameStateType.properties["currentPlayer"]!.type).toBe("optional");
-    expect((gameStateType.properties["currentPlayer"] as any).value.type).toBe("string");
+    const currentPlayerField = gameStateType.properties["currentPlayer"] as OptionalType;
+    expect(currentPlayerField.type).toBe("optional");
+    expect(currentPlayerField.value.type).toBe("string");
 
     // Uint field
     expect(gameStateType.properties["round"]!.type).toBe("uint");
 
     // Record/Map field
     expect(gameStateType.properties["metadata"]!.type).toBe("record");
-    expect((gameStateType.properties["metadata"] as any).key.type).toBe("string");
-    expect((gameStateType.properties["metadata"] as any).value.type).toBe("string");
+    expect((gameStateType.properties["metadata"] as { key: { type: string } }).key.type).toBe("string");
+    expect((gameStateType.properties["metadata"] as { value: { type: string } }).value.type).toBe("string");
 
     // Optional reference to enum
-    expect(gameStateType.properties["winningColor"]!.type).toBe("optional");
-    expect((gameStateType.properties["winningColor"] as any).value.type).toBe("reference");
-    expect((gameStateType.properties["winningColor"] as any).value.reference).toBe("Color");
+    const winningColorField = gameStateType.properties["winningColor"] as OptionalType;
+    expect(winningColorField.type).toBe("optional");
+    const winningColorRef = winningColorField.value as ReferenceType;
+    expect(winningColorRef.type).toBe("reference");
+    expect(winningColorRef.ref.name).toBe("Color");
 
     // Optional reference to union
-    expect(gameStateType.properties["lastAction"]!.type).toBe("optional");
-    expect((gameStateType.properties["lastAction"] as any).value.type).toBe("reference");
-    expect((gameStateType.properties["lastAction"] as any).value.reference).toBe("GameAction");
+    const lastActionField = gameStateType.properties["lastAction"] as OptionalType;
+    expect(lastActionField.type).toBe("optional");
+    const lastActionRef = lastActionField.value as ReferenceType;
+    expect(lastActionRef.type).toBe("reference");
+    expect(lastActionRef.ref.name).toBe("GameAction");
   });
 
   it("should match TypeScript schema structure", () => {
@@ -175,22 +193,25 @@ describe("YAML Schema Parser", () => {
     const gameState = parsedSchema["GameState"] as ObjectType;
 
     // players: Player[]
-    const playersField = gameState.properties["players"]!;
+    const playersField = gameState.properties["players"] as ArrayType;
     expect(playersField.type).toBe("array");
-    expect((playersField as any).value.type).toBe("reference");
-    expect((playersField as any).value.reference).toBe("Player");
+    const playersRef = playersField.value as ReferenceType;
+    expect(playersRef.type).toBe("reference");
+    expect(playersRef.ref.name).toBe("Player");
 
     // winningColor: Color?
-    const winningColorField = gameState.properties["winningColor"]!;
+    const winningColorField = gameState.properties["winningColor"] as OptionalType;
     expect(winningColorField.type).toBe("optional");
-    expect((winningColorField as any).value.type).toBe("reference");
-    expect((winningColorField as any).value.reference).toBe("Color");
+    const winningColorRef = winningColorField.value as ReferenceType;
+    expect(winningColorRef.type).toBe("reference");
+    expect(winningColorRef.ref.name).toBe("Color");
 
     // lastAction: GameAction?
-    const lastActionField = gameState.properties["lastAction"]!;
+    const lastActionField = gameState.properties["lastAction"] as OptionalType;
     expect(lastActionField.type).toBe("optional");
-    expect((lastActionField as any).value.type).toBe("reference");
-    expect((lastActionField as any).value.reference).toBe("GameAction");
+    const lastActionRef = lastActionField.value as ReferenceType;
+    expect(lastActionRef.type).toBe("reference");
+    expect(lastActionRef.ref.name).toBe("GameAction");
   });
 
   it("should parse all primitive types correctly", () => {
@@ -306,13 +327,13 @@ TestType:
     expect(fieldType.type).toBe("record");
 
     // Key should be string
-    expect((fieldType as any).key.type).toBe("string");
+    expect((fieldType as { key: { type: string } }).key.type).toBe("string");
 
     // Value should be a nested record
-    const valueType = (fieldType as any).value;
+    const valueType = (fieldType as { value: { type: string; key: { type: string }; value: ReferenceType } }).value;
     expect(valueType.type).toBe("record");
     expect(valueType.key.type).toBe("int");
     expect(valueType.value.type).toBe("reference");
-    expect(valueType.value.reference).toBe("Player");
+    expect(valueType.value.ref.name).toBe("Player");
   });
 });

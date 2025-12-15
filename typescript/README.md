@@ -19,28 +19,26 @@ Delta-pack provides three approaches for working with schemas:
 ### Interpreter Mode (Recommended for prototyping)
 
 ```typescript
-import { ObjectType, StringType, IntType, load, Infer, defineSchema } from "@hpx7/delta-pack";
+import { ObjectType, StringType, IntType, load, Infer } from "@hpx7/delta-pack";
 
-// Define schema in TypeScript
-const schema = defineSchema({
-  Player: ObjectType({
-    id: StringType(),
-    name: StringType(),
-    score: IntType(),
-  }),
+// Define schema type directly
+const Player = ObjectType("Player", {
+  id: StringType(),
+  name: StringType(),
+  score: IntType(),
 });
 
 // Infer TypeScript type
-type Player = Infer<typeof schema.Player, typeof schema>;
+type Player = Infer<typeof Player>;
 // Result: { id: string; name: string; score: number }
 
 // Load API for the type
-const Player = load<Player>(schema, "Player");
+const PlayerApi = load(Player);
 
 // Use the API
 const player = { id: "p1", name: "Alice", score: 100 };
-const encoded = Player.encode(player);
-const decoded = Player.decode(encoded);
+const encoded = PlayerApi.encode(player);
+const decoded = PlayerApi.decode(encoded);
 ```
 
 ### Decorator Mode (Recommended for class-based code)
@@ -75,20 +73,18 @@ const decoded = PlayerApi.decode(encoded);
 ### Codegen Mode (Recommended for production)
 
 ```typescript
-import { codegenTypescript, ObjectType, StringType, IntType, defineSchema } from "@hpx7/delta-pack";
+import { codegenTypescript, ObjectType, StringType, IntType } from "@hpx7/delta-pack";
 import { writeFileSync } from "fs";
 
-// Define schema in TypeScript
-const schema = defineSchema({
-  Player: ObjectType({
-    id: StringType(),
-    name: StringType(),
-    score: IntType(),
-  }),
+// Define schema types
+const Player = ObjectType("Player", {
+  id: StringType(),
+  name: StringType(),
+  score: IntType(),
 });
 
-// Generate TypeScript code
-const code = codegenTypescript(schema);
+// Generate TypeScript code (pass object with all types)
+const code = codegenTypescript({ Player });
 writeFileSync("generated.ts", code);
 ```
 
@@ -107,7 +103,7 @@ const decoded = Player.decode(encoded);
 Schemas can be defined in two ways:
 
 1. **YAML** - Human-readable format, useful for defining schemas separately from code. Parse with `parseSchemaYml()` for interpreter mode.
-2. **TypeScript** - Define schemas using the type definition API. Works with both interpreter and codegen modes. Required for using the `Infer<>` type utility.
+2. **TypeScript** - Define schemas using the type constructor functions. Works with both interpreter and codegen modes. Required for using the `Infer<>` type utility.
 
 **Note:** The `Infer<>` type utility only works with TypeScript-defined schemas, not YAML-parsed schemas, since it requires compile-time type information.
 
@@ -171,11 +167,10 @@ See the [main README](../README.md) for complete schema syntax reference.
 
 ### TypeScript Schema
 
-Define schemas using `defineSchema()` and the type constructor functions. The `defineSchema()` wrapper is an identity function that preserves type information, enabling the `Infer<>` utility to derive TypeScript types from your schema:
+Define schemas using the type constructor functions. Named types (`ObjectType`, `EnumType`, `UnionType`) take a required name as the first parameter:
 
 ```typescript
 import {
-  defineSchema,
   ObjectType,
   StringType,
   IntType,
@@ -189,44 +184,42 @@ import {
   ReferenceType,
 } from "@hpx7/delta-pack";
 
-const schema = defineSchema({
-  // Enum type
-  Team: EnumType(["RED", "BLUE"]),
+// Enum type
+const Team = EnumType("Team", ["RED", "BLUE"]);
 
-  // Object types
-  Position: ObjectType({
-    x: FloatType({ precision: 0.1 }),
-    y: FloatType({ precision: 0.1 }),
-  }),
-  Player: ObjectType({
-    id: StringType(),
-    name: StringType(),
-    score: IntType(),
-    team: ReferenceType("Team"),
-    position: OptionalType(ReferenceType("Position")),
-  }),
+// Object types - define in dependency order
+const Position = ObjectType("Position", {
+  x: FloatType({ precision: 0.1 }),
+  y: FloatType({ precision: 0.1 }),
+});
 
-  // Union type (define variant types first, then the union)
-  MoveAction: ObjectType({
-    x: IntType(),
-    y: IntType(),
-  }),
-  AttackAction: ObjectType({
-    targetId: StringType(),
-    damage: UIntType(),
-  }),
-  GameAction: UnionType([
-    ReferenceType("MoveAction"),
-    ReferenceType("AttackAction"),
-  ]),
+const Player = ObjectType("Player", {
+  id: StringType(),
+  name: StringType(),
+  score: IntType(),
+  team: ReferenceType(Team),
+  position: OptionalType(ReferenceType(Position)),
+});
 
-  // Using unions in other types
-  GameState: ObjectType({
-    players: RecordType(StringType(), ReferenceType("Player")),
-    actions: ArrayType(ReferenceType("GameAction")),
-    round: UIntType(),
-    phase: StringType(),
-  }),
+// Union type - options are direct type references
+const MoveAction = ObjectType("MoveAction", {
+  x: IntType(),
+  y: IntType(),
+});
+
+const AttackAction = ObjectType("AttackAction", {
+  targetId: StringType(),
+  damage: UIntType(),
+});
+
+const GameAction = UnionType("GameAction", [MoveAction, AttackAction]);
+
+// Using unions in other types
+const GameState = ObjectType("GameState", {
+  players: RecordType(StringType(), ReferenceType(Player)),
+  actions: ArrayType(ReferenceType(GameAction)),
+  round: UIntType(),
+  phase: StringType(),
 });
 ```
 
@@ -252,23 +245,21 @@ The interpreter mode provides a runtime API for working with schemas.
 ### Loading a Schema
 
 ```typescript
-import { ObjectType, StringType, IntType, load, Infer, defineSchema } from "@hpx7/delta-pack";
+import { ObjectType, StringType, IntType, load, Infer } from "@hpx7/delta-pack";
 
-// Define schema
-const schema = defineSchema({
-  Player: ObjectType({
-    id: StringType(),
-    name: StringType(),
-    score: IntType(),
-  }),
+// Define schema type
+const Player = ObjectType("Player", {
+  id: StringType(),
+  name: StringType(),
+  score: IntType(),
 });
 
-// Infer type
-type Player = Infer<typeof schema.Player, typeof schema>;
+// Infer TypeScript type
+type Player = Infer<typeof Player>;
 // Result: { id: string; name: string; score: number }
 
 // Load interpreter API
-const Player = load<Player>(schema, "Player");
+const PlayerApi = load(Player);
 ```
 
 ### API Methods
@@ -303,6 +294,7 @@ const jsonString = JSON.stringify(json);
 ```
 
 **Format notes:**
+
 - Maps (RecordType) are converted to plain objects
 - Optional object properties with `undefined` values are excluded from the JSON
 - Unions are converted to protobuf format: `{ TypeName: {...} }`
@@ -382,6 +374,7 @@ console.log(player2.score); // 200
 ```
 
 **Important notes:**
+
 - Creates deep copies of all nested objects, arrays, and maps
 - Primitives (strings, numbers, booleans) are copied by value
 - The `_dirty` field is **not** preserved in clones (clones always start clean)
@@ -397,12 +390,13 @@ The same type functions used to build schemas (`StringType()`, `IntType()`, `Arr
 
 **Additional decorator-specific features:**
 
-| Decorator | Description |
-|-----------|-------------|
-| `@UnionType([A, B])` | Class decorator for defining union types |
+| Decorator               | Description                                 |
+| ----------------------- | ------------------------------------------- |
+| `@UnionType([A, B])`    | Class decorator for defining union types    |
 | `@ReferenceType(Class)` | Reference a class or TypeScript string enum |
 
 **Referencing classes and enums:**
+
 - Use `ReferenceType(ClassName)` to reference another class
 - Use `ReferenceType(EnumValue)` for TypeScript enums (optionally pass `{ enumName: "Name" }` to specify schema name)
 - For unions, create a class with `@UnionType([A, B])` decorator and reference it
@@ -411,13 +405,24 @@ The same type functions used to build schemas (`StringType()`, `IntType()`, `Arr
 
 ```typescript
 import {
-  StringType, IntType, UIntType, FloatType, BooleanType,
-  ReferenceType, ArrayType, RecordType, OptionalType,
-  UnionType, loadClass,
+  StringType,
+  IntType,
+  UIntType,
+  FloatType,
+  BooleanType,
+  ReferenceType,
+  ArrayType,
+  RecordType,
+  OptionalType,
+  UnionType,
+  loadClass,
 } from "@hpx7/delta-pack";
 
 // Enum (TypeScript string enum)
-enum Team { RED = "RED", BLUE = "BLUE" }
+enum Team {
+  RED = "RED",
+  BLUE = "BLUE",
+}
 
 // Nested object
 class Position {
@@ -473,7 +478,7 @@ class AdvancedExample {
   @ArrayType(FloatType({ precision: 0.01 })) floats: number[] = [];
   @ArrayType(ArrayType(IntType())) matrix: number[][] = [];
   @RecordType(StringType(), ArrayType(IntType())) vectorsById: Map<string, number[]> = new Map();
-  @OptionalType(ReferenceType(Player)) partner?: Player;  // Self-reference
+  @OptionalType(ReferenceType(Player)) partner?: Player; // Self-reference
 }
 ```
 
@@ -513,7 +518,7 @@ const encoded = ClientMessageApi.encode(joinMsg);
 const message = ClientMessageApi.decode(encoded);
 
 if (message instanceof JoinMessage) {
-  console.log(message.name);  // TypeScript knows this is JoinMessage
+  console.log(message.name); // TypeScript knows this is JoinMessage
 } else if (message instanceof InputMessage) {
   console.log(message.input);
 }
@@ -545,10 +550,10 @@ If you need access to the generated schema (e.g., for inspection or to use with 
 import { buildSchema, load } from "@hpx7/delta-pack";
 
 const schema = buildSchema(Player);
-console.log(schema); // { Player: { type: "object", properties: { ... } } }
+console.log(schema); // { Player: { type: "object", properties: { ... }, name: "Player" } }
 
 // Use with load() for more control
-const PlayerApi = load(schema, "Player");
+const PlayerApi = load(schema["Player"]);
 ```
 
 ### Requirements
@@ -556,6 +561,7 @@ const PlayerApi = load(schema, "Player");
 **tsconfig.json:** Enable `"experimentalDecorators": true`
 
 **Class requirements:**
+
 1. Parameterless constructor (instantiable with `new Class()`)
 2. Decorated properties must have default values (discovered via `Object.keys(new Class())`)
 3. At least one property must have a type decorator
@@ -567,30 +573,30 @@ const PlayerApi = load(schema, "Player");
 
 `loadClass()` returns the same API as `load()` in interpreter mode:
 
-| Method | Description |
-|--------|-------------|
-| `encode(obj)` | Serialize to binary |
-| `decode(bytes)` | Deserialize from binary |
-| `encodeDiff(old, new)` | Encode delta between two states |
+| Method                  | Description                          |
+| ----------------------- | ------------------------------------ |
+| `encode(obj)`           | Serialize to binary                  |
+| `decode(bytes)`         | Deserialize from binary              |
+| `encodeDiff(old, new)`  | Encode delta between two states      |
 | `decodeDiff(old, diff)` | Apply delta to reconstruct new state |
-| `equals(a, b)` | Deep equality comparison |
-| `clone(obj)` | Deep clone |
-| `toJson(obj)` | Convert to JSON-serializable format |
-| `fromJson(obj)` | Validate and parse JSON data |
+| `equals(a, b)`          | Deep equality comparison             |
+| `clone(obj)`            | Deep clone                           |
+| `toJson(obj)`           | Convert to JSON-serializable format  |
+| `fromJson(obj)`         | Validate and parse JSON data         |
 
 **Key difference:** In decorator mode, `decode`, `decodeDiff`, `clone`, and `fromJson` return proper class instances—not plain objects. This includes union variants (e.g., decoding a `ClientMessage` returns a `JoinMessage` or `InputMessage` instance).
 
 ### Schema API vs Decorator API
 
-| Aspect | Schema API | Decorator API |
-|--------|-----------|---------------|
-| Type constructors | `StringType()`, `ArrayType()`, etc. | Same - work as decorators too |
-| Object types | `ObjectType({ ... })` | Class with decorated properties |
-| Enums | `EnumType([...])` at schema root | TypeScript `enum` + `ReferenceType()` |
-| Unions | `UnionType([ReferenceType("A"), ...])` | `@UnionType([A, B])` class decorator |
-| References | String names: `ReferenceType("Player")` | Class references: `ReferenceType(Player)` |
-| Loading | `load(schema, "TypeName")` | `loadClass(Class)` |
-| Return types | Plain objects | Class instances with methods |
+| Aspect            | Schema API                                   | Decorator API                             |
+| ----------------- | -------------------------------------------- | ----------------------------------------- |
+| Type constructors | `StringType()`, `ArrayType()`, etc.          | Same - work as decorators too             |
+| Object types      | `ObjectType("Name", { ... })`                | Class with decorated properties           |
+| Enums             | `EnumType("Name", [...])`                    | TypeScript `enum` + `ReferenceType()`     |
+| Unions            | `UnionType("Name", [TypeA, TypeB])`          | `@UnionType([A, B])` class decorator      |
+| References        | Type references: `ReferenceType(PlayerType)` | Class references: `ReferenceType(Player)` |
+| Loading           | `load(RootType)`                             | `loadClass(Class)`                        |
+| Return types      | Plain objects                                | Class instances with methods              |
 
 ## Codegen API
 
@@ -647,61 +653,70 @@ The generated code provides the same methods as interpreter mode:
 
 ```typescript
 import {
-  ObjectType, StringType, UIntType, FloatType, IntType,
-  EnumType, ReferenceType, RecordType,
-  load, Infer, defineSchema,
+  ObjectType,
+  StringType,
+  UIntType,
+  FloatType,
+  IntType,
+  EnumType,
+  ReferenceType,
+  RecordType,
+  load,
+  Infer,
 } from "@hpx7/delta-pack";
 
-// Define schema
-const schema = defineSchema({
-  Team: EnumType(["RED", "BLUE"]),
-  Position: ObjectType({
-    x: FloatType(),
-    y: FloatType(),
-  }),
-  Player: ObjectType({
-    id: StringType(),
-    username: StringType(),
-    team: ReferenceType("Team"),
-    position: ReferenceType("Position"),
-    health: UIntType(),
-    score: IntType(),
-  }),
-  GameState: ObjectType({
-    players: RecordType(StringType(), ReferenceType("Player")),
-    round: UIntType(),
-    timeRemaining: FloatType(),
-  }),
+// Define schema types
+const Team = EnumType("Team", ["RED", "BLUE"]);
+
+const Position = ObjectType("Position", {
+  x: FloatType(),
+  y: FloatType(),
+});
+
+const Player = ObjectType("Player", {
+  id: StringType(),
+  username: StringType(),
+  team: ReferenceType(Team),
+  position: ReferenceType(Position),
+  health: UIntType(),
+  score: IntType(),
+});
+
+const GameState = ObjectType("GameState", {
+  players: RecordType(StringType(), ReferenceType(Player)),
+  round: UIntType(),
+  timeRemaining: FloatType(),
 });
 
 // Infer types
-type GameState = Infer<typeof schema.GameState, typeof schema>;
+type GameStateType = Infer<typeof GameState>;
 
 // Load API
-const GameStateApi = load<GameState>(schema, "GameState");
+const GameStateApi = load(GameState);
 
 // Create initial state
-const state1: GameState = {
+const state1: GameStateType = {
   players: new Map([
-    ["p1", {
-      id: "p1",
-      username: "Alice",
-      team: "RED",
-      position: { x: 100, y: 100 },
-      health: 100,
-      score: 0,
-    }],
+    [
+      "p1",
+      {
+        id: "p1",
+        username: "Alice",
+        team: "RED",
+        position: { x: 100, y: 100 },
+        health: 100,
+        score: 0,
+      },
+    ],
   ]),
   round: 1,
   timeRemaining: 600.0,
 };
 
 // Updated state (player moved)
-const state2: GameState = {
+const state2: GameStateType = {
   ...state1,
-  players: new Map([
-    ["p1", { ...state1.players.get("p1")!, position: { x: 105, y: 102 } }],
-  ]),
+  players: new Map([["p1", { ...state1.players.get("p1")!, position: { x: 105, y: 102 } }]]),
   timeRemaining: 599.0,
 };
 
@@ -713,12 +728,12 @@ const reconstructed = GameStateApi.decodeDiff(state1, diff);
 **Using Decorator Mode:**
 
 ```typescript
-import {
-  StringType, UIntType, FloatType, IntType,
-  ReferenceType, RecordType, loadClass,
-} from "@hpx7/delta-pack";
+import { StringType, UIntType, FloatType, IntType, ReferenceType, RecordType, loadClass } from "@hpx7/delta-pack";
 
-enum Team { RED = "RED", BLUE = "BLUE" }
+enum Team {
+  RED = "RED",
+  BLUE = "BLUE",
+}
 
 class Position {
   @FloatType() x: number = 0;
@@ -774,8 +789,8 @@ const reconstructed = GameStateApi.decodeDiff(state1, diff);
 import { codegenTypescript } from "@hpx7/delta-pack";
 import { writeFileSync } from "fs";
 
-// Using the same schema from above
-const code = codegenTypescript(schema);
+// Using the same types from above
+const code = codegenTypescript({ Team, Position, Player, GameState });
 writeFileSync("generated.ts", code);
 ```
 
@@ -847,6 +862,7 @@ const diff = Player.encodeDiff(oldPlayer, newPlayer);
 ```
 
 This pattern ensures:
+
 - Original state remains unchanged
 - You can precisely control which fields are marked dirty
 - Delta encoding is maximally efficient
@@ -872,12 +888,14 @@ const diff = encodeDiff(oldPlayers, players);
 ```
 
 The `_dirty` field is:
+
 - **Optional**: If absent, full comparison is performed
 - **Type-safe**: `Set<keyof T>` for objects, `Set<number>` for arrays, `Set<K>` for maps
 - **Included in generated types**: Both codegen and interpreter types include `_dirty`
 - **Not serialized**: The `_dirty` field is never encoded in the binary format
 
 **When to use dirty tracking:**
+
 - High-frequency updates (e.g., 60+ times per second)
 - Large objects/collections where full comparison is expensive
 - When you can reliably track changes at the application level
@@ -889,7 +907,7 @@ The `_dirty` field is:
 Use precision for floats to reduce size:
 
 ```typescript
-const Position = ObjectType({
+const Position = ObjectType("Position", {
   x: FloatType({ precision: 0.1 }), // ~10cm precision
   y: FloatType({ precision: 0.1 }),
 });
@@ -944,12 +962,13 @@ Each example includes:
 
 ### Complex Types
 
-| Function              | TypeScript Type                   | Description                         |
-| --------------------- | --------------------------------- | ----------------------------------- |
-| `ObjectType({ ... })` | `{ ... }`                         | Object with defined properties      |
-| `EnumType([...])`     | Union of string literals          | Enumerated string values            |
-| `UnionType([...])`    | `{ type: string, val: T }`        | Tagged union of reference types     |
-| `ReferenceType(name)` | Named type                        | Reference to another type in schema |
+| Function                      | TypeScript Type            | Description                      |
+| ----------------------------- | -------------------------- | -------------------------------- |
+| `ObjectType("Name", { ... })` | `{ ... }`                  | Object with defined properties   |
+| `EnumType("Name", [...])`     | Union of string literals   | Enumerated string values         |
+| `UnionType("Name", [...])`    | `{ type: string, val: T }` | Tagged union of named types      |
+| `ReferenceType(Type)`         | Named type                 | Reference to another named type  |
+| `SelfReferenceType()`         | Self                       | Reference to the containing type |
 
 ## Development
 

@@ -5,52 +5,78 @@ import {
   EnumType,
   FloatType,
   IntType,
+  NamedType,
   ObjectType,
   OptionalType,
   PropertyType,
   RecordType,
   ReferenceType,
+  SelfReferenceType,
   StringType,
   Type,
   UIntType,
   UnionType,
 } from "./schema.js";
-import { mapValues } from "./helpers.js";
 
-export function parseSchemaYml(yamlContent: string): Record<string, Type> {
+// Placeholder for unresolved references during first pass
+interface UnresolvedReference {
+  type: "__unresolved_reference__";
+  name: string;
+}
+
+// Placeholder for unresolved union during first pass
+interface UnresolvedUnion {
+  type: "__unresolved_union__";
+  variantNames: string[];
+  name: string;
+}
+
+type ParsedType = Type | UnresolvedReference | UnresolvedUnion;
+
+export function parseSchemaYml(yamlContent: string): Record<string, NamedType> {
   // the yaml schema is a mapping from type names to type definitions
-  const schema: Record<string, any> = yaml.parse(yamlContent);
+  const rawSchema: Record<string, unknown> = yaml.parse(yamlContent);
 
-  // recursive function to parse a type definition
-  function parseType(value: any): Type {
+  // First pass: parse all types with unresolved references
+  const unresolvedTypes: Record<string, ParsedType> = {};
+
+  function parseType(value: unknown, currentTypeName: string): ParsedType | null {
     if (Array.isArray(value)) {
       // could be a union type or an enum type
       const values = value as string[];
       // it's a union type if all values are references to other types in the schema
-      if (values.every((v) => v in schema)) {
-        return UnionType(values.map((v) => ReferenceType(v)));
+      if (values.every((v) => v in rawSchema)) {
+        return { type: "__unresolved_union__", variantNames: values, name: currentTypeName } as UnresolvedUnion;
       }
       // otherwise, it's an enum type
-      return EnumType(values);
+      return EnumType(currentTypeName, values);
     }
-    if (typeof value === "object") {
+    if (typeof value === "object" && value !== null) {
       // object type
       const properties: Record<string, PropertyType> = {};
       for (const [propKey, propValue] of Object.entries(value)) {
-        properties[propKey] = parseType(propValue) as PropertyType;
+        properties[propKey] = parsePropertyType(propValue, currentTypeName);
       }
-      return ObjectType(properties);
+      return ObjectType(currentTypeName, properties);
     }
+    if (typeof value === "string") {
+      // Type alias to a primitive or another type - skip, will be resolved inline
+      return null;
+    }
+    throw new Error(`Unsupported type format: ${value}`);
+  }
+
+  function parsePropertyType(value: unknown, currentTypeName: string): PropertyType {
     if (typeof value === "string") {
       if (value.endsWith("[]")) {
         // array type
         const itemTypeStr = value.slice(0, -2);
-        const childType = parseType(itemTypeStr) as PropertyType;
+        const childType = parsePropertyType(itemTypeStr, currentTypeName);
         return ArrayType(childType);
       } else if (value.endsWith("?")) {
         // optional type
         const itemTypeStr = value.slice(0, -1);
-        const childType = parseType(itemTypeStr) as PropertyType;
+        const childType = parsePropertyType(itemTypeStr, currentTypeName);
         return OptionalType(childType);
       } else if (value.startsWith("<") && value.endsWith(">")) {
         // record type
@@ -60,9 +86,9 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
           throw new Error(`Invalid record type format: ${value}`);
         }
         const [keyTypeStr, valueTypeStr] = [inner.slice(0, commaIdx).trim(), inner.slice(commaIdx + 1).trim()];
-        const keyType = parseType(keyTypeStr) as { type: "string" | "int" | "uint" };
-        const valueType = parseType(valueTypeStr) as PropertyType;
-        return RecordType(keyType, valueType);
+        const keyType = parsePropertyType(keyTypeStr, currentTypeName) as StringType | IntType | UIntType;
+        const valueType = parsePropertyType(valueTypeStr, currentTypeName);
+        return RecordType(keyType, valueType) as PropertyType;
       } else if (value.startsWith("string")) {
         return StringType();
       } else if (value.startsWith("int")) {
@@ -74,15 +100,85 @@ export function parseSchemaYml(yamlContent: string): Record<string, Type> {
         return FloatType(params);
       } else if (value.startsWith("boolean")) {
         return BooleanType();
-      } else if (value in schema) {
-        return ReferenceType(value);
+      } else if (value === currentTypeName) {
+        // Self-reference
+        return SelfReferenceType();
+      } else if (value in rawSchema) {
+        // Check if it's a type alias (raw string value in schema)
+        const targetValue = rawSchema[value];
+        if (typeof targetValue === "string") {
+          // Type alias - resolve inline to the underlying type
+          return parsePropertyType(targetValue, currentTypeName);
+        }
+        // Reference to another type - will be resolved in second pass
+        return { type: "__unresolved_reference__", name: value } as unknown as PropertyType;
       }
     }
-    throw new Error(`Unsupported type format: ${value}`);
+    throw new Error(`Unsupported property type format: ${value}`);
   }
 
-  // parse the type definitions
-  return mapValues(schema, (value) => parseType(value));
+  // Parse all types (first pass)
+  for (const [typeName, typeValue] of Object.entries(rawSchema)) {
+    const parsed = parseType(typeValue, typeName);
+    if (parsed !== null) {
+      unresolvedTypes[typeName] = parsed;
+    }
+  }
+
+  // Second pass: resolve references
+  const resolvedTypes: Record<string, NamedType> = {};
+
+  function resolveType(parsed: ParsedType): NamedType {
+    if ("type" in parsed && parsed.type === "__unresolved_union__") {
+      const union = parsed as UnresolvedUnion;
+      const variants = union.variantNames.map((name) => {
+        if (!(name in unresolvedTypes)) {
+          throw new Error(`Unknown type reference: ${name}`);
+        }
+        return resolveType(unresolvedTypes[name]!);
+      });
+      return UnionType(union.name, variants);
+    }
+    // Already a named type (ObjectType or EnumType)
+    const namedType = parsed as NamedType;
+    if (namedType.type === "object") {
+      // Resolve property references
+      const resolvedProperties: Record<string, PropertyType> = {};
+      for (const [key, prop] of Object.entries(namedType.properties)) {
+        resolvedProperties[key] = resolvePropertyType(prop);
+      }
+      return ObjectType(namedType.name, resolvedProperties);
+    }
+    return namedType;
+  }
+
+  function resolvePropertyType(prop: PropertyType): PropertyType {
+    if ("type" in prop && (prop as unknown as UnresolvedReference).type === "__unresolved_reference__") {
+      const ref = prop as unknown as UnresolvedReference;
+      if (!(ref.name in unresolvedTypes)) {
+        throw new Error(`Unknown type reference: ${ref.name}`);
+      }
+      const resolved = resolveType(unresolvedTypes[ref.name]!);
+      return ReferenceType(resolved);
+    }
+    if (prop.type === "array") {
+      return ArrayType(resolvePropertyType(prop.value));
+    }
+    if (prop.type === "optional") {
+      return OptionalType(resolvePropertyType(prop.value));
+    }
+    if (prop.type === "record") {
+      return RecordType(prop.key, resolvePropertyType(prop.value));
+    }
+    return prop;
+  }
+
+  // Resolve all types
+  for (const [typeName, parsed] of Object.entries(unresolvedTypes)) {
+    resolvedTypes[typeName] = resolveType(parsed);
+  }
+
+  return resolvedTypes;
 }
 
 function parseParams(value: string, typeName: string): Record<string, string> {

@@ -1,14 +1,18 @@
-import { Type, ReferenceType, isPrimitiveType } from "./schema.js";
+import { Type, isPrimitiveOrEnum } from "./schema.js";
 
 export function codegenTypescript(schema: Record<string, Type>) {
   return renderSchema(schema);
 }
 
 function renderSchema(schema: Record<string, Type>) {
+  // Track the current type being processed for self-reference resolution
+  let currentTypeName: string;
+
   return `import * as _ from "@hpx7/delta-pack/helpers";
 
 ${Object.entries(schema)
   .map(([name, type]) => {
+    currentTypeName = name;
     if (type.type === "enum") {
       return `
 export type ${name} = ${type.options.map((option) => `"${option}"`).join(" | ")};
@@ -21,6 +25,7 @@ export type ${name} = ${type.options.map((option) => `"${option}"`).join(" | ")}
 
 ${Object.entries(schema)
   .map(([name, type]) => {
+    currentTypeName = name;
     if (type.type === "enum") {
       return `
 const ${name} = {
@@ -156,12 +161,12 @@ export const ${name} = {
 export const ${name} = {
   default(): ${name} {
     return {
-      type: "${type.options[0]!.reference}",
-      val: ${renderDefault(type.options[0]!, type.options[0]!.reference)},
+      type: "${type.options[0]!.name}",
+      val: ${renderDefault(type.options[0]!, type.options[0]!.name!)},
     };
   },
   values() {
-    return [${type.options.map((option) => `"${option.reference}"`).join(", ")}];
+    return [${type.options.map((option) => `"${option.name}"`).join(", ")}];
   },
   fromJson(obj: object): ${name} {
     if (typeof obj !== "object" || obj == null) {
@@ -170,11 +175,11 @@ export const ${name} = {
     // check if it's delta-pack format: { type: "TypeName", val: ... }
     if ("type" in obj && typeof (obj as Record<string, unknown>)["type"] === "string" && "val" in obj) {
       ${type.options
-        .map((reference, i) => {
-          return `${i > 0 ? "else " : ""}if (obj["type"] === "${reference.reference}") {
+        .map((option, i) => {
+          return `${i > 0 ? "else " : ""}if (obj["type"] === "${option.name}") {
         return {
-          type: "${reference.reference}",
-          val: ${renderFromJson(reference, reference.reference, `obj["val"]`)},
+          type: "${option.name}",
+          val: ${renderFromJson(option, option.name!, `obj["val"]`)},
         };
       }`;
         })
@@ -188,11 +193,11 @@ export const ${name} = {
     if (entries.length === 1) {
       const [fieldName, fieldValue] = entries[0]!;
       ${type.options
-        .map((reference, i) => {
-          return `${i > 0 ? "else " : ""}if (fieldName === "${reference.reference}") {
+        .map((option, i) => {
+          return `${i > 0 ? "else " : ""}if (fieldName === "${option.name}") {
         return {
-          type: "${reference.reference}",
-          val: ${renderFromJson(reference, reference.reference, "fieldValue")},
+          type: "${option.name}",
+          val: ${renderFromJson(option, option.name!, "fieldValue")},
         };
       }`;
         })
@@ -202,10 +207,10 @@ export const ${name} = {
   },
   toJson(obj: ${name}): Record<string, unknown> {
     ${type.options
-      .map((reference, i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+      .map((option, i) => {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
       return {
-        ${reference.reference}: ${renderToJson(reference, reference.reference, "obj.val")},
+        ${option.name}: ${renderToJson(option, option.name!, "obj.val")},
       };
     }`;
       })
@@ -214,11 +219,11 @@ export const ${name} = {
   },
   clone(obj: ${name}): ${name} {
     ${type.options
-      .map((reference, i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+      .map((option, i) => {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
       return {
-        type: "${reference.reference}",
-        val: ${renderClone(reference, reference.reference, "obj.val")},
+        type: "${option.name}",
+        val: ${renderClone(option, option.name!, "obj.val")},
       };
     }`;
       })
@@ -227,9 +232,9 @@ export const ${name} = {
   },
   equals(a: ${name}, b: ${name}): boolean {
     ${type.options
-      .map((reference, i) => {
-        return `${i > 0 ? "else " : ""}if (a.type === "${reference.reference}" && b.type === "${reference.reference}") {
-      return ${renderEquals(reference, reference.reference, "a.val", "b.val")};
+      .map((option, i) => {
+        return `${i > 0 ? "else " : ""}if (a.type === "${option.name}" && b.type === "${option.name}") {
+      return ${renderEquals(option, option.name!, "a.val", "b.val")};
     }`;
       })
       .join("\n    ")}
@@ -241,11 +246,11 @@ export const ${name} = {
     return encoder.toBuffer();
   },
   _encode(obj: ${name}, encoder: _.Encoder): void {
-    ${Object.entries(type.options)
-      .map(([childName, reference], i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
-      encoder.pushUInt(${childName});
-      ${renderEncode(reference, reference.reference, "obj.val")};
+    ${type.options
+      .map((option, i) => {
+        return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
+      encoder.pushUInt(${i});
+      ${renderEncode(option, option.name!, "obj.val")};
     }`;
       })
       .join("\n    ")}
@@ -258,13 +263,13 @@ export const ${name} = {
   _encodeDiff(a: ${name}, b: ${name}, encoder: _.Encoder): void {
     encoder.pushBoolean(a.type === b.type);
     ${type.options
-      .map((reference, i) => {
-        return `${i > 0 ? "else " : ""}if (b.type === "${reference.reference}") {
-      if (a.type === "${reference.reference}") {
-        ${renderEncodeDiff(reference, reference.reference, "a.val", "b.val")};
+      .map((option, i) => {
+        return `${i > 0 ? "else " : ""}if (b.type === "${option.name}") {
+      if (a.type === "${option.name}") {
+        ${renderEncodeDiff(option, option.name!, "a.val", "b.val")};
       } else {
         encoder.pushUInt(${i});
-        ${renderEncode(reference, reference.reference, "b.val")};
+        ${renderEncode(option, option.name!, "b.val")};
       }
     }`;
       })
@@ -276,9 +281,9 @@ export const ${name} = {
   _decode(decoder: _.Decoder): ${name} {
     const type = decoder.nextUInt();
     ${type.options
-      .map((reference, i) => {
+      .map((option, i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${reference.reference}", val: ${renderDecode(reference, reference.reference, "obj.val")} };
+      return { type: "${option.name}", val: ${renderDecode(option, option.name!, "obj.val")} };
     }`;
       })
       .join("\n    ")}
@@ -292,11 +297,11 @@ export const ${name} = {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
       ${type.options
-        .map((reference, i) => {
-          return `${i > 0 ? "else " : ""}if (obj.type === "${reference.reference}") {
+        .map((option, i) => {
+          return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
         return {
-          type: "${reference.reference}",
-          val: ${renderDecodeDiff(reference, reference.reference, "obj.val")},
+          type: "${option.name}",
+          val: ${renderDecodeDiff(option, option.name!, "obj.val")},
         };
       }`;
         })
@@ -305,11 +310,11 @@ export const ${name} = {
     } else {
       const type = decoder.nextUInt();
       ${type.options
-        .map((reference, i) => {
+        .map((option, i) => {
           return `${i > 0 ? "else " : ""}if (type === ${i}) {
         return {
-          type: "${reference.reference}",
-          val: ${renderDecode(reference, reference.reference, "obj.val")},
+          type: "${option.name}",
+          val: ${renderDecode(option, option.name!, "obj.val")},
         };
       }`;
         })
@@ -323,14 +328,6 @@ export const ${name} = {
   })
   .join("\n")}`;
 
-  function lookup(type: ReferenceType): Type {
-    const res = schema[type.reference];
-    if (res != null) {
-      return res;
-    }
-    throw new Error(`Reference ${JSON.stringify(type.reference)} not found, searched ${Object.keys(schema)}`);
-  }
-
   function renderTypeArg(type: Type, name: string): string {
     if (type.type === "object") {
       return `{
@@ -341,9 +338,7 @@ export const ${name} = {
     .join("\n  ")}
 } & { _dirty?: Set<keyof ${name}> }`;
     } else if (type.type === "union") {
-      return type.options
-        .map((option) => `{ type: "${renderTypeArg(option, name)}"; val: ${renderTypeArg(option, name)} }`)
-        .join(" | ");
+      return type.options.map((option) => `{ type: "${option.name}"; val: ${option.name} }`).join(" | ");
     } else if (type.type === "array") {
       const elementType = renderTypeArg(type.value, name);
       // Parenthesize if element type has _dirty (array or record - objects can't be direct children)
@@ -356,9 +351,11 @@ export const ${name} = {
     } else if (type.type === "record") {
       return `Map<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}> & { _dirty?: Set<${renderTypeArg(type.key, name)}> }`;
     } else if (type.type === "reference") {
-      return type.reference;
+      return type.ref.name!;
     } else if (type.type === "int" || type.type === "uint" || type.type === "float") {
       return "number";
+    } else if (type.type === "self-reference") {
+      return currentTypeName;
     }
     return type.type;
   }
@@ -371,7 +368,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return "new Map()";
     } else if (type.type === "reference") {
-      return renderDefault(lookup(type), type.reference);
+      return renderDefault(type.ref, type.ref.name!);
     } else if (type.type === "string") {
       return '""';
     } else if (type.type === "int") {
@@ -384,6 +381,8 @@ export const ${name} = {
       return "false";
     } else if (type.type === "enum") {
       return `"${type.options[0]}"`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}.default()`;
     }
     return `${name}.default()`;
   }
@@ -398,7 +397,7 @@ export const ${name} = {
       const valueFn = renderFromJson(type.value, name, "x");
       return `_.parseRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderFromJson(lookup(type), type.reference, key);
+      return renderFromJson(type.ref, type.ref.name!, key);
     } else if (type.type === "string") {
       return `_.parseString(${key})`;
     } else if (type.type === "int") {
@@ -411,6 +410,8 @@ export const ${name} = {
       return `_.parseBoolean(${key})`;
     } else if (type.type === "enum") {
       return `_.parseEnum(${key}, ${name})`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}.fromJson(${key} as ${currentTypeName})`;
     }
     return `${name}.fromJson(${key} as ${name})`;
   }
@@ -423,7 +424,7 @@ export const ${name} = {
     } else if (type.type === "record") {
       return `_.mapToObject(${key}, (x) => ${renderToJson(type.value, name, "x")})`;
     } else if (type.type === "reference") {
-      return renderToJson(lookup(type), type.reference, key);
+      return renderToJson(type.ref, type.ref.name!, key);
     } else if (
       type.type === "string" ||
       type.type === "int" ||
@@ -433,6 +434,8 @@ export const ${name} = {
       type.type === "enum"
     ) {
       return `${key}`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}.toJson(${key})`;
     }
     return `${name}.toJson(${key})`;
   }
@@ -446,7 +449,7 @@ export const ${name} = {
       const valueFn = renderClone(type.value, name, "v");
       return `new Map([...${key}].map(([k, v]) => [k, ${valueFn}]))`;
     } else if (type.type === "reference") {
-      return renderClone(lookup(type), type.reference, key);
+      return renderClone(type.ref, type.ref.name!, key);
     } else if (
       type.type === "string" ||
       type.type === "int" ||
@@ -456,6 +459,8 @@ export const ${name} = {
       type.type === "enum"
     ) {
       return `${key}`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}.clone(${key})`;
     }
     return `${name}.clone(${key})`;
   }
@@ -470,7 +475,7 @@ export const ${name} = {
       const valueEquals = renderEquals(type.value, name, "x", "y");
       return `_.equalsRecord(${keyA}, ${keyB}, (x, y) => ${keyEquals}, (x, y) => ${valueEquals})`;
     } else if (type.type === "reference") {
-      return renderEquals(lookup(type), type.reference, keyA, keyB);
+      return renderEquals(type.ref, type.ref.name!, keyA, keyB);
     } else if (type.type === "float") {
       if (type.precision) {
         return `_.equalsFloatQuantized(${keyA}, ${keyB}, ${type.precision})`;
@@ -484,6 +489,8 @@ export const ${name} = {
       type.type === "enum"
     ) {
       return `${keyA} === ${keyB}`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}.equals(${keyA}, ${keyB})`;
     }
     return `${name}.equals(${keyA}, ${keyB})`;
   }
@@ -498,7 +505,7 @@ export const ${name} = {
       const valueFn = renderEncode(type.value, name, "x");
       return `encoder.pushRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderEncode(lookup(type), type.reference, key);
+      return renderEncode(type.ref, type.ref.name!, key);
     } else if (type.type === "string") {
       return `encoder.pushString(${key})`;
     } else if (type.type === "int") {
@@ -514,6 +521,8 @@ export const ${name} = {
       return `encoder.pushBoolean(${key})`;
     } else if (type.type === "enum") {
       return `encoder.pushUInt(${name}[${key}])`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}._encode(${key}, encoder)`;
     }
     return `${name}._encode(${key}, encoder)`;
   }
@@ -528,7 +537,7 @@ export const ${name} = {
       const valueFn = renderDecode(type.value, name, "x");
       return `decoder.nextRecord(() => ${keyFn}, () => ${valueFn})`;
     } else if (type.type === "reference") {
-      return renderDecode(lookup(type), type.reference, key);
+      return renderDecode(type.ref, type.ref.name!, key);
     } else if (type.type === "string") {
       return `decoder.nextString()`;
     } else if (type.type === "int") {
@@ -544,6 +553,8 @@ export const ${name} = {
       return `decoder.nextBoolean()`;
     } else if (type.type === "enum") {
       return `(${name} as any)[decoder.nextUInt()]`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}._decode(decoder)`;
     }
     return `${name}._decode(decoder)`;
   }
@@ -564,7 +575,7 @@ export const ${name} = {
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value, name);
       const encodeFn = renderEncode(type.value, name, "x");
-      if (isPrimitiveType(type.value, schema)) {
+      if (isPrimitiveOrEnum(type.value)) {
         return `encoder.pushOptionalDiffPrimitive<${valueType}>(
         ${keyA},
         ${keyB},
@@ -595,7 +606,7 @@ export const ${name} = {
         (x, y) => ${encodeDiffFn}
       )`;
     } else if (type.type === "reference") {
-      return renderEncodeDiff(lookup(type), type.reference, keyA, keyB);
+      return renderEncodeDiff(type.ref, type.ref.name!, keyA, keyB);
     } else if (type.type === "string") {
       return `encoder.pushStringDiff(${keyA}, ${keyB})`;
     } else if (type.type === "int") {
@@ -611,6 +622,8 @@ export const ${name} = {
       return `encoder.pushBooleanDiff(${keyA}, ${keyB})`;
     } else if (type.type === "enum") {
       return `encoder.pushUIntDiff(${name}[${keyA}], ${name}[${keyB}])`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}._encodeDiff(${keyA}, ${keyB}, encoder)`;
     }
     return `${name}._encodeDiff(${keyA}, ${keyB}, encoder)`;
   }
@@ -628,7 +641,7 @@ export const ${name} = {
     } else if (type.type === "optional") {
       const valueType = renderTypeArg(type.value, name);
       const decodeFn = renderDecode(type.value, name, "x");
-      if (isPrimitiveType(type.value, schema)) {
+      if (isPrimitiveOrEnum(type.value)) {
         return `decoder.nextOptionalDiffPrimitive<${valueType}>(
         ${key},
         () => ${decodeFn}
@@ -654,7 +667,7 @@ export const ${name} = {
         (x) => ${decodeDiffFn}
       )`;
     } else if (type.type === "reference") {
-      return renderDecodeDiff(lookup(type), type.reference, key);
+      return renderDecodeDiff(type.ref, type.ref.name!, key);
     } else if (type.type === "string") {
       return `decoder.nextStringDiff(${key})`;
     } else if (type.type === "int") {
@@ -670,6 +683,8 @@ export const ${name} = {
       return `decoder.nextBooleanDiff(${key})`;
     } else if (type.type === "enum") {
       return `(${name} as any)[decoder.nextUIntDiff((${name} as any)[${key}])]`;
+    } else if (type.type === "self-reference") {
+      return `${currentTypeName}._decodeDiff(${key}, decoder)`;
     }
     return `${name}._decodeDiff(${key}, decoder)`;
   }

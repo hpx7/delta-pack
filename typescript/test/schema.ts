@@ -11,80 +11,77 @@ import {
   EnumType,
   ReferenceType,
   UnionType,
-  defineSchema,
+  SelfReferenceType,
 } from "@hpx7/delta-pack";
 
 // Define test schema with multiple types
-const Color = EnumType(["RED", "BLUE", "GREEN", "YELLOW"]);
 
-const Player = ObjectType({
+const Color = EnumType("Color", ["RED", "BLUE", "GREEN", "YELLOW"]);
+
+const Player = ObjectType("Player", {
   id: StringType(),
   name: StringType(),
   score: IntType(),
   isActive: BooleanType(),
-  partner: OptionalType(ReferenceType("Player")), // Recursive reference
+  partner: OptionalType(SelfReferenceType()), // Self-reference
 });
 
 // Position with quantized floats
-const Position = ObjectType({
+const Position = ObjectType("Position", {
   x: FloatType({ precision: 0.1 }),
   y: FloatType({ precision: 0.1 }),
 });
 
 // Velocity with non-quantized floats
-const Velocity = ObjectType({
+const Velocity = ObjectType("Velocity", {
   vx: FloatType(),
   vy: FloatType(),
 });
 
 // Entity with nested object reference (Position)
-const Entity = ObjectType({
+const Entity = ObjectType("Entity", {
   id: StringType(),
-  position: ReferenceType("Position"),
+  position: ReferenceType(Position),
 });
 
 // Union type for different game actions
-const MoveAction = ObjectType({
+const MoveAction = ObjectType("MoveAction", {
   x: IntType(),
   y: IntType(),
 });
 
-const AttackAction = ObjectType({
+const AttackAction = ObjectType("AttackAction", {
   targetId: StringType(),
   damage: UIntType(),
 });
 
-const UseItemAction = ObjectType({
+const UseItemAction = ObjectType("UseItemAction", {
   itemId: StringType(),
 });
 
-const GameAction = UnionType([
-  ReferenceType("MoveAction"),
-  ReferenceType("AttackAction"),
-  ReferenceType("UseItemAction"),
-]);
+const GameAction = UnionType("GameAction", [MoveAction, AttackAction, UseItemAction]);
 
-const GameState = ObjectType({
-  players: ArrayType(ReferenceType("Player")),
+const GameState = ObjectType("GameState", {
+  players: ArrayType(ReferenceType(Player)),
   currentPlayer: OptionalType(StringType()),
   round: UIntType(),
   metadata: RecordType(StringType(), StringType()),
-  winningColor: OptionalType(ReferenceType("Color")),
-  lastAction: OptionalType(ReferenceType("GameAction")),
+  winningColor: OptionalType(ReferenceType(Color)),
+  lastAction: OptionalType(ReferenceType(GameAction)),
 });
 
 // Nested container type: optional array of records
-const Inventory = ObjectType({
+const Inventory = ObjectType("Inventory", {
   items: OptionalType(ArrayType(RecordType(StringType(), IntType()))),
 });
 
 // Map with object values
-const PlayerRegistry = ObjectType({
-  players: RecordType(StringType(), ReferenceType("Player")),
+const PlayerRegistry = ObjectType("PlayerRegistry", {
+  players: RecordType(StringType(), ReferenceType(Player)),
 });
 
-// Export schema for interpreter tests
-export const schema = defineSchema({
+// Export individual types for interpreter tests
+export const schema = {
   Color,
   Player,
   Position,
@@ -97,4 +94,4 @@ export const schema = defineSchema({
   GameState,
   Inventory,
   PlayerRegistry,
-});
+};

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   load,
-  defineSchema,
   ObjectType,
   StringType,
   IntType,
@@ -22,86 +21,31 @@ import {
  * that aren't covered by the main shared API tests.
  */
 
-// Schema for boundary value testing
-const boundarySchema = defineSchema({
-  IntBoundaries: ObjectType({
-    minInt: IntType(),
-    maxInt: IntType(),
-    zero: IntType(),
-    negOne: IntType(),
-  }),
-  UIntBoundaries: ObjectType({
-    zero: UIntType(),
-    maxUint: UIntType(),
-    one: UIntType(),
-  }),
-  FloatEdges: ObjectType({
-    zero: FloatType(),
-    negZero: FloatType(),
-    small: FloatType(),
-    large: FloatType(),
-    negative: FloatType(),
-  }),
-  QuantizedFloatEdges: ObjectType({
-    value: FloatType({ precision: 0.1 }),
-  }),
-  StringEdges: ObjectType({
-    empty: StringType(),
-    unicode: StringType(),
-    long: StringType(),
-  }),
-  ManyBooleans: ObjectType({
-    b1: BooleanType(),
-    b2: BooleanType(),
-    b3: BooleanType(),
-    b4: BooleanType(),
-    b5: BooleanType(),
-    b6: BooleanType(),
-    b7: BooleanType(),
-    b8: BooleanType(),
-    b9: BooleanType(),
-    b10: BooleanType(),
-  }),
-  Color: EnumType(["RED", "BLUE", "GREEN"]),
-  EnumHolder: ObjectType({
-    color: ReferenceType("Color"),
-  }),
-  InnerOptional: ObjectType({
-    inner: OptionalType(StringType()),
-  }),
-  NestedOptional: ObjectType({
-    outer: OptionalType(ReferenceType("InnerOptional")),
-  }),
-  ArrayHolder: ObjectType({
-    items: ArrayType(IntType()),
-  }),
-  RecordHolder: ObjectType({
-    data: RecordType(StringType(), IntType()),
-  }),
-  ActionA: ObjectType({ value: IntType() }),
-  ActionB: ObjectType({ name: StringType() }),
-  ActionUnion: UnionType([ReferenceType("ActionA"), ReferenceType("ActionB")]),
-  UnionHolder: ObjectType({
-    action: ReferenceType("ActionUnion"),
-  }),
+// Schema definitions and inferred types
+const Color = EnumType("Color", ["RED", "BLUE", "GREEN"]);
+const EnumHolder = ObjectType("EnumHolder", {
+  color: ReferenceType(Color),
 });
-
-// Infer types from schema
-type IntBoundaries = Infer<typeof boundarySchema.IntBoundaries, typeof boundarySchema>;
-type UIntBoundaries = Infer<typeof boundarySchema.UIntBoundaries, typeof boundarySchema>;
-type FloatEdges = Infer<typeof boundarySchema.FloatEdges, typeof boundarySchema>;
-type QuantizedFloatEdges = Infer<typeof boundarySchema.QuantizedFloatEdges, typeof boundarySchema>;
-type StringEdges = Infer<typeof boundarySchema.StringEdges, typeof boundarySchema>;
-type ManyBooleans = Infer<typeof boundarySchema.ManyBooleans, typeof boundarySchema>;
-type EnumHolder = Infer<typeof boundarySchema.EnumHolder, typeof boundarySchema>;
-type NestedOptional = Infer<typeof boundarySchema.NestedOptional, typeof boundarySchema>;
-type ArrayHolder = Infer<typeof boundarySchema.ArrayHolder, typeof boundarySchema>;
-type RecordHolder = Infer<typeof boundarySchema.RecordHolder, typeof boundarySchema>;
-type UnionHolder = Infer<typeof boundarySchema.UnionHolder, typeof boundarySchema>;
+type EnumHolder = Infer<typeof EnumHolder>;
+const ArrayHolder = ObjectType("ArrayHolder", {
+  items: ArrayType(IntType()),
+});
+type ArrayHolder = Infer<typeof ArrayHolder>;
+const RecordHolder = ObjectType("RecordHolder", {
+  data: RecordType(StringType(), IntType()),
+});
+type RecordHolder = Infer<typeof RecordHolder>;
 
 describe("Edge Cases - Boundary Values", () => {
   describe("Integer Boundaries", () => {
-    const IntBoundaries = load<IntBoundaries>(boundarySchema, "IntBoundaries");
+    const IntBoundaries = ObjectType("IntBoundaries", {
+      minInt: IntType(),
+      maxInt: IntType(),
+      zero: IntType(),
+      negOne: IntType(),
+    });
+    type IntBoundaries = Infer<typeof IntBoundaries>;
+    const api = load(IntBoundaries);
 
     it("should handle maximum safe integer values", () => {
       // Varint encoding supports arbitrary precision, but JS has limits
@@ -112,13 +56,10 @@ describe("Edge Cases - Boundary Values", () => {
         negOne: -1,
       };
 
-      const encoded = IntBoundaries.encode(maxSafe);
-      const decoded = IntBoundaries.decode(encoded);
+      const encoded = api.encode(maxSafe);
+      const decoded = api.decode(encoded);
 
-      expect(decoded.minInt).toBe(-2147483648);
-      expect(decoded.maxInt).toBe(2147483647);
-      expect(decoded.zero).toBe(0);
-      expect(decoded.negOne).toBe(-1);
+      expect(decoded).toEqual(maxSafe);
     });
 
     it("should handle negative numbers correctly with zigzag encoding", () => {
@@ -129,10 +70,10 @@ describe("Edge Cases - Boundary Values", () => {
         negOne: -1,
       };
 
-      const encoded = IntBoundaries.encode(values);
-      const decoded = IntBoundaries.decode(encoded);
+      const encoded = api.encode(values);
+      const decoded = api.decode(encoded);
 
-      expect(IntBoundaries.equals(decoded, values)).toBe(true);
+      expect(decoded).toEqual(values);
     });
 
     it("should produce identical encoding for same values (determinism)", () => {
@@ -143,15 +84,21 @@ describe("Edge Cases - Boundary Values", () => {
         negOne: -1,
       };
 
-      const encoded1 = IntBoundaries.encode(values);
-      const encoded2 = IntBoundaries.encode(values);
+      const encoded1 = api.encode(values);
+      const encoded2 = api.encode(values);
 
       expect(encoded1).toEqual(encoded2);
     });
   });
 
   describe("Unsigned Integer Boundaries", () => {
-    const UIntBoundaries = load<UIntBoundaries>(boundarySchema, "UIntBoundaries");
+    const UIntBoundaries = ObjectType("UIntBoundaries", {
+      zero: UIntType(),
+      maxUint: UIntType(),
+      one: UIntType(),
+    });
+    type UIntBoundaries = Infer<typeof UIntBoundaries>;
+    const api = load(UIntBoundaries);
 
     it("should handle maximum unsigned values", () => {
       const maxUnsigned: UIntBoundaries = {
@@ -160,21 +107,27 @@ describe("Edge Cases - Boundary Values", () => {
         one: 1,
       };
 
-      const encoded = UIntBoundaries.encode(maxUnsigned);
-      const decoded = UIntBoundaries.decode(encoded);
+      const encoded = api.encode(maxUnsigned);
+      const decoded = api.decode(encoded);
 
-      expect(decoded.zero).toBe(0);
-      expect(decoded.maxUint).toBe(4294967295);
-      expect(decoded.one).toBe(1);
+      expect(decoded).toEqual(maxUnsigned);
     });
 
     it("should reject negative values in fromJson", () => {
-      expect(() => UIntBoundaries.fromJson({ zero: -1, maxUint: 0, one: 0 })).toThrow();
+      expect(() => api.fromJson({ zero: -1, maxUint: 0, one: 0 })).toThrow();
     });
   });
 
   describe("Float Edge Cases", () => {
-    const FloatEdges = load<FloatEdges>(boundarySchema, "FloatEdges");
+    const FloatEdges = ObjectType("FloatEdges", {
+      zero: FloatType(),
+      negZero: FloatType(),
+      small: FloatType(),
+      large: FloatType(),
+      negative: FloatType(),
+    });
+    type FloatEdges = Infer<typeof FloatEdges>;
+    const api = load(FloatEdges);
 
     it("should handle zero and negative zero", () => {
       const values: FloatEdges = {
@@ -185,15 +138,15 @@ describe("Edge Cases - Boundary Values", () => {
         negative: -1e10,
       };
 
-      const encoded = FloatEdges.encode(values);
-      const decoded = FloatEdges.decode(encoded);
+      const encoded = api.encode(values);
+      const decoded = api.decode(encoded);
 
       // Zero values should round-trip (IEEE 754 preserves -0)
       expect(decoded.zero).toBe(0);
       expect(Object.is(decoded.negZero, -0)).toBe(true); // -0 is preserved
-      expect(Math.abs(decoded.small - 0.000001)).toBeLessThan(1e-10);
-      expect(Math.abs(decoded.large - 1e10)).toBeLessThan(1);
-      expect(Math.abs(decoded.negative - -1e10)).toBeLessThan(1);
+      expect(Math.abs(decoded.small - values.small)).toBeLessThan(1e-10);
+      expect(Math.abs(decoded.large - values.large)).toBeLessThan(1);
+      expect(Math.abs(decoded.negative - values.negative)).toBeLessThan(1);
     });
 
     it("should handle very small float values", () => {
@@ -205,10 +158,10 @@ describe("Edge Cases - Boundary Values", () => {
         negative: -1e-20,
       };
 
-      const encoded = FloatEdges.encode(values);
-      const decoded = FloatEdges.decode(encoded);
+      const encoded = api.encode(values);
+      const decoded = api.decode(encoded);
 
-      expect(FloatEdges.equals(decoded, values)).toBe(true);
+      expect(api.equals(decoded, values)).toBe(true);
     });
 
     it("should produce identical encoding for same float values (determinism)", () => {
@@ -220,15 +173,19 @@ describe("Edge Cases - Boundary Values", () => {
         negative: -999.999,
       };
 
-      const encoded1 = FloatEdges.encode(values);
-      const encoded2 = FloatEdges.encode(values);
+      const encoded1 = api.encode(values);
+      const encoded2 = api.encode(values);
 
       expect(encoded1).toEqual(encoded2);
     });
   });
 
   describe("Quantized Float Precision", () => {
-    const QuantizedFloatEdges = load<QuantizedFloatEdges>(boundarySchema, "QuantizedFloatEdges");
+    const QuantizedFloatEdges = ObjectType("QuantizedFloatEdges", {
+      value: FloatType({ precision: 0.1 }),
+    });
+    type QuantizedFloatEdges = Infer<typeof QuantizedFloatEdges>;
+    const api = load(QuantizedFloatEdges);
 
     it("should quantize to specified precision", () => {
       // Library uses standard rounding (round half away from zero)
@@ -243,8 +200,8 @@ describe("Edge Cases - Boundary Values", () => {
       ];
 
       for (const { input, expected } of testCases) {
-        const encoded = QuantizedFloatEdges.encode({ value: input });
-        const decoded = QuantizedFloatEdges.decode(encoded);
+        const encoded = api.encode({ value: input });
+        const decoded = api.decode(encoded);
         expect(decoded.value).toBeCloseTo(expected, 5);
       }
     });
@@ -254,8 +211,8 @@ describe("Edge Cases - Boundary Values", () => {
       let value: QuantizedFloatEdges = { value: 123.456 };
 
       for (let i = 0; i < 10; i++) {
-        const encoded = QuantizedFloatEdges.encode(value);
-        value = QuantizedFloatEdges.decode(encoded);
+        const encoded = api.encode(value);
+        value = api.decode(encoded);
       }
 
       // After multiple round-trips, should still be quantized to 0.1 precision
@@ -265,13 +222,19 @@ describe("Edge Cases - Boundary Values", () => {
 });
 
 describe("Edge Cases - String Encoding", () => {
-  const StringEdges = load<StringEdges>(boundarySchema, "StringEdges");
+  const StringEdges = ObjectType("StringEdges", {
+    empty: StringType(),
+    unicode: StringType(),
+    long: StringType(),
+  });
+  type StringEdges = Infer<typeof StringEdges>;
+  const api = load(StringEdges);
 
   it("should handle empty strings", () => {
     const values: StringEdges = { empty: "", unicode: "", long: "" };
 
-    const encoded = StringEdges.encode(values);
-    const decoded = StringEdges.decode(encoded);
+    const encoded = api.encode(values);
+    const decoded = api.decode(encoded);
 
     expect(decoded.empty).toBe("");
     expect(decoded.unicode).toBe("");
@@ -285,8 +248,8 @@ describe("Edge Cases - String Encoding", () => {
       long: "",
     };
 
-    const encoded = StringEdges.encode(values);
-    const decoded = StringEdges.decode(encoded);
+    const encoded = api.encode(values);
+    const decoded = api.decode(encoded);
 
     expect(decoded.unicode).toBe("Hello 👋 World 🌍 Test 🎮");
   });
@@ -298,8 +261,8 @@ describe("Edge Cases - String Encoding", () => {
       long: "",
     };
 
-    const encoded = StringEdges.encode(values);
-    const decoded = StringEdges.decode(encoded);
+    const encoded = api.encode(values);
+    const decoded = api.decode(encoded);
 
     expect(decoded.unicode).toBe("日本語テスト αβγδ مرحبا");
   });
@@ -308,8 +271,8 @@ describe("Edge Cases - String Encoding", () => {
     const longString = "a".repeat(10000);
     const values: StringEdges = { empty: "", unicode: "", long: longString };
 
-    const encoded = StringEdges.encode(values);
-    const decoded = StringEdges.decode(encoded);
+    const encoded = api.encode(values);
+    const decoded = api.decode(encoded);
 
     expect(decoded.long).toBe(longString);
     expect(decoded.long.length).toBe(10000);
@@ -322,8 +285,8 @@ describe("Edge Cases - String Encoding", () => {
       long: "",
     };
 
-    const encoded = StringEdges.encode(values);
-    const decoded = StringEdges.decode(encoded);
+    const encoded = api.encode(values);
+    const decoded = api.decode(encoded);
 
     expect(decoded.unicode).toBe("line1\nline2\ttab\r\nwindows");
   });
@@ -335,15 +298,28 @@ describe("Edge Cases - String Encoding", () => {
       long: "x".repeat(1000),
     };
 
-    const encoded1 = StringEdges.encode(values);
-    const encoded2 = StringEdges.encode(values);
+    const encoded1 = api.encode(values);
+    const encoded2 = api.encode(values);
 
     expect(encoded1).toEqual(encoded2);
   });
 });
 
 describe("Edge Cases - Boolean RLE Integration", () => {
-  const ManyBooleans = load<ManyBooleans>(boundarySchema, "ManyBooleans");
+  const ManyBooleans = ObjectType("ManyBooleans", {
+    b1: BooleanType(),
+    b2: BooleanType(),
+    b3: BooleanType(),
+    b4: BooleanType(),
+    b5: BooleanType(),
+    b6: BooleanType(),
+    b7: BooleanType(),
+    b8: BooleanType(),
+    b9: BooleanType(),
+    b10: BooleanType(),
+  });
+  type ManyBooleans = Infer<typeof ManyBooleans>;
+  const api = load(ManyBooleans);
 
   it("should handle all true values", () => {
     const allTrue: ManyBooleans = {
@@ -359,10 +335,10 @@ describe("Edge Cases - Boolean RLE Integration", () => {
       b10: true,
     };
 
-    const encoded = ManyBooleans.encode(allTrue);
-    const decoded = ManyBooleans.decode(encoded);
+    const encoded = api.encode(allTrue);
+    const decoded = api.decode(encoded);
 
-    expect(ManyBooleans.equals(decoded, allTrue)).toBe(true);
+    expect(api.equals(decoded, allTrue)).toBe(true);
   });
 
   it("should handle all false values", () => {
@@ -379,10 +355,10 @@ describe("Edge Cases - Boolean RLE Integration", () => {
       b10: false,
     };
 
-    const encoded = ManyBooleans.encode(allFalse);
-    const decoded = ManyBooleans.decode(encoded);
+    const encoded = api.encode(allFalse);
+    const decoded = api.decode(encoded);
 
-    expect(ManyBooleans.equals(decoded, allFalse)).toBe(true);
+    expect(api.equals(decoded, allFalse)).toBe(true);
   });
 
   it("should handle alternating boolean pattern", () => {
@@ -399,10 +375,10 @@ describe("Edge Cases - Boolean RLE Integration", () => {
       b10: false,
     };
 
-    const encoded = ManyBooleans.encode(alternating);
-    const decoded = ManyBooleans.decode(encoded);
+    const encoded = api.encode(alternating);
+    const decoded = api.decode(encoded);
 
-    expect(ManyBooleans.equals(decoded, alternating)).toBe(true);
+    expect(api.equals(decoded, alternating)).toBe(true);
   });
 
   it("should efficiently encode runs of same value", () => {
@@ -419,10 +395,10 @@ describe("Edge Cases - Boolean RLE Integration", () => {
       b10: false,
     };
 
-    const encoded = ManyBooleans.encode(longRun);
-    const decoded = ManyBooleans.decode(encoded);
+    const encoded = api.encode(longRun);
+    const decoded = api.decode(encoded);
 
-    expect(ManyBooleans.equals(decoded, longRun)).toBe(true);
+    expect(api.equals(decoded, longRun)).toBe(true);
     // RLE should compress this efficiently
     expect(encoded.length).toBeLessThan(10);
   });
@@ -454,50 +430,50 @@ describe("Edge Cases - Boolean RLE Integration", () => {
       b10: true,
     };
 
-    const diff = ManyBooleans.encodeDiff(state1, state2);
-    const decoded = ManyBooleans.decodeDiff(state1, diff);
+    const diff = api.encodeDiff(state1, state2);
+    const decoded = api.decodeDiff(state1, diff);
 
-    expect(ManyBooleans.equals(decoded, state2)).toBe(true);
+    expect(api.equals(decoded, state2)).toBe(true);
   });
 });
 
 describe("Edge Cases - Enum Validation", () => {
-  const EnumHolder = load<EnumHolder>(boundarySchema, "EnumHolder");
+  const api = load(EnumHolder);
 
   it("should accept valid enum values", () => {
-    expect(() => EnumHolder.fromJson({ color: "RED" })).not.toThrow();
-    expect(() => EnumHolder.fromJson({ color: "BLUE" })).not.toThrow();
-    expect(() => EnumHolder.fromJson({ color: "GREEN" })).not.toThrow();
+    expect(() => api.fromJson({ color: "RED" })).not.toThrow();
+    expect(() => api.fromJson({ color: "BLUE" })).not.toThrow();
+    expect(() => api.fromJson({ color: "GREEN" })).not.toThrow();
   });
 
   it("should reject invalid enum values", () => {
-    expect(() => EnumHolder.fromJson({ color: "PURPLE" })).toThrow();
-    expect(() => EnumHolder.fromJson({ color: "red" })).toThrow(); // case sensitive
-    expect(() => EnumHolder.fromJson({ color: "" })).toThrow();
-    expect(() => EnumHolder.fromJson({ color: 0 })).toThrow();
+    expect(() => api.fromJson({ color: "PURPLE" })).toThrow();
+    expect(() => api.fromJson({ color: "red" })).toThrow(); // case sensitive
+    expect(() => api.fromJson({ color: "" })).toThrow();
+    expect(() => api.fromJson({ color: 0 })).toThrow();
   });
 
   it("should encode and decode all enum values", () => {
     for (const color of ["RED", "BLUE", "GREEN"] as const) {
       const holder: EnumHolder = { color };
-      const encoded = EnumHolder.encode(holder);
-      const decoded = EnumHolder.decode(encoded);
+      const encoded = api.encode(holder);
+      const decoded = api.decode(encoded);
       expect(decoded.color).toBe(color);
     }
   });
 });
 
 describe("Edge Cases - Container Transitions", () => {
-  const ArrayHolder = load<ArrayHolder>(boundarySchema, "ArrayHolder");
-  const RecordHolder = load<RecordHolder>(boundarySchema, "RecordHolder");
+  const arrayApi = load(ArrayHolder);
+  const recordApi = load(RecordHolder);
 
   describe("Array Transitions", () => {
     it("should handle empty to populated transition", () => {
       const empty: ArrayHolder = { items: [] };
       const populated: ArrayHolder = { items: [1, 2, 3, 4, 5] };
 
-      const diff = ArrayHolder.encodeDiff(empty, populated);
-      const decoded = ArrayHolder.decodeDiff(empty, diff);
+      const diff = arrayApi.encodeDiff(empty, populated);
+      const decoded = arrayApi.decodeDiff(empty, diff);
 
       expect(decoded.items).toEqual([1, 2, 3, 4, 5]);
     });
@@ -506,8 +482,8 @@ describe("Edge Cases - Container Transitions", () => {
       const populated: ArrayHolder = { items: [1, 2, 3, 4, 5] };
       const empty: ArrayHolder = { items: [] };
 
-      const diff = ArrayHolder.encodeDiff(populated, empty);
-      const decoded = ArrayHolder.decodeDiff(populated, diff);
+      const diff = arrayApi.encodeDiff(populated, empty);
+      const decoded = arrayApi.decodeDiff(populated, diff);
 
       expect(decoded.items).toEqual([]);
     });
@@ -515,8 +491,8 @@ describe("Edge Cases - Container Transitions", () => {
     it("should handle large array", () => {
       const large: ArrayHolder = { items: Array.from({ length: 1000 }, (_, i) => i) };
 
-      const encoded = ArrayHolder.encode(large);
-      const decoded = ArrayHolder.decode(encoded);
+      const encoded = arrayApi.encode(large);
+      const decoded = arrayApi.decode(encoded);
 
       expect(decoded.items.length).toBe(1000);
       expect(decoded.items[0]).toBe(0);
@@ -527,8 +503,8 @@ describe("Edge Cases - Container Transitions", () => {
       const small: ArrayHolder = { items: [1, 2, 3] };
       const large: ArrayHolder = { items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
 
-      const diff = ArrayHolder.encodeDiff(small, large);
-      const decoded = ArrayHolder.decodeDiff(small, diff);
+      const diff = arrayApi.encodeDiff(small, large);
+      const decoded = arrayApi.decodeDiff(small, diff);
 
       expect(decoded.items).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     });
@@ -537,8 +513,8 @@ describe("Edge Cases - Container Transitions", () => {
       const large: ArrayHolder = { items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] };
       const small: ArrayHolder = { items: [1, 2, 3] };
 
-      const diff = ArrayHolder.encodeDiff(large, small);
-      const decoded = ArrayHolder.decodeDiff(large, diff);
+      const diff = arrayApi.encodeDiff(large, small);
+      const decoded = arrayApi.decodeDiff(large, diff);
 
       expect(decoded.items).toEqual([1, 2, 3]);
     });
@@ -555,8 +531,8 @@ describe("Edge Cases - Container Transitions", () => {
         ]),
       };
 
-      const diff = RecordHolder.encodeDiff(empty, populated);
-      const decoded = RecordHolder.decodeDiff(empty, diff);
+      const diff = recordApi.encodeDiff(empty, populated);
+      const decoded = recordApi.decodeDiff(empty, diff);
 
       expect(decoded.data.get("a")).toBe(1);
       expect(decoded.data.get("b")).toBe(2);
@@ -573,8 +549,8 @@ describe("Edge Cases - Container Transitions", () => {
       };
       const empty: RecordHolder = { data: new Map() };
 
-      const diff = RecordHolder.encodeDiff(populated, empty);
-      const decoded = RecordHolder.decodeDiff(populated, diff);
+      const diff = recordApi.encodeDiff(populated, empty);
+      const decoded = recordApi.decodeDiff(populated, diff);
 
       expect(decoded.data.size).toBe(0);
     });
@@ -593,8 +569,8 @@ describe("Edge Cases - Container Transitions", () => {
         ]),
       };
 
-      const diff = RecordHolder.encodeDiff(state1, state2);
-      const decoded = RecordHolder.decodeDiff(state1, diff);
+      const diff = recordApi.encodeDiff(state1, state2);
+      const decoded = recordApi.decodeDiff(state1, diff);
 
       expect(decoded.data.has("a")).toBe(false);
       expect(decoded.data.get("b")).toBe(2);
@@ -605,8 +581,8 @@ describe("Edge Cases - Container Transitions", () => {
       const entries: [string, number][] = Array.from({ length: 100 }, (_, i) => [`key${i}`, i]);
       const large: RecordHolder = { data: new Map(entries) };
 
-      const encoded = RecordHolder.encode(large);
-      const decoded = RecordHolder.decode(encoded);
+      const encoded = recordApi.encode(large);
+      const decoded = recordApi.decode(encoded);
 
       expect(decoded.data.size).toBe(100);
       expect(decoded.data.get("key0")).toBe(0);
@@ -616,14 +592,21 @@ describe("Edge Cases - Container Transitions", () => {
 });
 
 describe("Edge Cases - Optional Field Transitions", () => {
-  const NestedOptional = load<NestedOptional>(boundarySchema, "NestedOptional");
+  const InnerOptional = ObjectType("InnerOptional", {
+    inner: OptionalType(StringType()),
+  });
+  const NestedOptional = ObjectType("NestedOptional", {
+    outer: OptionalType(ReferenceType(InnerOptional)),
+  });
+  type NestedOptional = Infer<typeof NestedOptional>;
+  const api = load(NestedOptional);
 
   it("should handle undefined to value transition", () => {
     const state1: NestedOptional = {}; // outer is optional, omit it
     const state2: NestedOptional = { outer: { inner: "hello" } };
 
-    const diff = NestedOptional.encodeDiff(state1, state2);
-    const decoded = NestedOptional.decodeDiff(state1, diff);
+    const diff = api.encodeDiff(state1, state2);
+    const decoded = api.decodeDiff(state1, diff);
 
     expect(decoded.outer?.inner).toBe("hello");
   });
@@ -632,8 +615,8 @@ describe("Edge Cases - Optional Field Transitions", () => {
     const state1: NestedOptional = { outer: { inner: "hello" } };
     const state2: NestedOptional = {}; // outer is optional, omit it
 
-    const diff = NestedOptional.encodeDiff(state1, state2);
-    const decoded = NestedOptional.decodeDiff(state1, diff);
+    const diff = api.encodeDiff(state1, state2);
+    const decoded = api.decodeDiff(state1, diff);
 
     expect(decoded.outer).toBeUndefined();
   });
@@ -641,8 +624,8 @@ describe("Edge Cases - Optional Field Transitions", () => {
   it("should handle nested optional: both undefined", () => {
     const state: NestedOptional = { outer: {} }; // inner is optional, omit it
 
-    const encoded = NestedOptional.encode(state);
-    const decoded = NestedOptional.decode(encoded);
+    const encoded = api.encode(state);
+    const decoded = api.decode(encoded);
 
     expect(decoded.outer).toBeDefined();
     expect(decoded.outer?.inner).toBeUndefined();
@@ -652,8 +635,8 @@ describe("Edge Cases - Optional Field Transitions", () => {
     const state1: NestedOptional = { outer: { inner: "hello" } };
     const state2: NestedOptional = { outer: { inner: "world" } };
 
-    const diff = NestedOptional.encodeDiff(state1, state2);
-    const decoded = NestedOptional.decodeDiff(state1, diff);
+    const diff = api.encodeDiff(state1, state2);
+    const decoded = api.decodeDiff(state1, diff);
 
     expect(decoded.outer?.inner).toBe("world");
   });
@@ -662,15 +645,22 @@ describe("Edge Cases - Optional Field Transitions", () => {
     const state1: NestedOptional = { outer: {} }; // inner is optional, omit it
     const state2: NestedOptional = { outer: { inner: "hello" } };
 
-    const diff = NestedOptional.encodeDiff(state1, state2);
-    const decoded = NestedOptional.decodeDiff(state1, diff);
+    const diff = api.encodeDiff(state1, state2);
+    const decoded = api.decodeDiff(state1, diff);
 
     expect(decoded.outer?.inner).toBe("hello");
   });
 });
 
 describe("Edge Cases - Union Type Transitions", () => {
-  const UnionHolder = load<UnionHolder>(boundarySchema, "UnionHolder");
+  const ActionA = ObjectType("ActionA", { value: IntType() });
+  const ActionB = ObjectType("ActionB", { name: StringType() });
+  const ActionUnion = UnionType("ActionUnion", [ActionA, ActionB]);
+  const UnionHolder = ObjectType("UnionHolder", {
+    action: ReferenceType(ActionUnion),
+  });
+  type UnionHolder = Infer<typeof UnionHolder>;
+  const api = load(UnionHolder);
 
   it("should handle all variant combinations in diff", () => {
     const actionA1: UnionHolder = { action: { type: "ActionA", val: { value: 1 } } };
@@ -679,41 +669,41 @@ describe("Edge Cases - Union Type Transitions", () => {
     const actionB2: UnionHolder = { action: { type: "ActionB", val: { name: "test2" } } };
 
     // A -> A (same variant, different value)
-    let diff = UnionHolder.encodeDiff(actionA1, actionA2);
-    let decoded = UnionHolder.decodeDiff(actionA1, diff);
+    let diff = api.encodeDiff(actionA1, actionA2);
+    let decoded = api.decodeDiff(actionA1, diff);
     expect(decoded.action.type).toBe("ActionA");
     expect((decoded.action.val as { value: number }).value).toBe(2);
 
     // A -> B (different variant)
-    diff = UnionHolder.encodeDiff(actionA1, actionB1);
-    decoded = UnionHolder.decodeDiff(actionA1, diff);
+    diff = api.encodeDiff(actionA1, actionB1);
+    decoded = api.decodeDiff(actionA1, diff);
     expect(decoded.action.type).toBe("ActionB");
     expect((decoded.action.val as { name: string }).name).toBe("test1");
 
     // B -> A (different variant)
-    diff = UnionHolder.encodeDiff(actionB1, actionA1);
-    decoded = UnionHolder.decodeDiff(actionB1, diff);
+    diff = api.encodeDiff(actionB1, actionA1);
+    decoded = api.decodeDiff(actionB1, diff);
     expect(decoded.action.type).toBe("ActionA");
     expect((decoded.action.val as { value: number }).value).toBe(1);
 
     // B -> B (same variant, different value)
-    diff = UnionHolder.encodeDiff(actionB1, actionB2);
-    decoded = UnionHolder.decodeDiff(actionB1, diff);
+    diff = api.encodeDiff(actionB1, actionB2);
+    decoded = api.decodeDiff(actionB1, diff);
     expect(decoded.action.type).toBe("ActionB");
     expect((decoded.action.val as { name: string }).name).toBe("test2");
   });
 });
 
 describe("Edge Cases - Encoding Determinism", () => {
-  const ArrayHolder = load<ArrayHolder>(boundarySchema, "ArrayHolder");
-  const RecordHolder = load<RecordHolder>(boundarySchema, "RecordHolder");
+  const arrayApi = load(ArrayHolder);
+  const recordApi = load(RecordHolder);
 
   it("should produce identical bytes for identical arrays", () => {
     const arr1: ArrayHolder = { items: [1, 2, 3, 4, 5] };
     const arr2: ArrayHolder = { items: [1, 2, 3, 4, 5] };
 
-    const encoded1 = ArrayHolder.encode(arr1);
-    const encoded2 = ArrayHolder.encode(arr2);
+    const encoded1 = arrayApi.encode(arr1);
+    const encoded2 = arrayApi.encode(arr2);
 
     expect(encoded1).toEqual(encoded2);
   });
@@ -732,8 +722,8 @@ describe("Edge Cases - Encoding Determinism", () => {
       ]),
     };
 
-    const encoded1 = RecordHolder.encode(rec1);
-    const encoded2 = RecordHolder.encode(rec2);
+    const encoded1 = recordApi.encode(rec1);
+    const encoded2 = recordApi.encode(rec2);
 
     expect(encoded1).toEqual(encoded2);
   });
@@ -742,33 +732,33 @@ describe("Edge Cases - Encoding Determinism", () => {
     const state1: ArrayHolder = { items: [1, 2, 3] };
     const state2: ArrayHolder = { items: [1, 2, 3, 4, 5] };
 
-    const diff1 = ArrayHolder.encodeDiff(state1, state2);
-    const diff2 = ArrayHolder.encodeDiff(state1, state2);
+    const diff1 = arrayApi.encodeDiff(state1, state2);
+    const diff2 = arrayApi.encodeDiff(state1, state2);
 
     expect(diff1).toEqual(diff2);
   });
 });
 
 describe("Edge Cases - Error Message Quality", () => {
-  const ArrayHolder = load<ArrayHolder>(boundarySchema, "ArrayHolder");
-  const RecordHolder = load<RecordHolder>(boundarySchema, "RecordHolder");
-  const EnumHolder = load<EnumHolder>(boundarySchema, "EnumHolder");
+  const arrayApi = load(ArrayHolder);
+  const recordApi = load(RecordHolder);
+  const enumApi = load(EnumHolder);
 
   it("should include field name in validation error for wrong type", () => {
-    expect(() => ArrayHolder.fromJson({ items: "not an array" })).toThrow(/items/);
+    expect(() => arrayApi.fromJson({ items: "not an array" })).toThrow(/items/);
   });
 
   it("should include field name in validation error for array element", () => {
-    expect(() => ArrayHolder.fromJson({ items: [1, 2, "three", 4] })).toThrow();
+    expect(() => arrayApi.fromJson({ items: [1, 2, "three", 4] })).toThrow();
   });
 
   it("should include field name in validation error for record", () => {
-    expect(() => RecordHolder.fromJson({ data: "not a map" })).toThrow(/data/);
+    expect(() => recordApi.fromJson({ data: "not a map" })).toThrow(/data/);
   });
 
   it("should provide meaningful error for invalid enum", () => {
     try {
-      EnumHolder.fromJson({ color: "INVALID" });
+      enumApi.fromJson({ color: "INVALID" });
       expect.fail("Should have thrown");
     } catch (e) {
       const message = (e as Error).message;

@@ -3,17 +3,17 @@ import { DeltaPackApi, equalsFloat, equalsFloatQuantized, Infer } from "@hpx7/de
 import { schema } from "./schema.js";
 
 // Infer types from schema
-type Player = Infer<typeof schema.Player, typeof schema>;
-type Position = Infer<typeof schema.Position, typeof schema>;
-type Velocity = Infer<typeof schema.Velocity, typeof schema>;
-type Entity = Infer<typeof schema.Entity, typeof schema>;
-type MoveAction = Infer<typeof schema.MoveAction, typeof schema>;
-type AttackAction = Infer<typeof schema.AttackAction, typeof schema>;
-type UseItemAction = Infer<typeof schema.UseItemAction, typeof schema>;
-type GameAction = Infer<typeof schema.GameAction, typeof schema>;
-type GameState = Infer<typeof schema.GameState, typeof schema>;
-type Inventory = Infer<typeof schema.Inventory, typeof schema>;
-type PlayerRegistry = Infer<typeof schema.PlayerRegistry, typeof schema>;
+type Player = Infer<typeof schema.Player>;
+type Position = Infer<typeof schema.Position>;
+type Velocity = Infer<typeof schema.Velocity>;
+type Entity = Infer<typeof schema.Entity>;
+type MoveAction = Infer<typeof schema.MoveAction>;
+type AttackAction = Infer<typeof schema.AttackAction>;
+type UseItemAction = Infer<typeof schema.UseItemAction>;
+type GameAction = Infer<typeof schema.GameAction>;
+type GameState = Infer<typeof schema.GameState>;
+type Inventory = Infer<typeof schema.Inventory>;
+type PlayerRegistry = Infer<typeof schema.PlayerRegistry>;
 
 export function runPlayerTests(Player: DeltaPackApi<Player>) {
   describe("Player Type - Basic Operations", () => {
