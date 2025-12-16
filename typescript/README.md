@@ -444,7 +444,7 @@ class AttackAction {
 
 // Define union type - combines variant classes
 const GameAction = UnionType("GameAction", [MoveAction, AttackAction]);
-type GameAction = MoveAction | AttackAction;
+type GameAction = Infer<typeof GameAction>;
 
 // Main class
 class Player {
@@ -500,7 +500,7 @@ class InputMessage {
 
 // Define union type - combines variants
 const ClientMessage = UnionType("ClientMessage", [JoinMessage, InputMessage]);
-type ClientMessage = JoinMessage | InputMessage;
+type ClientMessage = Infer<typeof ClientMessage>;
 
 // Load the API from the union
 const ClientMessageApi = loadClass(ClientMessage);

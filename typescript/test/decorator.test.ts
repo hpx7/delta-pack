@@ -13,6 +13,7 @@ import {
   FloatType,
   ReferenceType,
   UnionType,
+  Infer,
 } from "@hpx7/delta-pack";
 import { schema } from "./schema.js";
 import {
@@ -148,7 +149,7 @@ describe("Delta Pack Reflection", () => {
       }
 
       const Command = UnionType("Command", [MoveCmd, FireCmd]);
-      type Command = MoveCmd | FireCmd;
+      type Command = Infer<typeof Command>;
 
       class CommandQueue {
         @ArrayType(ReferenceType(Command))

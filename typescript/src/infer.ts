@@ -1,21 +1,36 @@
-import type { NamedType, PropertyType } from "./schema.js";
+import type { NamedType, PropertyType, ClassUnionDef } from "./schema.js";
 
 // Check if T is `any` (any is both supertype and subtype of everything)
 type IsAny<T> = 0 extends 1 & T ? true : false;
 
+// Infer instance type from ClassUnionDef (decorator mode unions)
+type InferClassUnion<U> =
+  U extends ClassUnionDef<string, infer V>
+    ? V extends readonly (new (...args: any[]) => infer T)[]
+      ? T
+      : never
+    : never;
+
 // Infer TypeScript type from a delta-pack Type definition
-export type Infer<T extends NamedType, D extends number = 10> =
+export type Infer<T extends NamedType | ClassUnionDef, D extends number = 10> =
   IsAny<T> extends true
     ? any
     : [D] extends [never]
       ? unknown
-      : T extends { type: "object"; properties: infer P }
-        ? Prettify<InferObject<P, T, D>>
-        : T extends { type: "union"; options: infer V }
-          ? InferUnion<V, D>
-          : T extends { type: "enum"; options: readonly (infer U)[] }
-            ? U
-            : unknown;
+      : T extends ClassUnionDef
+        ? InferClassUnion<T>
+        : T extends NamedType
+          ? InferNamedType<T, D>
+          : unknown;
+
+// Helper for NamedType inference
+type InferNamedType<T extends NamedType, D extends number> = T extends { type: "object"; properties: infer P }
+  ? Prettify<InferObject<P, T, D>>
+  : T extends { type: "union"; options: infer V }
+    ? InferUnion<V, D>
+    : T extends { type: "enum"; options: readonly (infer U)[] }
+      ? U
+      : unknown;
 
 // Depth counter to prevent infinite recursion
 type Prev = [never, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, ...0[]];

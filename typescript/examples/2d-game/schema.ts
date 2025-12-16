@@ -6,6 +6,7 @@ import {
   RecordType,
   ReferenceType,
   UnionType,
+  Infer,
   loadClass,
   WithDirty,
   DirtyMap,
@@ -103,7 +104,7 @@ export class InputMessage {
 }
 
 export const ClientMessage = UnionType("ClientMessage", [JoinMessage, InputMessage]);
-export type ClientMessage = JoinMessage | InputMessage;
+export type ClientMessage = Infer<typeof ClientMessage>;
 
 // Server -> Client messages
 export class StateMessage {
@@ -119,7 +120,7 @@ export class StateMessage {
 }
 
 export const ServerMessage = UnionType("ServerMessage", [StateMessage]);
-export type ServerMessage = StateMessage;
+export type ServerMessage = Infer<typeof ServerMessage>;
 
 // Create APIs using loadClass
 export const PlayerApi = loadClass(Player);

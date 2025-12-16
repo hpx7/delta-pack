@@ -85,7 +85,7 @@ export class UseItemAction {
 }
 
 export const GameAction = UnionType("GameAction", [MoveAction, AttackAction, UseItemAction]);
-export type GameAction = MoveAction | AttackAction | UseItemAction;
+export type GameAction = Infer<typeof GameAction>;
 
 export class GameState {
   @ArrayType(ReferenceType(Player))
