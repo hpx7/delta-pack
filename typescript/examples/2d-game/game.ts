@@ -1,7 +1,8 @@
-import { Player, GameState, ClientInput } from "./generated";
+import { WithDirty } from "@hpx7/delta-pack";
+import { Player, GameState, ClientInput } from "./schema.js";
 
 export class Game {
-  private state: GameState;
+  private state: WithDirty<GameState>;
   private playerInputs = new Map<string, ClientInput>();
   private tickRate = 20; // 20 ticks per second
   private tickInterval: NodeJS.Timeout | null = null;
@@ -14,12 +15,8 @@ export class Game {
   private readonly MAX_PLAYERS = 100;
 
   constructor() {
-    this.state = {
-      players: new Map(),
-      tick: 0,
-      gameTime: 0,
-      _dirty: new Set(),
-    };
+    this.state = new GameState();
+    this.state._dirty = new Set();
     this.state.players._dirty = new Set();
   }
 
@@ -40,17 +37,12 @@ export class Game {
       throw new Error("Server full");
     }
 
-    const player: Player = {
-      id,
-      name,
-      x: Math.random() * this.WORLD_WIDTH,
-      y: Math.random() * this.WORLD_HEIGHT,
-      vx: 0,
-      vy: 0,
-      health: 100,
-      score: 0,
-      isAlive: true,
-    };
+    const player = new Player();
+    player.id = id;
+    player.name = name;
+    player.x = Math.random() * this.WORLD_WIDTH;
+    player.y = Math.random() * this.WORLD_HEIGHT;
+    player.health = 100;
 
     this.state.players.set(id, player);
 

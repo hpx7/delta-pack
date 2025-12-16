@@ -1,9 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "gen": "tsx gen.ts > generated.ts",
-    "server": "npm run gen && tsx server.ts",
-    "client": "npm run gen && tsx client.ts"
+    "server": "tsx server.ts",
+    "client": "tsx client.ts"
   },
   "dependencies": {
     "@hpx7/delta-pack": "file:../..",

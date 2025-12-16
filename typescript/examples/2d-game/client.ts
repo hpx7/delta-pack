@@ -1,6 +1,14 @@
 import WebSocket from "ws";
 import * as readline from "readline";
-import { GameState, ClientInput, ServerMessage, ClientMessage } from "./generated";
+import {
+  GameState,
+  ClientInput,
+  JoinMessage,
+  InputMessage,
+  StateMessage,
+  ClientMessageApi,
+  ServerMessageApi,
+} from "./schema.js";
 
 // Client configuration
 const SERVER_URL = "ws://localhost:3000";
@@ -12,16 +20,10 @@ class GameClient {
   private playerName: string;
   private gameState: GameState | null = null;
   private connected = false;
-  private lastMessage: ServerMessage | null = null; // Last ServerMessage received
+  private lastMessage: StateMessage | null = null; // Last StateMessage received
 
   // Input state
-  private input: ClientInput = {
-    up: false,
-    down: false,
-    left: false,
-    right: false,
-    shoot: false,
-  };
+  private input: ClientInput = new ClientInput();
 
   private inputInterval: NodeJS.Timeout | null = null;
   private lastUpdateTime = Date.now();
@@ -46,13 +48,13 @@ class GameClient {
       try {
         const bytes = new Uint8Array(data);
 
-        let message: ServerMessage;
-        if (this.lastMessage?.type === "StateMessage") {
+        let message: StateMessage;
+        if (this.lastMessage instanceof StateMessage) {
           // Decode as diff from last update message
-          message = ServerMessage.decodeDiff(this.lastMessage, bytes);
+          message = ServerMessageApi.decodeDiff(this.lastMessage, bytes) as StateMessage;
         } else {
           // First message, decode as full message
-          message = ServerMessage.decode(bytes);
+          message = ServerMessageApi.decode(bytes) as StateMessage;
         }
 
         this.handleMessage(message);
@@ -76,27 +78,24 @@ class GameClient {
   private sendJoinMessage() {
     if (!this.ws || !this.connected) return;
 
-    const joinMessage = {
-      type: "JoinMessage" as const,
-      val: {
-        name: this.playerName,
-      },
-    };
-    const encoded = ClientMessage.encode(joinMessage);
+    const joinMsg = new JoinMessage();
+    joinMsg.name = this.playerName;
+
+    const encoded = ClientMessageApi.encode(joinMsg);
     this.ws.send(encoded);
     console.log(`👤 Joining as "${this.playerName}"...`);
   }
 
-  private handleMessage(message: ServerMessage) {
+  private handleMessage(message: StateMessage) {
     if (this.lastMessage == null) {
       // Initial full state
-      this.playerId = message.val.playerId;
-      this.gameState = message.val.state;
+      this.playerId = message.playerId;
+      this.gameState = message.state;
       console.log(`\n🎮 Joined game! Player ID: ${this.playerId}`);
       this.printGameState();
     } else {
       // Update game state
-      this.gameState = message.val.state;
+      this.gameState = message.state;
 
       this.frameCount++;
       const now = Date.now();
@@ -145,13 +144,10 @@ class GameClient {
   private sendInput() {
     if (!this.ws || !this.connected) return;
 
-    const inputMessage: ClientMessage = {
-      type: "InputMessage",
-      val: {
-        input: this.input,
-      },
-    };
-    const encoded = ClientMessage.encode(inputMessage);
+    const inputMsg = new InputMessage();
+    inputMsg.input = this.input;
+
+    const encoded = ClientMessageApi.encode(inputMsg);
     this.ws.send(encoded);
   }
 

@@ -1,6 +1,14 @@
 import { WebSocketServer, WebSocket } from "ws";
-import { ServerMessage, ClientMessage } from "./generated";
-import { Game } from "./game";
+import {
+  StateMessage,
+  JoinMessage,
+  InputMessage,
+  ClientMessageApi,
+  ServerMessageApi,
+  ClientMessage,
+  ServerMessage,
+} from "./schema.js";
+import { Game } from "./game.js";
 
 // Server configuration
 const PORT = 3000;
@@ -11,7 +19,7 @@ interface Client {
   id: string;
   ws: WebSocket;
   name: string;
-  lastMessage: ServerMessage | null; // Last ServerMessage sent to this client
+  lastMessage: ServerMessage | null; // Last StateMessage sent to this client
 }
 
 class GameServer {
@@ -67,7 +75,7 @@ class GameServer {
     ws.on("message", (data) => {
       try {
         if (data instanceof Buffer || data instanceof Uint8Array) {
-          const message = ClientMessage.decode(data);
+          const message = ClientMessageApi.decode(data);
           this.handleMessage(client, message);
         } else {
           console.error("Received non-binary message");
@@ -89,29 +97,26 @@ class GameServer {
   }
 
   private handleMessage(client: Client, message: ClientMessage) {
-    if (message.type === "JoinMessage") {
+    if (message instanceof JoinMessage) {
       // Add player to game
-      const playerName = message.val.name || client.name;
+      const playerName = message.name || client.name;
       this.game.addPlayer(client.id, playerName);
       this.clients.set(client.id, client);
 
       // Send initial full state
       const fullState = this.game.getStateForPlayer(client.id);
-      const stateMessage: ServerMessage = {
-        type: "StateMessage",
-        val: {
-          playerId: client.id,
-          state: fullState,
-        },
-      };
-      client.lastMessage = stateMessage;
-      const encoded = ServerMessage.encode(stateMessage);
+      const stateMsg = new StateMessage();
+      stateMsg.playerId = client.id;
+      stateMsg.state = fullState;
+
+      client.lastMessage = stateMsg;
+      const encoded = ServerMessageApi.encode(stateMsg);
       client.ws.send(encoded);
 
       console.log(`👤 ${playerName} joined the game`);
-    } else if (message.type === "InputMessage") {
+    } else if (message instanceof InputMessage) {
       // Process player input
-      this.game.setPlayerInput(client.id, message.val.input);
+      this.game.setPlayerInput(client.id, message.input);
     }
   }
 
@@ -126,21 +131,17 @@ class GameServer {
         if (client.lastMessage != null) {
           // Create update message with current snapshot
           const currentState = this.game.getStateForPlayer(client.id);
-          const updateMessage: ServerMessage = {
-            type: "StateMessage",
-            val: {
-              playerId: client.id,
-              state: currentState,
-            },
-          };
+          const updateMessage = new StateMessage();
+          updateMessage.playerId = client.id;
+          updateMessage.state = currentState;
 
           // Send diff from last update message
-          const encoded = ServerMessage.encodeDiff(client.lastMessage, updateMessage);
+          const encoded = ServerMessageApi.encodeDiff(client.lastMessage, updateMessage);
           client.ws.send(encoded);
           totalBytes += encoded.length;
 
           // Clone and update client's last message
-          client.lastMessage = ServerMessage.clone(updateMessage);
+          client.lastMessage = ServerMessageApi.clone(updateMessage);
         }
       }
     }
