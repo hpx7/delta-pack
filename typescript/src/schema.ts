@@ -1,4 +1,21 @@
-import { createUnifiedType, createUnionDecorator, stripDecorator, UnifiedType, ClassRef, EnumRef } from "./unified.js";
+import { createUnifiedType, stripDecorator, UnifiedType, ClassRef, EnumRef } from "./unified.js";
+
+// ============ Class Union Definition (for decorator mode) ============
+
+export const CLASS_UNION_MARKER = Symbol("classUnion");
+
+export interface ClassUnionDef<
+  N extends string = string,
+  V extends readonly (new (...args: any[]) => any)[] = readonly (new (...args: any[]) => any)[],
+> {
+  [CLASS_UNION_MARKER]: true;
+  name: N;
+  classes: V;
+}
+
+export function isClassUnion(value: unknown): value is ClassUnionDef {
+  return typeof value === "object" && value !== null && CLASS_UNION_MARKER in value;
+}
 
 // ============ Type Interfaces ============
 
@@ -124,7 +141,7 @@ export function FloatType(options?: { precision?: number | string }): UnifiedTyp
 // ============ Container Type Constructors ============
 
 // Types that can be used as values in containers (both schema mode and decorator mode)
-type ValueType = PropertyType | ClassRef | EnumRef;
+type ValueType = PropertyType | ClassRef | EnumRef | ClassUnionRef;
 
 export function ArrayType<const V extends ValueType>(value: V): UnifiedType<{ type: "array"; value: V }> {
   const schemaType = {
@@ -156,10 +173,17 @@ export function OptionalType<const V extends ValueType>(value: V): UnifiedType<{
 
 // ============ Reference Type Constructors ============
 
+// Class union reference marker for decorator mode
+export interface ClassUnionRef<U extends ClassUnionDef = ClassUnionDef> {
+  __classUnion: U;
+}
+
 // Schema mode - direct type reference
 export function ReferenceType<T extends NamedType>(ref: T): UnifiedType<{ type: "reference"; ref: T }>;
 // Decorator mode - class reference
 export function ReferenceType<C extends Function>(cls: C): UnifiedType<ClassRef & { __class: C }>;
+// Decorator mode - class union reference
+export function ReferenceType<U extends ClassUnionDef>(union: U): UnifiedType<ClassUnionRef<U>>;
 // Decorator mode - enum reference
 export function ReferenceType<E extends Record<string, string>>(
   enumObj: E,
@@ -167,9 +191,17 @@ export function ReferenceType<E extends Record<string, string>>(
 ): UnifiedType<EnumRef>;
 // Implementation
 export function ReferenceType(
-  ref: NamedType | Function | Record<string, string>,
+  ref: NamedType | Function | ClassUnionDef | Record<string, string>,
   options?: { enumName: string }
-): UnifiedType<{ type: "reference"; ref: NamedType }> | UnifiedType<ClassRef> | UnifiedType<EnumRef> {
+):
+  | UnifiedType<{ type: "reference"; ref: NamedType }>
+  | UnifiedType<ClassRef>
+  | UnifiedType<ClassUnionRef>
+  | UnifiedType<EnumRef> {
+  // Decorator mode - class union reference
+  if (isClassUnion(ref)) {
+    return createUnifiedType({ __classUnion: ref }) as UnifiedType<ClassUnionRef>;
+  }
   // Decorator mode - class reference
   if (typeof ref === "function") {
     return createUnifiedType({ __class: ref }) as UnifiedType<ClassRef>;
@@ -211,20 +243,30 @@ export function ObjectType<const N extends string, const P extends Record<string
   return { type: "object", properties: cleanProperties as P, name };
 }
 
-// UnionType - schema mode (name first, required) or decorator mode (class array only)
+// UnionType - schema mode (schema types)
 export function UnionType<const N extends string, const V extends readonly NamedType[]>(
   name: N,
   options: V
 ): { type: "union"; options: V; name: N };
-export function UnionType(options: Function[]): ClassDecorator;
-export function UnionType<const N extends string, const V extends readonly NamedType[]>(
-  nameOrClasses: N | Function[],
-  options?: V
-): ClassDecorator | { type: "union"; options: V; name: N } {
-  // Schema mode - name string with array of NamedType
-  if (typeof nameOrClasses === "string") {
-    return { type: "union", options: options as V, name: nameOrClasses };
+// UnionType - decorator mode (classes)
+export function UnionType<const N extends string, const V extends readonly (new (...args: any[]) => any)[]>(
+  name: N,
+  classes: V
+): ClassUnionDef<N, V>;
+// Implementation
+export function UnionType(
+  name: string,
+  options: readonly any[]
+): { type: "union"; options: readonly NamedType[]; name: string } | ClassUnionDef {
+  // Check if first option is a class (function) or schema type (object with type)
+  if (options.length > 0 && typeof options[0] === "function") {
+    // Decorator mode - return class union def
+    return {
+      [CLASS_UNION_MARKER]: true as const,
+      name,
+      classes: options as readonly (new (...args: any[]) => any)[],
+    };
   }
-  // Decorator mode - array of classes
-  return createUnionDecorator(nameOrClasses);
+  // Schema mode - return schema union type
+  return { type: "union", options: options as readonly NamedType[], name };
 }

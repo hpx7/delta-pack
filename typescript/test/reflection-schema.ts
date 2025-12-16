@@ -64,7 +64,7 @@ export class Entity {
   position: Position = new Position();
 }
 
-// Union variant types
+// Union variant classes
 export class MoveAction {
   @IntType()
   x: number = 0;
@@ -86,8 +86,8 @@ export class UseItemAction {
   itemId: string = "";
 }
 
-@UnionType([MoveAction, AttackAction, UseItemAction])
-export abstract class GameAction {}
+export const GameAction = UnionType("GameAction", [MoveAction, AttackAction, UseItemAction]);
+export type GameAction = MoveAction | AttackAction | UseItemAction;
 
 export class GameState {
   @ArrayType(ReferenceType(Player))

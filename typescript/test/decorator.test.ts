@@ -147,15 +147,15 @@ describe("Delta Pack Reflection", () => {
         target: string = "";
       }
 
-      @UnionType([MoveCmd, FireCmd])
-      abstract class Command {}
+      const Command = UnionType("Command", [MoveCmd, FireCmd]);
+      type Command = MoveCmd | FireCmd;
 
       class CommandQueue {
         @ArrayType(ReferenceType(Command))
-        commands: (MoveCmd | FireCmd)[] = [];
+        commands: Command[] = [];
 
         @RecordType(StringType(), ReferenceType(Command))
-        commandsById: Map<string, MoveCmd | FireCmd> = new Map();
+        commandsById: Map<string, Command> = new Map();
       }
 
       const generatedSchema = buildSchema(CommandQueue);
@@ -180,6 +180,14 @@ describe("Delta Pack Reflection", () => {
         options: [generatedSchema["MoveCmd"], generatedSchema["FireCmd"]],
         name: "Command",
       });
+
+      // Verify variants are properly typed and instanceable
+      const moveCmd = new MoveCmd();
+      const fireCmd = new FireCmd();
+      expect(moveCmd).toBeInstanceOf(MoveCmd);
+      expect(fireCmd).toBeInstanceOf(FireCmd);
+      expect(generatedSchema[MoveCmd.name]).toBeDefined();
+      expect(generatedSchema[FireCmd.name]).toBeDefined();
     });
   });
 

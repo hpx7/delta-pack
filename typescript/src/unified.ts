@@ -1,6 +1,5 @@
 // Metadata keys for decorator reflection
 export const SCHEMA_TYPE = "deltapack:schemaType";
-export const UNION_VARIANTS = "deltapack:union";
 
 // A unified type that works as both a PropertyDecorator and a schema type
 export type UnifiedType<T> = PropertyDecorator & T;
@@ -10,12 +9,6 @@ export function createUnifiedType<T>(schemaType: T): UnifiedType<T> {
     Reflect.defineMetadata(SCHEMA_TYPE, schemaType, target, propertyKey);
   };
   return Object.assign(decorator, schemaType) as UnifiedType<T>;
-}
-
-export function createUnionDecorator(classes: Function[]): ClassDecorator {
-  return (target) => {
-    Reflect.defineMetadata(UNION_VARIANTS, classes, target);
-  };
 }
 
 // Strips decorator function wrapper to get plain schema object

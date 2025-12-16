@@ -78,9 +78,7 @@ class GameClient {
   private sendJoinMessage() {
     if (!this.ws || !this.connected) return;
 
-    const joinMsg = new JoinMessage();
-    joinMsg.name = this.playerName;
-
+    const joinMsg = new JoinMessage({ name: this.playerName });
     const encoded = ClientMessageApi.encode(joinMsg);
     this.ws.send(encoded);
     console.log(`👤 Joining as "${this.playerName}"...`);
@@ -144,9 +142,7 @@ class GameClient {
   private sendInput() {
     if (!this.ws || !this.connected) return;
 
-    const inputMsg = new InputMessage();
-    inputMsg.input = this.input;
-
+    const inputMsg = new InputMessage({ input: this.input });
     const encoded = ClientMessageApi.encode(inputMsg);
     this.ws.send(encoded);
   }

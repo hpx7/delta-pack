@@ -1,13 +1,23 @@
 import "reflect-metadata";
 import { load, DeltaPackApi } from "./interpreter.js";
-import { NamedType, PropertyType } from "./schema.js";
-import { SCHEMA_TYPE, UNION_VARIANTS, EnumDef } from "./unified.js";
+import { NamedType, PropertyType, ClassUnionDef, isClassUnion } from "./schema.js";
+import { SCHEMA_TYPE, EnumDef } from "./unified.js";
 
 // ============ Types ============
 
-type Constructor<T = unknown> = new (...args: unknown[]) => T;
+type Constructor<T = unknown> = new (...args: any[]) => T;
+type AnyConstructor<T = unknown> = Constructor<T> | (abstract new (...args: any[]) => T);
 
-type SchemaTypeOrRef = PropertyType | { __class: Function } | { __enum: EnumDef };
+// Helper type to infer the union type from a ClassUnionDef
+type InferUnion<U extends ClassUnionDef> =
+  U extends ClassUnionDef<string, infer V>
+    ? V extends readonly (new (...args: any[]) => infer T)[]
+      ? T
+      : never
+    : never;
+
+type ClassUnionRef = { __classUnion: ClassUnionDef };
+type SchemaTypeOrRef = PropertyType | { __class: Function } | { __enum: EnumDef } | ClassUnionRef;
 
 // ============ Helper Functions ============
 
@@ -19,9 +29,20 @@ function isEnumRef(value: unknown): value is { __enum: EnumDef } {
   return typeof value === "object" && value !== null && "__enum" in value;
 }
 
+function isClassUnionRef(value: unknown): value is ClassUnionRef {
+  return typeof value === "object" && value !== null && "__classUnion" in value;
+}
+
 // ============ Schema Builder ============
 
-export function buildSchema<T extends object>(rootClass: Constructor<T>): Record<string, NamedType> {
+// Overload: build schema from a class constructor
+export function buildSchema<T extends object>(rootClass: AnyConstructor<T>): Record<string, NamedType>;
+// Overload: build schema from a union definition
+export function buildSchema<U extends ClassUnionDef>(unionDef: U): Record<string, NamedType>;
+// Implementation
+export function buildSchema<T extends object>(
+  rootClassOrUnion: AnyConstructor<T> | ClassUnionDef
+): Record<string, NamedType> {
   const schema: Record<string, NamedType> = {};
   const visited = new Set<Function>();
 
@@ -29,29 +50,11 @@ export function buildSchema<T extends object>(rootClass: Constructor<T>): Record
     if (visited.has(cls)) return;
     visited.add(cls);
 
-    const unionVariants = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-    if (unionVariants) {
-      for (const variant of unionVariants) {
-        processClass(variant);
-      }
-      // Store union with placeholder, resolve references after all types are processed
-      schema[cls.name] = {
-        type: "union",
-        options: [] as unknown as readonly NamedType[], // Will be resolved later
-        name: cls.name,
-        __variantNames: unionVariants.map((v) => v.name), // Temporary for resolution
-      } as NamedType & { __variantNames: string[] };
-      return;
-    }
-
     let instance: object;
     try {
       instance = new (cls as Constructor)() as object;
     } catch {
-      throw new Error(
-        `Cannot instantiate ${cls.name}. Classes must have a parameterless constructor. ` +
-          `For abstract union types, use @UnionType([Variant1, Variant2]).`
-      );
+      throw new Error(`Cannot instantiate ${cls.name}. Classes must have a parameterless constructor.`);
     }
 
     const propertyKeys = Object.keys(instance);
@@ -74,7 +77,31 @@ export function buildSchema<T extends object>(rootClass: Constructor<T>): Record
     schema[cls.name] = { type: "object", properties, name: cls.name };
   }
 
+  function processClassUnion(unionDef: ClassUnionDef): void {
+    const { name, classes } = unionDef;
+    if (schema[name]) return; // Already processed
+
+    // Process each variant class
+    for (const cls of classes) {
+      processClass(cls);
+    }
+
+    // Store union with placeholder, resolve references after all types are processed
+    schema[name] = {
+      type: "union",
+      options: [] as unknown as readonly NamedType[],
+      name,
+      __variantNames: classes.map((c) => c.name),
+    } as NamedType & { __variantNames: string[] };
+  }
+
   function resolveSchemaType(schemaType: SchemaTypeOrRef, currentClass?: Function): PropertyType {
+    if (isClassUnionRef(schemaType)) {
+      const unionDef = schemaType.__classUnion;
+      processClassUnion(unionDef);
+      return { type: "reference", __refName: unionDef.name } as unknown as PropertyType;
+    }
+
     if (isClassRef(schemaType)) {
       const cls = schemaType.__class;
       // Check for self-reference (class referencing itself)
@@ -111,7 +138,12 @@ export function buildSchema<T extends object>(rootClass: Constructor<T>): Record
     return schemaType as PropertyType;
   }
 
-  processClass(rootClass);
+  // Process the root (either a class constructor or a union definition)
+  if (isClassUnion(rootClassOrUnion)) {
+    processClassUnion(rootClassOrUnion);
+  } else {
+    processClass(rootClassOrUnion);
+  }
 
   // Second pass: resolve all references now that all types are in schema
   for (const typeName of Object.keys(schema)) {
@@ -166,11 +198,21 @@ export type DirtyMap<K, V> = Map<K, V> & { _dirty?: Set<K> };
 
 // ============ Class Loader ============
 
-export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPackApi<WithDirty<T>> {
-  const schema = buildSchema(rootClass);
-  const rootType = schema[rootClass.name];
+// Overload: load from a class constructor
+export function loadClass<T extends object>(rootClass: AnyConstructor<T>): DeltaPackApi<WithDirty<T>>;
+// Overload: load from a union definition
+export function loadClass<U extends ClassUnionDef>(unionDef: U): DeltaPackApi<WithDirty<InferUnion<U>>>;
+// Implementation
+export function loadClass<T extends object>(
+  rootClassOrUnion: AnyConstructor<T> | ClassUnionDef
+): DeltaPackApi<WithDirty<T>> {
+  const isUnion = isClassUnion(rootClassOrUnion);
+  const rootName = rootClassOrUnion.name;
+
+  const schema = buildSchema(rootClassOrUnion as AnyConstructor<T>);
+  const rootType = schema[rootName];
   if (!rootType) {
-    throw new Error(`Type ${rootClass.name} not found in schema`);
+    throw new Error(`Type ${rootName} not found in schema`);
   }
   const rawApi = load<T>(rootType);
 
@@ -179,7 +221,17 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
     classMap: new Map<string, Constructor>(),
     unionVariants: new Set<string>(),
   };
-  collectClassInfo(rootClass, info, new Set());
+
+  if (isUnion) {
+    // For unions, collect info from all variant classes
+    for (const cls of rootClassOrUnion.classes) {
+      info.unionVariants.add(cls.name);
+      collectClassInfo(cls, info, new Set());
+    }
+  } else {
+    collectClassInfo(rootClassOrUnion, info, new Set());
+  }
+
   const { classMap, unionVariants } = info;
 
   // Hydrate plain objects into class instances
@@ -237,13 +289,13 @@ export function loadClass<T extends object>(rootClass: Constructor<T>): DeltaPac
   const wrap = (obj: D) => wrapUnions(obj, rootType, schema, unionVariants) as T;
 
   return {
-    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as D)), rootClass.name) as D,
+    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as D)), rootName) as D,
     encode: (obj: D) => rawApi.encode(wrap(obj)),
-    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootClass.name) as D,
+    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootName) as D,
     encodeDiff: (a: D, b: D) => rawApi.encodeDiff(wrap(a), wrap(b)),
-    decodeDiff: (a: D, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootClass.name) as D,
+    decodeDiff: (a: D, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootName) as D,
     equals: (a: D, b: D) => rawApi.equals(wrap(a), wrap(b)),
-    clone: (obj: D) => hydrate(rawApi.clone(wrap(obj)), rootClass.name) as D,
+    clone: (obj: D) => hydrate(rawApi.clone(wrap(obj)), rootName) as D,
     toJson: (obj: D) => rawApi.toJson(wrap(obj)),
   };
 }
@@ -258,15 +310,6 @@ interface CollectedInfo {
 function collectClassInfo(cls: Function, info: CollectedInfo, visited: Set<Function>): void {
   if (visited.has(cls)) return;
   visited.add(cls);
-
-  const unionVariantClasses = Reflect.getMetadata(UNION_VARIANTS, cls) as Function[] | undefined;
-  if (unionVariantClasses) {
-    for (const variant of unionVariantClasses) {
-      info.unionVariants.add(variant.name);
-      collectClassInfo(variant, info, visited);
-    }
-    return;
-  }
 
   // Store the constructor
   info.classMap.set(cls.name, cls as Constructor);
@@ -289,6 +332,15 @@ function collectClassInfo(cls: Function, info: CollectedInfo, visited: Set<Funct
 
 function collectFromSchemaType(schemaType: unknown, info: CollectedInfo, visited: Set<Function>): void {
   if (!schemaType || typeof schemaType !== "object") return;
+
+  if ("__classUnion" in schemaType) {
+    const unionDef = (schemaType as { __classUnion: ClassUnionDef }).__classUnion;
+    for (const cls of unionDef.classes) {
+      info.unionVariants.add(cls.name);
+      collectClassInfo(cls, info, visited);
+    }
+    return;
+  }
 
   if ("__class" in schemaType) {
     collectClassInfo((schemaType as { __class: Function }).__class, info, visited);

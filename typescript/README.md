@@ -390,16 +390,16 @@ The same type functions used to build schemas (`StringType()`, `IntType()`, `Arr
 
 **Additional decorator-specific features:**
 
-| Decorator               | Description                                 |
-| ----------------------- | ------------------------------------------- |
-| `@UnionType([A, B])`    | Class decorator for defining union types    |
-| `@ReferenceType(Class)` | Reference a class or TypeScript string enum |
+| Function                | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| `UnionType("Name", [])` | Define a union from a list of variant classes   |
+| `ReferenceType(Class)`  | Reference a class, union, or TypeScript enum    |
 
-**Referencing classes and enums:**
+**Referencing classes, enums, and unions:**
 
 - Use `ReferenceType(ClassName)` to reference another class
 - Use `ReferenceType(EnumValue)` for TypeScript enums (optionally pass `{ enumName: "Name" }` to specify schema name)
-- For unions, create a class with `@UnionType([A, B])` decorator and reference it
+- Use `UnionType("Name", [ClassA, ClassB])` to define a union, then `ReferenceType(UnionDef)` to use it
 
 ### Example
 
@@ -430,7 +430,7 @@ class Position {
   @FloatType({ precision: 0.1 }) y: number = 0;
 }
 
-// Union types
+// Union types - define variant classes, then combine with UnionType
 class MoveAction {
   @IntType() x: number = 0;
   @IntType() y: number = 0;
@@ -441,8 +441,9 @@ class AttackAction {
   @UIntType() damage: number = 0;
 }
 
-@UnionType([MoveAction, AttackAction])
-abstract class GameAction {}
+// Define union type - combines variant classes
+const GameAction = UnionType("GameAction", [MoveAction, AttackAction]);
+type GameAction = MoveAction | AttackAction;
 
 // Main class
 class Player {
@@ -484,10 +485,10 @@ class AdvancedExample {
 
 ### Working with Union Types
 
-With the decorator API, union types are defined using the `@UnionType` decorator on an abstract class:
+With the decorator API, union types are defined using `UnionType()` to combine variant classes:
 
 ```typescript
-// Define variant classes
+// Define variant classes (regular decorated classes)
 class JoinMessage {
   @StringType() name: string = "";
 }
@@ -496,11 +497,11 @@ class InputMessage {
   @ReferenceType(ClientInput) input: ClientInput = new ClientInput();
 }
 
-// Define the union (abstract class as a marker)
-@UnionType([JoinMessage, InputMessage])
-abstract class ClientMessage {}
+// Define union type - combines variants
+const ClientMessage = UnionType("ClientMessage", [JoinMessage, InputMessage]);
+type ClientMessage = JoinMessage | InputMessage;
 
-// Load the API
+// Load the API from the union
 const ClientMessageApi = loadClass(ClientMessage);
 ```
 
@@ -521,24 +522,6 @@ if (message instanceof JoinMessage) {
   console.log(message.name); // TypeScript knows this is JoinMessage
 } else if (message instanceof InputMessage) {
   console.log(message.input);
-}
-```
-
-**For exhaustiveness checking:** TypeScript doesn't know which classes are variants of a union. For compile-time exhaustiveness checking, define a type alias:
-
-```typescript
-// Optional: for exhaustiveness checking
-type ClientMessageVariant = JoinMessage | InputMessage;
-
-function handleMessage(message: ClientMessageVariant) {
-  if (message instanceof JoinMessage) {
-    // handle join
-  } else if (message instanceof InputMessage) {
-    // handle input
-  } else {
-    // TypeScript error if a variant is missing
-    const _exhaustive: never = message;
-  }
 }
 ```
 
@@ -588,15 +571,15 @@ const PlayerApi = load(schema["Player"]);
 
 ### Schema API vs Decorator API
 
-| Aspect            | Schema API                                   | Decorator API                             |
-| ----------------- | -------------------------------------------- | ----------------------------------------- |
-| Type constructors | `StringType()`, `ArrayType()`, etc.          | Same - work as decorators too             |
-| Object types      | `ObjectType("Name", { ... })`                | Class with decorated properties           |
-| Enums             | `EnumType("Name", [...])`                    | TypeScript `enum` + `ReferenceType()`     |
-| Unions            | `UnionType("Name", [TypeA, TypeB])`          | `@UnionType([A, B])` class decorator      |
-| References        | Type references: `ReferenceType(PlayerType)` | Class references: `ReferenceType(Player)` |
-| Loading           | `load(RootType)`                             | `loadClass(Class)`                        |
-| Return types      | Plain objects                                | Class instances with methods              |
+| Aspect            | Schema API                                   | Decorator API                                   |
+| ----------------- | -------------------------------------------- | ----------------------------------------------- |
+| Type constructors | `StringType()`, `ArrayType()`, etc.          | Same - work as decorators too                   |
+| Object types      | `ObjectType("Name", { ... })`                | Class with decorated properties                 |
+| Enums             | `EnumType("Name", [...])`                    | TypeScript `enum` + `ReferenceType()`           |
+| Unions            | `UnionType("Name", [TypeA, TypeB])`          | `UnionType("Name", [ClassA, ClassB])`           |
+| References        | Type references: `ReferenceType(PlayerType)` | Class/union refs: `ReferenceType(Player)`       |
+| Loading           | `load(RootType)`                             | `loadClass(Class)` or `loadClass(UnionDef)`     |
+| Return types      | Plain objects                                | Class instances with methods                    |
 
 ## Codegen API
 

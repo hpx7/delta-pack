@@ -37,12 +37,12 @@ export class Game {
       throw new Error("Server full");
     }
 
-    const player = new Player();
-    player.id = id;
-    player.name = name;
-    player.x = Math.random() * this.WORLD_WIDTH;
-    player.y = Math.random() * this.WORLD_HEIGHT;
-    player.health = 100;
+    const player = new Player({
+      id,
+      name,
+      x: Math.random() * this.WORLD_WIDTH,
+      y: Math.random() * this.WORLD_HEIGHT,
+    });
 
     this.state.players.set(id, player);
 
@@ -76,8 +76,8 @@ export class Game {
     // Update game time
     this.state.gameTime = (Date.now() - this.startTime) / 1000;
     this.state.tick++;
-    this.state._dirty!.add("tick");
     this.state._dirty!.add("gameTime");
+    this.state._dirty!.add("tick");
 
     // Process player inputs and update physics
     for (const [playerId, input] of this.playerInputs) {

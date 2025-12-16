@@ -32,13 +32,17 @@ export class Player {
   vy: number = 0;
 
   @IntType()
-  health: number = 0;
+  health: number = 100;
 
   @IntType()
   score: number = 0;
 
   @BooleanType()
   isAlive: boolean = true;
+
+  constructor(overrides: Partial<Player> = {}) {
+    Object.assign(this, overrides);
+  }
 }
 
 // GameState class
@@ -51,6 +55,10 @@ export class GameState {
 
   @FloatType()
   gameTime: number = 0;
+
+  constructor(overrides: Partial<GameState> = {}) {
+    Object.assign(this, overrides);
+  }
 }
 
 // ClientInput class
@@ -69,21 +77,33 @@ export class ClientInput {
 
   @BooleanType()
   shoot: boolean = false;
+
+  constructor(overrides: Partial<ClientInput> = {}) {
+    Object.assign(this, overrides);
+  }
 }
 
 // Client -> Server messages
 export class JoinMessage {
   @StringType()
   name: string = "";
+
+  constructor(overrides: Partial<JoinMessage> = {}) {
+    Object.assign(this, overrides);
+  }
 }
 
 export class InputMessage {
   @ReferenceType(ClientInput)
   input: ClientInput = new ClientInput();
+
+  constructor(overrides: Partial<InputMessage> = {}) {
+    Object.assign(this, overrides);
+  }
 }
 
-@UnionType([JoinMessage, InputMessage])
-export class ClientMessage {}
+export const ClientMessage = UnionType("ClientMessage", [JoinMessage, InputMessage]);
+export type ClientMessage = JoinMessage | InputMessage;
 
 // Server -> Client messages
 export class StateMessage {
@@ -92,10 +112,14 @@ export class StateMessage {
 
   @ReferenceType(GameState)
   state: WithDirty<GameState> = new GameState();
+
+  constructor(overrides: Partial<StateMessage> = {}) {
+    Object.assign(this, overrides);
+  }
 }
 
-@UnionType([StateMessage])
-export class ServerMessage {}
+export const ServerMessage = UnionType("ServerMessage", [StateMessage]);
+export type ServerMessage = StateMessage;
 
 // Create APIs using loadClass
 export const PlayerApi = loadClass(Player);

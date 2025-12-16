@@ -19,7 +19,7 @@ interface Client {
   id: string;
   ws: WebSocket;
   name: string;
-  lastMessage: ServerMessage | null; // Last StateMessage sent to this client
+  lastMessage: ServerMessage | null; // Last ServerMessage sent to this client
 }
 
 class GameServer {
@@ -105,9 +105,7 @@ class GameServer {
 
       // Send initial full state
       const fullState = this.game.getStateForPlayer(client.id);
-      const stateMsg = new StateMessage();
-      stateMsg.playerId = client.id;
-      stateMsg.state = fullState;
+      const stateMsg = new StateMessage({ playerId: client.id, state: fullState });
 
       client.lastMessage = stateMsg;
       const encoded = ServerMessageApi.encode(stateMsg);
@@ -131,9 +129,7 @@ class GameServer {
         if (client.lastMessage != null) {
           // Create update message with current snapshot
           const currentState = this.game.getStateForPlayer(client.id);
-          const updateMessage = new StateMessage();
-          updateMessage.playerId = client.id;
-          updateMessage.state = currentState;
+          const updateMessage = new StateMessage({ playerId: client.id, state: currentState });
 
           // Send diff from last update message
           const encoded = ServerMessageApi.encodeDiff(client.lastMessage, updateMessage);
