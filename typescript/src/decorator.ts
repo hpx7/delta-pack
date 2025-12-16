@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { load, DeltaPackApi } from "./interpreter.js";
-import { NamedType, PropertyType, ClassUnionDef, isClassUnion } from "./schema.js";
-import { SCHEMA_TYPE, EnumDef } from "./unified.js";
+import { NamedType, PropertyType, ClassUnionDef, isClassUnion, EnumType } from "./schema.js";
+import { SCHEMA_TYPE } from "./unified.js";
 
 // ============ Types ============
 
@@ -17,7 +17,7 @@ type InferUnion<U extends ClassUnionDef> =
     : never;
 
 type ClassUnionRef = { __classUnion: ClassUnionDef };
-type SchemaTypeOrRef = PropertyType | { __class: Function } | { __enum: EnumDef } | ClassUnionRef;
+type SchemaTypeOrRef = PropertyType | { __class: Function } | ClassUnionRef;
 
 // ============ Helper Functions ============
 
@@ -25,12 +25,12 @@ function isClassRef(value: unknown): value is { __class: Function } {
   return typeof value === "object" && value !== null && "__class" in value;
 }
 
-function isEnumRef(value: unknown): value is { __enum: EnumDef } {
-  return typeof value === "object" && value !== null && "__enum" in value;
-}
-
 function isClassUnionRef(value: unknown): value is ClassUnionRef {
   return typeof value === "object" && value !== null && "__classUnion" in value;
+}
+
+function isEnumType(value: unknown): value is EnumType {
+  return typeof value === "object" && value !== null && "type" in value && (value as { type: string }).type === "enum";
 }
 
 // ============ Schema Builder ============
@@ -113,12 +113,17 @@ export function buildSchema<T extends object>(
       return { type: "reference", __refName: cls.name } as unknown as PropertyType;
     }
 
-    if (isEnumRef(schemaType)) {
-      const enumDef = schemaType.__enum;
-      if (!schema[enumDef.name]) {
-        schema[enumDef.name] = { type: "enum", options: enumDef.options as readonly string[], name: enumDef.name };
+    // Reference type - check if ref is an enum that needs to be added to schema
+    if (schemaType.type === "reference") {
+      const refType = schemaType as { type: "reference"; ref: NamedType };
+      if (isEnumType(refType.ref)) {
+        if (!schema[refType.ref.name]) {
+          schema[refType.ref.name] = refType.ref;
+        }
+        return { type: "reference", __refName: refType.ref.name } as unknown as PropertyType;
       }
-      return { type: "reference", __refName: enumDef.name } as unknown as PropertyType;
+      // Non-enum reference (schema mode) - keep as-is
+      return schemaType as PropertyType;
     }
 
     if (schemaType.type === "array") {
@@ -134,7 +139,7 @@ export function buildSchema<T extends object>(
       return { type: "record", key: recType.key, value: resolveSchemaType(recType.value, currentClass) };
     }
 
-    // Only non-enum primitives reach here (enums are resolved via isEnumRef above)
+    // Primitives reach here
     return schemaType as PropertyType;
   }
 

@@ -1,4 +1,4 @@
-import { createUnifiedType, stripDecorator, UnifiedType, ClassRef, EnumRef } from "./unified.js";
+import { createUnifiedType, stripDecorator, UnifiedType, ClassRef } from "./unified.js";
 
 // ============ Class Union Definition (for decorator mode) ============
 
@@ -141,7 +141,7 @@ export function FloatType(options?: { precision?: number | string }): UnifiedTyp
 // ============ Container Type Constructors ============
 
 // Types that can be used as values in containers (both schema mode and decorator mode)
-type ValueType = PropertyType | ClassRef | EnumRef | ClassUnionRef;
+type ValueType = PropertyType | ClassRef | ClassUnionRef;
 
 export function ArrayType<const V extends ValueType>(value: V): UnifiedType<{ type: "array"; value: V }> {
   const schemaType = {
@@ -178,26 +178,16 @@ export interface ClassUnionRef<U extends ClassUnionDef = ClassUnionDef> {
   __classUnion: U;
 }
 
-// Schema mode - direct type reference
+// Schema mode - direct type reference (includes EnumType)
 export function ReferenceType<T extends NamedType>(ref: T): UnifiedType<{ type: "reference"; ref: T }>;
 // Decorator mode - class reference
 export function ReferenceType<C extends Function>(cls: C): UnifiedType<ClassRef & { __class: C }>;
 // Decorator mode - class union reference
 export function ReferenceType<U extends ClassUnionDef>(union: U): UnifiedType<ClassUnionRef<U>>;
-// Decorator mode - enum reference
-export function ReferenceType<E extends Record<string, string>>(
-  enumObj: E,
-  options: { enumName: string }
-): UnifiedType<EnumRef>;
 // Implementation
 export function ReferenceType(
-  ref: NamedType | Function | ClassUnionDef | Record<string, string>,
-  options?: { enumName: string }
-):
-  | UnifiedType<{ type: "reference"; ref: NamedType }>
-  | UnifiedType<ClassRef>
-  | UnifiedType<ClassUnionRef>
-  | UnifiedType<EnumRef> {
+  ref: NamedType | Function | ClassUnionDef
+): UnifiedType<{ type: "reference"; ref: NamedType }> | UnifiedType<ClassRef> | UnifiedType<ClassUnionRef> {
   // Decorator mode - class union reference
   if (isClassUnion(ref)) {
     return createUnifiedType({ __classUnion: ref }) as UnifiedType<ClassUnionRef>;
@@ -206,14 +196,8 @@ export function ReferenceType(
   if (typeof ref === "function") {
     return createUnifiedType({ __class: ref }) as UnifiedType<ClassRef>;
   }
-  // Schema mode - direct type reference (has "type" property)
-  if (typeof ref === "object" && ref !== null && "type" in ref) {
-    return createUnifiedType({ type: "reference" as const, ref: ref as NamedType }) as UnifiedType<ReferenceType>;
-  }
-  // Decorator mode - enum reference (plain object without "type")
-  const enumOptions = Object.values(ref as Record<string, string>);
-  const enumName = options?.enumName ?? `Enum_${enumOptions.join("_")}`;
-  return createUnifiedType({ __enum: { options: enumOptions, name: enumName } }) as UnifiedType<EnumRef>;
+  // Schema mode - direct type reference (NamedType with "type" property, including EnumType)
+  return createUnifiedType({ type: "reference" as const, ref: ref as NamedType }) as UnifiedType<ReferenceType>;
 }
 
 // Self-reference (for recursive types)

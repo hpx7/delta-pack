@@ -300,7 +300,7 @@ describe("Delta Pack Reflection", () => {
       const state = new GameState();
       state.round = 5;
       state.currentPlayer = "p1";
-      state.winningColor = Color.BLUE;
+      state.winningColor = "BLUE";
       state.metadata.set("mode", "ranked");
 
       const player = new Player();
@@ -526,7 +526,7 @@ describe("Delta Pack Reflection", () => {
 
       // Create instance with union value
       const obj1 = new CoverageTestSchema();
-      obj1.directEnum = Color.BLUE;
+      obj1.directEnum = "BLUE";
       obj1.boolMatrix = [
         [true, false],
         [false, true],
@@ -558,7 +558,7 @@ describe("Delta Pack Reflection", () => {
 
       // Test encodeDiff/decodeDiff
       const obj2 = new CoverageTestSchema();
-      obj2.directEnum = Color.GREEN;
+      obj2.directEnum = "GREEN";
       const move = new MoveAction();
       move.x = 10;
       move.y = 20;
@@ -575,7 +575,7 @@ describe("Delta Pack Reflection", () => {
 
       // Test equals
       const obj3 = new CoverageTestSchema();
-      obj3.directEnum = Color.BLUE;
+      obj3.directEnum = "BLUE";
       obj3.boolMatrix = [
         [true, false],
         [false, true],

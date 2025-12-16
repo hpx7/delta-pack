@@ -10,15 +10,13 @@ import {
   OptionalType,
   UnionType,
   ReferenceType,
+  EnumType,
+  Infer,
 } from "@hpx7/delta-pack";
 
 // Enum matching schema.ts Color
-export enum Color {
-  RED = "RED",
-  BLUE = "BLUE",
-  GREEN = "GREEN",
-  YELLOW = "YELLOW",
-}
+export const Color = EnumType("Color", ["RED", "BLUE", "GREEN", "YELLOW"]);
+export type Color = Infer<typeof Color>;
 
 export class Player {
   @StringType()
@@ -102,7 +100,7 @@ export class GameState {
   @RecordType(StringType(), StringType())
   metadata: Map<string, string> = new Map();
 
-  @OptionalType(ReferenceType(Color, { enumName: "Color" }))
+  @OptionalType(ReferenceType(Color))
   winningColor?: Color;
 
   @OptionalType(ReferenceType(GameAction))
@@ -124,8 +122,8 @@ export class PlayerRegistry {
 // Comprehensive test class for coverage of obscure decorator combinations
 export class CoverageTestSchema {
   // Direct enum via @ReferenceType (not @OptionalType)
-  @ReferenceType(Color, { enumName: "Color" })
-  directEnum: Color = Color.RED;
+  @ReferenceType(Color)
+  directEnum: Color = "RED";
 
   // Nested optional via container descriptor
   @OptionalType(OptionalType(StringType()))

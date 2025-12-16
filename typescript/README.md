@@ -392,13 +392,14 @@ The same type functions used to build schemas (`StringType()`, `IntType()`, `Arr
 
 | Function                | Description                                     |
 | ----------------------- | ----------------------------------------------- |
+| `EnumType("Name", [])` | Define an enum type                              |
 | `UnionType("Name", [])` | Define a union from a list of variant classes   |
-| `ReferenceType(Class)`  | Reference a class, union, or TypeScript enum    |
+| `ReferenceType(ref)`    | Reference a class, enum, or union               |
 
 **Referencing classes, enums, and unions:**
 
 - Use `ReferenceType(ClassName)` to reference another class
-- Use `ReferenceType(EnumValue)` for TypeScript enums (optionally pass `{ enumName: "Name" }` to specify schema name)
+- Use `EnumType("Name", [...])` to define an enum, then `ReferenceType(EnumDef)` to use it
 - Use `UnionType("Name", [ClassA, ClassB])` to define a union, then `ReferenceType(UnionDef)` to use it
 
 ### Example
@@ -414,15 +415,15 @@ import {
   ArrayType,
   RecordType,
   OptionalType,
+  EnumType,
   UnionType,
+  Infer,
   loadClass,
 } from "@hpx7/delta-pack";
 
-// Enum (TypeScript string enum)
-enum Team {
-  RED = "RED",
-  BLUE = "BLUE",
-}
+// Enum type
+const Team = EnumType("Team", ["RED", "BLUE"]);
+type Team = Infer<typeof Team>;
 
 // Nested object
 class Position {
@@ -575,9 +576,9 @@ const PlayerApi = load(schema["Player"]);
 | ----------------- | -------------------------------------------- | ----------------------------------------------- |
 | Type constructors | `StringType()`, `ArrayType()`, etc.          | Same - work as decorators too                   |
 | Object types      | `ObjectType("Name", { ... })`                | Class with decorated properties                 |
-| Enums             | `EnumType("Name", [...])`                    | TypeScript `enum` + `ReferenceType()`           |
+| Enums             | `EnumType("Name", [...])`                    | Same - `EnumType("Name", [...])`                |
 | Unions            | `UnionType("Name", [TypeA, TypeB])`          | `UnionType("Name", [ClassA, ClassB])`           |
-| References        | Type references: `ReferenceType(PlayerType)` | Class/union refs: `ReferenceType(Player)`       |
+| References        | Type references: `ReferenceType(PlayerType)` | Class/enum/union refs: `ReferenceType(ref)`     |
 | Loading           | `load(RootType)`                             | `loadClass(Class)` or `loadClass(UnionDef)`     |
 | Return types      | Plain objects                                | Class instances with methods                    |
 
@@ -711,12 +712,10 @@ const reconstructed = GameStateApi.decodeDiff(state1, diff);
 **Using Decorator Mode:**
 
 ```typescript
-import { StringType, UIntType, FloatType, IntType, ReferenceType, RecordType, loadClass } from "@hpx7/delta-pack";
+import { StringType, UIntType, FloatType, IntType, ReferenceType, RecordType, EnumType, Infer, loadClass } from "@hpx7/delta-pack";
 
-enum Team {
-  RED = "RED",
-  BLUE = "BLUE",
-}
+const Team = EnumType("Team", ["RED", "BLUE"]);
+type Team = Infer<typeof Team>;
 
 class Position {
   @FloatType() x: number = 0;
@@ -726,7 +725,7 @@ class Position {
 class Player {
   @StringType() id: string = "";
   @StringType() username: string = "";
-  @ReferenceType(Team) team: Team = Team.RED;
+  @ReferenceType(Team) team: Team = "RED";
   @ReferenceType(Position) position: Position = new Position();
   @UIntType() health: number = 0;
   @IntType() score: number = 0;
@@ -749,7 +748,7 @@ state1.timeRemaining = 600.0;
 const player = new Player();
 player.id = "p1";
 player.username = "Alice";
-player.team = Team.RED;
+player.team = "RED";
 player.position.x = 100;
 player.position.y = 100;
 player.health = 100;

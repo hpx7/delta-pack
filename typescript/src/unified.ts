@@ -43,15 +43,6 @@ export function stripDecorator<T>(type: T): T {
 }
 
 // Decorator-mode markers (not part of PropertyType, only used internally)
-export interface EnumDef {
-  options: string[];
-  name: string;
-}
-
 export interface ClassRef {
   __class: Function;
-}
-
-export interface EnumRef {
-  __enum: EnumDef;
 }
