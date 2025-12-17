@@ -1,0 +1,21 @@
+{
+  "name": "@hpx7/delta-pack-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "delta-pack": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target node",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@hpx7/delta-pack": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

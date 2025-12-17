@@ -1,0 +1,35 @@
+import { parseSchemaYml, codegenTypescript } from "@hpx7/delta-pack";
+import { writeOutput } from "../utils/io.js";
+
+export type Flags = Map<string, string | true>;
+
+export async function generate(schemaPath: string | undefined, flags: Flags): Promise<void> {
+  if (!schemaPath) {
+    throw new Error("Schema file required");
+  }
+
+  const lang = flags.get("l") ?? flags.get("language");
+  const output = flags.get("o") ?? flags.get("output");
+
+  if (!lang || lang === true) {
+    throw new Error("Language required: -l <typescript|csharp>");
+  }
+
+  const content = await Bun.file(schemaPath).text();
+  const schema = parseSchemaYml(content);
+
+  let code: string;
+  switch (lang) {
+    case "typescript":
+    case "ts":
+      code = codegenTypescript(schema);
+      break;
+    case "csharp":
+    case "cs":
+      throw new Error("C# codegen not yet implemented");
+    default:
+      throw new Error(`Unknown language: ${lang}`);
+  }
+
+  await writeOutput(output === true ? undefined : output, code);
+}
