@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+import pkg from "../package.json";
 import { generate } from "./commands/generate.js";
 import { encode } from "./commands/encode.js";
 import { decode } from "./commands/decode.js";
 import { encodeDiff } from "./commands/encodeDiff.js";
 import { decodeDiff } from "./commands/decodeDiff.js";
+import { ArgError } from "./utils/errors.js";
 
 // Handle EPIPE gracefully (e.g., when piping to a process that exits early)
 process.stdout.on("error", (err) => {
@@ -72,7 +74,17 @@ Options:
 }
 
 async function main() {
-  if (!command || command === "help" || command === "--help" || command === "-h") {
+  if (command === "--version" || command === "-v") {
+    console.log(pkg.version);
+    process.exit(0);
+  }
+
+  if (
+    !command ||
+    command === "help" ||
+    command === "--help" ||
+    command === "-h"
+  ) {
     printUsage();
     process.exit(0);
   }
@@ -105,6 +117,10 @@ async function main() {
     }
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
+    if (err instanceof ArgError) {
+      console.error();
+      printUsage();
+    }
     process.exit(1);
   }
 }

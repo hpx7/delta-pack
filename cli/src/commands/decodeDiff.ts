@@ -2,12 +2,16 @@ import { readFile } from "node:fs/promises";
 import { load } from "@hpx7/delta-pack";
 import { loadSchema, getRootType } from "../utils/schema.js";
 import { readInput, writeOutput } from "../utils/io.js";
+import { ArgError } from "../utils/errors.js";
 
 export type Flags = Map<string, string | true>;
 
-export async function decodeDiff(schemaPath: string | undefined, flags: Flags): Promise<void> {
+export async function decodeDiff(
+  schemaPath: string | undefined,
+  flags: Flags,
+): Promise<void> {
   if (!schemaPath) {
-    throw new Error("decode-diff: schema file required");
+    throw new ArgError("decode-diff: schema file required");
   }
 
   const typeName = flags.get("t") ?? flags.get("type");
@@ -16,10 +20,10 @@ export async function decodeDiff(schemaPath: string | undefined, flags: Flags): 
   const output = flags.get("o") ?? flags.get("output");
 
   if (!typeName || typeName === true) {
-    throw new Error("decode-diff: type required (-t <name>)");
+    throw new ArgError("decode-diff: type required (-t <name>)");
   }
   if (!oldPath || oldPath === true) {
-    throw new Error("decode-diff: old state required (--old <file>)");
+    throw new ArgError("decode-diff: old state required (--old <file>)");
   }
 
   const schema = await loadSchema(schemaPath);

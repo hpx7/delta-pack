@@ -1,12 +1,16 @@
 import { load } from "@hpx7/delta-pack";
 import { loadSchema, getRootType } from "../utils/schema.js";
 import { readInput, writeOutput } from "../utils/io.js";
+import { ArgError } from "../utils/errors.js";
 
 export type Flags = Map<string, string | true>;
 
-export async function decode(schemaPath: string | undefined, flags: Flags): Promise<void> {
+export async function decode(
+  schemaPath: string | undefined,
+  flags: Flags,
+): Promise<void> {
   if (!schemaPath) {
-    throw new Error("decode: schema file required");
+    throw new ArgError("decode: schema file required");
   }
 
   const typeName = flags.get("t") ?? flags.get("type");
@@ -14,7 +18,7 @@ export async function decode(schemaPath: string | undefined, flags: Flags): Prom
   const output = flags.get("o") ?? flags.get("output");
 
   if (!typeName || typeName === true) {
-    throw new Error("decode: type required (-t <name>)");
+    throw new ArgError("decode: type required (-t <name>)");
   }
 
   const schema = await loadSchema(schemaPath);

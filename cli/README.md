@@ -20,12 +20,13 @@ Generate code from a YAML schema.
 delta-pack generate <schema.yml> -l <language> [-o output]
 ```
 
-| Flag | Description |
-|------|-------------|
+| Flag                    | Description                                       |
+| ----------------------- | ------------------------------------------------- |
 | `-l, --language <lang>` | Target language: `typescript`/`ts`, `csharp`/`cs` |
-| `-o, --output <file>` | Output file (default: stdout) |
+| `-o, --output <file>`   | Output file (default: stdout)                     |
 
 Examples:
+
 ```bash
 # Output to stdout
 delta-pack generate schema.yml -l typescript
@@ -45,13 +46,14 @@ Encode JSON to binary.
 delta-pack encode <schema.yml> -t <type> [-i input] [-o output]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-t, --type <name>` | Type name (required) |
-| `-i, --input <file>` | JSON input file (default: stdin) |
+| Flag                  | Description                          |
+| --------------------- | ------------------------------------ |
+| `-t, --type <name>`   | Type name (required)                 |
+| `-i, --input <file>`  | JSON input file (default: stdin)     |
 | `-o, --output <file>` | Binary output file (default: stdout) |
 
 Examples:
+
 ```bash
 # File to file
 delta-pack encode schema.yml -t Player -i player.json -o player.bin
@@ -71,13 +73,14 @@ Decode binary to JSON.
 delta-pack decode <schema.yml> -t <type> [-i input] [-o output]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-t, --type <name>` | Type name (required) |
-| `-i, --input <file>` | Binary input file (default: stdin) |
+| Flag                  | Description                        |
+| --------------------- | ---------------------------------- |
+| `-t, --type <name>`   | Type name (required)               |
+| `-i, --input <file>`  | Binary input file (default: stdin) |
 | `-o, --output <file>` | JSON output file (default: stdout) |
 
 Examples:
+
 ```bash
 # File to file
 delta-pack decode schema.yml -t Player -i player.bin -o player.json
@@ -97,14 +100,15 @@ Encode the diff between two JSON states to binary.
 delta-pack encode-diff <schema.yml> -t <type> --old <file> --new <file> [-o output]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-t, --type <name>` | Type name (required) |
-| `--old <file>` | Old state JSON file (required) |
-| `--new <file>` | New state JSON file (required) |
+| Flag                  | Description                          |
+| --------------------- | ------------------------------------ |
+| `-t, --type <name>`   | Type name (required)                 |
+| `--old <file>`        | Old state JSON file (required)       |
+| `--new <file>`        | New state JSON file (required)       |
 | `-o, --output <file>` | Binary output file (default: stdout) |
 
 Examples:
+
 ```bash
 # Output to file
 delta-pack encode-diff schema.yml -t GameState --old state1.json --new state2.json -o diff.bin
@@ -121,14 +125,15 @@ Apply a binary diff to a JSON state.
 delta-pack decode-diff <schema.yml> -t <type> --old <file> [--diff <file>] [-o output]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-t, --type <name>` | Type name (required) |
-| `--old <file>` | Old state JSON file (required) |
-| `--diff <file>` | Binary diff file (default: stdin) |
+| Flag                  | Description                        |
+| --------------------- | ---------------------------------- |
+| `-t, --type <name>`   | Type name (required)               |
+| `--old <file>`        | Old state JSON file (required)     |
+| `--diff <file>`       | Binary diff file (default: stdin)  |
 | `-o, --output <file>` | JSON output file (default: stdout) |
 
 Examples:
+
 ```bash
 # File to file
 delta-pack decode-diff schema.yml -t GameState --old state1.json --diff diff.bin -o state2.json
@@ -154,10 +159,10 @@ delta-pack encode-diff schema.yml -t GameState --old state1.json --new state2.js
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| 1 | Error (invalid arguments, schema error, data validation error) |
+| Code | Meaning                                                        |
+| ---- | -------------------------------------------------------------- |
+| 0    | Success                                                        |
+| 1    | Error (invalid arguments, schema error, data validation error) |
 
 ## Development
 

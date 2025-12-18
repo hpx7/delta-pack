@@ -21,6 +21,11 @@ describe("CLI", () => {
     expect(result).toContain("Commands:");
   });
 
+  it("shows version", async () => {
+    const result = await $`bun ${cli} -v`.text();
+    expect(result.trim()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   it("encode and decode roundtrip", async () => {
     const encoded =
       await $`bun ${cli} encode ${schemaPath} -t Primitives -i ${state1Path}`.arrayBuffer();

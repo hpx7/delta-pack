@@ -18,7 +18,10 @@ export async function readJson(path: string | undefined): Promise<unknown> {
   return JSON.parse(text);
 }
 
-export async function writeOutput(path: string | undefined, data: Uint8Array | string): Promise<void> {
+export async function writeOutput(
+  path: string | undefined,
+  data: Uint8Array | string,
+): Promise<void> {
   if (path) {
     await writeFile(path, data);
   } else {
