@@ -118,7 +118,7 @@ public class EncodingSizeTests
         Assert.Equal("user_67890", children[0]);
         Assert.Equal("user_54321", children[1]);
 
-        var metadata = (Dictionary<string, object?>)decoded["metadata"]!;
+        var metadata = (Dictionary<object, object?>)decoded["metadata"]!;
         Assert.Equal("admin", metadata["role"]);
         Assert.Equal("engineering", metadata["department"]);
 

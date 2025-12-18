@@ -123,16 +123,6 @@ public class ReflectionApiTests
     }
 
     [Fact]
-    public void SchemaEquivalence_WithUnsignedAttribute()
-    {
-        var schema = ReflectionSchema.BuildSchema<NetworkPacket>();
-
-        var packet = (ObjectType)schema["NetworkPacket"];
-        Assert.IsType<UIntType>(packet.Properties["sequenceNumber"]);
-        Assert.IsType<IntType>(packet.Properties["payload"]);
-    }
-
-    [Fact]
     public void SchemaEquivalence_SelfReferencing()
     {
         var schema = ReflectionSchema.BuildSchema<LinkedNode>();
@@ -303,6 +293,115 @@ public class ReflectionApiTests
         Assert.Equal(12, decoded.Values["wisdom"]);
     }
 
+    // Int-keyed dictionaries
+    public class IntKeyedContainer
+    {
+        public Dictionary<int, string> PlayerNames { get; set; } = new();
+    }
+
+    [Fact]
+    public void DictionaryProperty_IntKeys_RoundTrips()
+    {
+        var codec = new DeltaPackCodec<IntKeyedContainer>();
+        var container = new IntKeyedContainer
+        {
+            PlayerNames = new Dictionary<int, string>
+            {
+                [1] = "Alice",
+                [2] = "Bob",
+                [-5] = "Charlie"
+            }
+        };
+
+        var encoded = codec.Encode(container);
+        var decoded = codec.Decode(encoded);
+
+        Assert.Equal("Alice", decoded.PlayerNames[1]);
+        Assert.Equal("Bob", decoded.PlayerNames[2]);
+        Assert.Equal("Charlie", decoded.PlayerNames[-5]);
+    }
+
+    [Fact]
+    public void DictionaryProperty_IntKeys_SchemaGeneration()
+    {
+        var schema = ReflectionSchema.BuildSchema<IntKeyedContainer>();
+        var container = (ObjectType)schema["IntKeyedContainer"];
+        var playerNames = (RecordType)container.Properties["playerNames"];
+
+        Assert.IsType<IntType>(playerNames.Key);
+        Assert.IsType<StringType>(playerNames.Value);
+    }
+
+    // UInt-keyed dictionaries
+    public class UIntKeyedContainer
+    {
+        public Dictionary<uint, int> ItemCounts { get; set; } = new();
+    }
+
+    [Fact]
+    public void DictionaryProperty_UIntKeys_RoundTrips()
+    {
+        var codec = new DeltaPackCodec<UIntKeyedContainer>();
+        var container = new UIntKeyedContainer
+        {
+            ItemCounts = new Dictionary<uint, int>
+            {
+                [100] = 5,
+                [200] = 10,
+                [300] = 15
+            }
+        };
+
+        var encoded = codec.Encode(container);
+        var decoded = codec.Decode(encoded);
+
+        Assert.Equal(5, decoded.ItemCounts[100]);
+        Assert.Equal(10, decoded.ItemCounts[200]);
+        Assert.Equal(15, decoded.ItemCounts[300]);
+    }
+
+    [Fact]
+    public void DictionaryProperty_UIntKeys_SchemaGeneration()
+    {
+        var schema = ReflectionSchema.BuildSchema<UIntKeyedContainer>();
+        var container = (ObjectType)schema["UIntKeyedContainer"];
+        var itemCounts = (RecordType)container.Properties["itemCounts"];
+
+        Assert.IsType<UIntType>(itemCounts.Key);
+        Assert.IsType<IntType>(itemCounts.Value);
+    }
+
+    [Fact]
+    public void DictionaryProperty_IntKeys_DiffRoundTrips()
+    {
+        var codec = new DeltaPackCodec<IntKeyedContainer>();
+
+        var a = new IntKeyedContainer
+        {
+            PlayerNames = new Dictionary<int, string>
+            {
+                [1] = "Alice",
+                [2] = "Bob"
+            }
+        };
+
+        var b = new IntKeyedContainer
+        {
+            PlayerNames = new Dictionary<int, string>
+            {
+                [1] = "Alicia",  // Changed
+                [3] = "Charlie" // Added (2 removed)
+            }
+        };
+
+        var diff = codec.EncodeDiff(a, b);
+        var result = codec.DecodeDiff(a, diff);
+
+        Assert.Equal(2, result.PlayerNames.Count);
+        Assert.Equal("Alicia", result.PlayerNames[1]);
+        Assert.Equal("Charlie", result.PlayerNames[3]);
+    }
+
     // Diff encoding
     public class GameState
     {
@@ -416,6 +515,96 @@ public class ReflectionApiTests
         Assert.Equal(20.33f, decoded.Y, 0.001f);
     }
 
+    // Ignore attribute
+    public class PlayerWithIgnored
+    {
+        public string Name { get; set; } = "";
+        public int Score { get; set; }
+
+        [DeltaPackIgnore]
+        public string CachedDisplayName { get; set; } = "";
+
+        [DeltaPackIgnore]
+        public DateTime LastUpdated { get; set; }
+    }
+
+    [Fact]
+    public void IgnoreAttribute_ExcludesFromSchema()
+    {
+        var schema = ReflectionSchema.BuildSchema<PlayerWithIgnored>();
+
+        var player = (ObjectType)schema["PlayerWithIgnored"];
+        Assert.Equal(2, player.Properties.Count);
+        Assert.True(player.Properties.ContainsKey("name"));
+        Assert.True(player.Properties.ContainsKey("score"));
+        Assert.False(player.Properties.ContainsKey("cachedDisplayName"));
+        Assert.False(player.Properties.ContainsKey("lastUpdated"));
+    }
+
+    [Fact]
+    public void IgnoreAttribute_RoundTrip()
+    {
+        var codec = new DeltaPackCodec<PlayerWithIgnored>();
+        var player = new PlayerWithIgnored
+        {
+            Name = "Alice",
+            Score = 100,
+            CachedDisplayName = "Alice (100)",
+            LastUpdated = DateTime.Now
+        };
+
+        var encoded = codec.Encode(player);
+        var decoded = codec.Decode(encoded);
+
+        Assert.Equal("Alice", decoded.Name);
+        Assert.Equal(100, decoded.Score);
+        // Ignored fields should have default values
+        Assert.Equal("", decoded.CachedDisplayName);
+        Assert.Equal(default(DateTime), decoded.LastUpdated);
+    }
+
+    // Unsigned integer types
+    public class UnsignedTypes
+    {
+        public uint Count { get; set; }
+        public ulong BigCount { get; set; }
+        public ushort SmallCount { get; set; }
+        public byte TinyCount { get; set; }
+    }
+
+    [Fact]
+    public void UnsignedTypes_MapsToUIntType()
+    {
+        var schema = ReflectionSchema.BuildSchema<UnsignedTypes>();
+
+        var types = (ObjectType)schema["UnsignedTypes"];
+        Assert.IsType<UIntType>(types.Properties["count"]);
+        Assert.IsType<UIntType>(types.Properties["bigCount"]);
+        Assert.IsType<UIntType>(types.Properties["smallCount"]);
+        Assert.IsType<UIntType>(types.Properties["tinyCount"]);
+    }
+
+    [Fact]
+    public void UnsignedTypes_RoundTrip()
+    {
+        var codec = new DeltaPackCodec<UnsignedTypes>();
+        var obj = new UnsignedTypes
+        {
+            Count = 12345,
+            BigCount = 9876543210,
+            SmallCount = 65000,
+            TinyCount = 255
+        };
+
+        var encoded = codec.Encode(obj);
+        var decoded = codec.Decode(encoded);
+
+        Assert.Equal(12345u, decoded.Count);
+        Assert.Equal(9876543210ul, decoded.BigCount);
+        Assert.Equal((ushort)65000, decoded.SmallCount);
+        Assert.Equal((byte)255, decoded.TinyCount);
+    }
+
     // Complex nested structure
     public class Guild
     {
@@ -453,28 +642,6 @@ public class ReflectionApiTests
         Assert.Equal("Bob", decoded.Members[1].Name);
         Assert.Equal(1000, decoded.Resources["gold"]);
         Assert.Equal(50, decoded.Resources["gems"]);
-    }
-
-    // Unsigned attribute
-    public class NetworkPacket
-    {
-        [DeltaPackUnsigned]
-        public int SequenceNumber { get; set; }
-
-        public int Payload { get; set; }
-    }
-
-    [Fact]
-    public void UnsignedAttribute_EncodesAsUnsigned()
-    {
-        var codec = new DeltaPackCodec<NetworkPacket>();
-        var packet = new NetworkPacket { SequenceNumber = 12345, Payload = -42 };
-
-        var encoded = codec.Encode(packet);
-        var decoded = codec.Decode(encoded);
-
-        Assert.Equal(12345, decoded.SequenceNumber);
-        Assert.Equal(-42, decoded.Payload);
     }
 
     // Codec reuse - the main benefit for Unity

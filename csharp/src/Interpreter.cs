@@ -100,7 +100,7 @@ public static class Interpreter
                     break;
 
                 case RecordType rt:
-                    var dict = (IDictionary<string, object?>)obj!;
+                    var dict = (IDictionary<object, object?>)obj!;
                     encoder.PushRecord(
                         dict,
                         key => Encode(key, rt.Key, encoder),
@@ -173,13 +173,13 @@ public static class Interpreter
             return result;
         }
 
-        private Dictionary<string, object?> DecodeRecord(RecordType rt, Decoder decoder)
+        private Dictionary<object, object?> DecodeRecord(RecordType rt, Decoder decoder)
         {
             var len = (int)decoder.NextUInt();
-            var result = new Dictionary<string, object?>(len);
+            var result = new Dictionary<object, object?>(len);
             for (var i = 0; i < len; i++)
             {
-                var key = (string)Decode(rt.Key, decoder)!;
+                var key = Decode(rt.Key, decoder)!;
                 var val = Decode(rt.Value, decoder);
                 result[key] = val;
             }
@@ -247,8 +247,8 @@ public static class Interpreter
 
         private bool EqualsRecord(object? a, object? b, RecordType rt)
         {
-            var dictA = (IDictionary<string, object?>?)a;
-            var dictB = (IDictionary<string, object?>?)b;
+            var dictA = (IDictionary<object, object?>?)a;
+            var dictB = (IDictionary<object, object?>?)b;
             if (dictA is null || dictB is null)
                 return dictA is null && dictB is null;
             if (dictA.Count != dictB.Count)
@@ -314,9 +314,9 @@ public static class Interpreter
             return arr.Select(item => Clone(item, at.Value)).ToList();
         }
 
-        private Dictionary<string, object?> CloneRecord(object? obj, RecordType rt)
+        private Dictionary<object, object?> CloneRecord(object? obj, RecordType rt)
         {
-            var dict = (IDictionary<string, object?>)obj!;
+            var dict = (IDictionary<object, object?>)obj!;
             return dict.ToDictionary(kvp => kvp.Key, kvp => Clone(kvp.Value, rt.Value));
         }
 
@@ -416,15 +416,68 @@ public static class Interpreter
 
         private void EncodeDiffRecord(object? a, object? b, RecordType rt, Encoder encoder)
         {
-            var dictA = (IDictionary<string, object?>)a!;
-            var dictB = (IDictionary<string, object?>)b!;
+            var dictA = (IDictionary<object, object?>)a!;
+            var dictB = (IDictionary<object, object?>)b!;
 
-            encoder.PushRecordDiff(
-                dictA, dictB,
-                (x, y) => Equals(x, y, rt.Value),
-                key => Encode(key, rt.Key, encoder),
-                val => Encode(val, rt.Value, encoder),
-                (x, y) => EncodeDiff(x, y, rt.Value, encoder));
+            var changed = !EqualsRecord(a, b, rt);
+            encoder.PushBoolean(changed);
+            if (!changed)
+                return;
+
+            var orderedKeys = dictA.Keys.OrderBy(k => k, GetKeyComparer(rt.Key)).ToList();
+            var updates = new List<int>();
+            var deletions = new List<int>();
+            var additions = new List<(object key, object? val)>();
+
+            for (var i = 0; i < orderedKeys.Count; i++)
+            {
+                var aKey = orderedKeys[i];
+                if (dictB.TryGetValue(aKey, out var bVal))
+                {
+                    if (!Equals(dictA[aKey], bVal, rt.Value))
+                        updates.Add(i);
+                }
+                else
+                {
+                    deletions.Add(i);
+                }
+            }
+
+            foreach (var (bKey, bVal) in dictB)
+            {
+                if (!dictA.ContainsKey(bKey))
+                    additions.Add((bKey, bVal));
+            }
+
+            encoder.PushUInt((uint)deletions.Count);
+            foreach (var i in deletions)
+                encoder.PushUInt((uint)i);
+
+            encoder.PushUInt((uint)updates.Count);
+            foreach (var i in updates)
+            {
+                encoder.PushUInt((uint)i);
+                var key = orderedKeys[i];
+                EncodeDiff(dictA[key], dictB[key], rt.Value, encoder);
+            }
+
+            encoder.PushUInt((uint)additions.Count);
+            foreach (var (key, val) in additions)
+            {
+                Encode(key, rt.Key, encoder);
+                Encode(val, rt.Value, encoder);
+            }
+        }
+
+        private static IComparer<object> GetKeyComparer(SchemaType keyType)
+        {
+            return keyType switch
+            {
+                StringType => Comparer<object>.Create((a, b) => string.Compare((string)a, (string)b, StringComparison.Ordinal)),
+                IntType => Comparer<object>.Create((a, b) => Convert.ToInt64(a).CompareTo(Convert.ToInt64(b))),
+                UIntType => Comparer<object>.Create((a, b) => Convert.ToUInt64(a).CompareTo(Convert.ToUInt64(b))),
+                _ => throw new InvalidOperationException($"Unsupported record key type: {keyType}")
+            };
         }
 
         private void EncodeDiffUnion(object? a, object? b, UnionType ut, Encoder encoder)
@@ -552,16 +605,16 @@ public static class Interpreter
             return result;
         }
 
-        private Dictionary<string, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder)
+        private Dictionary<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder)
         {
-            var dictA = (IDictionary<string, object?>)a!;
+            var dictA = (IDictionary<object, object?>)a!;
 
             var changed = decoder.NextBoolean();
             if (!changed)
                 return dictA.ToDictionary(kvp => kvp.Key, kvp => Clone(kvp.Value, rt.Value));
 
             var result = dictA.ToDictionary(kvp => kvp.Key, kvp => Clone(kvp.Value, rt.Value));
-            var orderedKeys = dictA.Keys.OrderBy(k => k).ToList();
+            var orderedKeys = dictA.Keys.OrderBy(k => k, GetKeyComparer(rt.Key)).ToList();
 
             if (dictA.Count > 0)
             {
@@ -583,7 +636,7 @@ public static class Interpreter
             var numAdditions = (int)decoder.NextUInt();
             for (var i = 0; i < numAdditions; i++)
             {
-                var key = (string)Decode(rt.Key, decoder)!;
+                var key = Decode(rt.Key, decoder)!;
                 var val = Decode(rt.Value, decoder);
                 result[key] = val;
             }
@@ -691,15 +744,26 @@ public static class Interpreter
             return result;
         }
 
-        private Dictionary<string, object?> FromJsonRecord(JsonElement json, RecordType rt)
+        private Dictionary<object, object?> FromJsonRecord(JsonElement json, RecordType rt)
         {
-            var result = new Dictionary<string, object?>();
+            var result = new Dictionary<object, object?>();
             foreach (var prop in json.EnumerateObject())
             {
-                var key = prop.Name; // Record keys are always strings in JSON
+                var key = ParseRecordKey(prop.Name, rt.Key);
                 result[key] = FromJson(prop.Value, rt.Value);
             }
             return result;
+        }
+
+        private static object ParseRecordKey(string jsonKey, SchemaType keyType)
+        {
+            return keyType switch
+            {
+                StringType => jsonKey,
+                IntType => long.Parse(jsonKey),
+                UIntType => long.Parse(jsonKey), // Store as long for consistency
+                _ => throw new InvalidOperationException($"Unsupported record key type: {keyType}")
+            };
         }
 
         private UnionValue FromJsonUnion(JsonElement json, UnionType ut)
@@ -796,9 +860,9 @@ public static class Interpreter
 
                 case RecordType rt:
                     writer.WriteStartObject();
-                    foreach (var (key, val) in (IDictionary<string, object?>)obj!)
+                    foreach (var (key, val) in (IDictionary<object, object?>)obj!)
                     {
-                        writer.WritePropertyName(key);
+                        writer.WritePropertyName(key.ToString()!);
                         WriteJson(val, rt.Value, writer);
                     }
                     writer.WriteEndObject();

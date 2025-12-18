@@ -225,7 +225,7 @@ Inventory:
 
         var inventory = new Dictionary<string, object?>
         {
-            ["items"] = new Dictionary<string, object?>
+            ["items"] = new Dictionary<object, object?>
             {
                 ["sword"] = 1,
                 ["potion"] = 5
@@ -235,9 +235,104 @@ Inventory:
         var encoded = api.Encode(inventory);
         var decoded = api.Decode(encoded);
 
-        var items = (Dictionary<string, object?>)decoded["items"]!;
+        var items = (Dictionary<object, object?>)decoded["items"]!;
         Assert.Equal(1L, items["sword"]);
         Assert.Equal(5L, items["potion"]);
+    }
+
+    [Fact]
+    public void Record_IntKeys_EncodeDecodeRoundTrip()
+    {
+        var yaml = @"
+PlayerScores:
+  scores: <int, string>
+";
+        var schema = Parser.ParseSchemaYml(yaml);
+        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "PlayerScores");
+
+        var playerScores = new Dictionary<string, object?>
+        {
+            ["scores"] = new Dictionary<object, object?>
+            {
+                [1L] = "Alice",
+                [2L] = "Bob",
+                [-5L] = "Charlie"
+            }
+        };
+
+        var encoded = api.Encode(playerScores);
+        var decoded = api.Decode(encoded);
+
+        var scores = (Dictionary<object, object?>)decoded["scores"]!;
+        Assert.Equal("Alice", scores[1L]);
+        Assert.Equal("Bob", scores[2L]);
+        Assert.Equal("Charlie", scores[-5L]);
+    }
+
+    [Fact]
+    public void Record_UIntKeys_EncodeDecodeRoundTrip()
+    {
+        var yaml = @"
+ItemCounts:
+  counts: <uint, uint>
+";
+        var schema = Parser.ParseSchemaYml(yaml);
+        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "ItemCounts");
+
+        var itemCounts = new Dictionary<string, object?>
+        {
+            ["counts"] = new Dictionary<object, object?>
+            {
+                [100L] = 5L,
+                [200L] = 10L,
+                [300L] = 15L
+            }
+        };
+
+        var encoded = api.Encode(itemCounts);
+        var decoded = api.Decode(encoded);
+
+        var counts = (Dictionary<object, object?>)decoded["counts"]!;
+        Assert.Equal(5L, counts[100L]);
+        Assert.Equal(10L, counts[200L]);
+        Assert.Equal(15L, counts[300L]);
+    }
+
+    [Fact]
+    public void Record_IntKeys_DiffRoundTrip()
+    {
+        var yaml = @"
+PlayerScores:
+  scores: <int, string>
+";
+        var schema = Parser.ParseSchemaYml(yaml);
+        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "PlayerScores");
+
+        var a = new Dictionary<string, object?>
+        {
+            ["scores"] = new Dictionary<object, object?>
+            {
+                [1L] = "Alice",
+                [2L] = "Bob"
+            }
+        };
+
+        var b = new Dictionary<string, object?>
+        {
+            ["scores"] = new Dictionary<object, object?>
+            {
+                [1L] = "Alicia",  // Changed
+                [3L] = "Charlie" // Added (2 removed)
+            }
+        };
+
+        var diff = api.EncodeDiff(a, b);
+        var result = api.DecodeDiff(a, diff);
+
+        var scores = (Dictionary<object, object?>)result["scores"]!;
+        Assert.Equal(2, scores.Count);
+        Assert.Equal("Alicia", scores[1L]);
+        Assert.Equal("Charlie", scores[3L]);
     }
 
     [Fact]

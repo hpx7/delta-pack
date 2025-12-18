@@ -14,10 +14,10 @@ public sealed class DeltaPackPrecisionAttribute : Attribute
 }
 
 /// <summary>
-/// Marks a property/field as unsigned integer.
+/// Excludes a property or field from serialization.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-public sealed class DeltaPackUnsignedAttribute : Attribute { }
+public sealed class DeltaPackIgnoreAttribute : Attribute { }
 
 /// <summary>
 /// Marks a type as a union variant. Apply to the base class/interface.
@@ -156,12 +156,24 @@ public sealed class DeltaPackCodec<T> where T : class
         return result;
     }
 
-    private Dictionary<string, object?> ToUntypedDictionary(IDictionary dict, DictionaryMapping mapping)
+    private Dictionary<object, object?> ToUntypedDictionary(IDictionary dict, DictionaryMapping mapping)
     {
-        var result = new Dictionary<string, object?>();
+        var result = new Dictionary<object, object?>();
         foreach (DictionaryEntry entry in dict)
-            result[(string)entry.Key] = ToUntyped(entry.Value, mapping.Value);
+        {
+            // Convert key to interpreter's expected type (long for int types)
+            var key = ConvertKeyToUntyped(entry.Key, mapping.KeyType);
+            result[key] = ToUntyped(entry.Value, mapping.Value);
+        }
         return result;
+    }
+
+    private static object ConvertKeyToUntyped(object key, Type keyType)
+    {
+        if (keyType == typeof(string))
+            return key;
+        // Interpreter stores int/uint keys as long
+        return Convert.ToInt64(key);
     }
 
     private UnionValue ToUntypedUnion(object obj, UnionMapping mapping)
@@ -187,7 +199,7 @@ public sealed class DeltaPackCodec<T> where T : class
             EnumMapping em => Enum.Parse(em.EnumType, (string)obj),
             ObjectMapping om => ToTypedObject((Dictionary<string, object?>)obj, om),
             ArrayMapping am => ToTypedArray((List<object?>)obj, am),
-            DictionaryMapping dm => ToTypedDictionary((Dictionary<string, object?>)obj, dm),
+            DictionaryMapping dm => ToTypedDictionary((Dictionary<object, object?>)obj, dm),
             OptionalMapping optm => ToTypedInternal(obj, optm.Inner, targetType),
             UnionMapping um => ToTypedUnion((UnionValue)obj, um),
             _ => throw new InvalidOperationException($"Unknown mapping: {mapping}")
@@ -288,14 +300,32 @@ public sealed class DeltaPackCodec<T> where T : class
         _ => typeof(object)
     };
 
-    private object ToTypedDictionary(Dictionary<string, object?> dict, DictionaryMapping mapping)
+    private object ToTypedDictionary(Dictionary<object, object?> dict, DictionaryMapping mapping)
     {
         var valueType = GetElementType(mapping.Value);
         var typedDict = (IDictionary)Activator.CreateInstance(
-            typeof(Dictionary<,>).MakeGenericType(typeof(string), valueType))!;
+            typeof(Dictionary<,>).MakeGenericType(mapping.KeyType, valueType))!;
         foreach (var (key, value) in dict)
-            typedDict[key] = ToTypedInternal(value, mapping.Value, valueType);
+        {
+            var typedKey = ConvertKeyToTyped(key, mapping.KeyType);
+            typedDict[typedKey] = ToTypedInternal(value, mapping.Value, valueType);
+        }
         return typedDict;
+    }
+
+    private static object ConvertKeyToTyped(object key, Type keyType)
+    {
+        if (keyType == typeof(string))
+            return key;
+        if (keyType == typeof(int))
+            return Convert.ToInt32(key);
+        if (keyType == typeof(uint))
+            return Convert.ToUInt32(key);
+        if (keyType == typeof(long))
+            return Convert.ToInt64(key);
+        if (keyType == typeof(ulong))
+            return Convert.ToUInt64(key);
+        return key;
     }
 
     private object ToTypedUnion(UnionValue union, UnionMapping mapping)
@@ -312,7 +342,7 @@ internal sealed record PrimitiveMapping(Type TargetType) : TypeMapping;
 internal sealed record EnumMapping(Type EnumType) : TypeMapping;
 internal sealed record ObjectMapping(Type Type, List<(string Name, MemberInfo Member, TypeMapping Mapping)> Members) : TypeMapping;
 internal sealed record ArrayMapping(TypeMapping Element) : TypeMapping;
-internal sealed record DictionaryMapping(TypeMapping Value) : TypeMapping;
+internal sealed record DictionaryMapping(TypeMapping Key, TypeMapping Value, Type KeyType) : TypeMapping;
 internal sealed record OptionalMapping(TypeMapping Inner) : TypeMapping;
 internal sealed record UnionMapping(Dictionary<Type, TypeMapping> Options) : TypeMapping;
 
@@ -371,9 +401,10 @@ internal sealed class SchemaBuilder
         if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
         {
             var args = type.GetGenericArguments();
-            if (args[0] != typeof(string))
-                throw new ArgumentException($"Dictionary keys must be strings, got {args[0].Name}");
-            return new DictionaryMapping(BuildMapping(args[1]));
+            var keyType = args[0];
+            if (keyType != typeof(string) && !IsSignedInt(keyType) && !IsUnsignedInt(keyType))
+                throw new ArgumentException($"Dictionary keys must be string, int, uint, long, or ulong, got {keyType.Name}");
+            return new DictionaryMapping(BuildMapping(keyType), BuildMapping(args[1]), keyType);
         }
 
         // Check for union attribute on abstract/interface types
@@ -466,6 +497,8 @@ internal sealed class SchemaBuilder
         {
             if (!prop.CanRead || !prop.CanWrite)
                 continue;
+            if (prop.GetCustomAttribute<DeltaPackIgnoreAttribute>() is not null)
+                continue;
 
             var name = ToCamelCase(prop.Name);
             var mapping = BuildMappingForMember(prop, prop.PropertyType);
@@ -475,6 +508,9 @@ internal sealed class SchemaBuilder
 
         foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
         {
+            if (field.GetCustomAttribute<DeltaPackIgnoreAttribute>() is not null)
+                continue;
+
             var name = ToCamelCase(field.Name);
             var mapping = BuildMappingForMember(field, field.FieldType);
             members.Add((name, field, mapping));
@@ -517,7 +553,6 @@ internal sealed class SchemaBuilder
     private SchemaType MappingToSchemaType(TypeMapping mapping, MemberInfo? member = null)
     {
         var precisionAttr = member?.GetCustomAttribute<DeltaPackPrecisionAttribute>();
-        var unsignedAttr = member?.GetCustomAttribute<DeltaPackUnsignedAttribute>();
 
         return mapping switch
         {
@@ -525,12 +560,12 @@ internal sealed class SchemaBuilder
             PrimitiveMapping { TargetType: var t } when t == typeof(bool) => new BooleanType(),
             PrimitiveMapping { TargetType: var t } when t == typeof(float) || t == typeof(double) =>
                 new FloatType(precisionAttr?.Precision),
-            PrimitiveMapping { TargetType: var t } when IsSignedInt(t) && unsignedAttr is null => new IntType(),
-            PrimitiveMapping { TargetType: var t } when IsUnsignedInt(t) || unsignedAttr is not null => new UIntType(),
+            PrimitiveMapping { TargetType: var t } when IsSignedInt(t) => new IntType(),
+            PrimitiveMapping { TargetType: var t } when IsUnsignedInt(t) => new UIntType(),
             EnumMapping em => new ReferenceType(em.EnumType.Name),
             ObjectMapping om => new ReferenceType(om.Type.Name),
             ArrayMapping am => new ArrayType(MappingToSchemaType(am.Element)),
-            DictionaryMapping dm => new RecordType(new StringType(), MappingToSchemaType(dm.Value)),
+            DictionaryMapping dm => new RecordType(MappingToSchemaType(dm.Key), MappingToSchemaType(dm.Value)),
             OptionalMapping optm => new OptionalType(MappingToSchemaType(optm.Inner)),
             UnionMapping um => new ReferenceType(um.Options.First().Key.BaseType?.Name
                 ?? um.Options.First().Key.GetInterfaces().First().Name),

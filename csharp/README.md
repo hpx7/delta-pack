@@ -48,9 +48,9 @@ GameState result = codec.DecodeDiff(stateA, diff);
 
 ## Supported Types
 
-- **Primitives**: `string`, `bool`, `int`, `long`, `float`, `double`, `byte`, `short`, etc.
+- **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `byte`, `short`, etc.
 - **Enums**: Encoded as varints
-- **Collections**: `List<T>`, `Dictionary<string, T>`
+- **Collections**: `List<T>`, `Dictionary<TKey, TValue>` (TKey: `string`, `int`, `uint`, `long`, `ulong`)
 - **Nullable value types**: `int?`, `float?`, etc.
 - **Nullable reference types**: `Player?`, `string?`, etc.
 - **Nested objects**: Any class with public properties
@@ -74,15 +74,18 @@ public class Position
 }
 ```
 
-### `[DeltaPackUnsigned]`
+### `[DeltaPackIgnore]`
 
-Encode an `int` as unsigned (for values that are always non-negative):
+Exclude a property from serialization:
 
 ```csharp
-public class Packet
+public class Player
 {
-    [DeltaPackUnsigned]
-    public int SequenceNumber { get; set; }
+    public string Name { get; set; } = "";
+    public int Score { get; set; }
+
+    [DeltaPackIgnore]
+    public string CachedDisplayName { get; set; } = "";
 }
 ```
 
@@ -124,9 +127,11 @@ public class Bow : Weapon
 
 ### Custom Factory
 
-For types without parameterless constructors:
+For types without parameterless constructors, such as records:
 
 ```csharp
+public record ImmutablePlayer(string Name, int Score);
+
 var codec = new DeltaPackCodec<ImmutablePlayer>(
     () => new ImmutablePlayer("", 0)
 );
@@ -166,9 +171,31 @@ public class NetworkManager : MonoBehaviour
 
 ## Requirements
 
+### Runtime
 - .NET 6.0+ or .NET Standard 2.1 (Unity 2021.2+)
-- All types must have parameterless constructors (or provide a factory)
-- Dictionary keys must be strings
+
+### Type Definitions
+- **Parameterless constructor** required (or provide a factory)
+- **Public properties** with both getter and setter are serialized
+- **Public fields** are also serialized
+- **`init` setters** work (reflection bypasses compile-time restriction)
+- **Private members** are skipped
+- **Read-only properties** (getter only) are skipped
+- **Dictionary keys** must be `string`, `int`, `uint`, `long`, or `ulong`
+
+```csharp
+public class Player
+{
+    public string Name { get; set; } = "";     // ✓ Serialized
+    public int Score { get; init; }            // ✓ Serialized (init works)
+    public int Health;                         // ✓ Serialized (public field)
+    public string Id { get; }                  // ✗ Skipped (no setter)
+    private int _internalId;                   // ✗ Skipped (private)
+
+    [DeltaPackIgnore]
+    public string CachedValue { get; set; }    // ✗ Skipped (ignored)
+}
+```
 
 ## Binary Format
 
