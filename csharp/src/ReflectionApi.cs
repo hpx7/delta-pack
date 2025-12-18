@@ -62,7 +62,7 @@ public sealed class DeltaPackCodec<T> where T : class
     private readonly IDeltaPackApi<object?> _api;
     private readonly TypeMapping _rootMapping;
     private readonly IReadOnlyDictionary<Type, TypeMapping> _mappings;
-    private readonly Func<T> _factory;
+    private readonly Func<T>? _factory;
 
     /// <summary>
     /// Creates a new codec for type T.
@@ -81,7 +81,8 @@ public sealed class DeltaPackCodec<T> where T : class
         var schema = builder.GetSchema();
         _mappings = builder.GetMappings();
         _api = Interpreter.Load<object?>(schema, typeof(T).Name);
-        _factory = factory ?? CreateDefaultFactory();
+        // Union types don't need a factory - variants are created directly
+        _factory = _rootMapping is UnionMapping ? null : (factory ?? CreateDefaultFactory());
     }
 
     private static Func<T> CreateDefaultFactory()
@@ -241,8 +242,10 @@ public sealed class DeltaPackCodec<T> where T : class
         object obj;
 
         // Check if this is the root type or a nested type
+        // For union root types, _factory is null but this branch is never hit
+        // (unions dispatch to ToTypedUnion which creates variant instances directly)
         if (actualMapping.Type == typeof(T))
-            obj = _factory();
+            obj = _factory!();
         else
             obj = CreateInstance(actualMapping.Type);
 

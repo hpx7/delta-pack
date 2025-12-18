@@ -137,6 +137,8 @@ var codec = new DeltaPackCodec<ImmutablePlayer>(
 );
 ```
 
+> **Note:** Union types (abstract classes with `[DeltaPackUnion]`) don't require a factory—variants are instantiated directly during decoding.
+
 ## Unity Compatibility
 
 This library targets `netstandard2.1` and is compatible with Unity 2021.2+.

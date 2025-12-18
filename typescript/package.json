@@ -1,6 +1,6 @@
 {
   "name": "@hpx7/delta-pack",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A TypeScript code generator and runtime for binary serialization based on schemas.",
   "license": "MIT",
   "author": "hpx7",
@@ -71,7 +71,7 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\""
   },
   "dependencies": {
-    "bin-serde": "^1.6.9",
+    "bin-serde": "^1.7.1",
     "reflect-metadata": "^0.2.2",
     "utf8-buffer-size": "^0.0.4",
     "yaml": "^2.8.1"
