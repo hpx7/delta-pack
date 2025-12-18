@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { parseSchemaYml, codegenTypescript } from "@hpx7/delta-pack";
 import { writeOutput } from "../utils/io.js";
 
@@ -15,7 +16,7 @@ export async function generate(schemaPath: string | undefined, flags: Flags): Pr
     throw new Error("Language required: -l <typescript|csharp>");
   }
 
-  const content = await Bun.file(schemaPath).text();
+  const content = await readFile(schemaPath, "utf-8");
   const schema = parseSchemaYml(content);
 
   let code: string;

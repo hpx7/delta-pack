@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { load } from "@hpx7/delta-pack";
 import { loadSchema, getRootType } from "../utils/schema.js";
 import { writeOutput } from "../utils/io.js";
@@ -28,8 +29,8 @@ export async function encodeDiff(schemaPath: string | undefined, flags: Flags): 
   const rootType = getRootType(schema, typeName);
   const api = load(rootType);
 
-  const oldJson = await Bun.file(oldPath).json();
-  const newJson = await Bun.file(newPath).json();
+  const oldJson = JSON.parse(await readFile(oldPath, "utf-8"));
+  const newJson = JSON.parse(await readFile(newPath, "utf-8"));
 
   const oldObj = api.fromJson(oldJson);
   const newObj = api.fromJson(newJson);

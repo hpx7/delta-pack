@@ -1,20 +1,15 @@
+import { readFile, writeFile } from "node:fs/promises";
+
 export async function readInput(path: string | undefined): Promise<Uint8Array> {
   if (path) {
-    return new Uint8Array(await Bun.file(path).arrayBuffer());
+    return new Uint8Array(await readFile(path));
   }
   // Read from stdin
-  const chunks: Uint8Array[] = [];
-  for await (const chunk of Bun.stdin.stream()) {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
     chunks.push(chunk);
   }
-  const total = chunks.reduce((sum, c) => sum + c.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return result;
+  return new Uint8Array(Buffer.concat(chunks));
 }
 
 export async function readJson(path: string | undefined): Promise<unknown> {
@@ -25,12 +20,8 @@ export async function readJson(path: string | undefined): Promise<unknown> {
 
 export async function writeOutput(path: string | undefined, data: Uint8Array | string): Promise<void> {
   if (path) {
-    await Bun.write(path, data);
+    await writeFile(path, data);
   } else {
-    if (typeof data === "string") {
-      process.stdout.write(data);
-    } else {
-      process.stdout.write(data);
-    }
+    process.stdout.write(data);
   }
 }

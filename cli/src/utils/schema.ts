@@ -1,8 +1,8 @@
+import { readFile } from "node:fs/promises";
 import { parseSchemaYml, type NamedType, type ObjectType, type UnionType } from "@hpx7/delta-pack";
 
 export async function loadSchema(path: string): Promise<Record<string, NamedType>> {
-  const file = Bun.file(path);
-  const content = await file.text();
+  const content = await readFile(path, "utf-8");
   return parseSchemaYml(content);
 }
 
