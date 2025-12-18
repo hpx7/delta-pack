@@ -6,6 +6,14 @@ import { decode } from "./commands/decode.js";
 import { encodeDiff } from "./commands/encodeDiff.js";
 import { decodeDiff } from "./commands/decodeDiff.js";
 
+// Handle EPIPE gracefully (e.g., when piping to a process that exits early)
+process.stdout.on("error", (err) => {
+  if (err.code === "EPIPE") {
+    process.exit(0);
+  }
+  throw err;
+});
+
 const args = process.argv.slice(2);
 const command = args[0];
 

@@ -6,14 +6,14 @@ export type Flags = Map<string, string | true>;
 
 export async function generate(schemaPath: string | undefined, flags: Flags): Promise<void> {
   if (!schemaPath) {
-    throw new Error("Schema file required");
+    throw new Error("generate: schema file required");
   }
 
   const lang = flags.get("l") ?? flags.get("language");
   const output = flags.get("o") ?? flags.get("output");
 
   if (!lang || lang === true) {
-    throw new Error("Language required: -l <typescript|csharp>");
+    throw new Error("generate: language required (-l <typescript|csharp>)");
   }
 
   const content = await readFile(schemaPath, "utf-8");
@@ -27,9 +27,9 @@ export async function generate(schemaPath: string | undefined, flags: Flags): Pr
       break;
     case "csharp":
     case "cs":
-      throw new Error("C# codegen not yet implemented");
+      throw new Error("generate: C# codegen not yet implemented");
     default:
-      throw new Error(`Unknown language: ${lang}`);
+      throw new Error(`generate: unknown language '${lang}'`);
   }
 
   await writeOutput(output === true ? undefined : output, code);

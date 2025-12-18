@@ -6,7 +6,7 @@ export type Flags = Map<string, string | true>;
 
 export async function encode(schemaPath: string | undefined, flags: Flags): Promise<void> {
   if (!schemaPath) {
-    throw new Error("Schema file required");
+    throw new Error("encode: schema file required");
   }
 
   const typeName = flags.get("t") ?? flags.get("type");
@@ -14,7 +14,7 @@ export async function encode(schemaPath: string | undefined, flags: Flags): Prom
   const output = flags.get("o") ?? flags.get("output");
 
   if (!typeName || typeName === true) {
-    throw new Error("Type required: -t <name>");
+    throw new Error("encode: type required (-t <name>)");
   }
 
   const schema = await loadSchema(schemaPath);

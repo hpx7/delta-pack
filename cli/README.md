@@ -138,6 +138,20 @@ delta-pack encode-diff schema.yml -t GameState --old state1.json --new state2.js
   delta-pack decode-diff schema.yml -t GameState --old state1.json
 ```
 
+## Inspecting Binary Output
+
+```bash
+# View binary as hex dump
+delta-pack encode schema.yml -t Player -i player.json | xxd
+
+# Check encoded size in bytes
+delta-pack encode schema.yml -t Player -i player.json | wc -c
+
+# Compare full encode vs diff size
+delta-pack encode schema.yml -t GameState -i state2.json | wc -c
+delta-pack encode-diff schema.yml -t GameState --old state1.json --new state2.json | wc -c
+```
+
 ## Exit Codes
 
 | Code | Meaning |
