@@ -163,8 +163,6 @@ class GameServer {
     console.log("\n📊 Server Stats:");
     console.log(`  Players: ${gameStats.players}`);
     console.log(`  Tick: ${gameStats.tick} (${gameStats.gameTime}s)`);
-    console.log(`  Dirty players: ${gameStats.dirtyPlayers}`);
-    console.log(`  Dirty fields: ${gameStats.dirtyFields}`);
     console.log(`  Avg diff size: ${this.stats.avgDiffSize.toFixed(1)} bytes`);
     console.log(`  Bandwidth: ${(bytesPerSecond / 1024).toFixed(2)} KB/s`);
     console.log(`  Updates/sec: ${updatesPerSecond.toFixed(1)}`);

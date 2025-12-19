@@ -813,76 +813,96 @@ Delta encoding is most effective when:
 - Single field changes: 85-90% smaller
 - Multiple field changes: 70-85% smaller
 
-### Dirty Tracking Optimization
+### Dirty Tracking with `track()`
 
-For maximum encodeDiff performance, you can use the optional `_dirty` field to mark which fields/indices/keys have changed. This allows delta encoding to skip comparison checks entirely:
+For maximum `encodeDiff` performance, use `track()` to automatically track which fields have changed. This allows delta encoding to skip comparison checks entirely:
+
+```typescript
+import { track, clearTracking } from "@hpx7/delta-pack";
+
+// Wrap state with tracking
+const state = track({
+  tick: 0,
+  player: { x: 0, y: 0 },
+  players: new Map([["p1", { x: 0, y: 0 }]]),
+});
+
+// Mutations are automatically tracked
+state.tick = 1;                    // Marks "tick" dirty
+state.player.x = 100;              // Marks "x" on player, "player" on state
+state.players.get("p1")!.x = 50;   // Marks "x" on player, "p1" on players, "players" on state
+
+// Efficient delta encoding - only changed fields are compared
+const diff = GameStateApi.encodeDiff(oldState, state);
+
+// Clear tracking for next update cycle
+clearTracking(state);
+```
+
+**Deep tracking:** Changes to nested objects, arrays, and maps automatically propagate up to parents. This works with:
+
+- Nested objects: `state.player.x = 100` marks both `player.x` and `state.player`
+- Arrays: `state.items[0].value = 99` marks the item, index 0, and `state.items`
+- Maps: `state.players.get("p1")!.x = 50` marks the player, key "p1", and `state.players`
+- Array methods: `push`, `pop`, `shift`, `unshift`, `splice` all mark appropriate indices
+
+**Game loop pattern:**
+
+```typescript
+class Game {
+  private state = track(new GameState());
+
+  tick() {
+    // Mutations are automatically tracked
+    this.state.tick++;
+    for (const [id, input] of this.inputs) {
+      const player = this.state.players.get(id)!;
+      player.x += input.vx;
+      player.y += input.vy;
+    }
+  }
+
+  broadcast() {
+    for (const client of this.clients) {
+      const diff = GameStateApi.encodeDiff(client.lastState, this.state);
+      client.send(diff);
+      client.lastState = GameStateApi.clone(this.state);
+    }
+    clearTracking(this.state);  // Reset for next tick
+  }
+}
+```
+
+**The `Tracked<T>` type:** The `track()` function returns a `Tracked<T>` which recursively adds `_dirty` sets at every level of the object tree.
+
+**When to use tracking:**
+
+- High-frequency updates (e.g., 20-60 times per second)
+- Large state objects where full comparison is expensive
+- Mutable state that changes incrementally each tick
+
+**Manual `_dirty` (alternative):** You can also set `_dirty` directly without using `track()`:
 
 ```typescript
 // Objects: track changed fields
-const player: Player = { id: "p1", name: "Alice", score: 100 };
 player.score = 150;
 player._dirty = new Set(["score"]);
 
-const diff = Player.encodeDiff(oldPlayer, player);
-// Only encodes the 'score' field without checking other fields
-```
-
-**Pattern: Clone and modify for clean state tracking:**
-
-When you need to modify state without mutating the original, use `clone()` to create a fresh copy:
-
-```typescript
-// Start with a clean clone
-const newPlayer = Player.clone(oldPlayer);
-
-// Modify and track changes
-newPlayer.score = 200;
-newPlayer._dirty = new Set(["score"]);
-
-// Efficient delta encoding
-const diff = Player.encodeDiff(oldPlayer, newPlayer);
-```
-
-This pattern ensures:
-
-- Original state remains unchanged
-- You can precisely control which fields are marked dirty
-- Delta encoding is maximally efficient
-
-```typescript
 // Arrays: track changed indices
-const items: Item[] = [...];
 items[5] = newItem;
 items._dirty = new Set([5]);
 
-const diff = encodeDiff(oldItems, items);
-// Only encodes index 5 without checking other elements
-```
-
-```typescript
-// Maps (RecordType): track changed keys
-const players: Map<string, Player> = new Map();
+// Maps: track changed keys
 players.set("p1", updatedPlayer);
 players._dirty = new Set(["p1"]);
-
-const diff = encodeDiff(oldPlayers, players);
-// Only processes key "p1" without checking other entries
 ```
 
 The `_dirty` field is:
 
 - **Optional**: If absent, full comparison is performed
 - **Type-safe**: `Set<keyof T>` for objects, `Set<number>` for arrays, `Set<K>` for maps
-- **Included in generated types**: Both codegen and interpreter types include `_dirty`
+- **Included in types**: Both codegen and interpreter types include `_dirty`
 - **Not serialized**: The `_dirty` field is never encoded in the binary format
-
-**When to use dirty tracking:**
-
-- High-frequency updates (e.g., 60+ times per second)
-- Large objects/collections where full comparison is expensive
-- When you can reliably track changes at the application level
-
-**Important:** If dirty tracking is enabled but incomplete (e.g., you modify a field but don't mark it dirty), the delta will be incorrect. Only use dirty tracking if you can guarantee accurate tracking.
 
 ### Quantized Floats
 

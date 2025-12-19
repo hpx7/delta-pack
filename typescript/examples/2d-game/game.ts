@@ -1,8 +1,8 @@
-import { WithDirty } from "@hpx7/delta-pack";
+import { track, clearTracking } from "@hpx7/delta-pack";
 import { Player, GameState, ClientInput } from "./schema.js";
 
 export class Game {
-  private state: WithDirty<GameState>;
+  private state = track(new GameState());
   private playerInputs = new Map<string, ClientInput>();
   private tickRate = 20; // 20 ticks per second
   private tickInterval: NodeJS.Timeout | null = null;
@@ -13,12 +13,6 @@ export class Game {
   private readonly WORLD_WIDTH = 800;
   private readonly WORLD_HEIGHT = 600;
   private readonly MAX_PLAYERS = 100;
-
-  constructor() {
-    this.state = new GameState();
-    this.state._dirty = new Set();
-    this.state.players._dirty = new Set();
-  }
 
   start() {
     console.log(`🎮 Game started at ${this.tickRate} ticks/sec`);
@@ -46,10 +40,6 @@ export class Game {
 
     this.state.players.set(id, player);
 
-    // Mark as dirty
-    this.state.players._dirty!.add(id);
-    this.state._dirty!.add("players");
-
     console.log(`✅ Player ${name} (${id}) joined. Total players: ${this.state.players.size}`);
     return player;
   }
@@ -58,10 +48,6 @@ export class Game {
     const removed = this.state.players.delete(id);
     if (!removed) return;
     this.playerInputs.delete(id);
-
-    // Mark as dirty
-    this.state.players._dirty!.add(id);
-    this.state._dirty!.add("players");
 
     console.log(`👋 Player ${id} left. Total players: ${this.state.players.size}`);
   }
@@ -76,8 +62,6 @@ export class Game {
     // Update game time
     this.state.gameTime = (Date.now() - this.startTime) / 1000;
     this.state.tick++;
-    this.state._dirty!.add("gameTime");
-    this.state._dirty!.add("tick");
 
     // Process player inputs and update physics
     for (const [playerId, input] of this.playerInputs) {
@@ -115,10 +99,6 @@ export class Game {
       // Clamp to world bounds
       player.x = Math.max(0, Math.min(this.WORLD_WIDTH, player.x));
       player.y = Math.max(0, Math.min(this.WORLD_HEIGHT, player.y));
-
-      // Mark player as dirty
-      this.state.players._dirty!.add(playerId);
-      this.state._dirty!.add("players");
     }
   }
 
@@ -127,8 +107,7 @@ export class Game {
   }
 
   resetChanges() {
-    this.state._dirty!.clear();
-    this.state.players._dirty!.clear();
+    clearTracking(this.state);
   }
 
   getStats() {
@@ -136,8 +115,6 @@ export class Game {
       players: this.state.players.size,
       tick: this.state.tick,
       gameTime: this.state.gameTime.toFixed(1),
-      dirtyPlayers: this.state.players._dirty?.size ?? 0,
-      dirtyFields: this.state._dirty?.size ?? 0,
     };
   }
 }

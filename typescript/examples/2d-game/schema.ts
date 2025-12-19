@@ -1,6 +1,7 @@
 import {
   StringType,
   IntType,
+  UIntType,
   FloatType,
   BooleanType,
   RecordType,
@@ -8,8 +9,6 @@ import {
   UnionType,
   Infer,
   loadClass,
-  WithDirty,
-  DirtyMap,
 } from "@hpx7/delta-pack";
 
 // Player class
@@ -32,10 +31,10 @@ export class Player {
   @FloatType({ precision: 0.1 })
   vy: number = 0;
 
-  @IntType()
+  @UIntType()
   health: number = 100;
 
-  @IntType()
+  @UIntType()
   score: number = 0;
 
   @BooleanType()
@@ -49,7 +48,7 @@ export class Player {
 // GameState class
 export class GameState {
   @RecordType(StringType(), ReferenceType(Player))
-  players: DirtyMap<string, Player> = new Map();
+  players: Map<string, Player> = new Map();
 
   @IntType()
   tick: number = 0;
@@ -112,7 +111,7 @@ export class StateMessage {
   playerId: string = "";
 
   @ReferenceType(GameState)
-  state: WithDirty<GameState> = new GameState();
+  state: GameState = new GameState();
 
   constructor(overrides: Partial<StateMessage> = {}) {
     Object.assign(this, overrides);

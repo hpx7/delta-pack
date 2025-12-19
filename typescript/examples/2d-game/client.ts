@@ -148,7 +148,7 @@ class GameClient {
   }
 
   // Public methods to control input
-  setInput(key: Exclude<keyof ClientInput, "_dirty">, value: boolean) {
+  setInput(key: keyof ClientInput, value: boolean) {
     this.input[key] = value;
   }
 
@@ -178,7 +178,7 @@ function setupKeyboardControls(client: GameClient) {
   const keyTimers = new Map<string, NodeJS.Timeout>();
   const KEY_RELEASE_DELAY = 150; // ms
 
-  const pressKey = (inputKey: Exclude<keyof ClientInput, "_dirty">) => {
+  const pressKey = (inputKey: keyof ClientInput) => {
     client.setInput(inputKey, true);
 
     // Clear any existing release timer for this key
