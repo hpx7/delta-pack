@@ -1,7 +1,7 @@
 import { Writer } from "bin-serde";
 import utf8BufferSize from "utf8-buffer-size";
-import { equalsFloat, equalsArray, equalsRecord } from "./helpers";
-import { rleEncode } from "./rle";
+import { equalsFloat, equalsArray, equalsRecord } from "./helpers.js";
+import { rleEncode } from "./rle.js";
 
 export class Encoder {
   private dict: string[] = [];

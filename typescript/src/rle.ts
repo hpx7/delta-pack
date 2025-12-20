@@ -77,24 +77,33 @@ export function rleEncode(bits: boolean[], writer: Writer): void {
   writeReverseUVarint(writer, totalBits);
 }
 
-export function rleDecode(buf: Uint8Array): boolean[] {
+/**
+ * Creates a lazy RLE bit reader - decodes bits on-demand instead of upfront.
+ * Returns a function that yields the next boolean on each call.
+ */
+export function rleDecode(buf: Uint8Array): () => boolean {
   const { value: numBits, bytesRead: varintLen } = readReverseUVarint(buf);
-  if (numBits === 0) {
-    return [];
-  }
 
   const numRleBytes = Math.ceil(numBits / 8);
   let bytePos = buf.length - varintLen - numRleBytes;
   let currentByte = 0;
   let bitPos = 8; // Start at 8 to trigger first byte read
-  let bitsRead = 0;
+  let currentValue = readBit();
+  let runRemaining = decodeRunLength();
+
+  function decodeRunLength(): number {
+    if (!readBit()) return 1;
+    if (!readBit()) return readBits(1) + 2;
+    if (!readBit()) return readBits(1) + 4;
+    if (!readBit()) return readBits(3) + 6;
+    return readBits(8) + 14;
+  }
 
   function readBit(): boolean {
     if (bitPos === 8) {
       currentByte = buf[bytePos++]!;
       bitPos = 0;
     }
-    bitsRead++;
     return ((currentByte >> bitPos++) & 1) === 1;
   }
 
@@ -108,43 +117,14 @@ export function rleDecode(buf: Uint8Array): boolean[] {
     return val;
   }
 
-  const bits: boolean[] = [];
-  let last = readBit();
-
-  while (bitsRead < numBits) {
-    // Variable-length unary decoding
-    if (!readBit()) {
-      // '0' = run of 1
-      bits.push(last);
-    } else if (!readBit()) {
-      // '10' + 1 bit = run of 2-3
-      const count = readBits(1) + 2;
-      for (let i = 0; i < count; i++) {
-        bits.push(last);
-      }
-    } else if (!readBit()) {
-      // '110' + 1 bit = run of 4-5
-      const count = readBits(1) + 4;
-      for (let i = 0; i < count; i++) {
-        bits.push(last);
-      }
-    } else if (!readBit()) {
-      // '1110' + 3 bits = run of 6-13
-      const count = readBits(3) + 6;
-      for (let i = 0; i < count; i++) {
-        bits.push(last);
-      }
-    } else {
-      // '1111' + 8 bits = run of 14-269
-      const count = readBits(8) + 14;
-      for (let i = 0; i < count; i++) {
-        bits.push(last);
-      }
+  return () => {
+    if (runRemaining === 0) {
+      currentValue = !currentValue;
+      runRemaining = decodeRunLength();
     }
-    last = !last;
-  }
-
-  return bits;
+    runRemaining--;
+    return currentValue;
+  };
 }
 
 function writeReverseUVarint(writer: Writer, val: number) {

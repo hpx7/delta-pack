@@ -1,14 +1,13 @@
 import { Reader } from "bin-serde";
-import { rleDecode } from "./rle";
+import { rleDecode } from "./rle.js";
 
 export class Decoder {
   private dict: string[] = [];
-  private bitsIdx = 0;
-  private bits: boolean[];
+  private nextBit: () => boolean;
   private reader: Reader;
 
   constructor(buf: Uint8Array) {
-    this.bits = rleDecode(buf);
+    this.nextBit = rleDecode(buf);
     this.reader = new Reader(buf);
   }
   nextString() {
@@ -36,7 +35,7 @@ export class Decoder {
     return this.nextInt() * precision;
   }
   nextBoolean() {
-    return this.bits[this.bitsIdx++]!;
+    return this.nextBit();
   }
   nextOptional<T>(innerRead: () => T): T | undefined {
     return this.nextBoolean() ? innerRead() : undefined;
