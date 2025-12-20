@@ -1,4 +1,4 @@
-import * as _ from "@hpx7/delta-pack/helpers";
+import * as _ from "@hpx7/delta-pack";
 
 
 export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";

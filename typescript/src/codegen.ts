@@ -8,7 +8,7 @@ function renderSchema(schema: Record<string, Type>) {
   // Track the current type being processed for self-reference resolution
   let currentTypeName: string;
 
-  return `import * as _ from "@hpx7/delta-pack/helpers";
+  return `import * as _ from "@hpx7/delta-pack";
 
 ${Object.entries(schema)
   .map(([name, type]) => {

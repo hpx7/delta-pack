@@ -1,5 +1,7 @@
-import * as _ from "./helpers.js";
 import { NamedType, Type, isPrimitiveOrEnum } from "./schema.js";
+import * as _ from "./helpers.js";
+import { Encoder } from "./encoder.js";
+import { Decoder } from "./decoder.js";
 import type { Infer } from "./infer.js";
 
 export type DeltaPackApi<T> = {
@@ -145,7 +147,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     return objVal;
   }
 
-  function _encode(objVal: unknown, objType: Type, encoder: _.Encoder, parent: NamedType): void {
+  function _encode(objVal: unknown, objType: Type, encoder: Encoder, parent: NamedType): void {
     if (objType.type === "string") {
       encoder.pushString(objVal as string);
     } else if (objType.type === "int") {
@@ -194,7 +196,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     }
   }
 
-  function _decode(objType: Type, decoder: _.Decoder, parent: NamedType): unknown {
+  function _decode(objType: Type, decoder: Decoder, parent: NamedType): unknown {
     if (objType.type === "string") {
       return decoder.nextString();
     } else if (objType.type === "int") {
@@ -361,7 +363,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     return obj;
   }
 
-  function _encodeDiff(a: unknown, b: unknown, objType: Type, encoder: _.Encoder, parent: NamedType): void {
+  function _encodeDiff(a: unknown, b: unknown, objType: Type, encoder: Encoder, parent: NamedType): void {
     if (objType.type === "string") {
       encoder.pushStringDiff(a as string, b as string);
     } else if (objType.type === "int") {
@@ -449,7 +451,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     }
   }
 
-  function _decodeDiff(a: unknown, objType: Type, decoder: _.Decoder, parent: NamedType): unknown {
+  function _decodeDiff(a: unknown, objType: Type, decoder: Decoder, parent: NamedType): unknown {
     if (objType.type === "string") {
       return decoder.nextStringDiff(a as string);
     } else if (objType.type === "int") {
@@ -537,21 +539,21 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     fromJson: (obj: object) => _fromJson(obj, rootType, rootType),
     toJson: (obj) => _toJson(obj, rootType, rootType) as Record<string, unknown>,
     encode: (obj) => {
-      const encoder = new _.Encoder();
+      const encoder = new Encoder();
       _encode(obj, rootType, encoder, rootType);
       return encoder.toBuffer();
     },
     decode: (buf: Uint8Array) => {
-      const decoder = new _.Decoder(buf);
+      const decoder = new Decoder(buf);
       return _decode(rootType, decoder, rootType);
     },
     encodeDiff: (a, b) => {
-      const encoder = new _.Encoder();
+      const encoder = new Encoder();
       _encodeDiff(a, b, rootType, encoder, rootType);
       return encoder.toBuffer();
     },
     decodeDiff: (a, diff: Uint8Array) => {
-      const decoder = new _.Decoder(diff);
+      const decoder = new Decoder(diff);
       return _decodeDiff(a, rootType, decoder, rootType);
     },
     equals: (a, b) => _equals(a, b, rootType, rootType),
