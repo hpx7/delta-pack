@@ -449,16 +449,19 @@ public static class Interpreter
                     additions.Add((bKey, bVal));
             }
 
-            encoder.PushUInt((uint)deletions.Count);
-            foreach (var i in deletions)
-                encoder.PushUInt((uint)i);
-
-            encoder.PushUInt((uint)updates.Count);
-            foreach (var i in updates)
+            if (dictA.Count > 0)
             {
-                encoder.PushUInt((uint)i);
-                var key = orderedKeys[i];
-                EncodeDiff(dictA[key], dictB[key], rt.Value, encoder);
+                encoder.PushUInt((uint)deletions.Count);
+                foreach (var i in deletions)
+                    encoder.PushUInt((uint)i);
+
+                encoder.PushUInt((uint)updates.Count);
+                foreach (var i in updates)
+                {
+                    encoder.PushUInt((uint)i);
+                    var key = orderedKeys[i];
+                    EncodeDiff(dictA[key], dictB[key], rt.Value, encoder);
+                }
             }
 
             encoder.PushUInt((uint)additions.Count);

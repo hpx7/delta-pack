@@ -402,6 +402,61 @@ public class ReflectionApiTests
         Assert.Equal("Charlie", result.PlayerNames[3]);
     }
 
+    [Fact]
+    public void DictionaryProperty_EmptyToNonEmpty_DiffRoundTrips()
+    {
+        // Regression test: delta encoding failed when dictionary went from empty to non-empty
+        // because encoder/decoder skipped writing/reading deletions and updates counts
+        // when the source dictionary was empty
+        var codec = new DeltaPackCodec<Stats>();
+
+        var a = new Stats
+        {
+            Values = new Dictionary<string, int>() // Empty
+        };
+
+        var b = new Stats
+        {
+            Values = new Dictionary<string, int>
+            {
+                ["health"] = 100,
+                ["mana"] = 50
+            }
+        };
+
+        var diff = codec.EncodeDiff(a, b);
+        var result = codec.DecodeDiff(a, diff);
+
+        Assert.Equal(2, result.Values.Count);
+        Assert.Equal(100, result.Values["health"]);
+        Assert.Equal(50, result.Values["mana"]);
+    }
+
+    [Fact]
+    public void DictionaryProperty_NonEmptyToEmpty_DiffRoundTrips()
+    {
+        var codec = new DeltaPackCodec<Stats>();
+
+        var a = new Stats
+        {
+            Values = new Dictionary<string, int>
+            {
+                ["health"] = 100,
+                ["mana"] = 50
+            }
+        };
+
+        var b = new Stats
+        {
+            Values = new Dictionary<string, int>() // Empty
+        };
+
+        var diff = codec.EncodeDiff(a, b);
+        var result = codec.DecodeDiff(a, diff);
+
+        Assert.Empty(result.Values);
+    }
+
     // Diff encoding
     public class GameState
     {
