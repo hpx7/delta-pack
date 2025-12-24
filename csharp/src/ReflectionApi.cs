@@ -277,11 +277,9 @@ public sealed class DeltaPackCodec<T> where T : class
 
     private static object CreateInstance(Type type)
     {
-        var ctor = type.GetConstructor(Type.EmptyTypes);
-        if (ctor is null)
-            throw new InvalidOperationException(
-                $"Type '{type.Name}' must have a parameterless constructor");
-        return ctor.Invoke(null);
+        // Activator.CreateInstance works for both classes and structs
+        return Activator.CreateInstance(type)
+            ?? throw new InvalidOperationException($"Failed to create instance of '{type.Name}'");
     }
 
     private object ToTypedArray(List<object?> list, ArrayMapping mapping)
@@ -500,6 +498,8 @@ internal sealed class SchemaBuilder
         {
             if (!prop.CanRead || !prop.CanWrite)
                 continue;
+            if (prop.GetIndexParameters().Length > 0)
+                continue;  // Skip indexers (e.g., this[int])
             if (prop.GetCustomAttribute<DeltaPackIgnoreAttribute>() is not null)
                 continue;
 
