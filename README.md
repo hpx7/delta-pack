@@ -56,7 +56,7 @@ Player:
   favoriteColor: Color
 ```
 
-Enums are encoded as variable-length unsigned integers (0, 1, 2, etc.).
+Enums are bit-packed using the minimum bits needed (e.g., 4 variants = 2 bits, 8 variants = 3 bits).
 
 ### Union Types
 

@@ -163,7 +163,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "boolean") {
       encoder.pushBoolean(objVal as boolean);
     } else if (objType.type === "enum") {
-      encoder.pushUInt(enumIndices(objType.options)[objVal as string]!);
+      encoder.pushEnum(enumIndices(objType.options)[objVal as string]!, objType.numBits);
     } else if (objType.type === "reference") {
       _encode(objVal, objType.ref, encoder, objType.ref);
     } else if (objType.type === "self-reference") {
@@ -212,7 +212,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "boolean") {
       return decoder.nextBoolean();
     } else if (objType.type === "enum") {
-      return objType.options[decoder.nextUInt()];
+      return objType.options[decoder.nextEnum(objType.numBits)];
     } else if (objType.type === "reference") {
       return _decode(objType.ref, decoder, objType.ref);
     } else if (objType.type === "self-reference") {
@@ -380,7 +380,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       encoder.pushBooleanDiff(a as boolean, b as boolean);
     } else if (objType.type === "enum") {
       const indices = enumIndices(objType.options);
-      encoder.pushUIntDiff(indices[a as string]!, indices[b as string]!);
+      encoder.pushEnumDiff(indices[a as string]!, indices[b as string]!, objType.numBits);
     } else if (objType.type === "reference") {
       _encodeDiff(a, b, objType.ref, encoder, objType.ref);
     } else if (objType.type === "self-reference") {
@@ -467,7 +467,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "boolean") {
       return decoder.nextBoolean() ? !(a as boolean) : a;
     } else if (objType.type === "enum") {
-      const newIdx = decoder.nextUIntDiff(enumIndices(objType.options)[a as string]!);
+      const newIdx = decoder.nextEnumDiff(enumIndices(objType.options)[a as string]!, objType.numBits);
       return objType.options[newIdx];
     } else if (objType.type === "reference") {
       return _decodeDiff(a, objType.ref, decoder, objType.ref);

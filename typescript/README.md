@@ -390,11 +390,11 @@ The same type functions used to build schemas (`StringType()`, `IntType()`, `Arr
 
 **Additional decorator-specific features:**
 
-| Function                | Description                                     |
-| ----------------------- | ----------------------------------------------- |
-| `EnumType("Name", [])` | Define an enum type                              |
-| `UnionType("Name", [])` | Define a union from a list of variant classes   |
-| `ReferenceType(ref)`    | Reference a class, enum, or union               |
+| Function                | Description                                   |
+| ----------------------- | --------------------------------------------- |
+| `EnumType("Name", [])`  | Define an enum type                           |
+| `UnionType("Name", [])` | Define a union from a list of variant classes |
+| `ReferenceType(ref)`    | Reference a class, enum, or union             |
 
 **Referencing classes, enums, and unions:**
 
@@ -572,15 +572,15 @@ const PlayerApi = load(schema["Player"]);
 
 ### Schema API vs Decorator API
 
-| Aspect            | Schema API                                   | Decorator API                                   |
-| ----------------- | -------------------------------------------- | ----------------------------------------------- |
-| Type constructors | `StringType()`, `ArrayType()`, etc.          | Same - work as decorators too                   |
-| Object types      | `ObjectType("Name", { ... })`                | Class with decorated properties                 |
-| Enums             | `EnumType("Name", [...])`                    | Same - `EnumType("Name", [...])`                |
-| Unions            | `UnionType("Name", [TypeA, TypeB])`          | `UnionType("Name", [ClassA, ClassB])`           |
-| References        | Type references: `ReferenceType(PlayerType)` | Class/enum/union refs: `ReferenceType(ref)`     |
-| Loading           | `load(RootType)`                             | `loadClass(Class)` or `loadClass(UnionDef)`     |
-| Return types      | Plain objects                                | Class instances with methods                    |
+| Aspect            | Schema API                                   | Decorator API                               |
+| ----------------- | -------------------------------------------- | ------------------------------------------- |
+| Type constructors | `StringType()`, `ArrayType()`, etc.          | Same - work as decorators too               |
+| Object types      | `ObjectType("Name", { ... })`                | Class with decorated properties             |
+| Enums             | `EnumType("Name", [...])`                    | Same - `EnumType("Name", [...])`            |
+| Unions            | `UnionType("Name", [TypeA, TypeB])`          | `UnionType("Name", [ClassA, ClassB])`       |
+| References        | Type references: `ReferenceType(PlayerType)` | Class/enum/union refs: `ReferenceType(ref)` |
+| Loading           | `load(RootType)`                             | `loadClass(Class)` or `loadClass(UnionDef)` |
+| Return types      | Plain objects                                | Class instances with methods                |
 
 ## Codegen API
 
@@ -712,7 +712,17 @@ const reconstructed = GameStateApi.decodeDiff(state1, diff);
 **Using Decorator Mode:**
 
 ```typescript
-import { StringType, UIntType, FloatType, IntType, ReferenceType, RecordType, EnumType, Infer, loadClass } from "@hpx7/delta-pack";
+import {
+  StringType,
+  UIntType,
+  FloatType,
+  IntType,
+  ReferenceType,
+  RecordType,
+  EnumType,
+  Infer,
+  loadClass,
+} from "@hpx7/delta-pack";
 
 const Team = EnumType("Team", ["RED", "BLUE"]);
 type Team = Infer<typeof Team>;
@@ -828,9 +838,9 @@ const state = track({
 });
 
 // Mutations are automatically tracked
-state.tick = 1;                    // Marks "tick" dirty
-state.player.x = 100;              // Marks "x" on player, "player" on state
-state.players.get("p1")!.x = 50;   // Marks "x" on player, "p1" on players, "players" on state
+state.tick = 1; // Marks "tick" dirty
+state.player.x = 100; // Marks "x" on player, "player" on state
+state.players.get("p1")!.x = 50; // Marks "x" on player, "p1" on players, "players" on state
 
 // Efficient delta encoding - only changed fields are compared
 const diff = GameStateApi.encodeDiff(oldState, state);
@@ -868,7 +878,7 @@ class Game {
       client.send(diff);
       client.lastState = GameStateApi.clone(this.state);
     }
-    clearTracking(this.state);  // Reset for next tick
+    clearTracking(this.state); // Reset for next tick
   }
 }
 ```

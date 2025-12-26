@@ -37,6 +37,14 @@ export class Decoder {
   nextBoolean() {
     return this.nextBit();
   }
+  nextEnum(numBits: number): number {
+    // Read bits from most significant to least significant
+    let val = 0;
+    for (let i = 0; i < numBits; i++) {
+      val = (val << 1) | (this.nextBit() ? 1 : 0);
+    }
+    return val;
+  }
   nextOptional<T>(innerRead: () => T): T | undefined {
     return this.nextBoolean() ? innerRead() : undefined;
   }
@@ -82,6 +90,10 @@ export class Decoder {
   nextBooleanDiff(a: boolean) {
     const changed = this.nextBoolean();
     return changed ? !a : a;
+  }
+  nextEnumDiff(a: number, numBits: number): number {
+    const changed = this.nextBoolean();
+    return changed ? this.nextEnum(numBits) : a;
   }
   nextOptionalDiffPrimitive<T>(obj: T | undefined, decode: () => T): T | undefined {
     if (obj == null) {

@@ -50,6 +50,13 @@ public class Encoder
     public void PushBoolean(bool val) =>
         _bits.Add(val);
 
+    public void PushEnum(int val, int numBits)
+    {
+        // Push bits from most significant to least significant
+        for (var i = numBits - 1; i >= 0; i--)
+            _bits.Add(((val >> i) & 1) == 1);
+    }
+
     // Container methods
 
     public void PushOptional<T>(T? val, Action<T> innerWrite) where T : class
@@ -130,6 +137,13 @@ public class Encoder
 
     public void PushBooleanDiff(bool a, bool b) =>
         PushBoolean(a != b);
+
+    public void PushEnumDiff(int a, int b, int numBits)
+    {
+        PushBoolean(a != b);
+        if (a != b)
+            PushEnum(b, numBits);
+    }
 
     public void PushOptionalDiffPrimitive<T>(T? a, T? b, Action<T> encode) where T : class
     {

@@ -49,7 +49,7 @@ GameState result = codec.DecodeDiff(stateA, diff);
 ## Supported Types
 
 - **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `byte`, `short`, etc.
-- **Enums**: Encoded as varints
+- **Enums**: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)
 - **Collections**: `List<T>`, `Dictionary<TKey, TValue>` (TKey: `string`, `int`, `uint`, `long`, `ulong`)
 - **Nullable value types**: `int?`, `float?`, etc.
 - **Nullable reference types**: `Player?`, `string?`, etc.
@@ -116,14 +116,14 @@ public class Bow : Weapon
 
 ### `DeltaPackCodec<T>`
 
-| Method | Description |
-|--------|-------------|
-| `Encode(T obj)` | Serialize object to bytes |
-| `Decode(byte[] buf)` | Deserialize bytes to object |
-| `EncodeDiff(T a, T b)` | Encode only the differences between a and b |
-| `DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b |
-| `Equals(T a, T b)` | Deep equality comparison |
-| `Clone(T obj)` | Deep clone |
+| Method                         | Description                                 |
+| ------------------------------ | ------------------------------------------- |
+| `Encode(T obj)`                | Serialize object to bytes                   |
+| `Decode(byte[] buf)`           | Deserialize bytes to object                 |
+| `EncodeDiff(T a, T b)`         | Encode only the differences between a and b |
+| `DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b                |
+| `Equals(T a, T b)`             | Deep equality comparison                    |
+| `Clone(T obj)`                 | Deep clone                                  |
 
 ### Custom Factory
 
@@ -174,9 +174,11 @@ public class NetworkManager : MonoBehaviour
 ## Requirements
 
 ### Runtime
+
 - .NET 6.0+ or .NET Standard 2.1 (Unity 2021.2+)
 
 ### Type Definitions
+
 - **Parameterless constructor** required (or provide a factory)
 - **Public properties** with both getter and setter are serialized
 - **Public fields** are also serialized

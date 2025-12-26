@@ -519,6 +519,7 @@ describe("Delta Pack Reflection", () => {
         type: "enum",
         options: ["RED", "BLUE", "GREEN", "YELLOW"],
         name: "Color",
+        numBits: 2,
       });
     });
 

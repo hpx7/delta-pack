@@ -6,10 +6,10 @@ Lower is better. The multiplier shows how much larger each format is compared to
 
 | Format      | State1       | State2       | State3       | State4       | State5       | State6       |
 | ----------- | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
-| JSON        | 1641B (8.3x) | 2683B (8.4x) | 3094B (7.6x) | 3273B (7.6x) | 6693B (6.8x) | 6701B (6.8x) |
-| MessagePack | 1253B (6.4x) | 2017B (6.3x) | 2431B (6.0x) | 2580B (6.0x) | 5155B (5.2x) | 5161B (5.2x) |
-| Protobuf    | 338B (1.7x)  | 572B (1.8x)  | 714B (1.8x)  | 761B (1.8x)  | 1732B (1.7x) | 1732B (1.7x) |
-| Delta-Pack  | 197B (1.0x)  | 321B (1.0x)  | 407B (1.0x)  | 431B (1.0x)  | 991B (1.0x)  | 991B (1.0x)  |
+| JSON        | 1641B (8.5x) | 2683B (8.6x) | 3094B (7.8x) | 3273B (7.8x) | 6693B (6.9x) | 6701B (6.9x) |
+| MessagePack | 1253B (6.5x) | 2017B (6.5x) | 2431B (6.1x) | 2580B (6.1x) | 5155B (5.3x) | 5161B (5.3x) |
+| Protobuf    | 338B (1.8x)  | 572B (1.8x)  | 714B (1.8x)  | 761B (1.8x)  | 1732B (1.8x) | 1732B (1.8x) |
+| Delta-Pack  | 192B (1.0x)  | 312B (1.0x)  | 398B (1.0x)  | 421B (1.0x)  | 971B (1.0x)  | 971B (1.0x)  |
 
 ### Primitives
 
@@ -25,9 +25,9 @@ Lower is better. The multiplier shows how much larger each format is compared to
 | Format      | State1      |
 | ----------- | ----------- |
 | JSON        | 231B (4.1x) |
-| MessagePack | 167B (2.9x) |
+| MessagePack | 167B (3.0x) |
 | Protobuf    | 79B (1.4x)  |
-| Delta-Pack  | 57B (1.0x)  |
+| Delta-Pack  | 56B (1.0x)  |
 
 ### User
 
@@ -36,7 +36,7 @@ Lower is better. The multiplier shows how much larger each format is compared to
 | JSON        | 321B (2.5x) | 357B (2.5x) |
 | MessagePack | 267B (2.1x) | 293B (2.0x) |
 | Protobuf    | 151B (1.2x) | 173B (1.2x) |
-| Delta-Pack  | 129B (1.0x) | 145B (1.0x) |
+| Delta-Pack  | 128B (1.0x) | 145B (1.0x) |
 
 ## Encoding Speed Comparison (ops/s)
 

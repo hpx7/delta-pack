@@ -30,7 +30,7 @@ public class EncodingSizeTests
     }
 
     [Theory]
-    [InlineData("Test", 1, 57)]
+    [InlineData("Test", 1, 56)]
     public void Test_EncodesToExpectedSize(string schemaName, int stateNum, int expectedSize)
     {
         var schema = Parser.ParseSchemaYml(ReadSchema(schemaName));
@@ -43,7 +43,7 @@ public class EncodingSizeTests
     }
 
     [Theory]
-    [InlineData("User", 1, 129)]
+    [InlineData("User", 1, 128)]
     [InlineData("User", 2, 145)]
     public void User_EncodesToExpectedSize(string schemaName, int stateNum, int expectedSize)
     {
@@ -57,12 +57,12 @@ public class EncodingSizeTests
     }
 
     [Theory]
-    [InlineData("GameState", 1, 197)]
-    [InlineData("GameState", 2, 321)]
-    [InlineData("GameState", 3, 407)]
-    [InlineData("GameState", 4, 431)]
-    [InlineData("GameState", 5, 991)]
-    [InlineData("GameState", 6, 991)]
+    [InlineData("GameState", 1, 192)]
+    [InlineData("GameState", 2, 312)]
+    [InlineData("GameState", 3, 398)]
+    [InlineData("GameState", 4, 421)]
+    [InlineData("GameState", 5, 971)]
+    [InlineData("GameState", 6, 971)]
     public void GameState_EncodesToExpectedSize(string schemaName, int stateNum, int expectedSize)
     {
         var schema = Parser.ParseSchemaYml(ReadSchema(schemaName));

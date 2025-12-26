@@ -520,7 +520,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `encoder.pushBoolean(${key})`;
     } else if (type.type === "enum") {
-      return `encoder.pushUInt(${name}[${key}])`;
+      return `encoder.pushEnum(${name}[${key}], ${type.numBits})`;
     } else if (type.type === "self-reference") {
       return `${currentTypeName}._encode(${key}, encoder)`;
     }
@@ -552,7 +552,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `decoder.nextBoolean()`;
     } else if (type.type === "enum") {
-      return `(${name} as any)[decoder.nextUInt()]`;
+      return `(${name} as any)[decoder.nextEnum(${type.numBits})]`;
     } else if (type.type === "self-reference") {
       return `${currentTypeName}._decode(decoder)`;
     }
@@ -621,7 +621,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `encoder.pushBooleanDiff(${keyA}, ${keyB})`;
     } else if (type.type === "enum") {
-      return `encoder.pushUIntDiff(${name}[${keyA}], ${name}[${keyB}])`;
+      return `encoder.pushEnumDiff(${name}[${keyA}], ${name}[${keyB}], ${type.numBits})`;
     } else if (type.type === "self-reference") {
       return `${currentTypeName}._encodeDiff(${keyA}, ${keyB}, encoder)`;
     }
@@ -682,7 +682,7 @@ export const ${name} = {
     } else if (type.type === "boolean") {
       return `decoder.nextBooleanDiff(${key})`;
     } else if (type.type === "enum") {
-      return `(${name} as any)[decoder.nextUIntDiff((${name} as any)[${key}])]`;
+      return `(${name} as any)[decoder.nextEnumDiff((${name} as any)[${key}], ${type.numBits})]`;
     } else if (type.type === "self-reference") {
       return `${currentTypeName}._decodeDiff(${key}, decoder)`;
     }

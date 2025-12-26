@@ -92,6 +92,7 @@ export interface EnumType {
   type: "enum";
   options: readonly string[];
   name: string;
+  numBits: number;
 }
 
 // ============ Utility Functions ============
@@ -211,8 +212,10 @@ export function SelfReferenceType(): UnifiedType<SelfReferenceType> {
 export function EnumType<const N extends string, const O extends readonly string[]>(
   name: N,
   options: O
-): { type: "enum"; options: O; name: N } {
-  return { type: "enum", options, name };
+): { type: "enum"; options: O; name: N; numBits: number } {
+  // Calculate minimum bits needed: ceil(log2(n)) for n > 1, else 1
+  const numBits = options.length <= 1 ? 1 : Math.ceil(Math.log2(options.length));
+  return { type: "enum", options, name, numBits };
 }
 
 // ObjectType - name first, required

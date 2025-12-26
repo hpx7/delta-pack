@@ -38,6 +38,12 @@ export class Encoder {
   pushBoolean(val: boolean) {
     this.bits.push(val);
   }
+  pushEnum(val: number, numBits: number) {
+    // Push bits from most significant to least significant
+    for (let i = numBits - 1; i >= 0; i--) {
+      this.bits.push(((val >> i) & 1) === 1);
+    }
+  }
   pushOptional<T>(val: T | undefined, innerWrite: (x: T) => void) {
     this.pushBoolean(val != null);
     if (val != null) {
@@ -90,6 +96,12 @@ export class Encoder {
   }
   pushBooleanDiff(a: boolean, b: boolean) {
     this.pushBoolean(a !== b);
+  }
+  pushEnumDiff(a: number, b: number, numBits: number) {
+    this.pushBoolean(a !== b);
+    if (a !== b) {
+      this.pushEnum(b, numBits);
+    }
   }
   pushOptionalDiffPrimitive<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void) {
     if (a == null) {

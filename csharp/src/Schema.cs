@@ -8,7 +8,10 @@ public sealed record IntType : SchemaType;
 public sealed record UIntType : SchemaType;
 public sealed record FloatType(double? Precision = null) : SchemaType;
 public sealed record BooleanType : SchemaType;
-public sealed record EnumType(IReadOnlyList<string> Options) : SchemaType;
+public sealed record EnumType(IReadOnlyList<string> Options) : SchemaType
+{
+    public int NumBits { get; } = Options.Count <= 1 ? 1 : (int)Math.Ceiling(Math.Log(Options.Count, 2));
+}
 
 // Reference to another type in the schema
 public sealed record ReferenceType(string Reference) : SchemaType;

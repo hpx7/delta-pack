@@ -82,7 +82,7 @@ public static class Interpreter
                     break;
 
                 case EnumType et:
-                    encoder.PushUInt((uint)EnumIndices(et.Options)[(string)obj!]);
+                    encoder.PushEnum(EnumIndices(et.Options)[(string)obj!], et.NumBits);
                     break;
 
                 case ReferenceType rt:
@@ -145,7 +145,7 @@ public static class Interpreter
                     ? decoder.NextFloatQuantized((float)ft.Precision.Value)
                     : decoder.NextFloat(),
                 BooleanType => decoder.NextBoolean(),
-                EnumType et => et.Options[(int)decoder.NextUInt()],
+                EnumType et => et.Options[decoder.NextEnum(et.NumBits)],
                 ReferenceType rt => Decode(ResolveRef(rt.Reference), decoder),
                 ObjectType ot => DecodeObject(ot, decoder),
                 ArrayType at => DecodeArray(at, decoder),
@@ -359,7 +359,7 @@ public static class Interpreter
 
                 case EnumType et:
                     var indices = EnumIndices(et.Options);
-                    encoder.PushUIntDiff((uint)indices[(string)a!], (uint)indices[(string)b!]);
+                    encoder.PushEnumDiff(indices[(string)a!], indices[(string)b!], et.NumBits);
                     break;
 
                 case ReferenceType rt:
@@ -565,7 +565,7 @@ public static class Interpreter
         private string DecodeDiffEnum(object? a, EnumType et, Decoder decoder)
         {
             var indices = EnumIndices(et.Options);
-            var newIdx = (int)decoder.NextUIntDiff((uint)indices[(string)a!]);
+            var newIdx = decoder.NextEnumDiff(indices[(string)a!], et.NumBits);
             return et.Options[newIdx];
         }
 

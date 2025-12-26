@@ -56,6 +56,15 @@ public class Decoder
     public bool NextBoolean() =>
         _bits[_bitsIdx++];
 
+    public int NextEnum(int numBits)
+    {
+        // Read bits from most significant to least significant
+        var val = 0;
+        for (var i = 0; i < numBits; i++)
+            val = (val << 1) | (_bits[_bitsIdx++] ? 1 : 0);
+        return val;
+    }
+
     // Container methods
 
     public T? NextOptional<T>(Func<T> innerRead) where T : class =>
@@ -124,6 +133,12 @@ public class Decoder
     {
         var changed = NextBoolean();
         return changed ? !a : a;
+    }
+
+    public int NextEnumDiff(int a, int numBits)
+    {
+        var changed = NextBoolean();
+        return changed ? NextEnum(numBits) : a;
     }
 
     public T? NextOptionalDiffPrimitive<T>(T? a, Func<T> decode) where T : class

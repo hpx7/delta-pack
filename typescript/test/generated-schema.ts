@@ -1061,7 +1061,7 @@ export const GameState = {
     encoder.pushOptional(obj.currentPlayer, (x) => encoder.pushString(x));
     encoder.pushUInt(obj.round);
     encoder.pushRecord(obj.metadata, (x) => encoder.pushString(x), (x) => encoder.pushString(x));
-    encoder.pushOptional(obj.winningColor, (x) => encoder.pushUInt(Color[x]));
+    encoder.pushOptional(obj.winningColor, (x) => encoder.pushEnum(Color[x], 2));
     encoder.pushOptional(obj.lastAction, (x) => GameAction._encode(x, encoder));
   },
   encodeDiff(a: GameState, b: GameState): Uint8Array {
@@ -1124,7 +1124,7 @@ export const GameState = {
       encoder.pushOptionalDiffPrimitive<Color>(
         a.winningColor,
         b.winningColor,
-        (x) => encoder.pushUInt(Color[x])
+        (x) => encoder.pushEnum(Color[x], 2)
       );
     }
     // Field: lastAction
@@ -1148,7 +1148,7 @@ export const GameState = {
       currentPlayer: decoder.nextOptional(() => decoder.nextString()),
       round: decoder.nextUInt(),
       metadata: decoder.nextRecord(() => decoder.nextString(), () => decoder.nextString()),
-      winningColor: decoder.nextOptional(() => (Color as any)[decoder.nextUInt()]),
+      winningColor: decoder.nextOptional(() => (Color as any)[decoder.nextEnum(2)]),
       lastAction: decoder.nextOptional(() => GameAction._decode(decoder)),
     };
   },
@@ -1180,7 +1180,7 @@ export const GameState = {
       ),
       winningColor: decoder.nextOptionalDiffPrimitive<Color>(
         obj.winningColor,
-        () => (Color as any)[decoder.nextUInt()]
+        () => (Color as any)[decoder.nextEnum(2)]
       ),
       lastAction: decoder.nextOptionalDiff<GameAction>(
         obj.lastAction,
