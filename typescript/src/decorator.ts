@@ -16,21 +16,52 @@ type InferUnion<U extends ClassUnionDef> =
       : never
     : never;
 
-type ClassUnionRef = { __classUnion: ClassUnionDef };
-type SchemaTypeOrRef = PropertyType | { __class: Function } | ClassUnionRef;
+// Decorator-mode markers
+interface ClassRef {
+  __class: Function;
+}
+
+interface ClassUnionRef {
+  __classUnion: ClassUnionDef;
+}
+
+// Internal placeholder types used during schema building (resolved in second pass)
+interface UnresolvedReference {
+  type: "reference";
+  __refName: string;
+}
+
+interface UnresolvedUnion {
+  type: "union";
+  name: string;
+  __variantNames: string[];
+}
+
+// Schema types that may contain unresolved references during building
+type SchemaTypeOrRef = PropertyType | ClassRef | ClassUnionRef;
+type MaybeUnresolved = PropertyType | UnresolvedReference;
 
 // ============ Helper Functions ============
 
-function isClassRef(value: unknown): value is { __class: Function } {
-  return typeof value === "object" && value !== null && "__class" in value;
+function isClassRef(value: SchemaTypeOrRef): value is ClassRef {
+  return "__class" in value;
 }
 
-function isClassUnionRef(value: unknown): value is ClassUnionRef {
-  return typeof value === "object" && value !== null && "__classUnion" in value;
+function isClassUnionRef(value: SchemaTypeOrRef): value is ClassUnionRef {
+  return "__classUnion" in value;
 }
 
-function isEnumType(value: unknown): value is EnumType {
-  return typeof value === "object" && value !== null && "type" in value && (value as { type: string }).type === "enum";
+function isEnumType(value: NamedType): value is EnumType {
+  return value.type === "enum";
+}
+
+function isUnresolvedReference(value: MaybeUnresolved): value is UnresolvedReference {
+  return value.type === "reference" && "__refName" in value;
+}
+
+// Check if schema type has a nested value property (for collecting class info)
+function hasNestedValue(value: SchemaTypeOrRef): value is SchemaTypeOrRef & { value: SchemaTypeOrRef } {
+  return "value" in value;
 }
 
 // ============ Schema Builder ============
@@ -58,7 +89,7 @@ export function buildSchema<T extends object>(
     }
 
     const propertyKeys = Object.keys(instance);
-    const properties: Record<string, PropertyType> = {};
+    const properties: Record<string, MaybeUnresolved> = {};
 
     for (const key of propertyKeys) {
       const schemaType = Reflect.getMetadata(SCHEMA_TYPE, cls.prototype, key);
@@ -74,7 +105,7 @@ export function buildSchema<T extends object>(
       );
     }
 
-    schema[cls.name] = { type: "object", properties, name: cls.name };
+    schema[cls.name] = { type: "object", properties: properties as Record<string, PropertyType>, name: cls.name };
   }
 
   function processClassUnion(unionDef: ClassUnionDef): void {
@@ -87,60 +118,56 @@ export function buildSchema<T extends object>(
     }
 
     // Store union with placeholder, resolve references after all types are processed
-    schema[name] = {
+    const placeholder: UnresolvedUnion = {
       type: "union",
-      options: [] as unknown as readonly NamedType[],
       name,
       __variantNames: classes.map((c) => c.name),
-    } as NamedType & { __variantNames: string[] };
+    };
+    schema[name] = placeholder as unknown as NamedType;
   }
 
-  function resolveSchemaType(schemaType: SchemaTypeOrRef, currentClass?: Function): PropertyType {
+  function resolveSchemaType(schemaType: SchemaTypeOrRef, currentClass?: Function): MaybeUnresolved {
     if (isClassUnionRef(schemaType)) {
       const unionDef = schemaType.__classUnion;
       processClassUnion(unionDef);
-      return { type: "reference", __refName: unionDef.name } as unknown as PropertyType;
+      return { type: "reference", __refName: unionDef.name };
     }
 
     if (isClassRef(schemaType)) {
       const cls = schemaType.__class;
       // Check for self-reference (class referencing itself)
       if (cls === currentClass) {
-        return { type: "self-reference" } as PropertyType;
+        return { type: "self-reference" };
       }
       processClass(cls);
       // Return a placeholder that will be resolved after all types are collected
-      return { type: "reference", __refName: cls.name } as unknown as PropertyType;
+      return { type: "reference", __refName: cls.name };
     }
 
-    // Reference type - check if ref is an enum that needs to be added to schema
-    if (schemaType.type === "reference") {
-      const refType = schemaType as { type: "reference"; ref: NamedType };
-      if (isEnumType(refType.ref)) {
-        if (!schema[refType.ref.name]) {
-          schema[refType.ref.name] = refType.ref;
+    // At this point schemaType is PropertyType
+    const propType = schemaType as PropertyType;
+
+    switch (propType.type) {
+      case "reference":
+        // Reference type - check if ref is an enum that needs to be added to schema
+        if (isEnumType(propType.ref)) {
+          if (!schema[propType.ref.name]) {
+            schema[propType.ref.name] = propType.ref;
+          }
+          return { type: "reference", __refName: propType.ref.name };
         }
-        return { type: "reference", __refName: refType.ref.name } as unknown as PropertyType;
-      }
-      // Non-enum reference (schema mode) - keep as-is
-      return schemaType as PropertyType;
+        // Non-enum reference (schema mode) - keep as-is
+        return propType;
+      case "array":
+        return { ...propType, value: resolveSchemaType(propType.value, currentClass) as PropertyType };
+      case "optional":
+        return { ...propType, value: resolveSchemaType(propType.value, currentClass) as PropertyType };
+      case "record":
+        return { ...propType, value: resolveSchemaType(propType.value, currentClass) as PropertyType };
+      default:
+        // Primitives and self-reference reach here
+        return propType;
     }
-
-    if (schemaType.type === "array") {
-      const arrayType = schemaType as { type: "array"; value: SchemaTypeOrRef };
-      return { type: "array", value: resolveSchemaType(arrayType.value, currentClass) };
-    }
-    if (schemaType.type === "optional") {
-      const optType = schemaType as { type: "optional"; value: SchemaTypeOrRef };
-      return { type: "optional", value: resolveSchemaType(optType.value, currentClass) };
-    }
-    if (schemaType.type === "record") {
-      const recType = schemaType as { type: "record"; key: { type: "string" }; value: SchemaTypeOrRef };
-      return { type: "record", key: recType.key, value: resolveSchemaType(recType.value, currentClass) };
-    }
-
-    // Primitives reach here
-    return schemaType as PropertyType;
   }
 
   // Process the root (either a class constructor or a union definition)
@@ -154,13 +181,11 @@ export function buildSchema<T extends object>(
   for (const typeName of Object.keys(schema)) {
     const type = schema[typeName]!;
     if (type.type === "union") {
-      const unionWithNames = type as NamedType & { __variantNames?: string[] };
-      if (unionWithNames.__variantNames) {
-        const options = unionWithNames.__variantNames.map((name) => schema[name]!);
-        (type as { options: readonly NamedType[] }).options = options;
-        // Calculate numBits after options are resolved
-        (type as { numBits: number }).numBits = options.length <= 1 ? 1 : Math.ceil(Math.log2(options.length));
-        delete unionWithNames.__variantNames;
+      const unresolved = type as unknown as UnresolvedUnion;
+      if (unresolved.__variantNames) {
+        const options = unresolved.__variantNames.map((name) => schema[name]!);
+        const numBits = options.length <= 1 ? 1 : Math.ceil(Math.log2(options.length));
+        schema[typeName] = { type: "union", name: unresolved.name, options, numBits };
       }
     } else if (type.type === "object") {
       for (const key of Object.keys(type.properties)) {
@@ -169,23 +194,20 @@ export function buildSchema<T extends object>(
     }
   }
 
-  function resolveReferences(prop: PropertyType): PropertyType {
-    const propWithRefName = prop as PropertyType & { __refName?: string };
-    if (prop.type === "reference" && propWithRefName.__refName) {
-      const refType = schema[propWithRefName.__refName]!;
-      delete propWithRefName.__refName;
-      return { type: "reference", ref: refType };
+  function resolveReferences(prop: MaybeUnresolved): PropertyType {
+    if (isUnresolvedReference(prop)) {
+      return { type: "reference", ref: schema[prop.__refName]! };
     }
-    if (prop.type === "array") {
-      return { type: "array", value: resolveReferences(prop.value) };
+    switch (prop.type) {
+      case "array":
+        return { ...prop, value: resolveReferences(prop.value) };
+      case "optional":
+        return { ...prop, value: resolveReferences(prop.value) };
+      case "record":
+        return { ...prop, value: resolveReferences(prop.value) };
+      default:
+        return prop;
     }
-    if (prop.type === "optional") {
-      return { type: "optional", value: resolveReferences(prop.value) };
-    }
-    if (prop.type === "record") {
-      return { type: "record", key: prop.key, value: resolveReferences(prop.value) };
-    }
-    return prop;
   }
 
   return schema;
@@ -272,23 +294,26 @@ export function loadClass<T extends object>(
   function hydrateValue(value: unknown, propType: PropertyType, currentTypeName: string): unknown {
     if (value === null || value === undefined) return value;
 
-    if (propType.type === "reference") {
-      return hydrate(value, propType.ref.name!);
-    } else if (propType.type === "self-reference") {
-      return hydrate(value, currentTypeName);
-    } else if (propType.type === "array") {
-      return (value as unknown[]).map((item) => hydrateValue(item, propType.value, currentTypeName));
-    } else if (propType.type === "record") {
-      const map = value as Map<unknown, unknown>;
-      const hydrated = new Map<unknown, unknown>();
-      for (const [k, v] of map) {
-        hydrated.set(k, hydrateValue(v, propType.value, currentTypeName));
+    switch (propType.type) {
+      case "reference":
+        return hydrate(value, propType.ref.name!);
+      case "self-reference":
+        return hydrate(value, currentTypeName);
+      case "array":
+        return (value as unknown[]).map((item) => hydrateValue(item, propType.value, currentTypeName));
+      case "record": {
+        const map = value as Map<unknown, unknown>;
+        const hydrated = new Map<unknown, unknown>();
+        for (const [k, v] of map) {
+          hydrated.set(k, hydrateValue(v, propType.value, currentTypeName));
+        }
+        return hydrated;
       }
-      return hydrated;
-    } else if (propType.type === "optional") {
-      return hydrateValue(value, propType.value, currentTypeName);
+      case "optional":
+        return hydrateValue(value, propType.value, currentTypeName);
+      default:
+        return value;
     }
-    return value;
   }
 
   type D = WithDirty<T>;
@@ -336,26 +361,22 @@ function collectClassInfo(cls: Function, info: CollectedInfo, visited: Set<Funct
   }
 }
 
-function collectFromSchemaType(schemaType: unknown, info: CollectedInfo, visited: Set<Function>): void {
-  if (!schemaType || typeof schemaType !== "object") return;
-
-  if ("__classUnion" in schemaType) {
-    const unionDef = (schemaType as { __classUnion: ClassUnionDef }).__classUnion;
-    for (const cls of unionDef.classes) {
+function collectFromSchemaType(schemaType: SchemaTypeOrRef, info: CollectedInfo, visited: Set<Function>): void {
+  if (isClassUnionRef(schemaType)) {
+    for (const cls of schemaType.__classUnion.classes) {
       info.unionVariants.add(cls.name);
       collectClassInfo(cls, info, visited);
     }
     return;
   }
 
-  if ("__class" in schemaType) {
-    collectClassInfo((schemaType as { __class: Function }).__class, info, visited);
+  if (isClassRef(schemaType)) {
+    collectClassInfo(schemaType.__class, info, visited);
     return;
   }
 
-  const type = (schemaType as Record<string, unknown>)["type"];
-  if (type === "array" || type === "optional" || type === "record") {
-    collectFromSchemaType((schemaType as { value: unknown }).value, info, visited);
+  if (hasNestedValue(schemaType)) {
+    collectFromSchemaType(schemaType.value, info, visited);
   }
 }
 
@@ -423,26 +444,22 @@ function wrapUnionValue(
 ): unknown {
   if (value === null || value === undefined) return value;
 
-  if (propType.type === "reference") {
-    return wrapUnions(value, propType.ref, schema, unionVariants);
-  }
-
-  if (propType.type === "array") {
-    return (value as unknown[]).map((item) => wrapUnionValue(item, propType.value, schema, unionVariants));
-  }
-
-  if (propType.type === "record") {
-    const map = value as Map<unknown, unknown>;
-    const wrapped = new Map<unknown, unknown>();
-    for (const [k, v] of map) {
-      wrapped.set(k, wrapUnionValue(v, propType.value, schema, unionVariants));
+  switch (propType.type) {
+    case "reference":
+      return wrapUnions(value, propType.ref, schema, unionVariants);
+    case "array":
+      return (value as unknown[]).map((item) => wrapUnionValue(item, propType.value, schema, unionVariants));
+    case "record": {
+      const map = value as Map<unknown, unknown>;
+      const wrapped = new Map<unknown, unknown>();
+      for (const [k, v] of map) {
+        wrapped.set(k, wrapUnionValue(v, propType.value, schema, unionVariants));
+      }
+      return wrapped;
     }
-    return wrapped;
+    case "optional":
+      return wrapUnionValue(value, propType.value, schema, unionVariants);
+    default:
+      return value;
   }
-
-  if (propType.type === "optional") {
-    return wrapUnionValue(value, propType.value, schema, unionVariants);
-  }
-
-  return value;
 }
