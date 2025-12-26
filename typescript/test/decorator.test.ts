@@ -180,6 +180,7 @@ describe("Delta Pack Reflection", () => {
         type: "union",
         options: [generatedSchema["MoveCmd"], generatedSchema["FireCmd"]],
         name: "Command",
+        numBits: 1,
       });
 
       // Verify variants are properly typed and instanceable

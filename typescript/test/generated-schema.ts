@@ -879,15 +879,15 @@ export const GameAction = {
   },
   _encode(obj: GameAction, encoder: _.Encoder): void {
     if (obj.type === "MoveAction") {
-      encoder.pushUInt(0);
+      encoder.pushEnum(0, 2);
       MoveAction._encode(obj.val, encoder);
     }
     else if (obj.type === "AttackAction") {
-      encoder.pushUInt(1);
+      encoder.pushEnum(1, 2);
       AttackAction._encode(obj.val, encoder);
     }
     else if (obj.type === "UseItemAction") {
-      encoder.pushUInt(2);
+      encoder.pushEnum(2, 2);
       UseItemAction._encode(obj.val, encoder);
     }
   },
@@ -902,7 +902,7 @@ export const GameAction = {
       if (a.type === "MoveAction") {
         MoveAction._encodeDiff(a.val, b.val, encoder);
       } else {
-        encoder.pushUInt(0);
+        encoder.pushEnum(0, 2);
         MoveAction._encode(b.val, encoder);
       }
     }
@@ -910,7 +910,7 @@ export const GameAction = {
       if (a.type === "AttackAction") {
         AttackAction._encodeDiff(a.val, b.val, encoder);
       } else {
-        encoder.pushUInt(1);
+        encoder.pushEnum(1, 2);
         AttackAction._encode(b.val, encoder);
       }
     }
@@ -918,7 +918,7 @@ export const GameAction = {
       if (a.type === "UseItemAction") {
         UseItemAction._encodeDiff(a.val, b.val, encoder);
       } else {
-        encoder.pushUInt(2);
+        encoder.pushEnum(2, 2);
         UseItemAction._encode(b.val, encoder);
       }
     }
@@ -927,7 +927,7 @@ export const GameAction = {
     return GameAction._decode(new _.Decoder(input));
   },
   _decode(decoder: _.Decoder): GameAction {
-    const type = decoder.nextUInt();
+    const type = decoder.nextEnum(2);
     if (type === 0) {
       return { type: "MoveAction", val: MoveAction._decode(decoder) };
     }
@@ -966,7 +966,7 @@ export const GameAction = {
       }
       throw new Error("Invalid union diff");
     } else {
-      const type = decoder.nextUInt();
+      const type = decoder.nextEnum(2);
       if (type === 0) {
         return {
           type: "MoveAction",

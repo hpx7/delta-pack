@@ -189,7 +189,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
         throw new Error(`Unknown union variant: ${union.type}`);
       }
       const variant = objType.options[variantIndex]!;
-      encoder.pushUInt(variantIndex);
+      encoder.pushEnum(variantIndex, objType.numBits);
       _encode(union.val, variant, encoder, variant);
     } else if (objType.type === "optional") {
       encoder.pushOptional(objVal, (val) => _encode(val, objType.value, encoder, parent));
@@ -240,7 +240,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       }
       return map;
     } else if (objType.type === "union") {
-      const variantIndex = decoder.nextUInt();
+      const variantIndex = decoder.nextEnum(objType.numBits);
       const variant = objType.options[variantIndex];
       if (!variant) {
         throw new Error(`Invalid union variant index: ${variantIndex}`);
@@ -426,7 +426,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
         encoder.pushBoolean(false);
         const variantIndex = objType.options.findIndex((v) => v.name === unionB.type);
         const variant = objType.options[variantIndex]!;
-        encoder.pushUInt(variantIndex);
+        encoder.pushEnum(variantIndex, objType.numBits);
         _encode(unionB.val, variant, encoder, variant);
       } else {
         // Same type - encode diff
@@ -502,7 +502,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       const sameType = decoder.nextBoolean();
       if (!sameType) {
         // Type changed - decode new discriminator and value
-        const variantIndex = decoder.nextUInt();
+        const variantIndex = decoder.nextEnum(objType.numBits);
         const variant = objType.options[variantIndex];
         if (!variant) {
           throw new Error(`Invalid union variant index: ${variantIndex}`);

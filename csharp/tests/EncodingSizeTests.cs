@@ -44,7 +44,7 @@ public class EncodingSizeTests
 
     [Theory]
     [InlineData("User", 1, 128)]
-    [InlineData("User", 2, 145)]
+    [InlineData("User", 2, 144)]
     public void User_EncodesToExpectedSize(string schemaName, int stateNum, int expectedSize)
     {
         var schema = Parser.ParseSchemaYml(ReadSchema(schemaName));

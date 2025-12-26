@@ -82,7 +82,7 @@ User:
 
 - If an array contains only type names defined in the schema, it's treated as a union type
 - If an array contains literal strings not in the schema, it's treated as an enum
-- Union values are encoded with a discriminator (type tag) plus the variant data
+- Union discriminators are bit-packed like enums (e.g., 4 variants = 2 bits)
 
 ### Objects
 

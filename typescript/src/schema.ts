@@ -86,6 +86,7 @@ export interface UnionType {
   type: "union";
   options: readonly NamedType[];
   name: string;
+  numBits: number;
 }
 
 export interface EnumType {
@@ -234,7 +235,7 @@ export function ObjectType<const N extends string, const P extends Record<string
 export function UnionType<const N extends string, const V extends readonly NamedType[]>(
   name: N,
   options: V
-): { type: "union"; options: V; name: N };
+): { type: "union"; options: V; name: N; numBits: number };
 // UnionType - decorator mode (classes)
 export function UnionType<const N extends string, const V extends readonly (new (...args: any[]) => any)[]>(
   name: N,
@@ -244,7 +245,7 @@ export function UnionType<const N extends string, const V extends readonly (new 
 export function UnionType(
   name: string,
   options: readonly any[]
-): { type: "union"; options: readonly NamedType[]; name: string } | ClassUnionDef {
+): { type: "union"; options: readonly NamedType[]; name: string; numBits: number } | ClassUnionDef {
   // Check if first option is a class (function) or schema type (object with type)
   if (options.length > 0 && typeof options[0] === "function") {
     // Decorator mode - return class union def
@@ -255,5 +256,7 @@ export function UnionType(
     };
   }
   // Schema mode - return schema union type
-  return { type: "union", options: options as readonly NamedType[], name };
+  // Calculate minimum bits needed: ceil(log2(n)) for n > 1, else 1
+  const numBits = options.length <= 1 ? 1 : Math.ceil(Math.log2(options.length));
+  return { type: "union", options: options as readonly NamedType[], name, numBits };
 }

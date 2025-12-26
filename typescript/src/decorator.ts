@@ -156,9 +156,10 @@ export function buildSchema<T extends object>(
     if (type.type === "union") {
       const unionWithNames = type as NamedType & { __variantNames?: string[] };
       if (unionWithNames.__variantNames) {
-        (type as { options: readonly NamedType[] }).options = unionWithNames.__variantNames.map(
-          (name) => schema[name]!
-        );
+        const options = unionWithNames.__variantNames.map((name) => schema[name]!);
+        (type as { options: readonly NamedType[] }).options = options;
+        // Calculate numBits after options are resolved
+        (type as { numBits: number }).numBits = options.length <= 1 ? 1 : Math.ceil(Math.log2(options.length));
         delete unionWithNames.__variantNames;
       }
     } else if (type.type === "object") {

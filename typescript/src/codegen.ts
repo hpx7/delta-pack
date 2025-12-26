@@ -249,7 +249,7 @@ export const ${name} = {
     ${type.options
       .map((option, i) => {
         return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
-      encoder.pushUInt(${i});
+      encoder.pushEnum(${i}, ${type.numBits});
       ${renderEncode(option, option.name!, "obj.val")};
     }`;
       })
@@ -268,7 +268,7 @@ export const ${name} = {
       if (a.type === "${option.name}") {
         ${renderEncodeDiff(option, option.name!, "a.val", "b.val")};
       } else {
-        encoder.pushUInt(${i});
+        encoder.pushEnum(${i}, ${type.numBits});
         ${renderEncode(option, option.name!, "b.val")};
       }
     }`;
@@ -279,7 +279,7 @@ export const ${name} = {
     return ${name}._decode(new _.Decoder(input));
   },
   _decode(decoder: _.Decoder): ${name} {
-    const type = decoder.nextUInt();
+    const type = decoder.nextEnum(${type.numBits});
     ${type.options
       .map((option, i) => {
         return `${i > 0 ? "else " : ""}if (type === ${i}) {
@@ -308,7 +308,7 @@ export const ${name} = {
         .join("\n      ")}
       throw new Error("Invalid union diff");
     } else {
-      const type = decoder.nextUInt();
+      const type = decoder.nextEnum(${type.numBits});
       ${type.options
         .map((option, i) => {
           return `${i > 0 ? "else " : ""}if (type === ${i}) {

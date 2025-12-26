@@ -36,7 +36,7 @@ Lower is better. The multiplier shows how much larger each format is compared to
 | JSON        | 321B (2.5x) | 357B (2.5x) |
 | MessagePack | 267B (2.1x) | 293B (2.0x) |
 | Protobuf    | 151B (1.2x) | 173B (1.2x) |
-| Delta-Pack  | 128B (1.0x) | 145B (1.0x) |
+| Delta-Pack  | 128B (1.0x) | 144B (1.0x) |
 
 ## Encoding Speed Comparison (ops/s)
 

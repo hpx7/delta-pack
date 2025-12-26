@@ -111,7 +111,7 @@ public static class Interpreter
                     var union = (UnionValue)obj!;
                     var variantIndex = ut.Options.Select((o, i) => (o, i))
                         .First(x => x.o.Reference == union.Type).i;
-                    encoder.PushUInt((uint)variantIndex);
+                    encoder.PushEnum(variantIndex, ut.NumBits);
                     Encode(union.Val, ResolveRef(union.Type), encoder);
                     break;
 
@@ -188,7 +188,7 @@ public static class Interpreter
 
         private UnionValue DecodeUnion(UnionType ut, Decoder decoder)
         {
-            var variantIndex = (int)decoder.NextUInt();
+            var variantIndex = decoder.NextEnum(ut.NumBits);
             var variant = ut.Options[variantIndex];
             return new UnionValue(
                 variant.Reference,
@@ -494,7 +494,7 @@ public static class Interpreter
                 encoder.PushBoolean(false);
                 var variantIndex = ut.Options.Select((o, i) => (o, i))
                     .First(x => x.o.Reference == unionB.Type).i;
-                encoder.PushUInt((uint)variantIndex);
+                encoder.PushEnum(variantIndex, ut.NumBits);
                 Encode(unionB.Val, ResolveRef(unionB.Type), encoder);
             }
             else
@@ -655,7 +655,7 @@ public static class Interpreter
             if (!sameType)
             {
                 // Type changed - decode new discriminator and value
-                var variantIndex = (int)decoder.NextUInt();
+                var variantIndex = decoder.NextEnum(ut.NumBits);
                 var variant = ut.Options[variantIndex];
                 return new UnionValue(
                     variant.Reference,

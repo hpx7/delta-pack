@@ -23,7 +23,10 @@ public sealed record RecordType(SchemaType Key, SchemaType Value) : SchemaType;
 
 // Composite types
 public sealed record ObjectType(IReadOnlyDictionary<string, SchemaType> Properties) : SchemaType;
-public sealed record UnionType(IReadOnlyList<ReferenceType> Options) : SchemaType;
+public sealed record UnionType(IReadOnlyList<ReferenceType> Options) : SchemaType
+{
+    public int NumBits { get; } = Options.Count <= 1 ? 1 : (int)Math.Ceiling(Math.Log(Options.Count, 2));
+}
 
 public static class Schema
 {
