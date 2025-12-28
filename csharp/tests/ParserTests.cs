@@ -26,7 +26,7 @@ Primitives:
 
         Assert.IsType<StringType>(primitives.Properties["stringField"]);
         Assert.IsType<IntType>(primitives.Properties["signedIntField"]);
-        Assert.IsType<UIntType>(primitives.Properties["unsignedIntField"]);
+        Assert.Equal(0L, Assert.IsType<IntType>(primitives.Properties["unsignedIntField"]).Min);
         Assert.IsType<FloatType>(primitives.Properties["floatField"]);
         Assert.IsType<BooleanType>(primitives.Properties["booleanField"]);
     }
@@ -148,7 +148,7 @@ Entity:
 
         var age = entity.Properties["age"] as OptionalType;
         Assert.NotNull(age);
-        Assert.IsType<UIntType>(age.Value);
+        Assert.Equal(0L, Assert.IsType<IntType>(age.Value).Min);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ User:
         // Direct primitives
         Assert.True(Schema.IsPrimitiveType(new StringType(), schema));
         Assert.True(Schema.IsPrimitiveType(new IntType(), schema));
-        Assert.True(Schema.IsPrimitiveType(new UIntType(), schema));
+        Assert.True(Schema.IsPrimitiveType(new IntType(Min: 0), schema));
         Assert.True(Schema.IsPrimitiveType(new FloatType(), schema));
         Assert.True(Schema.IsPrimitiveType(new BooleanType(), schema));
 

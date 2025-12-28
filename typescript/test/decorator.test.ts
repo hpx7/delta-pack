@@ -79,7 +79,7 @@ describe("Delta Pack Reflection", () => {
       expect(generatedSchema["WithModifiedArrays"]).toEqual({
         type: "object",
         properties: {
-          unsignedInts: { type: "array", value: { type: "uint" } },
+          unsignedInts: { type: "array", value: { type: "int", min: 0 } },
           floats: { type: "array", value: { type: "float" } },
           quantizedFloats: { type: "array", value: { type: "float", precision: 0.1 } },
         },
@@ -100,7 +100,7 @@ describe("Delta Pack Reflection", () => {
       expect(generatedSchema["WithModifiedMaps"]).toEqual({
         type: "object",
         properties: {
-          unsignedMap: { type: "record", key: { type: "string" }, value: { type: "uint" } },
+          unsignedMap: { type: "record", key: { type: "string" }, value: { type: "int", min: 0 } },
           floatMap: { type: "record", key: { type: "string" }, value: { type: "float", precision: 0.01 } },
         },
         name: "WithModifiedMaps",
@@ -128,7 +128,7 @@ describe("Delta Pack Reflection", () => {
         properties: {
           optString: { type: "optional", value: { type: "string" } },
           optNumber: { type: "optional", value: { type: "int" } },
-          optUnsigned: { type: "optional", value: { type: "uint" } },
+          optUnsigned: { type: "optional", value: { type: "int", min: 0 } },
           optFloat: { type: "optional", value: { type: "float", precision: 0.1 } },
         },
         name: "WithOptionals",
@@ -236,7 +236,7 @@ describe("Delta Pack Reflection", () => {
           vectorMap: {
             type: "record",
             key: { type: "string" },
-            value: { type: "array", value: { type: "uint" } },
+            value: { type: "array", value: { type: "int", min: 0 } },
           },
           optionalArray: {
             type: "optional",

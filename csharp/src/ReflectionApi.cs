@@ -14,6 +14,23 @@ public sealed class DeltaPackPrecisionAttribute : Attribute
 }
 
 /// <summary>
+/// Specifies min/max bounds for integer encoding.
+/// Bounded integers are encoded more efficiently when values are constrained.
+/// </summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public sealed class DeltaPackRangeAttribute : Attribute
+{
+    public long Min { get; }
+    public long? Max { get; }
+    public DeltaPackRangeAttribute(long min) => Min = min;
+    public DeltaPackRangeAttribute(long min, long max)
+    {
+        Min = min;
+        Max = max;
+    }
+}
+
+/// <summary>
 /// Excludes a property or field from serialization.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
@@ -556,6 +573,7 @@ internal sealed class SchemaBuilder
     private SchemaType MappingToSchemaType(TypeMapping mapping, MemberInfo? member = null)
     {
         var precisionAttr = member?.GetCustomAttribute<DeltaPackPrecisionAttribute>();
+        var rangeAttr = member?.GetCustomAttribute<DeltaPackRangeAttribute>();
 
         return mapping switch
         {
@@ -563,8 +581,10 @@ internal sealed class SchemaBuilder
             PrimitiveMapping { TargetType: var t } when t == typeof(bool) => new BooleanType(),
             PrimitiveMapping { TargetType: var t } when t == typeof(float) || t == typeof(double) =>
                 new FloatType(precisionAttr?.Precision),
-            PrimitiveMapping { TargetType: var t } when IsSignedInt(t) => new IntType(),
-            PrimitiveMapping { TargetType: var t } when IsUnsignedInt(t) => new UIntType(),
+            PrimitiveMapping { TargetType: var t } when IsSignedInt(t) =>
+                new IntType(rangeAttr?.Min, rangeAttr?.Max),
+            PrimitiveMapping { TargetType: var t } when IsUnsignedInt(t) =>
+                new IntType(rangeAttr?.Min ?? 0, rangeAttr?.Max),
             EnumMapping em => new ReferenceType(em.EnumType.Name),
             ObjectMapping om => new ReferenceType(om.Type.Name),
             ArrayMapping am => new ArrayType(MappingToSchemaType(am.Element)),

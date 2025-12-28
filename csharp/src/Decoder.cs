@@ -43,6 +43,9 @@ public class Decoder
     public ulong NextUInt() =>
         Varint.ReadUVarint(_buffer, ref _pos);
 
+    public long NextBoundedInt(long min) =>
+        (long)NextUInt() + min;
+
     public float NextFloat()
     {
         var val = BitConverter.ToSingle(_buffer, _pos);
@@ -68,9 +71,6 @@ public class Decoder
     // Container methods
 
     public T? NextOptional<T>(Func<T> innerRead) where T : class =>
-        NextBoolean() ? innerRead() : null;
-
-    public T? NextOptionalStruct<T>(Func<T> innerRead) where T : struct =>
         NextBoolean() ? innerRead() : null;
 
     public List<T> NextArray<T>(Func<T> innerRead)
@@ -111,10 +111,10 @@ public class Decoder
         return changed ? NextInt() : a;
     }
 
-    public ulong NextUIntDiff(ulong a)
+    public long NextBoundedIntDiff(long a, long min)
     {
         var changed = NextBoolean();
-        return changed ? NextUInt() : a;
+        return changed ? NextBoundedInt(min) : a;
     }
 
     public float NextFloatDiff(float a)
@@ -159,24 +159,6 @@ public class Decoder
         }
     }
 
-    public T? NextOptionalDiffPrimitiveStruct<T>(T? a, Func<T> decode) where T : struct
-    {
-        if (!a.HasValue)
-        {
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-        else
-        {
-            var changed = NextBoolean();
-            if (!changed)
-                return a;
-
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-    }
-
     public T? NextOptionalDiff<T>(T? a, Func<T> decode, Func<T, T> decodeDiff) where T : class
     {
         if (a is null)
@@ -188,20 +170,6 @@ public class Decoder
         {
             var present = NextBoolean();
             return present ? decodeDiff(a) : null;
-        }
-    }
-
-    public T? NextOptionalDiffStruct<T>(T? a, Func<T> decode, Func<T, T> decodeDiff) where T : struct
-    {
-        if (!a.HasValue)
-        {
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-        else
-        {
-            var present = NextBoolean();
-            return present ? decodeDiff(a.Value) : null;
         }
     }
 
@@ -231,15 +199,16 @@ public class Decoder
         IDictionary<TKey, TValue> obj,
         Func<TKey> decodeKey,
         Func<TValue> decodeVal,
-        Func<TValue, TValue> decodeDiff)
-        where TKey : notnull, IComparable<TKey>
+        Func<TValue, TValue> decodeDiff,
+        IComparer<TKey>? comparer = null)
+        where TKey : notnull
     {
         var changed = NextBoolean();
         if (!changed)
             return new Dictionary<TKey, TValue>(obj);
 
         var result = new Dictionary<TKey, TValue>(obj);
-        var orderedKeys = obj.Keys.OrderBy(k => k).ToList();
+        var orderedKeys = obj.Keys.OrderBy(k => k, comparer).ToList();
 
         if (obj.Count > 0)
         {

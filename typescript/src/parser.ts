@@ -14,7 +14,6 @@ import {
   SelfReferenceType,
   StringType,
   Type,
-  UIntType,
   UnionType,
 } from "./schema.js";
 
@@ -86,15 +85,22 @@ export function parseSchemaYml(yamlContent: string): Record<string, NamedType> {
           throw new Error(`Invalid record type format: ${value}`);
         }
         const [keyTypeStr, valueTypeStr] = [inner.slice(0, commaIdx).trim(), inner.slice(commaIdx + 1).trim()];
-        const keyType = parsePropertyType(keyTypeStr, currentTypeName) as StringType | IntType | UIntType;
+        const keyType = parsePropertyType(keyTypeStr, currentTypeName) as StringType | IntType;
         const valueType = parsePropertyType(valueTypeStr, currentTypeName);
         return RecordType(keyType, valueType) as PropertyType;
       } else if (value.startsWith("string")) {
         return StringType();
-      } else if (value.startsWith("int")) {
-        return IntType();
       } else if (value.startsWith("uint")) {
-        return UIntType();
+        // uint is syntactic sugar for int with min defaulting to 0
+        const params = parseParams(value, "uint");
+        const max = params["max"];
+        if (max != null) {
+          return IntType({ min: params["min"] ?? 0, max });
+        }
+        return IntType({ min: params["min"] ?? 0 });
+      } else if (value.startsWith("int")) {
+        const params = parseParams(value, "int");
+        return IntType(params);
       } else if (value.startsWith("float")) {
         const params = parseParams(value, "float");
         return FloatType(params);

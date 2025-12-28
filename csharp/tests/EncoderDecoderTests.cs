@@ -407,28 +407,6 @@ public class EncoderDecoderTests
     }
 
     [Fact]
-    public void OptionalDiffPrimitiveStruct_NullToValue_RoundTrips()
-    {
-        var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<int>(null, 42, v => encoder.PushInt(v));
-        var buffer = encoder.ToBuffer();
-
-        var decoder = new Decoder(buffer);
-        Assert.Equal(42, decoder.NextOptionalDiffPrimitiveStruct<long>(null, decoder.NextInt));
-    }
-
-    [Fact]
-    public void OptionalDiffPrimitiveStruct_ValueToNull_RoundTrips()
-    {
-        var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<int>(42, null, v => encoder.PushInt(v));
-        var buffer = encoder.ToBuffer();
-
-        var decoder = new Decoder(buffer);
-        Assert.Null(decoder.NextOptionalDiffPrimitiveStruct<long>(42, decoder.NextInt));
-    }
-
-    [Fact]
     public void OptionalDiff_NullToValue_RoundTrips()
     {
         var a = new List<long> { 1, 2, 3 };

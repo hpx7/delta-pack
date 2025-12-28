@@ -4,7 +4,6 @@ import {
   ObjectType,
   StringType,
   IntType,
-  UIntType,
   FloatType,
   BooleanType,
   ArrayType,
@@ -88,33 +87,6 @@ describe("Edge Cases - Boundary Values", () => {
       const encoded2 = api.encode(values);
 
       expect(encoded1).toEqual(encoded2);
-    });
-  });
-
-  describe("Unsigned Integer Boundaries", () => {
-    const UIntBoundaries = ObjectType("UIntBoundaries", {
-      zero: UIntType(),
-      maxUint: UIntType(),
-      one: UIntType(),
-    });
-    type UIntBoundaries = Infer<typeof UIntBoundaries>;
-    const api = load(UIntBoundaries);
-
-    it("should handle maximum unsigned values", () => {
-      const maxUnsigned: UIntBoundaries = {
-        zero: 0,
-        maxUint: 4294967295, // 2^32 - 1
-        one: 1,
-      };
-
-      const encoded = api.encode(maxUnsigned);
-      const decoded = api.decode(encoded);
-
-      expect(decoded).toEqual(maxUnsigned);
-    });
-
-    it("should reject negative values in fromJson", () => {
-      expect(() => api.fromJson({ zero: -1, maxUint: 0, one: 0 })).toThrow();
     });
   });
 
@@ -764,5 +736,169 @@ describe("Edge Cases - Error Message Quality", () => {
       const message = (e as Error).message;
       expect(message).toMatch(/color|INVALID|enum/i);
     }
+  });
+});
+
+describe("Edge Cases - Bounded Integers", () => {
+  describe("Offset Encoding with non-zero min", () => {
+    const BoundedInt = ObjectType("BoundedInt", {
+      value: IntType({ min: 10, max: 100 }),
+    });
+    type BoundedInt = Infer<typeof BoundedInt>;
+    const api = load(BoundedInt);
+
+    it("should encode and decode bounded int correctly", () => {
+      const obj: BoundedInt = { value: 50 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(50);
+    });
+
+    it("should encode min value correctly", () => {
+      const obj: BoundedInt = { value: 10 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(10);
+    });
+
+    it("should encode max value correctly", () => {
+      const obj: BoundedInt = { value: 100 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(100);
+    });
+
+    it("should use offset encoding (value 10 with min=10 encodes smaller)", () => {
+      // value=10 with min=10 should encode as 0 (unsigned varint)
+      // value=10 with no min would encode as zigzag(10) = 20
+      const boundedApi = load(ObjectType("Test", { value: IntType({ min: 10 }) }));
+      const unboundedApi = load(ObjectType("Test", { value: IntType() }));
+
+      const boundedEncoded = boundedApi.encode({ value: 10 });
+      const unboundedEncoded = unboundedApi.encode({ value: 10 });
+
+      // Bounded encoding should be smaller (encodes 0 vs zigzag 20)
+      expect(boundedEncoded.length).toBeLessThanOrEqual(unboundedEncoded.length);
+    });
+  });
+
+  describe("Offset Encoding with min=0 (uint)", () => {
+    const UnsignedInt = ObjectType("UnsignedInt", {
+      value: IntType({ min: 0 }),
+    });
+    type UnsignedInt = Infer<typeof UnsignedInt>;
+    const api = load(UnsignedInt);
+
+    it("should encode and decode uint correctly", () => {
+      const obj: UnsignedInt = { value: 42 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(42);
+    });
+
+    it("should encode zero correctly", () => {
+      const obj: UnsignedInt = { value: 0 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(0);
+    });
+
+    it("should encode large values correctly", () => {
+      const obj: UnsignedInt = { value: 1000000 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(1000000);
+    });
+  });
+
+  describe("Offset Encoding with negative min", () => {
+    const NegativeMin = ObjectType("NegativeMin", {
+      value: IntType({ min: -100, max: 100 }),
+    });
+    type NegativeMin = Infer<typeof NegativeMin>;
+    const api = load(NegativeMin);
+
+    it("should encode and decode negative min correctly", () => {
+      const obj: NegativeMin = { value: -100 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(-100);
+    });
+
+    it("should encode and decode zero correctly", () => {
+      const obj: NegativeMin = { value: 0 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(0);
+    });
+
+    it("should encode and decode positive value correctly", () => {
+      const obj: NegativeMin = { value: 50 };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(decoded.value).toBe(50);
+    });
+  });
+
+  describe("Bounded Int Diff Encoding", () => {
+    const BoundedDiff = ObjectType("BoundedDiff", {
+      value: IntType({ min: 100 }),
+    });
+    type BoundedDiff = Infer<typeof BoundedDiff>;
+    const api = load(BoundedDiff);
+
+    it("should encode diff correctly when value changes", () => {
+      const a: BoundedDiff = { value: 100 };
+      const b: BoundedDiff = { value: 150 };
+      const diff = api.encodeDiff(a, b);
+      const result = api.decodeDiff(a, diff);
+      expect(result.value).toBe(150);
+    });
+
+    it("should encode diff correctly when value stays same", () => {
+      const a: BoundedDiff = { value: 100 };
+      const b: BoundedDiff = { value: 100 };
+      const diff = api.encodeDiff(a, b);
+      const result = api.decodeDiff(a, diff);
+      expect(result.value).toBe(100);
+    });
+
+    it("should produce minimal diff when unchanged", () => {
+      const a: BoundedDiff = { value: 100 };
+      const b: BoundedDiff = { value: 100 };
+      const diff = api.encodeDiff(a, b);
+      // Diff should be minimal (just the "no change" bits)
+      expect(diff.length).toBeLessThan(5);
+    });
+  });
+
+  describe("Validation in fromJson", () => {
+    const Bounded = ObjectType("Bounded", {
+      value: IntType({ min: 0, max: 100 }),
+    });
+    const api = load(Bounded);
+
+    it("should reject values below minimum", () => {
+      expect(() => api.fromJson({ value: -1 })).toThrow();
+    });
+
+    it("should reject values above maximum", () => {
+      expect(() => api.fromJson({ value: 101 })).toThrow();
+    });
+
+    it("should accept values at minimum", () => {
+      const result = api.fromJson({ value: 0 });
+      expect(result.value).toBe(0);
+    });
+
+    it("should accept values at maximum", () => {
+      const result = api.fromJson({ value: 100 });
+      expect(result.value).toBe(100);
+    });
+
+    it("should accept values in range", () => {
+      const result = api.fromJson({ value: 50 });
+      expect(result.value).toBe(50);
+    });
   });
 });

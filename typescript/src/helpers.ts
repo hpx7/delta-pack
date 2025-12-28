@@ -6,21 +6,18 @@ export function parseString(x: unknown): string {
   }
   return x;
 }
-export function parseInt(x: unknown): number {
+export function parseInt(x: unknown, min?: number, max?: number): number {
   if (typeof x === "string") {
     x = Number(x);
   }
   if (typeof x !== "number" || !Number.isInteger(x)) {
     throw new Error(`Invalid int: ${x}`);
   }
-  return x;
-}
-export function parseUInt(x: unknown): number {
-  if (typeof x === "string") {
-    x = Number(x);
+  if (min != null && x < min) {
+    throw new Error(`Value ${x} below minimum ${min}`);
   }
-  if (typeof x !== "number" || !Number.isInteger(x) || x < 0) {
-    throw new Error(`Invalid uint: ${x}`);
+  if (max != null && x > max) {
+    throw new Error(`Value ${x} above maximum ${max}`);
   }
   return x;
 }
@@ -82,7 +79,7 @@ export function parseRecord<K, T>(
     throw new Error(`Invalid record, got ${typeof x}`);
   }
   const proto = Object.getPrototypeOf(x);
-  if (proto === Object.prototype || proto === null) {
+  if (proto === Object.prototype || proto == null) {
     x = new Map(Object.entries(x));
   }
   if (!(x instanceof Map)) {

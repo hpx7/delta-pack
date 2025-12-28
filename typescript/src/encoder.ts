@@ -26,8 +26,11 @@ export class Encoder {
   pushInt(val: number) {
     this.writer.writeVarint(val);
   }
-  pushUInt(val: number) {
-    this.writer.writeUVarint(val);
+  pushBoundedInt(val: number, min: number) {
+    this.writer.writeUVarint(val - min);
+  }
+  pushBoundedIntDiff(a: number, b: number, min: number) {
+    this.pushUIntDiff(a - min, b - min);
   }
   pushFloat(val: number) {
     this.writer.writeFloat(val);
@@ -51,13 +54,13 @@ export class Encoder {
     }
   }
   pushArray<T>(val: T[], innerWrite: (x: T) => void) {
-    this.pushUInt(val.length);
+    this.writer.writeUVarint(val.length);
     for (const item of val) {
       innerWrite(item);
     }
   }
   pushRecord<K, T>(val: Map<K, T>, innerKeyWrite: (x: K) => void, innerValWrite: (x: T) => void) {
-    this.pushUInt(val.size);
+    this.writer.writeUVarint(val.size);
     for (const [key, value] of val) {
       innerKeyWrite(key);
       innerValWrite(value);
@@ -76,12 +79,6 @@ export class Encoder {
     this.pushBoolean(a !== b);
     if (a !== b) {
       this.pushInt(b);
-    }
-  }
-  pushUIntDiff(a: number, b: number) {
-    this.pushBoolean(a !== b);
-    if (a !== b) {
-      this.pushUInt(b);
     }
   }
   pushFloatDiff(a: number, b: number) {
@@ -154,7 +151,7 @@ export class Encoder {
     if (!changed) {
       return;
     }
-    this.pushUInt(b.length);
+    this.writer.writeUVarint(b.length);
     const minLen = Math.min(a.length, b.length);
     for (let i = 0; i < minLen; i++) {
       const elementChanged = dirty != null ? dirty.has(i) : !equals(a[i]!, b[i]!);
@@ -222,18 +219,18 @@ export class Encoder {
     }
 
     if (a.size > 0) {
-      this.pushUInt(deletions.length);
+      this.writer.writeUVarint(deletions.length);
       deletions.forEach((idx) => {
-        this.pushUInt(idx);
+        this.writer.writeUVarint(idx);
       });
-      this.pushUInt(updates.length);
+      this.writer.writeUVarint(updates.length);
       updates.forEach((idx) => {
-        this.pushUInt(idx);
+        this.writer.writeUVarint(idx);
         const key = orderedKeys[idx]!;
         encodeDiff(a.get(key)!, b.get(key)!);
       });
     }
-    this.pushUInt(additions.length);
+    this.writer.writeUVarint(additions.length);
     additions.forEach(([key, val]) => {
       encodeKey(key);
       encodeVal(val);
@@ -242,5 +239,12 @@ export class Encoder {
   toBuffer() {
     rleEncode(this.bits, this.writer);
     return this.writer.toBuffer();
+  }
+
+  private pushUIntDiff(a: number, b: number) {
+    this.pushBoolean(a !== b);
+    if (a !== b) {
+      this.writer.writeUVarint(b);
+    }
   }
 }

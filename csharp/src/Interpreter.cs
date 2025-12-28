@@ -61,12 +61,12 @@ public static class Interpreter
                     encoder.PushString((string)obj!);
                     break;
 
-                case IntType:
-                    encoder.PushInt(Convert.ToInt64(obj));
-                    break;
-
-                case UIntType:
-                    encoder.PushUInt(Convert.ToUInt64(obj));
+                case IntType it:
+                    var intVal = Convert.ToInt64(obj);
+                    if (it.Min.HasValue)
+                        encoder.PushBoundedInt(intVal, it.Min.Value);
+                    else
+                        encoder.PushInt(intVal);
                     break;
 
                 case FloatType ft:
@@ -116,15 +116,7 @@ public static class Interpreter
                     break;
 
                 case OptionalType opt:
-                    if (obj is null)
-                    {
-                        encoder.PushBoolean(false);
-                    }
-                    else
-                    {
-                        encoder.PushBoolean(true);
-                        Encode(obj, opt.Value, encoder);
-                    }
+                    encoder.PushOptional(obj, o => Encode(o, opt.Value, encoder));
                     break;
 
                 default:
@@ -139,8 +131,7 @@ public static class Interpreter
             return type switch
             {
                 StringType => decoder.NextString(),
-                IntType => decoder.NextInt(),
-                UIntType => (long)decoder.NextUInt(),
+                IntType it => it.Min.HasValue ? decoder.NextBoundedInt(it.Min.Value) : decoder.NextInt(),
                 FloatType ft => ft.Precision.HasValue
                     ? decoder.NextFloatQuantized((float)ft.Precision.Value)
                     : decoder.NextFloat(),
@@ -151,7 +142,7 @@ public static class Interpreter
                 ArrayType at => DecodeArray(at, decoder),
                 RecordType rt => DecodeRecord(rt, decoder),
                 UnionType ut => DecodeUnion(ut, decoder),
-                OptionalType opt => decoder.NextBoolean() ? Decode(opt.Value, decoder) : null,
+                OptionalType opt => decoder.NextOptional<object>(() => Decode(opt.Value, decoder)!),
                 _ => throw new InvalidOperationException($"Unknown type: {type}")
             };
         }
@@ -164,27 +155,11 @@ public static class Interpreter
             return result;
         }
 
-        private List<object?> DecodeArray(ArrayType at, Decoder decoder)
-        {
-            var len = (int)decoder.NextUInt();
-            var result = new List<object?>(len);
-            for (var i = 0; i < len; i++)
-                result.Add(Decode(at.Value, decoder));
-            return result;
-        }
+        private List<object?> DecodeArray(ArrayType at, Decoder decoder) =>
+            decoder.NextArray(() => Decode(at.Value, decoder));
 
-        private Dictionary<object, object?> DecodeRecord(RecordType rt, Decoder decoder)
-        {
-            var len = (int)decoder.NextUInt();
-            var result = new Dictionary<object, object?>(len);
-            for (var i = 0; i < len; i++)
-            {
-                var key = Decode(rt.Key, decoder)!;
-                var val = Decode(rt.Value, decoder);
-                result[key] = val;
-            }
-            return result;
-        }
+        private Dictionary<object, object?> DecodeRecord(RecordType rt, Decoder decoder) =>
+            decoder.NextRecord(() => Decode(rt.Key, decoder)!, () => Decode(rt.Value, decoder));
 
         private UnionValue DecodeUnion(UnionType ut, Decoder decoder)
         {
@@ -203,7 +178,6 @@ public static class Interpreter
             {
                 StringType => (string?)a == (string?)b,
                 IntType => Convert.ToInt64(a) == Convert.ToInt64(b),
-                UIntType => Convert.ToUInt64(a) == Convert.ToUInt64(b),
                 FloatType ft => ft.Precision.HasValue
                     ? EqualityHelpers.EqualsFloatQuantized(Convert.ToSingle(a), Convert.ToSingle(b), (float)ft.Precision.Value)
                     : EqualityHelpers.EqualsFloat(Convert.ToSingle(a), Convert.ToSingle(b)),
@@ -289,7 +263,7 @@ public static class Interpreter
         {
             return type switch
             {
-                StringType or IntType or UIntType or FloatType or BooleanType or EnumType => obj,
+                StringType or IntType or FloatType or BooleanType or EnumType => obj,
                 ReferenceType rt => Clone(obj, ResolveRef(rt.Reference)),
                 ObjectType ot => CloneObject(obj, ot),
                 ArrayType at => CloneArray(obj, at),
@@ -336,12 +310,13 @@ public static class Interpreter
                     encoder.PushStringDiff((string)a!, (string)b!);
                     break;
 
-                case IntType:
-                    encoder.PushIntDiff(Convert.ToInt64(a), Convert.ToInt64(b));
-                    break;
-
-                case UIntType:
-                    encoder.PushUIntDiff(Convert.ToUInt64(a), Convert.ToUInt64(b));
+                case IntType it:
+                    var intA = Convert.ToInt64(a);
+                    var intB = Convert.ToInt64(b);
+                    if (it.Min.HasValue)
+                        encoder.PushBoundedIntDiff(intA, intB, it.Min.Value);
+                    else
+                        encoder.PushIntDiff(intA, intB);
                     break;
 
                 case FloatType ft:
@@ -414,63 +389,15 @@ public static class Interpreter
                 (x, y) => EncodeDiff(x, y, at.Value, encoder));
         }
 
-        private void EncodeDiffRecord(object? a, object? b, RecordType rt, Encoder encoder)
-        {
-            var dictA = (IDictionary<object, object?>)a!;
-            var dictB = (IDictionary<object, object?>)b!;
-
-            var changed = !EqualsRecord(a, b, rt);
-            encoder.PushBoolean(changed);
-            if (!changed)
-                return;
-
-            var orderedKeys = dictA.Keys.OrderBy(k => k, GetKeyComparer(rt.Key)).ToList();
-            var updates = new List<int>();
-            var deletions = new List<int>();
-            var additions = new List<(object key, object? val)>();
-
-            for (var i = 0; i < orderedKeys.Count; i++)
-            {
-                var aKey = orderedKeys[i];
-                if (dictB.TryGetValue(aKey, out var bVal))
-                {
-                    if (!Equals(dictA[aKey], bVal, rt.Value))
-                        updates.Add(i);
-                }
-                else
-                {
-                    deletions.Add(i);
-                }
-            }
-
-            foreach (var (bKey, bVal) in dictB)
-            {
-                if (!dictA.ContainsKey(bKey))
-                    additions.Add((bKey, bVal));
-            }
-
-            if (dictA.Count > 0)
-            {
-                encoder.PushUInt((uint)deletions.Count);
-                foreach (var i in deletions)
-                    encoder.PushUInt((uint)i);
-
-                encoder.PushUInt((uint)updates.Count);
-                foreach (var i in updates)
-                {
-                    encoder.PushUInt((uint)i);
-                    var key = orderedKeys[i];
-                    EncodeDiff(dictA[key], dictB[key], rt.Value, encoder);
-                }
-            }
-
-            encoder.PushUInt((uint)additions.Count);
-            foreach (var (key, val) in additions)
-            {
-                Encode(key, rt.Key, encoder);
-                Encode(val, rt.Value, encoder);
-            }
-        }
+        private void EncodeDiffRecord(object? a, object? b, RecordType rt, Encoder encoder) =>
+            encoder.PushRecordDiff(
+                (IDictionary<object, object?>)a!,
+                (IDictionary<object, object?>)b!,
+                (x, y) => Equals(x, y, rt.Value),
+                key => Encode(key, rt.Key, encoder),
+                val => Encode(val, rt.Value, encoder),
+                (x, y) => EncodeDiff(x, y, rt.Value, encoder),
+                GetKeyComparer(rt.Key));
 
         private static IComparer<object> GetKeyComparer(SchemaType keyType)
         {
@@ -478,7 +405,6 @@ public static class Interpreter
             {
                 StringType => Comparer<object>.Create((a, b) => string.Compare((string)a, (string)b, StringComparison.Ordinal)),
                 IntType => Comparer<object>.Create((a, b) => Convert.ToInt64(a).CompareTo(Convert.ToInt64(b))),
-                UIntType => Comparer<object>.Create((a, b) => Convert.ToUInt64(a).CompareTo(Convert.ToUInt64(b))),
                 _ => throw new InvalidOperationException($"Unsupported record key type: {keyType}")
             };
         }
@@ -508,34 +434,10 @@ public static class Interpreter
         private void EncodeDiffOptional(object? a, object? b, OptionalType opt, Encoder encoder)
         {
             var valueType = opt.Value;
-            var isPrimitive = Schema.IsPrimitiveType(valueType, _schema);
-
-            if (a is null)
-            {
-                encoder.PushBoolean(b is not null);
-                if (b is not null)
-                    Encode(b, valueType, encoder); // null → value
-                // else null → null
-            }
-            else if (isPrimitive)
-            {
-                var changed = b is null || !Equals(a, b, valueType);
-                encoder.PushBoolean(changed);
-                if (changed)
-                {
-                    encoder.PushBoolean(b is not null);
-                    if (b is not null)
-                        Encode(b, valueType, encoder); // value → value
-                    // else value → null
-                }
-            }
+            if (Schema.IsPrimitiveType(valueType, _schema))
+                encoder.PushOptionalDiffPrimitive<object>(a, b, x => Encode(x, valueType, encoder));
             else
-            {
-                encoder.PushBoolean(b is not null);
-                if (b is not null)
-                    EncodeDiff(a, b, valueType, encoder); // value → value
-                // else value → null
-            }
+                encoder.PushOptionalDiff<object>(a, b, x => Encode(x, valueType, encoder), (x, y) => EncodeDiff(x, y, valueType, encoder));
         }
 
         // === DecodeDiff ===
@@ -545,8 +447,9 @@ public static class Interpreter
             return type switch
             {
                 StringType => decoder.NextStringDiff((string)a!),
-                IntType => decoder.NextIntDiff(Convert.ToInt64(a)),
-                UIntType => (long)decoder.NextUIntDiff(Convert.ToUInt64(a)),
+                IntType it => it.Min.HasValue
+                    ? decoder.NextBoundedIntDiff(Convert.ToInt64(a), it.Min.Value)
+                    : decoder.NextIntDiff(Convert.ToInt64(a)),
                 FloatType ft => ft.Precision.HasValue
                     ? decoder.NextFloatQuantizedDiff(Convert.ToSingle(a), (float)ft.Precision.Value)
                     : decoder.NextFloatDiff(Convert.ToSingle(a)),
@@ -584,68 +487,19 @@ public static class Interpreter
             return result;
         }
 
-        private List<object?> DecodeDiffArray(object? a, ArrayType at, Decoder decoder)
-        {
-            var arrA = (IList<object?>)a!;
+        private List<object?> DecodeDiffArray(object? a, ArrayType at, Decoder decoder) =>
+            decoder.NextArrayDiff(
+                (IList<object?>)a!,
+                () => Decode(at.Value, decoder),
+                item => DecodeDiff(item, at.Value, decoder));
 
-            var changed = decoder.NextBoolean();
-            if (!changed)
-                return arrA.Select(item => Clone(item, at.Value)).ToList();
-
-            var newLen = (int)decoder.NextUInt();
-            var result = new List<object?>(newLen);
-            var minLen = Math.Min(arrA.Count, newLen);
-
-            for (var i = 0; i < minLen; i++)
-            {
-                var elementChanged = decoder.NextBoolean();
-                result.Add(elementChanged ? DecodeDiff(arrA[i], at.Value, decoder) : Clone(arrA[i], at.Value));
-            }
-
-            for (var i = arrA.Count; i < newLen; i++)
-                result.Add(Decode(at.Value, decoder));
-
-            return result;
-        }
-
-        private Dictionary<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder)
-        {
-            var dictA = (IDictionary<object, object?>)a!;
-
-            var changed = decoder.NextBoolean();
-            if (!changed)
-                return dictA.ToDictionary(kvp => kvp.Key, kvp => Clone(kvp.Value, rt.Value));
-
-            var result = dictA.ToDictionary(kvp => kvp.Key, kvp => Clone(kvp.Value, rt.Value));
-            var orderedKeys = dictA.Keys.OrderBy(k => k, GetKeyComparer(rt.Key)).ToList();
-
-            if (dictA.Count > 0)
-            {
-                var numDeletions = (int)decoder.NextUInt();
-                for (var i = 0; i < numDeletions; i++)
-                {
-                    var key = orderedKeys[(int)decoder.NextUInt()];
-                    result.Remove(key);
-                }
-
-                var numUpdates = (int)decoder.NextUInt();
-                for (var i = 0; i < numUpdates; i++)
-                {
-                    var key = orderedKeys[(int)decoder.NextUInt()];
-                    result[key] = DecodeDiff(result[key], rt.Value, decoder);
-                }
-            }
-
-            var numAdditions = (int)decoder.NextUInt();
-            for (var i = 0; i < numAdditions; i++)
-            {
-                var key = Decode(rt.Key, decoder)!;
-                var val = Decode(rt.Value, decoder);
-                result[key] = val;
-            }
-
-            return result;
-        }
+        private Dictionary<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder) =>
+            decoder.NextRecordDiff(
+                (IDictionary<object, object?>)a!,
+                () => Decode(rt.Key, decoder)!,
+                () => Decode(rt.Value, decoder),
+                val => DecodeDiff(val, rt.Value, decoder),
+                GetKeyComparer(rt.Key));
 
         private UnionValue DecodeDiffUnion(object? a, UnionType ut, Decoder decoder)
         {
@@ -673,26 +527,9 @@ public static class Interpreter
         private object? DecodeDiffOptional(object? a, OptionalType opt, Decoder decoder)
         {
             var valueType = opt.Value;
-            var isPrimitive = Schema.IsPrimitiveType(valueType, _schema);
-
-            if (a is null)
-            {
-                var present = decoder.NextBoolean();
-                return present ? Decode(valueType, decoder) : null;
-            }
-            else if (isPrimitive)
-            {
-                var changed = decoder.NextBoolean();
-                if (!changed)
-                    return a;
-                var present = decoder.NextBoolean();
-                return present ? Decode(valueType, decoder) : null;
-            }
-            else
-            {
-                var present = decoder.NextBoolean();
-                return present ? DecodeDiff(a, valueType, decoder) : null;
-            }
+            if (Schema.IsPrimitiveType(valueType, _schema))
+                return decoder.NextOptionalDiffPrimitive<object>(a!, () => Decode(valueType, decoder)!);
+            return decoder.NextOptionalDiff<object>(a!, () => Decode(valueType, decoder)!, x => DecodeDiff(x, valueType, decoder)!);
         }
 
         // === FromJson ===
@@ -702,8 +539,7 @@ public static class Interpreter
             return type switch
             {
                 StringType => json.GetString(),
-                IntType => json.GetInt64(),
-                UIntType => json.GetInt64(),
+                IntType it => ValidateInt(json.GetInt64(), it),
                 FloatType => json.GetSingle(),
                 BooleanType => json.GetBoolean(),
                 EnumType et => ValidateEnum(json.GetString()!, et),
@@ -715,6 +551,15 @@ public static class Interpreter
                 OptionalType opt => json.ValueKind == JsonValueKind.Null ? null : FromJson(json, opt.Value),
                 _ => throw new InvalidOperationException($"Unknown type: {type}")
             };
+        }
+
+        private static long ValidateInt(long value, IntType it)
+        {
+            if (it.Min.HasValue && value < it.Min.Value)
+                throw new ArgumentException($"Value {value} below minimum {it.Min.Value}");
+            if (it.Max.HasValue && value > it.Max.Value)
+                throw new ArgumentException($"Value {value} above maximum {it.Max.Value}");
+            return value;
         }
 
         private static string ValidateEnum(string value, EnumType et)
@@ -764,7 +609,6 @@ public static class Interpreter
             {
                 StringType => jsonKey,
                 IntType => long.Parse(jsonKey),
-                UIntType => long.Parse(jsonKey), // Store as long for consistency
                 _ => throw new InvalidOperationException($"Unsupported record key type: {keyType}")
             };
         }
@@ -819,10 +663,6 @@ public static class Interpreter
 
                 case IntType:
                     writer.WriteNumberValue(Convert.ToInt64(obj));
-                    break;
-
-                case UIntType:
-                    writer.WriteNumberValue(Convert.ToUInt64(obj));
                     break;
 
                 case FloatType:

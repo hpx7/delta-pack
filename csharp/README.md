@@ -74,6 +74,21 @@ public class Position
 }
 ```
 
+### `[DeltaPackRange]`
+
+Specify bounds for integers (enables more efficient encoding):
+
+```csharp
+public class Stats
+{
+    [DeltaPackRange(0, 100)]
+    public int Health { get; set; }
+
+    [DeltaPackRange(1)]  // min only
+    public int PlayerId { get; set; }
+}
+```
+
 ### `[DeltaPackIgnore]`
 
 Exclude a property from serialization:

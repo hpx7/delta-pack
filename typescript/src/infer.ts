@@ -42,7 +42,6 @@ type Prettify<T> = { [K in keyof T]: T[K] } & {};
 type PrimitiveTypeMap = {
   string: string;
   int: number;
-  uint: number;
   float: number;
   boolean: boolean;
 };

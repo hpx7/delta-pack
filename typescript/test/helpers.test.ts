@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   parseString,
   parseInt,
-  parseUInt,
   parseFloat,
   parseBoolean,
   parseEnum,
@@ -56,27 +55,32 @@ describe("Helper Functions - Parse and Validation", () => {
     });
   });
 
-  describe("parseUInt", () => {
-    it("should accept valid unsigned integers", () => {
-      expect(parseUInt(42)).toBe(42);
-      expect(parseUInt(0)).toBe(0);
+  describe("parseInt with bounds", () => {
+    it("should accept integers within bounds", () => {
+      expect(parseInt(42, 0, 100)).toBe(42);
+      expect(parseInt(0, 0, 100)).toBe(0);
+      expect(parseInt(100, 0, 100)).toBe(100);
+      expect(parseInt(-50, -100, 100)).toBe(-50);
     });
 
-    it("should parse string unsigned integers", () => {
-      expect(parseUInt("42")).toBe(42);
-      expect(parseUInt("0")).toBe(0);
+    it("should accept integers with no bounds", () => {
+      expect(parseInt(42)).toBe(42);
+      expect(parseInt(-100)).toBe(-100);
     });
 
-    it("should reject negative integers", () => {
-      expect(() => parseUInt(-10)).toThrow("Invalid uint: -10");
-      expect(() => parseUInt("-10")).toThrow("Invalid uint");
+    it("should reject values below minimum", () => {
+      expect(() => parseInt(-1, 0, 100)).toThrow("below minimum");
+      expect(() => parseInt(-101, -100, 100)).toThrow("below minimum");
+    });
+
+    it("should reject values above maximum", () => {
+      expect(() => parseInt(101, 0, 100)).toThrow("above maximum");
+      expect(() => parseInt(101, undefined, 100)).toThrow("above maximum");
     });
 
     it("should reject non-integers", () => {
-      expect(() => parseUInt(3.14)).toThrow("Invalid uint: 3.14");
-      expect(() => parseUInt("3.14")).toThrow("Invalid uint");
-      expect(() => parseUInt(NaN)).toThrow("Invalid uint");
-      expect(() => parseUInt(Infinity)).toThrow("Invalid uint");
+      expect(() => parseInt(3.14, 0, 100)).toThrow("Invalid int");
+      expect(() => parseInt(NaN)).toThrow("Invalid int");
     });
   });
 

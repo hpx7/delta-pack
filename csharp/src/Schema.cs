@@ -4,8 +4,7 @@ public abstract record SchemaType;
 
 // Primitive types
 public sealed record StringType : SchemaType;
-public sealed record IntType : SchemaType;
-public sealed record UIntType : SchemaType;
+public sealed record IntType(long? Min = null, long? Max = null) : SchemaType;
 public sealed record FloatType(double? Precision = null) : SchemaType;
 public sealed record BooleanType : SchemaType;
 public sealed record EnumType(IReadOnlyList<string> Options) : SchemaType
@@ -36,7 +35,7 @@ public static class Schema
             ReferenceType refType => schema.TryGetValue(refType.Reference, out var resolved)
                 ? IsPrimitiveType(resolved, schema)
                 : throw new InvalidOperationException($"Unknown reference type: {refType.Reference}"),
-            StringType or IntType or UIntType or FloatType or BooleanType or EnumType => true,
+            StringType or IntType or FloatType or BooleanType or EnumType => true,
             _ => false
         };
 }

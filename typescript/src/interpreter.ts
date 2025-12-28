@@ -35,9 +35,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       return _.parseString(objVal);
     } else if (objType.type === "int") {
-      return _.parseInt(objVal);
-    } else if (objType.type === "uint") {
-      return _.parseUInt(objVal);
+      return _.parseInt(objVal, objType.min, objType.max);
     } else if (objType.type === "float") {
       return _.parseFloat(objVal);
     } else if (objType.type === "boolean") {
@@ -102,7 +100,6 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (
       objType.type === "string" ||
       objType.type === "int" ||
-      objType.type === "uint" ||
       objType.type === "float" ||
       objType.type === "boolean" ||
       objType.type === "enum"
@@ -151,9 +148,12 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       encoder.pushString(objVal as string);
     } else if (objType.type === "int") {
-      encoder.pushInt(objVal as number);
-    } else if (objType.type === "uint") {
-      encoder.pushUInt(objVal as number);
+      const val = objVal as number;
+      if (objType.min != null) {
+        encoder.pushBoundedInt(val, objType.min);
+      } else {
+        encoder.pushInt(val);
+      }
     } else if (objType.type === "float") {
       if (objType.precision) {
         encoder.pushFloatQuantized(objVal as number, objType.precision);
@@ -200,9 +200,11 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       return decoder.nextString();
     } else if (objType.type === "int") {
-      return decoder.nextInt();
-    } else if (objType.type === "uint") {
-      return decoder.nextUInt();
+      if (objType.min != null) {
+        return decoder.nextBoundedInt(objType.min);
+      } else {
+        return decoder.nextInt();
+      }
     } else if (objType.type === "float") {
       if (objType.precision) {
         return decoder.nextFloatQuantized(objType.precision);
@@ -224,21 +226,12 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       }
       return result;
     } else if (objType.type === "array") {
-      const length = decoder.nextUInt();
-      const arr: unknown[] = [];
-      for (let i = 0; i < length; i++) {
-        arr.push(_decode(objType.value, decoder, parent));
-      }
-      return arr;
+      return decoder.nextArray(() => _decode(objType.value, decoder, parent));
     } else if (objType.type === "record") {
-      const size = decoder.nextUInt();
-      const map = new Map();
-      for (let i = 0; i < size; i++) {
-        const key = _decode(objType.key, decoder, parent);
-        const val = _decode(objType.value, decoder, parent);
-        map.set(key, val);
-      }
-      return map;
+      return decoder.nextRecord(
+        () => _decode(objType.key, decoder, parent),
+        () => _decode(objType.value, decoder, parent)
+      );
     } else if (objType.type === "union") {
       const variantIndex = decoder.nextEnum(objType.numBits);
       const variant = objType.options[variantIndex];
@@ -256,7 +249,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
   }
 
   function _equals(a: unknown, b: unknown, objType: Type, parent: NamedType): boolean {
-    if (objType.type === "string" || objType.type === "int" || objType.type === "uint") {
+    if (objType.type === "string" || objType.type === "int") {
       return a === b;
     } else if (objType.type === "float") {
       if (objType.precision) {
@@ -319,7 +312,6 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (
       objType.type === "string" ||
       objType.type === "int" ||
-      objType.type === "uint" ||
       objType.type === "float" ||
       objType.type === "boolean" ||
       objType.type === "enum"
@@ -367,9 +359,11 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       encoder.pushStringDiff(a as string, b as string);
     } else if (objType.type === "int") {
-      encoder.pushIntDiff(a as number, b as number);
-    } else if (objType.type === "uint") {
-      encoder.pushUIntDiff(a as number, b as number);
+      if (objType.min != null) {
+        encoder.pushBoundedIntDiff(a as number, b as number, objType.min);
+      } else {
+        encoder.pushIntDiff(a as number, b as number);
+      }
     } else if (objType.type === "float") {
       if (objType.precision) {
         return encoder.pushFloatQuantizedDiff(a as number, b as number, objType.precision);
@@ -455,9 +449,11 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       return decoder.nextStringDiff(a as string);
     } else if (objType.type === "int") {
-      return decoder.nextIntDiff(a as number);
-    } else if (objType.type === "uint") {
-      return decoder.nextUIntDiff(a as number);
+      if (objType.min != null) {
+        return decoder.nextBoundedIntDiff(a as number, objType.min);
+      } else {
+        return decoder.nextIntDiff(a as number);
+      }
     } else if (objType.type === "float") {
       if (objType.precision) {
         return decoder.nextFloatQuantizedDiff(a as number, objType.precision);

@@ -20,7 +20,7 @@ export function isClassUnion(value: unknown): value is ClassUnionDef {
 // ============ Type Interfaces ============
 
 // Type categories
-export type PrimitiveType = StringType | IntType | UIntType | FloatType | BooleanType;
+export type PrimitiveType = StringType | IntType | FloatType | BooleanType;
 export type ContainerType = ArrayType | OptionalType | RecordType;
 export type PropertyType = PrimitiveType | ContainerType | ReferenceType | SelfReferenceType;
 export type NamedType = ObjectType | UnionType | EnumType;
@@ -33,10 +33,8 @@ export interface StringType {
 
 export interface IntType {
   type: "int";
-}
-
-export interface UIntType {
-  type: "uint";
+  min?: number;
+  max?: number;
 }
 
 export interface FloatType {
@@ -61,7 +59,7 @@ export interface OptionalType {
 
 export interface RecordType {
   type: "record";
-  key: StringType | IntType | UIntType;
+  key: StringType | IntType;
   value: PropertyType;
 }
 
@@ -106,7 +104,6 @@ export function isPrimitiveOrEnum(type: Type): boolean {
   return (
     type.type === "string" ||
     type.type === "int" ||
-    type.type === "uint" ||
     type.type === "float" ||
     type.type === "boolean" ||
     type.type === "enum"
@@ -123,12 +120,30 @@ export function BooleanType(): UnifiedType<BooleanType> {
   return createUnifiedType({ type: "boolean" });
 }
 
-export function IntType(): UnifiedType<IntType> {
-  return createUnifiedType({ type: "int" });
+export function IntType(options?: { min?: number | string; max?: number | string }): UnifiedType<IntType> {
+  const min =
+    options?.min != null ? (typeof options.min === "string" ? parseInt(options.min) : options.min) : undefined;
+  const max =
+    options?.max != null ? (typeof options.max === "string" ? parseInt(options.max) : options.max) : undefined;
+
+  // Validation
+  if (max != null && min != null && min > max) {
+    throw new Error(`Invalid int range: min (${min}) > max (${max})`);
+  }
+
+  const type: IntType = { type: "int" };
+  if (min != null) type.min = min;
+  if (max != null) type.max = max;
+
+  return createUnifiedType(type);
 }
 
-export function UIntType(): UnifiedType<UIntType> {
-  return createUnifiedType({ type: "uint" });
+// UIntType is syntactic sugar for IntType with min=0
+export function UIntType(options?: { max?: number | string }): UnifiedType<IntType> {
+  if (options?.max != null) {
+    return IntType({ min: 0, max: options.max });
+  }
+  return IntType({ min: 0 });
 }
 
 export function FloatType(options?: { precision?: number | string }): UnifiedType<FloatType> {
@@ -153,7 +168,7 @@ export function ArrayType<const V extends ValueType>(value: V): UnifiedType<{ ty
   return createUnifiedType(schemaType);
 }
 
-export function RecordType<const K extends StringType | IntType | UIntType, const V extends ValueType>(
+export function RecordType<const K extends StringType | IntType, const V extends ValueType>(
   key: K,
   value: V
 ): UnifiedType<{ type: "record"; key: K; value: V }> {

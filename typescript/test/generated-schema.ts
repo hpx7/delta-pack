@@ -598,7 +598,7 @@ export const AttackAction = {
     const o = obj as Record<string, unknown>;
     return {
       targetId: _.tryParseField(() => _.parseString(o["targetId"]), "AttackAction.targetId"),
-      damage: _.tryParseField(() => _.parseUInt(o["damage"]), "AttackAction.damage"),
+      damage: _.tryParseField(() => _.parseInt(o["damage"], 0), "AttackAction.damage"),
     };
   },
   toJson(obj: AttackAction): Record<string, unknown> {
@@ -626,7 +626,7 @@ export const AttackAction = {
   },
   _encode(obj: AttackAction, encoder: _.Encoder): void {
     encoder.pushString(obj.targetId);
-    encoder.pushUInt(obj.damage);
+    encoder.pushBoundedInt(obj.damage, 0);
   },
   encodeDiff(a: AttackAction, b: AttackAction): Uint8Array {
     const encoder = new _.Encoder();
@@ -650,7 +650,7 @@ export const AttackAction = {
     if (dirty != null && !dirty.has("damage")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushUIntDiff(a.damage, b.damage);
+      encoder.pushBoundedIntDiff(a.damage, b.damage, 0);
     }
   },
   decode(input: Uint8Array): AttackAction {
@@ -659,7 +659,7 @@ export const AttackAction = {
   _decode(decoder: _.Decoder): AttackAction {
     return {
       targetId: decoder.nextString(),
-      damage: decoder.nextUInt(),
+      damage: decoder.nextBoundedInt(0),
     };
   },
   decodeDiff(obj: AttackAction, input: Uint8Array): AttackAction {
@@ -673,7 +673,7 @@ export const AttackAction = {
     }
     return {
       targetId: decoder.nextStringDiff(obj.targetId),
-      damage: decoder.nextUIntDiff(obj.damage),
+      damage: decoder.nextBoundedIntDiff(obj.damage, 0),
     };
   },
 };
@@ -1009,7 +1009,7 @@ export const GameState = {
     return {
       players: _.tryParseField(() => _.parseArray(o["players"], (x) => Player.fromJson(x as Player)), "GameState.players"),
       currentPlayer: _.tryParseField(() => _.parseOptional(o["currentPlayer"], (x) => _.parseString(x)), "GameState.currentPlayer"),
-      round: _.tryParseField(() => _.parseUInt(o["round"]), "GameState.round"),
+      round: _.tryParseField(() => _.parseInt(o["round"], 0), "GameState.round"),
       metadata: _.tryParseField(() => _.parseRecord(o["metadata"], (x) => _.parseString(x), (x) => _.parseString(x)), "GameState.metadata"),
       winningColor: _.tryParseField(() => _.parseOptional(o["winningColor"], (x) => _.parseEnum(x, Color)), "GameState.winningColor"),
       lastAction: _.tryParseField(() => _.parseOptional(o["lastAction"], (x) => GameAction.fromJson(x as GameAction)), "GameState.lastAction"),
@@ -1059,7 +1059,7 @@ export const GameState = {
   _encode(obj: GameState, encoder: _.Encoder): void {
     encoder.pushArray(obj.players, (x) => Player._encode(x, encoder));
     encoder.pushOptional(obj.currentPlayer, (x) => encoder.pushString(x));
-    encoder.pushUInt(obj.round);
+    encoder.pushBoundedInt(obj.round, 0);
     encoder.pushRecord(obj.metadata, (x) => encoder.pushString(x), (x) => encoder.pushString(x));
     encoder.pushOptional(obj.winningColor, (x) => encoder.pushEnum(Color[x], 2));
     encoder.pushOptional(obj.lastAction, (x) => GameAction._encode(x, encoder));
@@ -1102,7 +1102,7 @@ export const GameState = {
     if (dirty != null && !dirty.has("round")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushUIntDiff(a.round, b.round);
+      encoder.pushBoundedIntDiff(a.round, b.round, 0);
     }
     // Field: metadata
     if (dirty != null && !dirty.has("metadata")) {
@@ -1146,7 +1146,7 @@ export const GameState = {
     return {
       players: decoder.nextArray(() => Player._decode(decoder)),
       currentPlayer: decoder.nextOptional(() => decoder.nextString()),
-      round: decoder.nextUInt(),
+      round: decoder.nextBoundedInt(0),
       metadata: decoder.nextRecord(() => decoder.nextString(), () => decoder.nextString()),
       winningColor: decoder.nextOptional(() => (Color as any)[decoder.nextEnum(2)]),
       lastAction: decoder.nextOptional(() => GameAction._decode(decoder)),
@@ -1171,7 +1171,7 @@ export const GameState = {
         obj.currentPlayer,
         () => decoder.nextString()
       ),
-      round: decoder.nextUIntDiff(obj.round),
+      round: decoder.nextBoundedIntDiff(obj.round, 0),
       metadata: decoder.nextRecordDiff<string, string>(
         obj.metadata,
         () => decoder.nextString(),

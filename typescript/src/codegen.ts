@@ -352,7 +352,7 @@ export const ${name} = {
       return `Map<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}> & { _dirty?: Set<${renderTypeArg(type.key, name)}> }`;
     } else if (type.type === "reference") {
       return type.ref.name!;
-    } else if (type.type === "int" || type.type === "uint" || type.type === "float") {
+    } else if (type.type === "int" || type.type === "float") {
       return "number";
     } else if (type.type === "self-reference") {
       return currentTypeName;
@@ -372,8 +372,6 @@ export const ${name} = {
     } else if (type.type === "string") {
       return '""';
     } else if (type.type === "int") {
-      return "0";
-    } else if (type.type === "uint") {
       return "0";
     } else if (type.type === "float") {
       return "0.0";
@@ -401,9 +399,13 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `_.parseString(${key})`;
     } else if (type.type === "int") {
+      if (type.max != null) {
+        return `_.parseInt(${key}, ${type.min}, ${type.max})`;
+      }
+      if (type.min != null) {
+        return `_.parseInt(${key}, ${type.min})`;
+      }
       return `_.parseInt(${key})`;
-    } else if (type.type === "uint") {
-      return `_.parseUInt(${key})`;
     } else if (type.type === "float") {
       return `_.parseFloat(${key})`;
     } else if (type.type === "boolean") {
@@ -428,7 +430,6 @@ export const ${name} = {
     } else if (
       type.type === "string" ||
       type.type === "int" ||
-      type.type === "uint" ||
       type.type === "float" ||
       type.type === "boolean" ||
       type.type === "enum"
@@ -453,7 +454,6 @@ export const ${name} = {
     } else if (
       type.type === "string" ||
       type.type === "int" ||
-      type.type === "uint" ||
       type.type === "float" ||
       type.type === "boolean" ||
       type.type === "enum"
@@ -481,13 +481,7 @@ export const ${name} = {
         return `_.equalsFloatQuantized(${keyA}, ${keyB}, ${type.precision})`;
       }
       return `_.equalsFloat(${keyA}, ${keyB})`;
-    } else if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "uint" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
+    } else if (type.type === "string" || type.type === "int" || type.type === "boolean" || type.type === "enum") {
       return `${keyA} === ${keyB}`;
     } else if (type.type === "self-reference") {
       return `${currentTypeName}.equals(${keyA}, ${keyB})`;
@@ -509,9 +503,10 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `encoder.pushString(${key})`;
     } else if (type.type === "int") {
+      if (type.min != null) {
+        return `encoder.pushBoundedInt(${key}, ${type.min})`;
+      }
       return `encoder.pushInt(${key})`;
-    } else if (type.type === "uint") {
-      return `encoder.pushUInt(${key})`;
     } else if (type.type === "float") {
       if (type.precision) {
         return `encoder.pushFloatQuantized(${key}, ${type.precision})`;
@@ -541,9 +536,10 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `decoder.nextString()`;
     } else if (type.type === "int") {
+      if (type.min != null) {
+        return `decoder.nextBoundedInt(${type.min})`;
+      }
       return `decoder.nextInt()`;
-    } else if (type.type === "uint") {
-      return `decoder.nextUInt()`;
     } else if (type.type === "float") {
       if (type.precision) {
         return `decoder.nextFloatQuantized(${type.precision})`;
@@ -610,9 +606,10 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `encoder.pushStringDiff(${keyA}, ${keyB})`;
     } else if (type.type === "int") {
+      if (type.min != null) {
+        return `encoder.pushBoundedIntDiff(${keyA}, ${keyB}, ${type.min})`;
+      }
       return `encoder.pushIntDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "uint") {
-      return `encoder.pushUIntDiff(${keyA}, ${keyB})`;
     } else if (type.type === "float") {
       if (type.precision) {
         return `encoder.pushFloatQuantizedDiff(${keyA}, ${keyB}, ${type.precision})`;
@@ -671,9 +668,10 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `decoder.nextStringDiff(${key})`;
     } else if (type.type === "int") {
+      if (type.min != null) {
+        return `decoder.nextBoundedIntDiff(${key}, ${type.min})`;
+      }
       return `decoder.nextIntDiff(${key})`;
-    } else if (type.type === "uint") {
-      return `decoder.nextUIntDiff(${key})`;
     } else if (type.type === "float") {
       if (type.precision) {
         return `decoder.nextFloatQuantizedDiff(${key}, ${type.precision})`;

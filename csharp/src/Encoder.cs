@@ -35,6 +35,9 @@ public class Encoder
     public void PushInt(long val) =>
         Varint.WriteVarint(_buffer, val);
 
+    public void PushBoundedInt(long val, long min) =>
+        Varint.WriteUVarint(_buffer, (ulong)(val - min));
+
     public void PushUInt(ulong val) =>
         Varint.WriteUVarint(_buffer, val);
 
@@ -64,13 +67,6 @@ public class Encoder
         PushBoolean(val is not null);
         if (val is not null)
             innerWrite(val);
-    }
-
-    public void PushOptional<T>(T? val, Action<T> innerWrite) where T : struct
-    {
-        PushBoolean(val.HasValue);
-        if (val.HasValue)
-            innerWrite(val.Value);
     }
 
     public void PushArray<T>(IList<T> val, Action<T> innerWrite)
@@ -113,11 +109,13 @@ public class Encoder
             PushInt(b);
     }
 
-    public void PushUIntDiff(ulong a, ulong b)
+    public void PushBoundedIntDiff(long a, long b, long min)
     {
-        PushBoolean(a != b);
-        if (a != b)
-            PushUInt(b);
+        var aOffset = a - min;
+        var bOffset = b - min;
+        PushBoolean(aOffset != bOffset);
+        if (aOffset != bOffset)
+            Varint.WriteUVarint(_buffer, (ulong)bOffset);
     }
 
     public void PushFloatDiff(float a, float b)
@@ -168,29 +166,6 @@ public class Encoder
         }
     }
 
-    public void PushOptionalDiffPrimitive<T>(T? a, T? b, Action<T> encode) where T : struct
-    {
-        if (!a.HasValue)
-        {
-            PushBoolean(b.HasValue);
-            if (b.HasValue)
-                encode(b.Value); // null → value
-            // else null → null
-        }
-        else
-        {
-            var changed = !b.HasValue || !a.Value.Equals(b.Value);
-            PushBoolean(changed);
-            if (changed)
-            {
-                PushBoolean(b.HasValue);
-                if (b.HasValue)
-                    encode(b.Value); // value → value
-                // else value → null
-            }
-        }
-    }
-
     public void PushOptionalDiff<T>(T? a, T? b, Action<T> encode, Action<T, T> encodeDiff) where T : class
     {
         if (a is null)
@@ -205,24 +180,6 @@ public class Encoder
             PushBoolean(b is not null);
             if (b is not null)
                 encodeDiff(a, b); // value → value
-            // else value → null
-        }
-    }
-
-    public void PushOptionalDiff<T>(T? a, T? b, Action<T> encode, Action<T, T> encodeDiff) where T : struct
-    {
-        if (!a.HasValue)
-        {
-            PushBoolean(b.HasValue);
-            if (b.HasValue)
-                encode(b.Value); // null → value
-            // else null → null
-        }
-        else
-        {
-            PushBoolean(b.HasValue);
-            if (b.HasValue)
-                encodeDiff(a.Value, b.Value); // value → value
             // else value → null
         }
     }
@@ -260,15 +217,16 @@ public class Encoder
         Func<TValue, TValue, bool> valueEquals,
         Action<TKey> encodeKey,
         Action<TValue> encodeVal,
-        Action<TValue, TValue> encodeDiff)
-        where TKey : notnull, IComparable<TKey>
+        Action<TValue, TValue> encodeDiff,
+        IComparer<TKey>? comparer = null)
+        where TKey : notnull
     {
         var changed = !EqualityHelpers.EqualsRecord(a, b, (x, y) => x.Equals(y), valueEquals);
         PushBoolean(changed);
         if (!changed)
             return;
 
-        var orderedKeys = a.Keys.OrderBy(k => k).ToList();
+        var orderedKeys = a.Keys.OrderBy(k => k, comparer).ToList();
         var updates = new List<int>();
         var deletions = new List<int>();
         var additions = new List<(TKey key, TValue val)>();

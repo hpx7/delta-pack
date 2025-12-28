@@ -25,8 +25,11 @@ export class Decoder {
   nextInt() {
     return this.reader.readVarint();
   }
-  nextUInt() {
-    return this.reader.readUVarint();
+  nextBoundedInt(min: number) {
+    return this.reader.readUVarint() + min;
+  }
+  nextBoundedIntDiff(a: number, min: number) {
+    return this.nextUIntDiff(a - min) + min;
   }
   nextFloat() {
     return this.reader.readFloat();
@@ -49,7 +52,7 @@ export class Decoder {
     return this.nextBoolean() ? innerRead() : undefined;
   }
   nextArray<T>(innerRead: () => T): T[] {
-    const len = this.nextUInt();
+    const len = this.reader.readUVarint();
     const arr = new Array<T>(len);
     for (let i = 0; i < len; i++) {
       arr[i] = innerRead();
@@ -57,7 +60,7 @@ export class Decoder {
     return arr;
   }
   nextRecord<K, T>(innerKeyRead: () => K, innerValRead: () => T): Map<K, T> {
-    const len = this.nextUInt();
+    const len = this.reader.readUVarint();
     const obj: Map<K, T> = new Map();
     for (let i = 0; i < len; i++) {
       obj.set(innerKeyRead(), innerValRead());
@@ -74,10 +77,6 @@ export class Decoder {
   nextIntDiff(a: number) {
     const changed = this.nextBoolean();
     return changed ? this.nextInt() : a;
-  }
-  nextUIntDiff(a: number) {
-    const changed = this.nextBoolean();
-    return changed ? this.nextUInt() : a;
   }
   nextFloatDiff(a: number) {
     const changed = this.nextBoolean();
@@ -123,7 +122,7 @@ export class Decoder {
       return arr;
     }
 
-    const newLen = this.nextUInt();
+    const newLen = this.reader.readUVarint();
     const newArr: T[] = [];
     const minLen = Math.min(arr.length, newLen);
     for (let i = 0; i < minLen; i++) {
@@ -145,18 +144,18 @@ export class Decoder {
     const orderedKeys = [...obj.keys()].sort();
 
     if (obj.size > 0) {
-      const numDeletions = this.nextUInt();
+      const numDeletions = this.reader.readUVarint();
       for (let i = 0; i < numDeletions; i++) {
-        const key = orderedKeys[this.nextUInt()]!;
+        const key = orderedKeys[this.reader.readUVarint()]!;
         result.delete(key);
       }
-      const numUpdates = this.nextUInt();
+      const numUpdates = this.reader.readUVarint();
       for (let i = 0; i < numUpdates; i++) {
-        const key = orderedKeys[this.nextUInt()]!;
+        const key = orderedKeys[this.reader.readUVarint()]!;
         result.set(key, decodeDiff(result.get(key)!));
       }
     }
-    const numAdditions = this.nextUInt();
+    const numAdditions = this.reader.readUVarint();
     for (let i = 0; i < numAdditions; i++) {
       const key = decodeKey();
       const val = decodeVal();
@@ -164,5 +163,10 @@ export class Decoder {
     }
 
     return result;
+  }
+
+  private nextUIntDiff(a: number) {
+    const changed = this.nextBoolean();
+    return changed ? this.reader.readUVarint() : a;
   }
 }

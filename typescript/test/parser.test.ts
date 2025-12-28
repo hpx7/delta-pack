@@ -107,7 +107,7 @@ describe("YAML Schema Parser", () => {
     const attackActionType = parsedSchema["AttackAction"] as ObjectType;
     expect(attackActionType.type).toBe("object");
     expect(attackActionType.properties["targetId"]!.type).toBe("string");
-    expect(attackActionType.properties["damage"]!.type).toBe("uint");
+    expect(attackActionType.properties["damage"]!.type).toBe("int");
     expect(parsedSchema["AttackAction"]).toEqual(AttackAction);
   });
 
@@ -146,7 +146,7 @@ describe("YAML Schema Parser", () => {
     expect(currentPlayerField.value.type).toBe("string");
 
     // Uint field
-    expect(gameStateType.properties["round"]!.type).toBe("uint");
+    expect(gameStateType.properties["round"]!.type).toBe("int");
 
     // Record/Map field
     expect(gameStateType.properties["metadata"]!.type).toBe("record");
@@ -235,7 +235,6 @@ describe("YAML Schema Parser", () => {
 
     expect(allTypes).toContain("string");
     expect(allTypes).toContain("int");
-    expect(allTypes).toContain("uint");
     expect(allTypes).toContain("float");
     expect(allTypes).toContain("boolean");
   });
@@ -335,5 +334,62 @@ TestType:
     expect(valueType.key.type).toBe("int");
     expect(valueType.value.type).toBe("reference");
     expect(valueType.value.ref.name).toBe("Player");
+  });
+
+  describe("Bounded integer parsing", () => {
+    it("should parse int with min parameter", () => {
+      const schema = parseSchemaYml("TestType:\n  score: int(min=0)");
+      const field = (schema["TestType"] as ObjectType).properties["score"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBe(0);
+      expect((field as { max?: number }).max).toBeUndefined();
+    });
+
+    it("should parse int with max parameter", () => {
+      const schema = parseSchemaYml("TestType:\n  level: int(max=100)");
+      const field = (schema["TestType"] as ObjectType).properties["level"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBeUndefined();
+      expect((field as { max?: number }).max).toBe(100);
+    });
+
+    it("should parse int with both min and max", () => {
+      const schema = parseSchemaYml("TestType:\n  health: int(min=0, max=100)");
+      const field = (schema["TestType"] as ObjectType).properties["health"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBe(0);
+      expect((field as { max?: number }).max).toBe(100);
+    });
+
+    it("should parse int with negative min", () => {
+      const schema = parseSchemaYml("TestType:\n  temp: int(min=-50, max=50)");
+      const field = (schema["TestType"] as ObjectType).properties["temp"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBe(-50);
+      expect((field as { max?: number }).max).toBe(50);
+    });
+
+    it("should parse uint as int with min=0", () => {
+      const schema = parseSchemaYml("TestType:\n  count: uint");
+      const field = (schema["TestType"] as ObjectType).properties["count"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBe(0);
+    });
+
+    it("should parse uint with max parameter", () => {
+      const schema = parseSchemaYml("TestType:\n  count: uint(max=255)");
+      const field = (schema["TestType"] as ObjectType).properties["count"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBe(0);
+      expect((field as { max?: number }).max).toBe(255);
+    });
+
+    it("should parse plain int without bounds", () => {
+      const schema = parseSchemaYml("TestType:\n  value: int");
+      const field = (schema["TestType"] as ObjectType).properties["value"]!;
+      expect(field.type).toBe("int");
+      expect((field as { min?: number }).min).toBeUndefined();
+      expect((field as { max?: number }).max).toBeUndefined();
+    });
   });
 });

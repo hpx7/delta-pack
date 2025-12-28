@@ -292,7 +292,7 @@ export function loadClass<T extends object>(
   }
 
   function hydrateValue(value: unknown, propType: PropertyType, currentTypeName: string): unknown {
-    if (value === null || value === undefined) return value;
+    if (value == null) return value;
 
     switch (propType.type) {
       case "reference":
@@ -386,7 +386,7 @@ function wrapUnions(
   schema: Record<string, NamedType>,
   unionVariants: Set<string>
 ): unknown {
-  if (obj === null || obj === undefined) return obj;
+  if (obj == null) return obj;
 
   if (objType.type === "union") {
     // Check if obj is already in { type, val } format
@@ -442,7 +442,7 @@ function wrapUnionValue(
   schema: Record<string, NamedType>,
   unionVariants: Set<string>
 ): unknown {
-  if (value === null || value === undefined) return value;
+  if (value == null) return value;
 
   switch (propType.type) {
     case "reference":

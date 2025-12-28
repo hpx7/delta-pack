@@ -139,7 +139,7 @@ MoveAction:
 
 AttackAction:
   targetId: string
-  damage: uint
+  damage: uint # shorthand for int(min=0)
 
 GameAction:
   - MoveAction
@@ -151,6 +151,12 @@ GameState:
   actions: GameAction[]
   round: uint
   phase: string
+
+# Bounded integers
+BoundedExample:
+  health: int(min=0, max=100) # validated in fromJson, encoded as unsigned
+  level: int(min=1, max=99)
+  temperature: int(min=-50, max=50)
 ```
 
 Parse YAML schemas with:
@@ -955,14 +961,18 @@ Each example includes:
 
 ### Primitive Types
 
-| Function                   | TypeScript Type | Description                              |
-| -------------------------- | --------------- | ---------------------------------------- |
-| `StringType()`             | `string`        | UTF-8 encoded string                     |
-| `IntType()`                | `number`        | Variable-length signed integer           |
-| `UIntType()`               | `number`        | Variable-length unsigned integer         |
-| `FloatType()`              | `number`        | 32-bit IEEE 754 float                    |
-| `FloatType({ precision })` | `number`        | Quantized float with specified precision |
-| `BooleanType()`            | `boolean`       | Single bit boolean                       |
+| Function                   | TypeScript Type | Description                                 |
+| -------------------------- | --------------- | ------------------------------------------- |
+| `StringType()`             | `string`        | UTF-8 encoded string                        |
+| `IntType()`                | `number`        | Variable-length signed integer (zigzag)     |
+| `IntType({ min })`         | `number`        | Bounded integer, encoded as unsigned offset |
+| `IntType({ min, max })`    | `number`        | Bounded integer with validation             |
+| `UIntType()`               | `number`        | Shorthand for `IntType({ min: 0 })`         |
+| `FloatType()`              | `number`        | 32-bit IEEE 754 float                       |
+| `FloatType({ precision })` | `number`        | Quantized float with specified precision    |
+| `BooleanType()`            | `boolean`       | Single bit boolean                          |
+
+**Bounded integers:** When `min` is specified, values are encoded as `value - min` using unsigned varints, which is more compact for values near the minimum. The `max` parameter adds validation in `fromJson()` but doesn't affect encoding.
 
 ### Container Types
 

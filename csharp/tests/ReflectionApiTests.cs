@@ -367,7 +367,7 @@ public class ReflectionApiTests
         var container = (ObjectType)schema["UIntKeyedContainer"];
         var itemCounts = (RecordType)container.Properties["itemCounts"];
 
-        Assert.IsType<UIntType>(itemCounts.Key);
+        Assert.Equal(0L, Assert.IsType<IntType>(itemCounts.Key).Min);
         Assert.IsType<IntType>(itemCounts.Value);
     }
 
@@ -570,6 +570,44 @@ public class ReflectionApiTests
         Assert.Equal(20.33f, decoded.Y, 0.001f);
     }
 
+    // Int range attribute
+    public class BoundedStats
+    {
+        [DeltaPackRange(0, 100)]
+        public int Health { get; set; }
+
+        [DeltaPackRange(1)]
+        public int PlayerId { get; set; }
+    }
+
+    [Fact]
+    public void SchemaEquivalence_WithRangeAttribute()
+    {
+        var schema = ReflectionSchema.BuildSchema<BoundedStats>();
+
+        var stats = (ObjectType)schema["BoundedStats"];
+        var health = (IntType)stats.Properties["health"];
+        Assert.Equal(0, health.Min);
+        Assert.Equal(100, health.Max);
+
+        var playerId = (IntType)stats.Properties["playerId"];
+        Assert.Equal(1, playerId.Min);
+        Assert.Null(playerId.Max);
+    }
+
+    [Fact]
+    public void IntRange_RoundTrips()
+    {
+        var codec = new DeltaPackCodec<BoundedStats>();
+        var stats = new BoundedStats { Health = 75, PlayerId = 42 };
+
+        var encoded = codec.Encode(stats);
+        var decoded = codec.Decode(encoded);
+
+        Assert.Equal(75, decoded.Health);
+        Assert.Equal(42, decoded.PlayerId);
+    }
+
     // Ignore attribute
     public class PlayerWithIgnored
     {
@@ -628,15 +666,15 @@ public class ReflectionApiTests
     }
 
     [Fact]
-    public void UnsignedTypes_MapsToUIntType()
+    public void UnsignedTypes_MapsToIntTypeWithMinZero()
     {
         var schema = ReflectionSchema.BuildSchema<UnsignedTypes>();
 
         var types = (ObjectType)schema["UnsignedTypes"];
-        Assert.IsType<UIntType>(types.Properties["count"]);
-        Assert.IsType<UIntType>(types.Properties["bigCount"]);
-        Assert.IsType<UIntType>(types.Properties["smallCount"]);
-        Assert.IsType<UIntType>(types.Properties["tinyCount"]);
+        Assert.Equal(0L, Assert.IsType<IntType>(types.Properties["count"]).Min);
+        Assert.Equal(0L, Assert.IsType<IntType>(types.Properties["bigCount"]).Min);
+        Assert.Equal(0L, Assert.IsType<IntType>(types.Properties["smallCount"]).Min);
+        Assert.Equal(0L, Assert.IsType<IntType>(types.Properties["tinyCount"]).Min);
     }
 
     [Fact]

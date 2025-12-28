@@ -136,7 +136,7 @@ function trackObject<T extends Record<string, unknown>>(obj: T, propagateToParen
         return target[prop as unknown as string];
       }
       const tracked = trackedChildren[prop];
-      if (tracked !== undefined) {
+      if (tracked != null) {
         return tracked;
       }
       return target[prop];
@@ -237,8 +237,7 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
         return (start: number, deleteCount?: number, ...items: T[]) => {
           const len = target.length;
           const actualStart = start < 0 ? Math.max(len + start, 0) : Math.min(start, len);
-          const actualDeleteCount =
-            deleteCount === undefined ? len - actualStart : Math.min(deleteCount, len - actualStart);
+          const actualDeleteCount = deleteCount == null ? len - actualStart : Math.min(deleteCount, len - actualStart);
           // Mark affected indices as dirty
           for (let i = actualStart; i < len; i++) {
             dirty.add(i);
