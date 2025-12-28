@@ -20,16 +20,6 @@ public static class EqualityHelpers
         return false;
     }
 
-    public static bool EqualsOptional<T>(T? a, T? b, Func<T, T, bool> equals)
-        where T : struct
-    {
-        if (!a.HasValue && !b.HasValue)
-            return true;
-        if (a.HasValue && b.HasValue)
-            return equals(a.Value, b.Value);
-        return false;
-    }
-
     public static bool EqualsArray<T>(IList<T> a, IList<T> b, Func<T, T, bool> equals)
     {
         if (a.Count != b.Count)

@@ -205,36 +205,23 @@ public static class Interpreter
 
         private bool EqualsArray(object? a, object? b, ArrayType at)
         {
-            var arrA = (IList<object?>?)a;
-            var arrB = (IList<object?>?)b;
-            if (arrA is null || arrB is null)
-                return arrA is null && arrB is null;
-            if (arrA.Count != arrB.Count)
-                return false;
-            for (var i = 0; i < arrA.Count; i++)
-            {
-                if (!Equals(arrA[i], arrB[i], at.Value))
-                    return false;
-            }
-            return true;
+            if (a is null || b is null)
+                return a is null && b is null;
+            return EqualityHelpers.EqualsArray(
+                (IList<object?>)a,
+                (IList<object?>)b,
+                (x, y) => Equals(x, y, at.Value));
         }
 
         private bool EqualsRecord(object? a, object? b, RecordType rt)
         {
-            var dictA = (IDictionary<object, object?>?)a;
-            var dictB = (IDictionary<object, object?>?)b;
-            if (dictA is null || dictB is null)
-                return dictA is null && dictB is null;
-            if (dictA.Count != dictB.Count)
-                return false;
-            foreach (var (key, val) in dictA)
-            {
-                if (!dictB.TryGetValue(key, out var bVal))
-                    return false;
-                if (!Equals(val, bVal, rt.Value))
-                    return false;
-            }
-            return true;
+            if (a is null || b is null)
+                return a is null && b is null;
+            return EqualityHelpers.EqualsRecord(
+                (IDictionary<object, object?>)a,
+                (IDictionary<object, object?>)b,
+                (x, y) => x.Equals(y),
+                (x, y) => Equals(x, y, rt.Value));
         }
 
         private bool EqualsUnion(object? a, object? b)
@@ -248,14 +235,8 @@ public static class Interpreter
             return Equals(unionA.Val, unionB.Val, ResolveRef(unionA.Type));
         }
 
-        private bool EqualsOptional(object? a, object? b, OptionalType opt)
-        {
-            if (a is null && b is null)
-                return true;
-            if (a is null || b is null)
-                return false;
-            return Equals(a, b, opt.Value);
-        }
+        private bool EqualsOptional(object? a, object? b, OptionalType opt) =>
+            EqualityHelpers.EqualsOptional(a, b, (x, y) => Equals(x, y, opt.Value));
 
         // === Clone ===
 
