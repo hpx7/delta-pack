@@ -46,6 +46,48 @@ GameState result = codec.DecodeDiff(stateA, diff);
 // diff is smaller than full encode when few fields change
 ```
 
+## Code Generation
+
+As an alternative to reflection-based serialization, you can generate C# code from a YAML schema:
+
+```yaml
+# schema.yml
+Player:
+  name: string
+  score: int
+  active: boolean
+
+GameState:
+  players: <string, Player>
+  round: uint
+```
+
+Generate C# code using the CLI:
+
+```bash
+npx delta-pack generate schema.yml -l csharp -o Generated.cs
+```
+
+The generated code provides static methods for each type:
+
+```csharp
+// Generated types are plain classes
+var player = new Player { Name = "Alice", Score = 100, Active = true };
+
+// Static encode/decode methods
+byte[] encoded = Player.Encode(player);
+Player decoded = Player.Decode(encoded);
+
+// Delta encoding
+byte[] diff = Player.EncodeDiff(oldPlayer, newPlayer);
+Player result = Player.DecodeDiff(oldPlayer, diff);
+```
+
+**When to use codegen vs reflection:**
+
+- **Codegen**: Shared schemas across TypeScript/C#, compile-time type safety, no reflection overhead
+- **Reflection**: Define types directly in C#, no build step, works with existing classes
+
 ## Supported Types
 
 - **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `byte`, `short`, etc.

@@ -72,20 +72,21 @@ const decoded = PlayerApi.decode(encoded);
 
 ### Codegen Mode (Recommended for production)
 
-```typescript
-import { codegenTypescript, ObjectType, StringType, IntType } from "@hpx7/delta-pack";
-import { writeFileSync } from "fs";
+Create a YAML schema file (`schema.yml`):
 
-// Define schema types
-const Player = ObjectType("Player", {
-  id: StringType(),
-  name: StringType(),
-  score: IntType(),
-});
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
 
-// Generate TypeScript code (pass object with all types)
-const code = codegenTypescript({ Player });
-writeFileSync("generated.ts", code);
+Player:
+  id: string
+  name: string
+  score: int
+```
+
+Generate TypeScript code using the CLI:
+
+```bash
+npx delta-pack generate schema.yml -l typescript -o generated.ts
 ```
 
 Then use the generated code:
@@ -590,14 +591,30 @@ const PlayerApi = load(schema["Player"]);
 
 ## Codegen API
 
-The codegen mode generates TypeScript code from schemas for compile-time type safety.
+The codegen mode generates TypeScript code from schemas for compile-time type safety. Code generation is handled by the `@hpx7/delta-pack-cli` package.
 
 ### Generating Code
 
-```typescript
-import { codegenTypescript } from "@hpx7/delta-pack";
-import { writeFileSync } from "fs";
+```bash
+# Install CLI globally or use npx
+npm install -g @hpx7/delta-pack-cli
 
+# Generate from YAML schema
+delta-pack generate schema.yml -l typescript -o generated.ts
+
+# Or use npx
+npx delta-pack generate schema.yml -l typescript -o generated.ts
+```
+
+For programmatic code generation, import from the CLI package:
+
+```typescript
+import { codegenTypescript } from "@hpx7/delta-pack-cli/codegen";
+import { parseSchemaYml } from "@hpx7/delta-pack";
+import { readFileSync, writeFileSync } from "fs";
+
+const schemaYml = readFileSync("schema.yml", "utf8");
+const schema = parseSchemaYml(schemaYml);
 const code = codegenTypescript(schema);
 writeFileSync("generated.ts", code);
 ```
@@ -783,13 +800,37 @@ const reconstructed = GameStateApi.decodeDiff(state1, diff);
 
 **Using Codegen Mode:**
 
-```typescript
-import { codegenTypescript } from "@hpx7/delta-pack";
-import { writeFileSync } from "fs";
+Create a schema file (`game.schema.yml`):
 
-// Using the same types from above
-const code = codegenTypescript({ Team, Position, Player, GameState });
-writeFileSync("generated.ts", code);
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+
+Team:
+  - RED
+  - BLUE
+
+Position:
+  x: float
+  y: float
+
+Player:
+  id: string
+  username: string
+  team: Team
+  position: Position
+  health: uint
+  score: int
+
+GameState:
+  players: <string, Player>
+  round: uint
+  timeRemaining: float
+```
+
+Generate the code:
+
+```bash
+npx delta-pack generate game.schema.yml -l typescript -o generated.ts
 ```
 
 Then use the generated code:

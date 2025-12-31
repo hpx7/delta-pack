@@ -53,10 +53,6 @@
     "./interpreter": {
       "types": "./dist/interpreter.d.ts",
       "default": "./dist/interpreter.js"
-    },
-    "./codegen": {
-      "types": "./dist/codegen.d.ts",
-      "default": "./dist/codegen.js"
     }
   },
   "scripts": {
