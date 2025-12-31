@@ -20,9 +20,8 @@ public class CodegenTests
         // Generate fresh code using CLI
         var psi = new ProcessStartInfo
         {
-            FileName = "bun",
-            Arguments = $"cli/src/index.ts generate {SchemaPath} -l csharp -n Generated",
-            WorkingDirectory = Path.GetFullPath(Path.Combine(TestsDir, "..")),
+            FileName = "delta-pack",
+            Arguments = $"generate {SchemaPath} -l csharp -n Generated",
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false

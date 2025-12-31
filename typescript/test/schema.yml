@@ -52,3 +52,6 @@ GameState:
 
 Inventory:
   items: <string, int>[]?
+
+PlayerRegistry:
+  players: <string, Player>
