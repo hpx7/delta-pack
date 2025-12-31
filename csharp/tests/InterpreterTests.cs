@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Xunit;
+using Props = System.Collections.Generic.Dictionary<string, DeltaPack.SchemaType>;
 
 namespace DeltaPack.Tests;
 
@@ -8,13 +9,15 @@ public class InterpreterTests
     [Fact]
     public void SimpleObject_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Player:
-  name: string
-  score: uint
-  active: boolean
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["score"] = new IntType(Min: 0),
+                ["active"] = new BooleanType()
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var player = new Dictionary<string, object?>
@@ -35,16 +38,19 @@ Player:
     [Fact]
     public void NestedObject_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Position:
-  x: float
-  y: float
-
-Player:
-  name: string
-  position: Position
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Position"] = new ObjectType(new Props
+            {
+                ["x"] = new FloatType(),
+                ["y"] = new FloatType()
+            }),
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["position"] = new ReferenceType("Position")
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var player = new Dictionary<string, object?>
@@ -69,12 +75,14 @@ Player:
     [Fact]
     public void QuantizedFloat_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Position:
-  x: float(precision=0.1)
-  y: float(precision=0.1)
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Position"] = new ObjectType(new Props
+            {
+                ["x"] = new FloatType(Precision: 0.1),
+                ["y"] = new FloatType(Precision: 0.1)
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Position");
 
         var pos = new Dictionary<string, object?>
@@ -93,12 +101,14 @@ Position:
     [Fact]
     public void Array_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Container:
-  items: string[]
-  numbers: int[]
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Container"] = new ObjectType(new Props
+            {
+                ["items"] = new ArrayType(new StringType()),
+                ["numbers"] = new ArrayType(new IntType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Container");
 
         var container = new Dictionary<string, object?>
@@ -117,12 +127,14 @@ Container:
     [Fact]
     public void Optional_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Entity:
-  name: string
-  description: string?
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Entity"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["description"] = new OptionalType(new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Entity");
 
         var withDesc = new Dictionary<string, object?>
@@ -149,17 +161,15 @@ Entity:
     [Fact]
     public void Enum_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Color:
-  - RED
-  - GREEN
-  - BLUE
-
-Item:
-  name: string
-  color: Color
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Color"] = new EnumType(new[] { "RED", "GREEN", "BLUE" }),
+            ["Item"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["color"] = new ReferenceType("Color")
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Item");
 
         var item = new Dictionary<string, object?>
@@ -178,18 +188,18 @@ Item:
     [Fact]
     public void Union_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Email:
-  address: string
-
-Phone:
-  number: string
-
-Contact:
-  - Email
-  - Phone
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Email"] = new ObjectType(new Props
+            {
+                ["address"] = new StringType()
+            }),
+            ["Phone"] = new ObjectType(new Props
+            {
+                ["number"] = new StringType()
+            }),
+            ["Contact"] = new UnionType(new[] { new ReferenceType("Email"), new ReferenceType("Phone") })
+        };
         var api = Interpreter.Load<UnionValue>(schema, "Contact");
 
         var emailContact = new UnionValue("Email", new Dictionary<string, object?>
@@ -216,11 +226,13 @@ Contact:
     [Fact]
     public void Record_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-Inventory:
-  items: <string, uint>
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Inventory"] = new ObjectType(new Props
+            {
+                ["items"] = new RecordType(new StringType(), new IntType(Min: 0))
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Inventory");
 
         var inventory = new Dictionary<string, object?>
@@ -243,11 +255,13 @@ Inventory:
     [Fact]
     public void Record_IntKeys_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-PlayerScores:
-  scores: <int, string>
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["PlayerScores"] = new ObjectType(new Props
+            {
+                ["scores"] = new RecordType(new IntType(), new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "PlayerScores");
 
         var playerScores = new Dictionary<string, object?>
@@ -272,11 +286,13 @@ PlayerScores:
     [Fact]
     public void Record_UIntKeys_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-ItemCounts:
-  counts: <uint, uint>
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["ItemCounts"] = new ObjectType(new Props
+            {
+                ["counts"] = new RecordType(new IntType(Min: 0), new IntType(Min: 0))
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "ItemCounts");
 
         var itemCounts = new Dictionary<string, object?>
@@ -301,11 +317,13 @@ ItemCounts:
     [Fact]
     public void Record_IntKeys_DiffRoundTrip()
     {
-        var yaml = @"
-PlayerScores:
-  scores: <int, string>
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["PlayerScores"] = new ObjectType(new Props
+            {
+                ["scores"] = new RecordType(new IntType(), new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "PlayerScores");
 
         var a = new Dictionary<string, object?>
@@ -338,12 +356,14 @@ PlayerScores:
     [Fact]
     public void Equals_ReturnsCorrectly()
     {
-        var yaml = @"
-Player:
-  name: string
-  score: uint
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["score"] = new IntType(Min: 0)
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var player1 = new Dictionary<string, object?> { ["name"] = "Alice", ["score"] = 100 };
@@ -357,16 +377,19 @@ Player:
     [Fact]
     public void Clone_CreatesDeepCopy()
     {
-        var yaml = @"
-Position:
-  x: float
-  y: float
-
-Player:
-  name: string
-  position: Position
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Position"] = new ObjectType(new Props
+            {
+                ["x"] = new FloatType(),
+                ["y"] = new FloatType()
+            }),
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["position"] = new ReferenceType("Position")
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var player = new Dictionary<string, object?>
@@ -393,13 +416,15 @@ Player:
     [Fact]
     public void Diff_EncodesOnlyChanges()
     {
-        var yaml = @"
-Player:
-  name: string
-  score: uint
-  health: uint
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["score"] = new IntType(Min: 0),
+                ["health"] = new IntType(Min: 0)
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var playerA = new Dictionary<string, object?>
@@ -431,12 +456,14 @@ Player:
     [Fact]
     public void Diff_NoChanges_ProducesMinimalOutput()
     {
-        var yaml = @"
-Player:
-  name: string
-  score: uint
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["score"] = new IntType(Min: 0)
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var player = new Dictionary<string, object?>
@@ -458,11 +485,13 @@ Player:
     [Fact]
     public void ArrayDiff_RoundTrips()
     {
-        var yaml = @"
-Container:
-  items: string[]
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Container"] = new ObjectType(new Props
+            {
+                ["items"] = new ArrayType(new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Container");
 
         var a = new Dictionary<string, object?>
@@ -484,18 +513,18 @@ Container:
     [Fact]
     public void UnionDiff_SameType_RoundTrips()
     {
-        var yaml = @"
-Email:
-  address: string
-
-Phone:
-  number: string
-
-Contact:
-  - Email
-  - Phone
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Email"] = new ObjectType(new Props
+            {
+                ["address"] = new StringType()
+            }),
+            ["Phone"] = new ObjectType(new Props
+            {
+                ["number"] = new StringType()
+            }),
+            ["Contact"] = new UnionType(new[] { new ReferenceType("Email"), new ReferenceType("Phone") })
+        };
         var api = Interpreter.Load<UnionValue>(schema, "Contact");
 
         var a = new UnionValue("Email", new Dictionary<string, object?> { ["address"] = "old@example.com" });
@@ -511,18 +540,18 @@ Contact:
     [Fact]
     public void UnionDiff_TypeChange_RoundTrips()
     {
-        var yaml = @"
-Email:
-  address: string
-
-Phone:
-  number: string
-
-Contact:
-  - Email
-  - Phone
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Email"] = new ObjectType(new Props
+            {
+                ["address"] = new StringType()
+            }),
+            ["Phone"] = new ObjectType(new Props
+            {
+                ["number"] = new StringType()
+            }),
+            ["Contact"] = new UnionType(new[] { new ReferenceType("Email"), new ReferenceType("Phone") })
+        };
         var api = Interpreter.Load<UnionValue>(schema, "Contact");
 
         var a = new UnionValue("Email", new Dictionary<string, object?> { ["address"] = "test@example.com" });
@@ -538,12 +567,14 @@ Contact:
     [Fact]
     public void OptionalDiff_NullToValue_RoundTrips()
     {
-        var yaml = @"
-Entity:
-  name: string
-  description: string?
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Entity"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["description"] = new OptionalType(new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Entity");
 
         var a = new Dictionary<string, object?>
@@ -567,12 +598,14 @@ Entity:
     [Fact]
     public void OptionalDiff_ValueToNull_RoundTrips()
     {
-        var yaml = @"
-Entity:
-  name: string
-  description: string?
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Entity"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["description"] = new OptionalType(new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Entity");
 
         var a = new Dictionary<string, object?>
@@ -596,12 +629,14 @@ Entity:
     [Fact]
     public void OptionalDiff_ValueToValue_RoundTrips()
     {
-        var yaml = @"
-Entity:
-  name: string
-  description: string?
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Entity"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["description"] = new OptionalType(new StringType())
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Entity");
 
         var a = new Dictionary<string, object?>
@@ -625,16 +660,19 @@ Entity:
     [Fact]
     public void OptionalDiff_ComplexType_NullToValue_RoundTrips()
     {
-        var yaml = @"
-Address:
-  street: string
-  city: string
-
-Person:
-  name: string
-  address: Address?
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Address"] = new ObjectType(new Props
+            {
+                ["street"] = new StringType(),
+                ["city"] = new StringType()
+            }),
+            ["Person"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["address"] = new OptionalType(new ReferenceType("Address"))
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Person");
 
         var a = new Dictionary<string, object?>
@@ -664,16 +702,19 @@ Person:
     [Fact]
     public void OptionalDiff_ComplexType_ValueToValue_RoundTrips()
     {
-        var yaml = @"
-Address:
-  street: string
-  city: string
-
-Person:
-  name: string
-  address: Address?
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Address"] = new ObjectType(new Props
+            {
+                ["street"] = new StringType(),
+                ["city"] = new StringType()
+            }),
+            ["Person"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["address"] = new OptionalType(new ReferenceType("Address"))
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Person");
 
         var a = new Dictionary<string, object?>
@@ -707,13 +748,15 @@ Person:
     [Fact]
     public void FromJson_ParsesCorrectly()
     {
-        var yaml = @"
-Player:
-  name: string
-  score: uint
-  active: boolean
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["score"] = new IntType(Min: 0),
+                ["active"] = new BooleanType()
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var json = JsonDocument.Parse("""{"name": "Alice", "score": 100, "active": true}""").RootElement;
@@ -727,12 +770,14 @@ Player:
     [Fact]
     public void ToJson_SerializesCorrectly()
     {
-        var yaml = @"
-Player:
-  name: string
-  score: uint
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType(),
+                ["score"] = new IntType(Min: 0)
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
 
         var player = new Dictionary<string, object?>
@@ -750,14 +795,15 @@ Player:
     [Fact]
     public void Reference_EncodeDecodeRoundTrip()
     {
-        var yaml = @"
-UserId: string
-
-User:
-  id: UserId
-  name: string
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["UserId"] = new StringType(),
+            ["User"] = new ObjectType(new Props
+            {
+                ["id"] = new ReferenceType("UserId"),
+                ["name"] = new StringType()
+            })
+        };
         var api = Interpreter.Load<Dictionary<string, object?>>(schema, "User");
 
         var user = new Dictionary<string, object?>
@@ -776,11 +822,13 @@ User:
     [Fact]
     public void Load_ThrowsOnUnknownType()
     {
-        var yaml = @"
-Player:
-  name: string
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["Player"] = new ObjectType(new Props
+            {
+                ["name"] = new StringType()
+            })
+        };
 
         Assert.Throws<ArgumentException>(() =>
             Interpreter.Load<Dictionary<string, object?>>(schema, "Unknown"));
@@ -789,94 +837,21 @@ Player:
     [Fact]
     public void Load_ThrowsOnPrimitiveRootType()
     {
-        var yaml = @"
-UserId: string
-";
-        var schema = Parser.ParseSchemaYml(yaml);
+        var schema = new Props
+        {
+            ["UserId"] = new StringType()
+        };
 
         Assert.Throws<ArgumentException>(() =>
             Interpreter.Load<string>(schema, "UserId"));
     }
 
-    // Tests demonstrating dependency-free usage (no YAML parsing, no JSON)
-    // These patterns work in Unity without any external dependencies
-
     [Fact]
-    public void CodeDefinedSchema_SimpleObject_RoundTrips()
+    public void WithArraysAndOptionals_RoundTrips()
     {
-        // Define schema in code - no YamlDotNet needed
-        var schema = new Dictionary<string, SchemaType>
+        var schema = new Props
         {
-            ["Player"] = new ObjectType(new Dictionary<string, SchemaType>
-            {
-                ["name"] = new StringType(),
-                ["score"] = new IntType(),
-                ["active"] = new BooleanType()
-            })
-        };
-
-        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
-
-        // Create state directly - no JSON parsing needed
-        var player = new Dictionary<string, object?>
-        {
-            ["name"] = "Alice",
-            ["score"] = 100L,
-            ["active"] = true
-        };
-
-        var encoded = api.Encode(player);
-        var decoded = api.Decode(encoded);
-
-        Assert.Equal("Alice", decoded["name"]);
-        Assert.Equal(100L, decoded["score"]);
-        Assert.Equal(true, decoded["active"]);
-    }
-
-    [Fact]
-    public void CodeDefinedSchema_NestedObjects_RoundTrips()
-    {
-        var schema = new Dictionary<string, SchemaType>
-        {
-            ["Position"] = new ObjectType(new Dictionary<string, SchemaType>
-            {
-                ["x"] = new FloatType(),
-                ["y"] = new FloatType()
-            }),
-            ["Player"] = new ObjectType(new Dictionary<string, SchemaType>
-            {
-                ["name"] = new StringType(),
-                ["position"] = new ReferenceType("Position")
-            })
-        };
-
-        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "Player");
-
-        var player = new Dictionary<string, object?>
-        {
-            ["name"] = "Bob",
-            ["position"] = new Dictionary<string, object?>
-            {
-                ["x"] = 10.5f,
-                ["y"] = 20.3f
-            }
-        };
-
-        var encoded = api.Encode(player);
-        var decoded = api.Decode(encoded);
-
-        Assert.Equal("Bob", decoded["name"]);
-        var pos = (Dictionary<string, object?>)decoded["position"]!;
-        Assert.Equal(10.5f, (float)pos["x"]!, 0.01f);
-        Assert.Equal(20.3f, (float)pos["y"]!, 0.01f);
-    }
-
-    [Fact]
-    public void CodeDefinedSchema_WithArraysAndOptionals_RoundTrips()
-    {
-        var schema = new Dictionary<string, SchemaType>
-        {
-            ["Inventory"] = new ObjectType(new Dictionary<string, SchemaType>
+            ["Inventory"] = new ObjectType(new Props
             {
                 ["items"] = new ArrayType(new StringType()),
                 ["gold"] = new IntType(),
@@ -902,23 +877,23 @@ UserId: string
     }
 
     [Fact]
-    public void CodeDefinedSchema_WithEnumAndUnion_RoundTrips()
+    public void WithEnumAndUnion_RoundTrips()
     {
-        var schema = new Dictionary<string, SchemaType>
+        var schema = new Props
         {
             ["DamageType"] = new EnumType(new[] { "FIRE", "ICE", "LIGHTNING" }),
-            ["MeleeAttack"] = new ObjectType(new Dictionary<string, SchemaType>
+            ["MeleeAttack"] = new ObjectType(new Props
             {
                 ["damage"] = new IntType(),
                 ["range"] = new FloatType()
             }),
-            ["RangedAttack"] = new ObjectType(new Dictionary<string, SchemaType>
+            ["RangedAttack"] = new ObjectType(new Props
             {
                 ["damage"] = new IntType(),
                 ["projectileSpeed"] = new FloatType()
             }),
             ["Attack"] = new UnionType(new[] { new ReferenceType("MeleeAttack"), new ReferenceType("RangedAttack") }),
-            ["Weapon"] = new ObjectType(new Dictionary<string, SchemaType>
+            ["Weapon"] = new ObjectType(new Props
             {
                 ["name"] = new StringType(),
                 ["damageType"] = new ReferenceType("DamageType"),
@@ -952,15 +927,15 @@ UserId: string
     }
 
     [Fact]
-    public void CodeDefinedSchema_DiffEncoding_RoundTrips()
+    public void DiffEncoding_RoundTrips()
     {
-        var schema = new Dictionary<string, SchemaType>
+        var schema = new Props
         {
-            ["GameState"] = new ObjectType(new Dictionary<string, SchemaType>
+            ["GameState"] = new ObjectType(new Props
             {
                 ["score"] = new IntType(),
                 ["health"] = new IntType(),
-                ["position"] = new ObjectType(new Dictionary<string, SchemaType>
+                ["position"] = new ObjectType(new Props
                 {
                     ["x"] = new FloatType(),
                     ["y"] = new FloatType()

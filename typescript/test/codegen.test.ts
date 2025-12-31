@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { codegenTypescript } from "@hpx7/delta-pack";
+import { codegenTypescript } from "@hpx7/delta-pack-cli/codegen";
 import { schema } from "./schema.js";
 import * as apis from "./generated-schema.js";
 import { runAllSharedTests } from "./shared-api-tests.js";

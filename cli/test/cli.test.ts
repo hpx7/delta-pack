@@ -53,6 +53,13 @@ describe("CLI", () => {
     expect(generated).toContain("export const Primitives");
   });
 
+  it("generate csharp", async () => {
+    const generated =
+      await $`bun ${cli} generate ${schemaPath} -l csharp`.text();
+    expect(generated).toContain("public class Primitives");
+    expect(generated).toContain("namespace Generated");
+  });
+
   it("errors on missing schema", async () => {
     const result = await $`bun ${cli} encode -t Foo`.nothrow();
     expect(result.exitCode).toBe(1);

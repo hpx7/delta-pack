@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { parseSchemaYml, codegenTypescript } from "@hpx7/delta-pack";
+import { parseSchemaYml } from "@hpx7/delta-pack";
+import { languages } from "../codegen/index.js";
 import { writeOutput } from "../utils/io.js";
 import { ArgError } from "../utils/errors.js";
 
@@ -23,18 +24,13 @@ export async function generate(
   const content = await readFile(schemaPath, "utf-8");
   const schema = parseSchemaYml(content);
 
-  let code: string;
-  switch (lang) {
-    case "typescript":
-    case "ts":
-      code = codegenTypescript(schema);
-      break;
-    case "csharp":
-    case "cs":
-      throw new ArgError("generate: C# codegen not yet implemented");
-    default:
-      throw new ArgError(`generate: unknown language '${lang}'`);
+  const codegen = languages[lang];
+  if (!codegen) {
+    throw new ArgError(`generate: unknown language '${lang}'`);
   }
+
+  const ns = flags.get("n") ?? flags.get("namespace");
+  const code = codegen(schema, typeof ns === "string" ? ns : undefined);
 
   await writeOutput(output === true ? undefined : output, code);
 }

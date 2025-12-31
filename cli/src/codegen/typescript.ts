@@ -1,4 +1,4 @@
-import { Type, isPrimitiveOrEnum } from "./schema.js";
+import { Type, isPrimitiveOrEnum } from "@hpx7/delta-pack";
 
 export function codegenTypescript(schema: Record<string, Type>) {
   return renderSchema(schema);
@@ -86,7 +86,12 @@ export const ${name} = {
     return (
       ${Object.entries(type.properties)
         .map(([childName, childType]) => {
-          return renderEquals(childType, name, `a.${childName}`, `b.${childName}`);
+          return renderEquals(
+            childType,
+            name,
+            `a.${childName}`,
+            `b.${childName}`,
+          );
         })
         .join(" &&\n      ")}
     );
@@ -338,11 +343,14 @@ export const ${name} = {
     .join("\n  ")}
 } & { _dirty?: Set<keyof ${name}> }`;
     } else if (type.type === "union") {
-      return type.options.map((option) => `{ type: "${option.name}"; val: ${option.name} }`).join(" | ");
+      return type.options
+        .map((option) => `{ type: "${option.name}"; val: ${option.name} }`)
+        .join(" | ");
     } else if (type.type === "array") {
       const elementType = renderTypeArg(type.value, name);
       // Parenthesize if element type has _dirty (array or record - objects can't be direct children)
-      const needsParens = type.value.type === "array" || type.value.type === "record";
+      const needsParens =
+        type.value.type === "array" || type.value.type === "record";
       return needsParens
         ? `(${elementType})[] & { _dirty?: Set<number> }`
         : `${elementType}[] & { _dirty?: Set<number> }`;
@@ -465,7 +473,12 @@ export const ${name} = {
     return `${name}.clone(${key})`;
   }
 
-  function renderEquals(type: Type, name: string, keyA: string, keyB: string): string {
+  function renderEquals(
+    type: Type,
+    name: string,
+    keyA: string,
+    keyB: string,
+  ): string {
     if (type.type === "array") {
       return `_.equalsArray(${keyA}, ${keyB}, (x, y) => ${renderEquals(type.value, name, "x", "y")})`;
     } else if (type.type === "optional") {
@@ -481,7 +494,12 @@ export const ${name} = {
         return `_.equalsFloatQuantized(${keyA}, ${keyB}, ${type.precision})`;
       }
       return `_.equalsFloat(${keyA}, ${keyB})`;
-    } else if (type.type === "string" || type.type === "int" || type.type === "boolean" || type.type === "enum") {
+    } else if (
+      type.type === "string" ||
+      type.type === "int" ||
+      type.type === "boolean" ||
+      type.type === "enum"
+    ) {
       return `${keyA} === ${keyB}`;
     } else if (type.type === "self-reference") {
       return `${currentTypeName}.equals(${keyA}, ${keyB})`;
@@ -555,7 +573,12 @@ export const ${name} = {
     return `${name}._decode(decoder)`;
   }
 
-  function renderEncodeDiff(type: Type, name: string, keyA: string, keyB: string): string {
+  function renderEncodeDiff(
+    type: Type,
+    name: string,
+    keyA: string,
+    keyB: string,
+  ): string {
     if (type.type === "array") {
       const valueType = renderTypeArg(type.value, name);
       const equalsFn = renderEquals(type.value, name, "x", "y");
