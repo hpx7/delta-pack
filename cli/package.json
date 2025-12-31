@@ -30,7 +30,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@hpx7/delta-pack": "^0.2.4",
+    "@hpx7/delta-pack": "^0.2.5",
     "yaml": "^2.3.4"
   },
   "devDependencies": {
