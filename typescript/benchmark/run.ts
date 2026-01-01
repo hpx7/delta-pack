@@ -3,12 +3,20 @@ import * as path from "node:path";
 import * as url from "node:url";
 import * as msgpack from "msgpackr";
 import type { DeltaPackApi } from "@hpx7/delta-pack";
-import * as generated from "./generated/index.js";
+import * as deltapack from "./generated/deltapack/index.js";
+import * as protobuf from "./generated/protobuf/index.js";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const examplesDir = path.join(__dirname, "../../../examples");
 const WARMUP_ITERATIONS = 1000;
 const BENCHMARK_DURATION_MS = 500;
+
+interface ProtobufType {
+  fromObject: (object: unknown) => unknown;
+  toObject: (message: unknown, options?: object) => unknown;
+  encode: (message: unknown) => { finish: () => Uint8Array };
+  decode: (data: Uint8Array) => unknown;
+}
 
 interface Example {
   name: string;
@@ -21,7 +29,10 @@ interface StateData {
   jsonEncoded: string;
   msgpackEncoded: Uint8Array;
   deltaPackEncoded: Uint8Array;
+  protobufEncoded: Uint8Array;
+  protobufMessage: unknown;
   api: DeltaPackApi<unknown>;
+  protobufType: ProtobufType;
 }
 
 function main() {
@@ -47,12 +58,14 @@ function globalWarmup(examples: Example[]) {
       for (let i = 0; i < WARMUP_ITERATIONS; i++) {
         Buffer.from(JSON.stringify(state.plainState));
         msgpack.pack(state.plainState);
+        state.protobufType.encode(state.protobufMessage).finish();
         state.api.encode(state.typedState);
       }
       // Warmup decode
       for (let i = 0; i < WARMUP_ITERATIONS; i++) {
         JSON.parse(state.jsonEncoded);
         msgpack.unpack(state.msgpackEncoded);
+        state.protobufType.decode(state.protobufEncoded);
         state.api.decode(state.deltaPackEncoded);
       }
     }
@@ -66,12 +79,14 @@ function runEncodeBenchmarks(examples: Example[]) {
     const results: Record<string, number[]> = {
       JSON: [],
       MessagePack: [],
+      Protobuf: [],
       DeltaPack: [],
     };
 
     for (const state of example.states) {
       results["JSON"]!.push(measureOpsPerSecond(() => Buffer.from(JSON.stringify(state.plainState))));
       results["MessagePack"]!.push(measureOpsPerSecond(() => msgpack.pack(state.plainState)));
+      results["Protobuf"]!.push(measureOpsPerSecond(() => state.protobufType.encode(state.protobufMessage).finish()));
       results["DeltaPack"]!.push(measureOpsPerSecond(() => state.api.encode(state.typedState)));
     }
 
@@ -87,12 +102,14 @@ function runDecodeBenchmarks(examples: Example[]) {
     const results: Record<string, number[]> = {
       JSON: [],
       MessagePack: [],
+      Protobuf: [],
       DeltaPack: [],
     };
 
     for (const state of example.states) {
       results["JSON"]!.push(measureOpsPerSecond(() => JSON.parse(state.jsonEncoded)));
       results["MessagePack"]!.push(measureOpsPerSecond(() => msgpack.unpack(state.msgpackEncoded)));
+      results["Protobuf"]!.push(measureOpsPerSecond(() => state.protobufType.decode(state.protobufEncoded)));
       results["DeltaPack"]!.push(measureOpsPerSecond(() => state.api.decode(state.deltaPackEncoded)));
     }
 
@@ -155,8 +172,9 @@ function formatOps(ops: number): string {
 function loadExamples(): Example[] {
   const examples: Example[] = [];
 
-  for (const [name, mod] of Object.entries(generated)) {
+  for (const [name, mod] of Object.entries(deltapack)) {
     const api = (mod as Record<string, unknown>)[name] as DeltaPackApi<unknown>;
+    const protobufType = (protobuf as Record<string, unknown>)[name] as ProtobufType;
 
     const exampleDir = `${examplesDir}/${name}`;
     const stateFiles = fs
@@ -173,6 +191,7 @@ function loadExamples(): Example[] {
       const json = fs.readFileSync(`${exampleDir}/${file}`, "utf8");
       const plainState = JSON.parse(json);
       const typedState = api.fromJson(plainState);
+      const protobufMessage = protobufType.fromObject(plainState);
 
       states.push({
         typedState,
@@ -180,7 +199,10 @@ function loadExamples(): Example[] {
         jsonEncoded: JSON.stringify(plainState),
         msgpackEncoded: msgpack.pack(plainState),
         deltaPackEncoded: api.encode(typedState),
+        protobufEncoded: protobufType.encode(protobufMessage).finish(),
+        protobufMessage,
         api,
+        protobufType,
       });
     }
 
