@@ -1,16 +1,12 @@
 {
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "noEmit": false,
     "declaration": false,
     "outDir": "dist",
     "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true,
+    "paths": {},
     "allowJs": true
   },
-  "include": ["run.ts", "generated/**/*.ts", "generated/**/*.js"]
+  "include": ["run.ts", "build.ts", "generated/**/*.ts", "generated/**/*.js"]
 }

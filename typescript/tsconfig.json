@@ -1,5 +1,5 @@
 {
-  "include": ["src", "test", "benchmark", "vitest.config.ts"],
+  "include": ["src", "test", "vitest.config.ts"],
   "compilerOptions": {
     /* Output configuration */
     "noEmit": true,
