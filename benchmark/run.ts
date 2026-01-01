@@ -77,14 +77,7 @@ function main() {
     const allRows = result.transitions.map((t) => {
       const minOther = Math.min(t.json, t.msgpack, t.protobuf);
       const savings = ((1 - t.deltaDiff / minOther) * 100).toFixed(0);
-      return [
-        t.name,
-        `${t.json}B`,
-        `${t.msgpack}B`,
-        `${t.protobuf}B`,
-        `${t.deltaDiff}B`,
-        `${savings}%`,
-      ];
+      return [t.name, `${t.json}B`, `${t.msgpack}B`, `${t.protobuf}B`, `${t.deltaDiff}B`, `${savings}%`];
     });
 
     printTable(headers, allRows);
@@ -141,7 +134,7 @@ function benchmarkDeltaEncode(example: string) {
   const transitions: { name: string; json: number; msgpack: number; protobuf: number; deltaDiff: number }[] = [];
 
   const State = deltapack[example as keyof typeof deltapack] as DeltaPackApi<unknown>;
-  const MessageType = protobuf[example as keyof typeof protobuf] as {
+  const MessageType = protobuf[example as keyof typeof protobuf] as unknown as {
     fromObject: (object: any) => any;
     encode: (message: any) => { finish: () => Uint8Array };
   };
@@ -162,7 +155,10 @@ function benchmarkDeltaEncode(example: string) {
 
     // Verify round-trip
     const reconstructed = State.decodeDiff(prevParsed, diff);
-    assert(deepEquals(State.toJson(reconstructed), next), `Delta round-trip failed for ${example} state${i + 1}→${i + 2}`);
+    assert(
+      deepEquals(State.toJson(reconstructed), next),
+      `Delta round-trip failed for ${example} state${i + 1}→${i + 2}`
+    );
 
     transitions.push({
       name: `State${i + 1}→${i + 2}`,
@@ -195,7 +191,7 @@ function encodeMsgpack(states: any[]): number[] {
 }
 
 function encodeProtobuf(states: any[], example: string): number[] {
-  const MessageType = protobuf[example as keyof typeof protobuf] as {
+  const MessageType = protobuf[example as keyof typeof protobuf] as unknown as {
     fromObject: (object: any) => any;
     toObject: (message: any, options?: any) => any;
     encode: (message: any) => { finish: () => Uint8Array };

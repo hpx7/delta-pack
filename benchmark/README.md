@@ -3,6 +3,7 @@
 Language-agnostic comparison of serialization formats by encoded size.
 
 For performance benchmarks, see:
+
 - TypeScript: `typescript/benchmark/`
 - C#: `csharp/benchmarks/`
 

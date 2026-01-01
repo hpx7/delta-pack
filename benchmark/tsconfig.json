@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
-    /* Output configuration */
-    "outDir": "./dist",
+    "noEmit": true,
     "baseUrl": ".",
     "paths": {
       "@hpx7/delta-pack": ["../typescript/src"]
@@ -9,7 +8,6 @@
 
     /* Module Resolution */
     "moduleResolution": "bundler",
-    "declaration": false,
     "esModuleInterop": true,
     "module": "preserve",
     "target": "esnext",
