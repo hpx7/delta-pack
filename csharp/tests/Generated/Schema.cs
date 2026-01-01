@@ -38,14 +38,14 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(Player obj)
         {
             var result = new JsonObject();
-            result["id"] = Id;
-            result["name"] = Name;
-            result["score"] = Score;
-            result["isActive"] = IsActive;
-            if (Partner != null) result["partner"] = Partner.ToJson();
+            result["id"] = obj.Id;
+            result["name"] = obj.Name;
+            result["score"] = obj.Score;
+            result["isActive"] = obj.IsActive;
+            if (obj.Partner != null) result["partner"] = Generated.Player.ToJson(obj.Partner);
             return result;
         }
 
@@ -160,11 +160,11 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(Position obj)
         {
             var result = new JsonObject();
-            result["x"] = X;
-            result["y"] = Y;
+            result["x"] = obj.X;
+            result["y"] = obj.Y;
             return result;
         }
 
@@ -261,11 +261,11 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(Velocity obj)
         {
             var result = new JsonObject();
-            result["vx"] = Vx;
-            result["vy"] = Vy;
+            result["vx"] = obj.Vx;
+            result["vy"] = obj.Vy;
             return result;
         }
 
@@ -362,11 +362,11 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(Entity obj)
         {
             var result = new JsonObject();
-            result["id"] = Id;
-            result["position"] = Position.ToJson();
+            result["id"] = obj.Id;
+            result["position"] = Generated.Position.ToJson(obj.Position);
             return result;
         }
 
@@ -465,11 +465,11 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(MoveAction obj)
         {
             var result = new JsonObject();
-            result["x"] = X;
-            result["y"] = Y;
+            result["x"] = obj.X;
+            result["y"] = obj.Y;
             return result;
         }
 
@@ -568,11 +568,11 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(AttackAction obj)
         {
             var result = new JsonObject();
-            result["targetId"] = TargetId;
-            result["damage"] = Damage;
+            result["targetId"] = obj.TargetId;
+            result["damage"] = obj.Damage;
             return result;
         }
 
@@ -669,10 +669,10 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(UseItemAction obj)
         {
             var result = new JsonObject();
-            result["itemId"] = ItemId;
+            result["itemId"] = obj.ItemId;
             return result;
         }
 
@@ -778,9 +778,9 @@ namespace Generated
 
         public static JsonObject ToJson(GameAction obj)
         {
-            if (obj is MoveAction moveAction) return new JsonObject { ["MoveAction"] = moveAction.ToJson() };
-            else if (obj is AttackAction attackAction) return new JsonObject { ["AttackAction"] = attackAction.ToJson() };
-            else if (obj is UseItemAction useItemAction) return new JsonObject { ["UseItemAction"] = useItemAction.ToJson() };
+            if (obj is MoveAction moveAction) return new JsonObject { ["MoveAction"] = MoveAction.ToJson(moveAction) };
+            else if (obj is AttackAction attackAction) return new JsonObject { ["AttackAction"] = AttackAction.ToJson(attackAction) };
+            else if (obj is UseItemAction useItemAction) return new JsonObject { ["UseItemAction"] = UseItemAction.ToJson(useItemAction) };
             throw new InvalidOperationException($"Unknown GameAction type: {obj.Type}");
         }
 
@@ -941,15 +941,15 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(GameState obj)
         {
             var result = new JsonObject();
-            result["players"] = new JsonArray(Players.Select(x => (JsonNode?)x.ToJson()).ToArray());
-            if (CurrentPlayer != null) result["currentPlayer"] = CurrentPlayer;
-            result["round"] = Round;
-            result["metadata"] = new JsonObject(Metadata.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, kvp.Value)));
-            if (WinningColor.HasValue) result["winningColor"] = WinningColor.ToString();
-            if (LastAction != null) result["lastAction"] = Generated.GameAction.ToJson(LastAction);
+            result["players"] = new JsonArray(obj.Players.Select(x => (JsonNode?)Generated.Player.ToJson(x)).ToArray());
+            if (obj.CurrentPlayer != null) result["currentPlayer"] = obj.CurrentPlayer;
+            result["round"] = obj.Round;
+            result["metadata"] = new JsonObject(obj.Metadata.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, kvp.Value)));
+            if (obj.WinningColor.HasValue) result["winningColor"] = obj.WinningColor.ToString();
+            if (obj.LastAction != null) result["lastAction"] = Generated.GameAction.ToJson(obj.LastAction);
             return result;
         }
 
@@ -1077,10 +1077,10 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(Inventory obj)
         {
             var result = new JsonObject();
-            if (Items != null) result["items"] = new JsonArray(Items.Select(x => (JsonNode?)new JsonObject(x.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, kvp.Value)))).ToArray());
+            if (obj.Items != null) result["items"] = new JsonArray(obj.Items.Select(x => (JsonNode?)new JsonObject(x.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, kvp.Value)))).ToArray());
             return result;
         }
 
@@ -1169,10 +1169,10 @@ namespace Generated
             };
         }
 
-        public JsonObject ToJson()
+        public static JsonObject ToJson(PlayerRegistry obj)
         {
             var result = new JsonObject();
-            result["players"] = new JsonObject(Players.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, kvp.Value.ToJson())));
+            result["players"] = new JsonObject(obj.Players.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, Generated.Player.ToJson(kvp.Value))));
             return result;
         }
 
