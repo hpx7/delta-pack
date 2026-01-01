@@ -24,6 +24,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install delta-pack CLI
+        run: npm i -g @hpx7/delta-pack-cli
       - name: Restore dependencies
         run: dotnet restore
       - name: Run tests
