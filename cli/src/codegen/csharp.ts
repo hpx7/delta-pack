@@ -11,7 +11,7 @@ function renderSchema(schema: Record<string, Type>, namespace: string): string {
   // Track the current type being processed for self-reference resolution
   let currentTypeName: string;
 
-  // Helper to qualify type name to avoid shadowing by property names
+  // Qualify type name with namespace to avoid property names shadowing type names
   function qualifyType(typeName: string): string {
     return `${namespace}.${typeName}`;
   }
@@ -121,22 +121,23 @@ ${fromJsonBody}
             };
         }`;
 
-    // ToJson method - use 'new' for variants
+    // ToJson method - static like all other methods
     const toJsonBody = props
       .map(([propName, propType]) => {
         if (propType.type === "optional") {
           // Use .HasValue for value types, != null for reference types
           const nullCheck = isValueType(propType.value)
-            ? `${toPascalCase(propName)}.HasValue`
-            : `${toPascalCase(propName)} != null`;
-          return `            if (${nullCheck}) result["${propName}"] = ${renderToJson(propType, propName, toPascalCase(propName))};`;
+            ? `obj.${toPascalCase(propName)}.HasValue`
+            : `obj.${toPascalCase(propName)} != null`;
+          return `            if (${nullCheck}) result["${propName}"] = ${renderToJson(propType, propName, `obj.${toPascalCase(propName)}`)};`;
         }
-        return `            result["${propName}"] = ${renderToJson(propType, propName, toPascalCase(propName))};`;
+        return `            result["${propName}"] = ${renderToJson(propType, propName, `obj.${toPascalCase(propName)}`)};`;
       })
       .join("\n");
 
-    // ToJson is an instance method - no 'new' needed since base class has static ToJson(T obj)
-    const toJsonMethod = `        public JsonObject ToJson()
+    // ToJson doesn't need 'new' modifier for variants because the parameter type is different
+    // (e.g., EmailContact.ToJson(EmailContact) vs Contact.ToJson(Contact))
+    const toJsonMethod = `        public static JsonObject ToJson(${name} obj)
         {
             var result = new JsonObject();
 ${toJsonBody}
@@ -412,7 +413,7 @@ ${decodeDiffInternalMethod}
       .map((opt, i) => {
         const variantName = opt.name!;
         const varName = toCamelCase(variantName);
-        return `            ${i > 0 ? "else " : ""}if (obj is ${variantName} ${varName}) return new JsonObject { ["${variantName}"] = ${varName}.ToJson() };`;
+        return `            ${i > 0 ? "else " : ""}if (obj is ${variantName} ${varName}) return new JsonObject { ["${variantName}"] = ${variantName}.ToJson(${varName}) };`;
       })
       .join("\n");
 
@@ -651,12 +652,12 @@ ${decodeDiffNewTypeCases}
       // Delegate to the referenced type
       return renderToJson(type.ref, type.ref.name!, key);
     } else if (type.type === "self-reference") {
-      return `${key}.ToJson()`;
+      return `${qualifyType(currentTypeName)}.ToJson(${key})`;
     }
     if (type.type === "union") {
       return `${qualifyType(type.name!)}.ToJson(${key})`;
     }
-    return `${key}.ToJson()`;
+    return `${qualifyType(name)}.ToJson(${key})`;
   }
 
   function renderClone(type: Type, name: string, key: string): string {

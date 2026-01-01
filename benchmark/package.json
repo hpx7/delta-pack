@@ -2,12 +2,11 @@
   "type": "module",
   "scripts": {
     "build": "node build.ts && tsc",
-    "encoding-speed": "node dist/benchmark/encodingSpeed.js",
-    "decoding-speed": "node dist/benchmark/decodingSpeed.js",
-    "encoding-size": "node dist/benchmark/encodingSize.js"
+    "bench": "node dist/benchmark/run.js"
   },
   "dependencies": {
     "@hpx7/delta-pack": "file:../typescript",
+    "@hpx7/delta-pack-cli": "file:../cli",
     "msgpackr": "^1.11.5",
     "protobufjs": "^7.5.4"
   },

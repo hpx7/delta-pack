@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
-import * as deltapack from "@hpx7/delta-pack";
+import { parseSchemaYml } from "@hpx7/delta-pack";
+import { codegenTypescript } from "@hpx7/delta-pack-cli/codegen";
 import * as pbjs from "protobufjs-cli/pbjs.js";
 import * as pbts from "protobufjs-cli/pbts.js";
 
@@ -18,8 +19,8 @@ async function main() {
 
     // Generate delta-pack TypeScript
     const schemaContent = fs.readFileSync(schemaPath, "utf8");
-    const parsedSchema = deltapack.parseSchemaYml(schemaContent);
-    const generated = deltapack.codegenTypescript(parsedSchema);
+    const parsedSchema = parseSchemaYml(schemaContent);
+    const generated = codegenTypescript(parsedSchema);
 
     const deltapackOutPath = `./generated/deltapack/${example}.ts`;
     fs.writeFileSync(deltapackOutPath, generated);
