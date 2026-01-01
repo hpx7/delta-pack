@@ -34,6 +34,8 @@ jobs:
         run: npm i -g @hpx7/delta-pack-cli
       - name: Restore dependencies
         run: dotnet restore
+      - name: Generate benchmark code
+        run: benchmarks/build.sh
       - name: Build
         run: dotnet build --no-restore
       - name: Run tests
