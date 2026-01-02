@@ -53,6 +53,12 @@ jobs:
           access: public
           provenance: true
 
+      - name: Debug outputs
+        run: |
+          echo "type: '${{ steps.publish.outputs.type }}'"
+          echo "version: '${{ steps.publish.outputs.version }}'"
+          echo "published expression: '${{ steps.publish.outputs.type != 'none' }}'"
+
   binaries:
     name: Build ${{ matrix.target }}
     needs: npm
