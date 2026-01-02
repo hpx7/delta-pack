@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Google.Protobuf;
 using MessagePack;
 
 namespace DeltaPack.Benchmarks;
@@ -51,6 +52,7 @@ public class Program
             {
                 ["JSON"] = new(),
                 ["MessagePack"] = new(),
+                ["Protobuf"] = new(),
                 ["DeltaPack"] = new()
             };
 
@@ -63,6 +65,11 @@ public class Program
             {
                 Warmup(() => MessagePackSerializer.Typeless.Serialize(state.TypedState));
                 results["MessagePack"].Add(MeasureOpsPerSecond(() => MessagePackSerializer.Typeless.Serialize(state.TypedState)));
+            }
+            foreach (var state in example.States)
+            {
+                Warmup(() => state.ProtobufMessage.ToByteArray());
+                results["Protobuf"].Add(MeasureOpsPerSecond(() => state.ProtobufMessage.ToByteArray()));
             }
             foreach (var state in example.States)
             {
@@ -85,6 +92,7 @@ public class Program
             {
                 ["JSON"] = new(),
                 ["MessagePack"] = new(),
+                ["Protobuf"] = new(),
                 ["DeltaPack"] = new()
             };
 
@@ -97,6 +105,11 @@ public class Program
             {
                 Warmup(() => MessagePackSerializer.Typeless.Deserialize(state.MsgPackEncoded));
                 results["MessagePack"].Add(MeasureOpsPerSecond(() => MessagePackSerializer.Typeless.Deserialize(state.MsgPackEncoded)));
+            }
+            foreach (var state in example.States)
+            {
+                Warmup(() => state.ProtobufDecode(state.ProtobufEncoded));
+                results["Protobuf"].Add(MeasureOpsPerSecond(() => state.ProtobufDecode(state.ProtobufEncoded)));
             }
             foreach (var state in example.States)
             {
@@ -185,54 +198,61 @@ public class Program
     {
         var examplesDir = Path.Combine("..", "examples");
         var examples = new List<Example>();
+        var jsonParser = new JsonParser(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
 
         // GameState
-        examples.Add(LoadExample<GameStateGen.GameState>(
-            "GameState", examplesDir,
+        examples.Add(LoadExample<GameStateGen.GameState, Gamestate.GameState>(
+            "GameState", examplesDir, jsonParser,
             GameStateGen.GameState.FromJson,
             GameStateGen.GameState.ToJson,
             GameStateGen.GameState.Encode,
             GameStateGen.GameState.Decode,
-            GameStateGen.GameState.Equals));
+            GameStateGen.GameState.Equals,
+            Gamestate.GameState.Parser));
 
         // Primitives
-        examples.Add(LoadExample<PrimitivesGen.Primitives>(
-            "Primitives", examplesDir,
+        examples.Add(LoadExample<PrimitivesGen.Primitives, Primitives.Primitives>(
+            "Primitives", examplesDir, jsonParser,
             PrimitivesGen.Primitives.FromJson,
             PrimitivesGen.Primitives.ToJson,
             PrimitivesGen.Primitives.Encode,
             PrimitivesGen.Primitives.Decode,
-            PrimitivesGen.Primitives.Equals));
+            PrimitivesGen.Primitives.Equals,
+            Primitives.Primitives.Parser));
 
         // Test
-        examples.Add(LoadExample<TestGen.Test>(
-            "Test", examplesDir,
+        examples.Add(LoadExample<TestGen.Test, Test.Test>(
+            "Test", examplesDir, jsonParser,
             TestGen.Test.FromJson,
             TestGen.Test.ToJson,
             TestGen.Test.Encode,
             TestGen.Test.Decode,
-            TestGen.Test.Equals));
+            TestGen.Test.Equals,
+            Test.Test.Parser));
 
         // User
-        examples.Add(LoadExample<UserGen.User>(
-            "User", examplesDir,
+        examples.Add(LoadExample<UserGen.User, User.User>(
+            "User", examplesDir, jsonParser,
             UserGen.User.FromJson,
             UserGen.User.ToJson,
             UserGen.User.Encode,
             UserGen.User.Decode,
-            UserGen.User.Equals));
+            UserGen.User.Equals,
+            User.User.Parser));
 
         return examples;
     }
 
-    static Example LoadExample<T>(
+    static Example LoadExample<T, TProto>(
         string name,
         string examplesDir,
+        JsonParser jsonParser,
         Func<JsonElement, T> fromJson,
         Func<T, JsonObject> toJson,
         Func<T, byte[]> encode,
         Func<byte[], T> decode,
-        Func<T, T, bool> equals)
+        Func<T, T, bool> equals,
+        MessageParser<TProto> protoParser) where TProto : IMessage<TProto>, new()
     {
         var exampleDir = Path.Combine(examplesDir, name);
         var stateFiles = Directory.GetFiles(exampleDir, "state*.json")
@@ -263,14 +283,26 @@ public class Program
                 throw new Exception($"MessagePack round-trip failed for {name}: {Path.GetFileName(file)}");
             }
 
+            // Parse and verify Protobuf round-trip
+            var protoMessage = jsonParser.Parse<TProto>(json);
+            var protoEncoded = protoMessage.ToByteArray();
+            var protoDecoded = protoParser.ParseFrom(protoEncoded);
+            if (!protoMessage.Equals(protoDecoded))
+            {
+                throw new Exception($"Protobuf round-trip failed for {name}: {Path.GetFileName(file)}");
+            }
+
             states.Add(new StateData(
                 TypedState: typed!,
                 JsonState: jsonState,
                 JsonEncoded: JsonSerializer.SerializeToUtf8Bytes(jsonState),
                 MsgPackEncoded: msgPackEncoded,
+                ProtobufEncoded: protoEncoded,
                 DeltaPackEncoded: deltaPackEncoded,
                 DeltaPackEncode: obj => encode((T)obj),
-                DeltaPackDecode: bytes => decode(bytes)!));
+                DeltaPackDecode: bytes => decode(bytes)!,
+                ProtobufMessage: protoMessage,
+                ProtobufDecode: bytes => protoParser.ParseFrom(bytes)));
         }
 
         return new Example(name, states);
@@ -284,6 +316,9 @@ record StateData(
     JsonObject JsonState,
     byte[] JsonEncoded,
     byte[] MsgPackEncoded,
+    byte[] ProtobufEncoded,
     byte[] DeltaPackEncoded,
     Func<object, byte[]> DeltaPackEncode,
-    Func<byte[], object> DeltaPackDecode);
+    Func<byte[], object> DeltaPackDecode,
+    IMessage ProtobufMessage,
+    Func<byte[], IMessage> ProtobufDecode);

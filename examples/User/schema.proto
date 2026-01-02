@@ -1,4 +1,5 @@
 syntax = "proto3";
+package user;
 
 enum HairColor {
   HAIR_COLOR_UNSPECIFIED = 0;

@@ -9,16 +9,24 @@ GENERATED_DIR="$SCRIPT_DIR/Generated"
 
 # Clean and recreate generated directory
 rm -rf "$GENERATED_DIR"
-mkdir -p "$GENERATED_DIR"
+mkdir -p "$GENERATED_DIR/DeltaPack"
+mkdir -p "$GENERATED_DIR/Protobuf"
 
-# Generate C# code for each example using delta-pack CLI
+# Generate C# code for each example
 for example_dir in "$EXAMPLES_DIR"/*/; do
     example_name=$(basename "$example_dir")
-    schema_path="$example_dir/schema.yml"
+    schema_yml="$example_dir/schema.yml"
+    schema_proto="$example_dir/schema.proto"
 
-    if [ -f "$schema_path" ]; then
-        echo "Generating $example_name..."
-        delta-pack generate "$schema_path" -l csharp -n "${example_name}Gen" -o "$GENERATED_DIR/${example_name}.cs"
+    if [ -f "$schema_yml" ]; then
+        echo "Generating DeltaPack $example_name..."
+        delta-pack generate "$schema_yml" -l csharp -n "${example_name}Gen" -o "$GENERATED_DIR/DeltaPack/${example_name}.cs"
+    fi
+
+    if [ -f "$schema_proto" ]; then
+        echo "Generating Protobuf $example_name..."
+        protoc --proto_path="$example_dir" --csharp_out="$GENERATED_DIR/Protobuf" "$schema_proto"
+        mv "$GENERATED_DIR/Protobuf/Schema.cs" "$GENERATED_DIR/Protobuf/${example_name}.g.cs"
     fi
 done
 

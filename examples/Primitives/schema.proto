@@ -1,4 +1,5 @@
 syntax = "proto3";
+package primitives;
 
 message Primitives {
   string stringField = 1;
