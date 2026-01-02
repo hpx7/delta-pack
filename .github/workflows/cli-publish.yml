@@ -148,6 +148,11 @@ jobs:
             | macOS (Intel) | `delta-pack-darwin-x64` |
             | Linux (x64) | `delta-pack-linux-x64` |
             | Windows (x64) | `delta-pack-windows-x64.exe` |
+
+            **macOS users:** Remove the quarantine attribute before running:
+            ```bash
+            xattr -d com.apple.quarantine delta-pack-darwin-*
+            ```
           files: |
             binaries/delta-pack-*
             binaries/checksums.txt
