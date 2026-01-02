@@ -4,15 +4,19 @@ namespace DeltaPack.Tests;
 
 public class RleTests
 {
+    private static byte[] Encode(List<bool> bits)
+    {
+        var output = new byte[1024]; // Large enough for tests
+        var len = Rle.Encode(bits, output, 0);
+        return output[..len];
+    }
+
     [Fact]
     public void EmptyBits_RoundTrips()
     {
         var bits = new List<bool>();
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Empty(decoded);
     }
 
@@ -20,11 +24,8 @@ public class RleTests
     public void SingleTrue_RoundTrips()
     {
         var bits = new List<bool> { true };
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -32,11 +33,8 @@ public class RleTests
     public void SingleFalse_RoundTrips()
     {
         var bits = new List<bool> { false };
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -44,11 +42,8 @@ public class RleTests
     public void AlternatingBits_RoundTrips()
     {
         var bits = new List<bool> { true, false, true, false, true, false };
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -56,11 +51,8 @@ public class RleTests
     public void RunOf2_RoundTrips()
     {
         var bits = new List<bool> { true, true };
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -68,11 +60,8 @@ public class RleTests
     public void RunOf3_RoundTrips()
     {
         var bits = new List<bool> { false, false, false };
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -80,11 +69,8 @@ public class RleTests
     public void RunOf5_RoundTrips()
     {
         var bits = new List<bool> { true, true, true, true, true };
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -92,11 +78,8 @@ public class RleTests
     public void RunOf13_RoundTrips()
     {
         var bits = Enumerable.Repeat(true, 13).ToList();
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -104,11 +87,8 @@ public class RleTests
     public void RunOf100_RoundTrips()
     {
         var bits = Enumerable.Repeat(false, 100).ToList();
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -116,11 +96,8 @@ public class RleTests
     public void RunOf269_RoundTrips()
     {
         var bits = Enumerable.Repeat(true, 269).ToList();
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -135,10 +112,8 @@ public class RleTests
         bits.AddRange(Enumerable.Repeat(false, 10));
         bits.AddRange(Enumerable.Repeat(true, 2));
 
-        var output = new List<byte>();
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -148,10 +123,8 @@ public class RleTests
         var random = new Random(42);
         var bits = Enumerable.Range(0, 1000).Select(_ => random.Next(2) == 1).ToList();
 
-        var output = new List<byte>();
-        Rle.Encode(bits, output);
-        var decoded = Rle.Decode(output.ToArray());
-
+        var output = Encode(bits);
+        var decoded = Rle.Decode(output);
         Assert.Equal(bits, decoded);
     }
 
@@ -159,9 +132,9 @@ public class RleTests
     public void RunOf270_ThrowsException()
     {
         var bits = Enumerable.Repeat(true, 270).ToList();
-        var output = new List<byte>();
+        var output = new byte[1024];
 
-        Assert.Throws<InvalidOperationException>(() => Rle.Encode(bits, output));
+        Assert.Throws<InvalidOperationException>(() => Rle.Encode(bits, output, 0));
     }
 
     [Fact]
@@ -169,12 +142,10 @@ public class RleTests
     {
         // 100 identical bits should compress well
         var bits = Enumerable.Repeat(true, 100).ToList();
-        var output = new List<byte>();
-
-        Rle.Encode(bits, output);
+        var output = Encode(bits);
 
         // Should be much smaller than 100 bits (13 bytes uncompressed)
-        Assert.True(output.Count < 10);
+        Assert.True(output.Length < 10);
     }
 
     [Fact]
@@ -182,21 +153,16 @@ public class RleTests
     {
         // Simulate encoding RLE after other data
         var bits = new List<bool> { true, false, true, true, false };
-        var output = new List<byte>();
+        var output = new byte[1024];
 
         // Add some prefix data (simulating field data before RLE)
         var prefixData = new byte[] { 0x01, 0x02, 0x03, 0x04 };
-        output.AddRange(prefixData);
+        Array.Copy(prefixData, output, prefixData.Length);
 
-        var rleStartIndex = output.Count;
-        Rle.Encode(bits, output);
-
-        // Create buffer with prefix + RLE data
-        var fullBuffer = output.ToArray();
+        var finalLen = Rle.Encode(bits, output, prefixData.Length);
 
         // Decode should work with the full buffer (reads from end)
-        var decoded = Rle.Decode(fullBuffer);
-
+        var decoded = Rle.Decode(output[..finalLen]);
         Assert.Equal(bits, decoded);
     }
 }

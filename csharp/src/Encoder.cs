@@ -4,9 +4,37 @@ namespace DeltaPack;
 
 public class Encoder
 {
+    private const int DefaultBufferSize = 4096;
+    private const int MaxCachedBufferSize = 65536;
+
+    [ThreadStatic]
+    private static byte[]? _sharedBuffer;
+
     private readonly List<string> _dict = new();
     private readonly List<bool> _bits = new();
-    private readonly List<byte> _buffer = new();
+    private byte[] _buffer;
+    private int _pos;
+
+    public Encoder()
+    {
+        _buffer = _sharedBuffer ??= new byte[DefaultBufferSize];
+        _pos = 0;
+    }
+
+    private void EnsureCapacity(int additionalBytes)
+    {
+        if (_pos + additionalBytes <= _buffer.Length)
+            return;
+
+        var newSize = Math.Max(_buffer.Length * 2, _pos + additionalBytes);
+        var newBuffer = new byte[newSize];
+        Array.Copy(_buffer, newBuffer, _pos);
+        _buffer = newBuffer;
+
+        // Update shared buffer if reasonable size
+        if (newSize <= MaxCachedBufferSize)
+            _sharedBuffer = newBuffer;
+    }
 
     // Primitive methods
 
@@ -14,37 +42,49 @@ public class Encoder
     {
         if (val.Length == 0)
         {
-            Varint.WriteVarint(_buffer, 0);
+            PushInt(0);
             return;
         }
 
         var idx = _dict.IndexOf(val);
-        if (idx < 0)
+        if (idx >= 0)
         {
-            _dict.Add(val);
-            var bytes = Encoding.UTF8.GetBytes(val);
-            Varint.WriteVarint(_buffer, bytes.Length);
-            _buffer.AddRange(bytes);
+            PushInt(-idx - 1);
         }
         else
         {
-            Varint.WriteVarint(_buffer, -idx - 1);
+            _dict.Add(val);
+            var byteCount = Encoding.UTF8.GetByteCount(val);
+            PushInt(byteCount);
+            EnsureCapacity(byteCount);
+            Encoding.UTF8.GetBytes(val, _buffer.AsSpan(_pos, byteCount));
+            _pos += byteCount;
         }
     }
 
-    public void PushInt(long val) =>
-        Varint.WriteVarint(_buffer, val);
+    public void PushInt(long val)
+    {
+        EnsureCapacity(10);
+        Varint.WriteVarint(_buffer, ref _pos, val);
+    }
 
-    public void PushBoundedInt(long val, long min) =>
-        Varint.WriteUVarint(_buffer, (ulong)(val - min));
+    public void PushBoundedInt(long val, long min)
+    {
+        EnsureCapacity(10);
+        Varint.WriteUVarint(_buffer, ref _pos, (ulong)(val - min));
+    }
 
-    public void PushUInt(ulong val) =>
-        Varint.WriteUVarint(_buffer, val);
+    public void PushUInt(ulong val)
+    {
+        EnsureCapacity(10);
+        Varint.WriteUVarint(_buffer, ref _pos, val);
+    }
 
     public void PushFloat(float val)
     {
-        var bytes = BitConverter.GetBytes(val);
-        _buffer.AddRange(bytes);
+        EnsureCapacity(4);
+        BitConverter.TryWriteBytes(_buffer.AsSpan(_pos, 4), val);
+        _pos += 4;
     }
 
     public void PushFloatQuantized(float val, float precision) =>
@@ -115,7 +155,7 @@ public class Encoder
         var bOffset = b - min;
         PushBoolean(aOffset != bOffset);
         if (aOffset != bOffset)
-            Varint.WriteUVarint(_buffer, (ulong)bOffset);
+            PushUInt((ulong)bOffset);
     }
 
     public void PushFloatDiff(float a, float b)
@@ -279,7 +319,12 @@ public class Encoder
 
     public byte[] ToBuffer()
     {
-        Rle.Encode(_bits, _buffer);
-        return _buffer.ToArray();
+        // Estimate RLE size: bits + varint overhead
+        var maxRleSize = (_bits.Count + 7) / 8 + 10;
+        EnsureCapacity(maxRleSize);
+
+        var finalPos = Rle.Encode(_bits, _buffer, _pos);
+
+        return _buffer.AsSpan(0, finalPos).ToArray();
     }
 }

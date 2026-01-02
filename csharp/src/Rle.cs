@@ -2,17 +2,20 @@ namespace DeltaPack;
 
 public static class Rle
 {
-    public static void Encode(List<bool> bits, List<byte> output)
+    public static int Encode(List<bool> bits, byte[] output, int startPos)
     {
+        var pos = startPos;
+
         if (bits.Count == 0)
         {
-            WriteReverseUVarint(output, 0);
-            return;
+            pos = WriteReverseUVarint(output, pos, 0);
+            return pos;
         }
 
         var currentByte = 0;
         var bitPos = 0;
         var totalBits = 0;
+        var rleStartPos = pos;
 
         void WriteBit(bool bit)
         {
@@ -24,7 +27,7 @@ public static class Rle
 
             if (bitPos == 8)
             {
-                output.Add((byte)currentByte);
+                output[pos++] = (byte)currentByte;
                 currentByte = 0;
                 bitPos = 0;
             }
@@ -97,9 +100,10 @@ public static class Rle
 
         // Flush remaining bits
         if (bitPos > 0)
-            output.Add((byte)currentByte);
+            output[pos++] = (byte)currentByte;
 
-        WriteReverseUVarint(output, totalBits);
+        pos = WriteReverseUVarint(output, pos, totalBits);
+        return pos;
     }
 
     public static bool[] Decode(byte[] buf)
@@ -179,17 +183,18 @@ public static class Rle
         return bits.ToArray();
     }
 
-    private static void WriteReverseUVarint(List<byte> output, int val)
+    private static int WriteReverseUVarint(byte[] output, int pos, int val)
     {
         if (val < 0x80)
         {
-            output.Add((byte)val);
+            output[pos++] = (byte)val;
         }
         else
         {
-            WriteReverseUVarint(output, val >> 7);
-            output.Add((byte)((val & 0x7F) | 0x80));
+            pos = WriteReverseUVarint(output, pos, val >> 7);
+            output[pos++] = (byte)((val & 0x7F) | 0x80);
         }
+        return pos;
     }
 
     private static (int value, int bytesRead) ReadReverseUVarint(byte[] buf)

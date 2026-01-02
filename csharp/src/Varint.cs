@@ -6,22 +6,22 @@ namespace DeltaPack;
 /// </summary>
 internal static class Varint
 {
-    public static void WriteUVarint(List<byte> output, ulong val)
+    public static void WriteUVarint(byte[] output, ref int pos, ulong val)
     {
         // Protobuf-style LEB128: little-endian, 7 bits per byte, MSB is continuation
         while (val >= 0x80)
         {
-            output.Add((byte)(val | 0x80));
+            output[pos++] = (byte)(val | 0x80);
             val >>= 7;
         }
-        output.Add((byte)val);
+        output[pos++] = (byte)val;
     }
 
-    public static void WriteVarint(List<byte> output, long val)
+    public static void WriteVarint(byte[] output, ref int pos, long val)
     {
         // Zigzag encoding: 0→0, -1→1, 1→2, -2→3, 2→4, ...
         var unsigned = (ulong)((val << 1) ^ (val >> 63));
-        WriteUVarint(output, unsigned);
+        WriteUVarint(output, ref pos, unsigned);
     }
 
     public static ulong ReadUVarint(byte[] buf, ref int pos)
