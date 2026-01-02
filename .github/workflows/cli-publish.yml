@@ -16,7 +16,7 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     outputs:
-      published: ${{ steps.publish.outputs.type != 'none' }}
+      published: ${{ steps.publish.outputs.type != '' }}
       version: ${{ steps.publish.outputs.version }}
     defaults:
       run:
@@ -52,12 +52,6 @@ jobs:
           package: cli/package.json
           access: public
           provenance: true
-
-      - name: Debug outputs
-        run: |
-          echo "type: '${{ steps.publish.outputs.type }}'"
-          echo "version: '${{ steps.publish.outputs.version }}'"
-          echo "published expression: '${{ steps.publish.outputs.type != 'none' }}'"
 
   binaries:
     name: Build ${{ matrix.target }}
