@@ -79,6 +79,7 @@ public sealed class DeltaPackCodec<T> where T : class
     private readonly IDeltaPackApi<object?> _api;
     private readonly TypeMapping _rootMapping;
     private readonly IReadOnlyDictionary<Type, TypeMapping> _mappings;
+    private readonly IReadOnlyDictionary<Type, Func<object>> _factories;
     private readonly Func<T>? _factory;
 
     /// <summary>
@@ -97,6 +98,7 @@ public sealed class DeltaPackCodec<T> where T : class
         _rootMapping = builder.BuildMapping(typeof(T));
         var schema = builder.GetSchema();
         _mappings = builder.GetMappings();
+        _factories = builder.GetFactories();
         _api = Interpreter.Load<object?>(schema, typeof(T).Name);
         // Union types don't need a factory - variants are created directly
         _factory = _rootMapping is UnionMapping ? null : (factory ?? CreateDefaultFactory());
@@ -264,7 +266,7 @@ public sealed class DeltaPackCodec<T> where T : class
         if (actualMapping.Type == typeof(T))
             obj = _factory!();
         else
-            obj = CreateInstance(actualMapping.Type);
+            obj = CreateInstanceFromCache(actualMapping.Type);
 
         foreach (var (name, member, memberMapping) in actualMapping.Members)
         {
@@ -292,11 +294,13 @@ public sealed class DeltaPackCodec<T> where T : class
         return obj;
     }
 
-    private static object CreateInstance(Type type)
+    private object CreateInstanceFromCache(Type type)
     {
-        // Activator.CreateInstance works for both classes and structs
-        return Activator.CreateInstance(type)
-            ?? throw new InvalidOperationException($"Failed to create instance of '{type.Name}'");
+        if (_factories.TryGetValue(type, out var factory))
+            return factory();
+
+        throw new InvalidOperationException(
+            $"No factory found for type '{type.Name}'. This type may not have a parameterless constructor.");
     }
 
     private object ToTypedArray(List<object?> list, ArrayMapping mapping)
@@ -368,10 +372,12 @@ internal sealed class SchemaBuilder
 {
     private readonly Dictionary<string, SchemaType> _schema = new();
     private readonly Dictionary<Type, TypeMapping> _mappings = new();
+    private readonly Dictionary<Type, Func<object>> _factories = new();
     private readonly HashSet<Type> _processing = new();
 
     public IReadOnlyDictionary<string, SchemaType> GetSchema() => _schema;
     public IReadOnlyDictionary<Type, TypeMapping> GetMappings() => _mappings;
+    public IReadOnlyDictionary<Type, Func<object>> GetFactories() => _factories;
 
     public TypeMapping BuildMapping(Type type)
     {
@@ -507,6 +513,14 @@ internal sealed class SchemaBuilder
     private TypeMapping BuildObjectMapping(Type type)
     {
         _processing.Add(type);
+
+        // Cache factory during schema building for IL2CPP compatibility
+        if (!_factories.ContainsKey(type))
+        {
+            var capturedType = type;
+            _factories[type] = () => Activator.CreateInstance(capturedType)
+                ?? throw new InvalidOperationException($"Failed to create instance of '{capturedType.Name}'");
+        }
 
         var members = new List<(string, MemberInfo, TypeMapping)>();
         var properties = new Dictionary<string, SchemaType>();
