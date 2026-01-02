@@ -34,6 +34,8 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Build and install delta-pack CLI
         run: cd ../cli && bun install && bun run build && npm link
+      - name: Install protoc
+        run: sudo apt-get install -y protobuf-compiler
       - name: Restore dependencies
         run: dotnet restore
       - name: Generate benchmark code
