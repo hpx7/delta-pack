@@ -1,4 +1,4 @@
-name: CLI - Publish to NPM
+name: CLI - Publish
 
 on:
   push:
@@ -7,37 +7,147 @@ on:
       - "cli/package.json"
       - ".github/workflows/cli-publish.yml"
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
-  publish:
-    name: Build and publish to NPM
+  npm:
+    name: Publish to npm
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+    outputs:
+      published: ${{ steps.publish.outputs.type != 'none' }}
+      version: ${{ steps.publish.outputs.version }}
     defaults:
       run:
         working-directory: cli
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
+
       - name: Install dependencies
         run: bun install
+
       - name: Run tests
         run: bun test
+
       - name: Build
         run: bun run build
+
       - name: Publish to NPM
+        id: publish
         uses: JS-DevTools/npm-publish@v4
         with:
           package: cli/package.json
           access: public
           provenance: true
+
+  binaries:
+    name: Build ${{ matrix.target }}
+    needs: npm
+    if: needs.npm.outputs.published == 'true'
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            target: darwin-arm64
+          - os: macos-13
+            target: darwin-x64
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: windows-latest
+            target: windows-x64
+
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: cli
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build binary (Unix)
+        if: runner.os != 'Windows'
+        run: bun build src/index.ts --compile --outfile delta-pack-${{ matrix.target }}
+
+      - name: Build binary (Windows)
+        if: runner.os == 'Windows'
+        run: bun build src/index.ts --compile --outfile delta-pack-${{ matrix.target }}.exe
+
+      - name: Upload artifact (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-pack-${{ matrix.target }}
+          path: cli/delta-pack-${{ matrix.target }}
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-pack-${{ matrix.target }}
+          path: cli/delta-pack-${{ matrix.target }}.exe
+
+  release:
+    name: Create GitHub Release
+    needs: [npm, binaries]
+    if: needs.npm.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: binaries
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: binaries
+        run: |
+          sha256sum delta-pack-* > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: cli-v${{ needs.npm.outputs.version }}
+          name: CLI v${{ needs.npm.outputs.version }}
+          body: |
+            ## Installation
+
+            ### npm
+            ```bash
+            npm install -g @hpx7/delta-pack-cli
+            ```
+
+            ### Binary Download
+            Download the binary for your platform below, make it executable, and add it to your PATH.
+
+            | Platform | Binary |
+            |----------|--------|
+            | macOS (Apple Silicon) | `delta-pack-darwin-arm64` |
+            | macOS (Intel) | `delta-pack-darwin-x64` |
+            | Linux (x64) | `delta-pack-linux-x64` |
+            | Windows (x64) | `delta-pack-windows-x64.exe` |
+          files: |
+            binaries/delta-pack-*
+            binaries/checksums.txt
