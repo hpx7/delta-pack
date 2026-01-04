@@ -1,130 +1,146 @@
 import { Writer } from "bin-serde";
 
-export function rleEncode(bits: boolean[], writer: Writer): void {
-  if (bits.length === 0) {
-    writeReverseUVarint(writer, 0);
-    return;
-  }
+// RLE format: first bit is the starting value, then run lengths are encoded as:
+// 0 = 1, 10x = 2-3, 110x = 4-5, 1110xxx = 6-13, 1111xxxxxxxx = 14-269
 
-  let currentByte = 0;
-  let bitPos = 0;
-  let totalBits = 0;
+export class RleEncoder {
+  private bytes: number[] = [];
+  private currentByte = 0;
+  private bitPos = 0;
+  private totalBits = 0;
+  private runValue = -1; // -1 = no run yet, 0 = false, 1 = true
+  private runCount = 0;
 
-  function writeBit(bit: boolean) {
-    if (bit) {
-      currentByte |= 1 << bitPos;
-    }
-    bitPos++;
-    totalBits++;
-    if (bitPos === 8) {
-      writer.writeUInt8(currentByte);
-      currentByte = 0;
-      bitPos = 0;
-    }
-  }
-
-  function writeBits(val: number, numBits: number) {
-    for (let i = numBits - 1; i >= 0; i--) {
-      writeBit((val & (1 << i)) > 0);
-    }
-  }
-
-  let last = bits[0]!;
-  let count = 1;
-  writeBit(last);
-
-  for (let i = 1; i <= bits.length; i++) {
-    if (i < bits.length && bits[i] === last) {
-      count++;
+  pushBit(val: boolean): void {
+    const bit = val ? 1 : 0;
+    if (this.runValue === -1) {
+      this.runValue = bit;
+      this.runCount = 1;
+      this.writeBit(bit);
+    } else if (bit === this.runValue) {
+      this.runCount++;
     } else {
-      // Variable-length unary coding for run lengths
-      if (count === 1) {
-        writeBit(false);
-      } else if (count <= 3) {
-        writeBit(true);
-        writeBit(false);
-        writeBit(count === 3);
-      } else if (count <= 5) {
-        writeBit(true);
-        writeBit(true);
-        writeBit(false);
-        writeBit(count === 5);
-      } else if (count <= 13) {
-        writeBit(true);
-        writeBit(true);
-        writeBit(true);
-        writeBit(false);
-        writeBits(count - 6, 3);
-      } else if (count <= 269) {
-        writeBit(true);
-        writeBit(true);
-        writeBit(true);
-        writeBit(true);
-        writeBits(count - 14, 8);
-      } else {
-        throw new Error("RLE count too large: " + count);
-      }
-      last = bits[i]!;
-      count = 1;
+      this.emitRunLength(this.runCount);
+      this.runValue = bit;
+      this.runCount = 1;
     }
   }
 
-  // Flush remaining bits
-  if (bitPos > 0) {
-    writer.writeUInt8(currentByte);
+  pushBits(val: number, numBits: number): void {
+    for (let i = numBits - 1; i >= 0; i--) {
+      this.pushBit(((val >> i) & 1) === 1);
+    }
   }
 
-  writeReverseUVarint(writer, totalBits);
+  finalize(target: Writer): void {
+    if (this.runValue === -1) {
+      writeReverseUVarint(target, 0);
+      return;
+    }
+    this.emitRunLength(this.runCount);
+    if (this.bitPos > 0) {
+      this.bytes.push(this.currentByte);
+    }
+    for (let i = 0; i < this.bytes.length; i++) {
+      target.writeUInt8(this.bytes[i]!);
+    }
+    writeReverseUVarint(target, this.totalBits);
+  }
+
+  private writeBit(bit: number): void {
+    if (bit) this.currentByte |= 1 << this.bitPos;
+    if (++this.bitPos === 8) {
+      this.bytes.push(this.currentByte);
+      this.currentByte = 0;
+      this.bitPos = 0;
+    }
+    this.totalBits++;
+  }
+
+  private writeBits(val: number, numBits: number): void {
+    for (let i = numBits - 1; i >= 0; i--) {
+      this.writeBit((val >> i) & 1);
+    }
+  }
+
+  private emitRunLength(count: number): void {
+    if (count === 1) {
+      this.writeBit(0);
+    } else if (count <= 3) {
+      this.writeBits(0b100 | (count - 2), 3);
+    } else if (count <= 5) {
+      this.writeBits(0b1100 | (count - 4), 4);
+    } else if (count <= 13) {
+      this.writeBits((0b1110 << 3) | (count - 6), 7);
+    } else if (count <= 269) {
+      this.writeBits((0b1111 << 8) | (count - 14), 12);
+    } else {
+      throw new Error("RLE count too large: " + count);
+    }
+  }
 }
 
-/**
- * Creates a lazy RLE bit reader - decodes bits on-demand instead of upfront.
- * Returns a function that yields the next boolean on each call.
- */
-export function rleDecode(buf: Uint8Array): () => boolean {
-  const { value: numBits, bytesRead: varintLen } = readReverseUVarint(buf);
+export class RleDecoder {
+  private buf: Uint8Array;
+  private bytePos: number;
+  private currentByte = 0;
+  private bitPos = 8; // Start at 8 to trigger first byte read
+  private currentValue: boolean;
+  private runRemaining: number;
 
-  const numRleBytes = Math.ceil(numBits / 8);
-  let bytePos = buf.length - varintLen - numRleBytes;
-  let currentByte = 0;
-  let bitPos = 8; // Start at 8 to trigger first byte read
-  let currentValue = readBit();
-  let runRemaining = decodeRunLength();
-
-  function decodeRunLength(): number {
-    if (!readBit()) return 1;
-    if (!readBit()) return readBits(1) + 2;
-    if (!readBit()) return readBits(1) + 4;
-    if (!readBit()) return readBits(3) + 6;
-    return readBits(8) + 14;
+  constructor(buf: Uint8Array) {
+    this.buf = buf;
+    const { value: numBits, bytesRead: varintLen } = readReverseUVarint(buf);
+    const numRleBytes = Math.ceil(numBits / 8);
+    this.bytePos = buf.length - varintLen - numRleBytes;
+    this.currentValue = this.readBit();
+    this.runRemaining = this.decodeRunLength();
   }
 
-  function readBit(): boolean {
-    if (bitPos === 8) {
-      currentByte = buf[bytePos++]!;
-      bitPos = 0;
+  nextBit(): boolean {
+    if (this.runRemaining === 0) {
+      this.currentValue = !this.currentValue;
+      this.runRemaining = this.decodeRunLength();
     }
-    return ((currentByte >> bitPos++) & 1) === 1;
+    this.runRemaining--;
+    return this.currentValue;
   }
 
-  function readBits(numBits: number): number {
+  nextBits(numBits: number): number {
     let val = 0;
     for (let i = numBits - 1; i >= 0; i--) {
-      if (readBit()) {
+      if (this.nextBit()) {
         val |= 1 << i;
       }
     }
     return val;
   }
 
-  return () => {
-    if (runRemaining === 0) {
-      currentValue = !currentValue;
-      runRemaining = decodeRunLength();
+  private readBit(): boolean {
+    if (this.bitPos === 8) {
+      this.currentByte = this.buf[this.bytePos++]!;
+      this.bitPos = 0;
     }
-    runRemaining--;
-    return currentValue;
-  };
+    return ((this.currentByte >> this.bitPos++) & 1) === 1;
+  }
+
+  private decodeRunLength(): number {
+    if (!this.readBit()) return 1;
+    if (!this.readBit()) return this.readBits(1) + 2;
+    if (!this.readBit()) return this.readBits(1) + 4;
+    if (!this.readBit()) return this.readBits(3) + 6;
+    return this.readBits(8) + 14;
+  }
+
+  private readBits(numBits: number): number {
+    let val = 0;
+    for (let i = numBits - 1; i >= 0; i--) {
+      if (this.readBit()) {
+        val |= 1 << i;
+      }
+    }
+    return val;
+  }
 }
 
 function writeReverseUVarint(writer: Writer, val: number) {

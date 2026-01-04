@@ -1,11 +1,11 @@
 import { Writer } from "bin-serde";
 import utf8BufferSize from "utf8-buffer-size";
 import { equalsFloat, equalsArray, equalsRecord } from "./helpers.js";
-import { rleEncode } from "./rle.js";
+import { RleEncoder } from "./rle.js";
 
 export class Encoder {
   private dict: string[] = [];
-  private bits: boolean[] = [];
+  private rle = new RleEncoder();
   private writer = new Writer();
 
   pushString(val: string) {
@@ -39,13 +39,10 @@ export class Encoder {
     this.pushInt(Math.round(val / precision));
   }
   pushBoolean(val: boolean) {
-    this.bits.push(val);
+    this.rle.pushBit(val);
   }
   pushEnum(val: number, numBits: number) {
-    // Push bits from most significant to least significant
-    for (let i = numBits - 1; i >= 0; i--) {
-      this.bits.push(((val >> i) & 1) === 1);
-    }
+    this.rle.pushBits(val, numBits);
   }
   pushOptional<T>(val: T | undefined, innerWrite: (x: T) => void) {
     this.pushBoolean(val != null);
@@ -237,7 +234,7 @@ export class Encoder {
     });
   }
   toBuffer() {
-    rleEncode(this.bits, this.writer);
+    this.rle.finalize(this.writer);
     return this.writer.toBuffer();
   }
 
