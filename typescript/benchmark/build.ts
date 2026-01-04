@@ -43,12 +43,13 @@ async function main() {
   }
 
   // Generate delta-pack index.ts
-  const deltapackIndexContent = generatedExamples.map((e) => `export * as ${e} from "./${e}.js";`).join("\n") + "\n";
+  const deltapackIndexContent = generatedExamples.map((e) => `export { ${e} } from "./${e}.js";`).join("\n") + "\n";
   fs.writeFileSync(`${generatedDir}/deltapack/index.ts`, deltapackIndexContent);
   console.log(`Generated ${generatedDir}/deltapack/index.ts`);
 
   // Generate protobuf index.ts (protobuf exports lowercase package names)
-  const protobufIndexContent = generatedExamples.map((e) => `export { ${e.toLowerCase()} as ${e} } from "./${e}.js";`).join("\n") + "\n";
+  const protobufIndexContent =
+    generatedExamples.map((e) => `export { ${e.toLowerCase()} as ${e} } from "./${e}.js";`).join("\n") + "\n";
   fs.writeFileSync(`${generatedDir}/protobuf/index.ts`, protobufIndexContent);
   console.log(`Generated ${generatedDir}/protobuf/index.ts`);
 }

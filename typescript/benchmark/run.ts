@@ -43,7 +43,11 @@ function main() {
     examples = examples.filter((e) => filter.some((f) => e.name.toLowerCase().includes(f.toLowerCase())));
     if (examples.length === 0) {
       console.error(`No examples match filter: ${filter.join(", ")}`);
-      console.error(`Available: ${loadExamples().map((e) => e.name).join(", ")}`);
+      console.error(
+        `Available: ${loadExamples()
+          .map((e) => e.name)
+          .join(", ")}`
+      );
       process.exit(1);
     }
   }
@@ -182,8 +186,7 @@ function formatOps(ops: number): string {
 function loadExamples(): Example[] {
   const examples: Example[] = [];
 
-  for (const [name, mod] of Object.entries(deltapack)) {
-    const api = (mod as Record<string, unknown>)[name] as DeltaPackApi<unknown>;
+  for (const [name, api] of Object.entries(deltapack) as [string, DeltaPackApi<unknown>][]) {
     const protobufType = (protobuf as unknown as Record<string, Record<string, unknown>>)[name]?.[name] as ProtobufType;
 
     const exampleDir = `${examplesDir}/${name}`;
