@@ -149,7 +149,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       encoder.pushString(objVal as string);
     } else if (objType.type === "int") {
       const val = objVal as number;
-      if (objType.min != null) {
+      if (objType.min != null && objType.min >= 0) {
         encoder.pushBoundedInt(val, objType.min);
       } else {
         encoder.pushInt(val);
@@ -200,7 +200,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       return decoder.nextString();
     } else if (objType.type === "int") {
-      if (objType.min != null) {
+      if (objType.min != null && objType.min >= 0) {
         return decoder.nextBoundedInt(objType.min);
       } else {
         return decoder.nextInt();
@@ -359,7 +359,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       encoder.pushStringDiff(a as string, b as string);
     } else if (objType.type === "int") {
-      if (objType.min != null) {
+      if (objType.min != null && objType.min >= 0) {
         encoder.pushBoundedIntDiff(a as number, b as number, objType.min);
       } else {
         encoder.pushIntDiff(a as number, b as number);
@@ -449,7 +449,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     if (objType.type === "string") {
       return decoder.nextStringDiff(a as string);
     } else if (objType.type === "int") {
-      if (objType.min != null) {
+      if (objType.min != null && objType.min >= 0) {
         return decoder.nextBoundedIntDiff(a as number, objType.min);
       } else {
         return decoder.nextIntDiff(a as number);

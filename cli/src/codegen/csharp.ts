@@ -741,7 +741,7 @@ ${decodeDiffNewTypeCases}
     if (type.type === "string") {
       return `encoder.PushString(${key})`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `encoder.PushBoundedInt(${key}, ${type.min})`;
       }
       return `encoder.PushInt(${key})`;
@@ -783,7 +783,7 @@ ${decodeDiffNewTypeCases}
     if (type.type === "string") {
       return `decoder.NextString()`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `decoder.NextBoundedInt(${type.min})`;
       }
       return `decoder.NextInt()`;
@@ -838,7 +838,7 @@ ${decodeDiffNewTypeCases}
     if (type.type === "string") {
       return `encoder.PushStringDiff(${keyA}, ${keyB})`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `encoder.PushBoundedIntDiff(${keyA}, ${keyB}, ${type.min})`;
       }
       return `encoder.PushIntDiff(${keyA}, ${keyB})`;
@@ -902,7 +902,7 @@ ${decodeDiffNewTypeCases}
     if (type.type === "string") {
       return `decoder.NextStringDiff(${key})`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `decoder.NextBoundedIntDiff(${key}, ${type.min})`;
       }
       return `decoder.NextIntDiff(${key})`;

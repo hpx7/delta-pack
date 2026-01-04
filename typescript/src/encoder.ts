@@ -29,9 +29,6 @@ export class Encoder {
   pushBoundedInt(val: number, min: number) {
     this.writer.writeUVarint(val - min);
   }
-  pushBoundedIntDiff(a: number, b: number, min: number) {
-    this.pushUIntDiff(a - min, b - min);
-  }
   pushFloat(val: number) {
     this.writer.writeFloat(val);
   }
@@ -76,6 +73,12 @@ export class Encoder {
     this.pushBoolean(a !== b);
     if (a !== b) {
       this.pushInt(b);
+    }
+  }
+  pushBoundedIntDiff(a: number, b: number, min: number) {
+    this.pushBoolean(a !== b);
+    if (a !== b) {
+      this.writer.writeUVarint(b - min);
     }
   }
   pushFloatDiff(a: number, b: number) {
@@ -236,12 +239,5 @@ export class Encoder {
   toBuffer() {
     this.rle.finalize(this.writer);
     return this.writer.toBuffer();
-  }
-
-  private pushUIntDiff(a: number, b: number) {
-    this.pushBoolean(a !== b);
-    if (a !== b) {
-      this.writer.writeUVarint(b);
-    }
   }
 }

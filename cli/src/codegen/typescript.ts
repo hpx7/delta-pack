@@ -521,7 +521,7 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `encoder.pushString(${key})`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `encoder.pushBoundedInt(${key}, ${type.min})`;
       }
       return `encoder.pushInt(${key})`;
@@ -554,7 +554,7 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `decoder.nextString()`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `decoder.nextBoundedInt(${type.min})`;
       }
       return `decoder.nextInt()`;
@@ -629,7 +629,7 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `encoder.pushStringDiff(${keyA}, ${keyB})`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `encoder.pushBoundedIntDiff(${keyA}, ${keyB}, ${type.min})`;
       }
       return `encoder.pushIntDiff(${keyA}, ${keyB})`;
@@ -691,7 +691,7 @@ export const ${name} = {
     } else if (type.type === "string") {
       return `decoder.nextStringDiff(${key})`;
     } else if (type.type === "int") {
-      if (type.min != null) {
+      if (type.min != null && type.min >= 0) {
         return `decoder.nextBoundedIntDiff(${key}, ${type.min})`;
       }
       return `decoder.nextIntDiff(${key})`;
