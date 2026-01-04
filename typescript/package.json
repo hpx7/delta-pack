@@ -76,7 +76,7 @@
     "yaml": "^2.8.1"
   },
   "devDependencies": {
-    "@hpx7/delta-pack-cli": "^0.2.3",
+    "@hpx7/delta-pack-cli": "file:../cli",
     "@swc/core": "^1.15.4",
     "@types/node": "^20.10.5",
     "@vitest/coverage-v8": "^4.0.13",
