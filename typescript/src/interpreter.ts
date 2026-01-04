@@ -27,8 +27,8 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     return (obj as Record<string, unknown>)[key];
   }
 
-  function enumIndices(options: readonly string[]): Record<string, number> {
-    return Object.fromEntries(options.map((opt, i) => [opt, i]));
+  function enumIndices(options: readonly string[]): Record<string | number, string | number> {
+    return Object.fromEntries([...options.map((opt, i) => [opt, i]), ...options.map((opt, i) => [i, opt])]);
   }
 
   function _fromJson(objVal: unknown, objType: Type, parent: NamedType): unknown {
@@ -62,34 +62,11 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
         (val) => _fromJson(val, objType.value, parent)
       );
     } else if (objType.type === "union") {
-      if (typeof objVal !== "object" || objVal == null) {
-        throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
-      }
-      // check if it's delta-pack format: { type: "TypeName", val: ... }
-      if ("type" in objVal && typeof objVal.type === "string" && "val" in objVal) {
-        const variant = objType.options.find((v) => v.name === objVal.type);
-        if (!variant) {
-          throw new Error(`Unknown union type variant: ${objVal.type}`);
-        }
-        return {
-          type: objVal.type,
-          val: _fromJson(objVal.val, variant, variant),
-        };
-      }
-      // check if it's protobuf format: { TypeName: ... }
-      const entries = Object.entries(objVal);
-      if (entries.length === 1) {
-        const [fieldName, fieldValue] = entries[0]!;
-        const variant = objType.options.find((v) => v.name === fieldName);
-        if (!variant) {
-          throw new Error(`Unknown union type variant: ${fieldName}`);
-        }
-        return {
-          type: fieldName,
-          val: _fromJson(fieldValue, variant, variant),
-        };
-      }
-      throw new Error(`Invalid union: ${JSON.stringify(objVal)}`);
+      const variantNames = objType.options.map((o) => o.name!);
+      const parsers = Object.fromEntries(
+        objType.options.map((o) => [o.name!, (val: unknown) => _fromJson(val, o, o)])
+      ) as Record<string, (val: unknown) => unknown>;
+      return _.parseUnion(objVal, variantNames, parsers);
     } else if (objType.type === "optional") {
       return _.parseOptional(objVal, (val) => _fromJson(val, objType.value, parent));
     }
@@ -163,7 +140,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "boolean") {
       encoder.pushBoolean(objVal as boolean);
     } else if (objType.type === "enum") {
-      encoder.pushEnum(enumIndices(objType.options)[objVal as string]!, objType.numBits);
+      encoder.pushEnum(enumIndices(objType.options)[objVal as string] as number, objType.numBits);
     } else if (objType.type === "reference") {
       _encode(objVal, objType.ref, encoder, objType.ref);
     } else if (objType.type === "self-reference") {
@@ -374,7 +351,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       encoder.pushBooleanDiff(a as boolean, b as boolean);
     } else if (objType.type === "enum") {
       const indices = enumIndices(objType.options);
-      encoder.pushEnumDiff(indices[a as string]!, indices[b as string]!, objType.numBits);
+      encoder.pushEnumDiff(indices[a as string] as number, indices[b as string] as number, objType.numBits);
     } else if (objType.type === "reference") {
       _encodeDiff(a, b, objType.ref, encoder, objType.ref);
     } else if (objType.type === "self-reference") {
@@ -463,7 +440,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "boolean") {
       return decoder.nextBoolean() ? !(a as boolean) : a;
     } else if (objType.type === "enum") {
-      const newIdx = decoder.nextEnumDiff(enumIndices(objType.options)[a as string]!, objType.numBits);
+      const newIdx = decoder.nextEnumDiff(enumIndices(objType.options)[a as string] as number, objType.numBits);
       return objType.options[newIdx];
     } else if (objType.type === "reference") {
       return _decodeDiff(a, objType.ref, decoder, objType.ref);

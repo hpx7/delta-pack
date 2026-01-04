@@ -218,18 +218,6 @@ function renderUnionApi(
 ): string {
   const first = options[0]!;
 
-  const fromJsonDeltaPack = ifElseChain(
-    options,
-    (opt, _, p) =>
-      `      ${p}if (obj["type"] === "${opt.name}") {\n        return { type: "${opt.name}", val: ${renderFromJson(ctx, opt, opt.name!, `obj["val"]`)} };\n      }`,
-  );
-
-  const fromJsonProtobuf = ifElseChain(
-    options,
-    (opt, _, p) =>
-      `      ${p}if (fieldName === "${opt.name}") {\n        return { type: "${opt.name}", val: ${renderFromJson(ctx, opt, opt.name!, "fieldValue")} };\n      }`,
-  );
-
   const toJsonCases = ifElseChain(
     options,
     (opt, _, p) =>
@@ -280,26 +268,17 @@ function renderUnionApi(
 
   return `
 export const ${name} = {
-  default(): ${first.name} {
+  default(): ${name} {
     return { type: "${first.name}", val: ${first.name}.default() };
   },
   values() {
     return [${options.map((opt) => `"${opt.name}"`).join(", ")}];
   },
   fromJson(obj: object): ${name} {
-    if (typeof obj !== "object" || obj == null) {
-      throw new Error(\`Invalid ${name}: \${obj}\`);
-    }
-    if ("type" in obj && typeof (obj as Record<string, unknown>)["type"] === "string" && "val" in obj) {
-${fromJsonDeltaPack}
-      else { throw new Error(\`Invalid ${name}: \${obj}\`); }
-    }
-    const entries = Object.entries(obj);
-    if (entries.length === 1) {
-      const [fieldName, fieldValue] = entries[0]!;
-${fromJsonProtobuf}
-    }
-    throw new Error(\`Invalid ${name}: \${obj}\`);
+    const result = _.parseUnion(obj, [${options.map((opt) => `"${opt.name}"`).join(", ")}] as const, {
+${options.map((opt) => `      ${opt.name}: (x: unknown) => ${renderFromJson(ctx, opt, opt.name!, "x")}`).join(",\n")}
+    });
+    return result as ${name};
   },
   toJson(obj: ${name}): Record<string, unknown> {
 ${toJsonCases}

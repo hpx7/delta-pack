@@ -36,12 +36,12 @@ export function runPlayerTests(Player: DeltaPackApi<Player>) {
     });
 
     it("should detect validation errors for name", () => {
-      const invalidPlayer = { id: "p1", name: 123, score: 100, isActive: true };
+      const invalidPlayer = { id: "p1", name: null, score: 100, isActive: true };
       expect(() => Player.fromJson(invalidPlayer)).toThrow(/name/);
     });
 
     it("should detect validation errors for id", () => {
-      const invalidPlayer = { id: 123, name: "Alice", score: 100, isActive: true };
+      const invalidPlayer = { id: {}, name: "Alice", score: 100, isActive: true };
       expect(() => Player.fromJson(invalidPlayer)).toThrow(/id/);
     });
 
@@ -586,7 +586,7 @@ export function runEntityTests(Entity: DeltaPackApi<Entity>) {
     });
 
     it("should detect validation errors for id", () => {
-      const invalidEntity = { id: 123, position: { x: 10.5, y: 20.3 } };
+      const invalidEntity = { id: null, position: { x: 10.5, y: 20.3 } };
       expect(() => Entity.fromJson(invalidEntity)).toThrow(/id/);
     });
 
@@ -758,7 +758,7 @@ export function runActionTests(
     });
 
     it("should detect AttackAction validation errors for targetId", () => {
-      const invalidAttack = { targetId: 123, damage: 50 };
+      const invalidAttack = { targetId: null, damage: 50 };
       expect(() => AttackAction.fromJson(invalidAttack)).toThrow(/targetId/);
     });
 
@@ -793,7 +793,7 @@ export function runActionTests(
     });
 
     it("should detect UseItemAction validation errors for itemId", () => {
-      const invalidUse = { itemId: false };
+      const invalidUse = { itemId: null };
       expect(() => UseItemAction.fromJson(invalidUse)).toThrow(/itemId/);
     });
   });
@@ -894,12 +894,12 @@ export function runGameActionTests(GameAction: DeltaPackApi<GameAction>) {
     });
 
     it("should detect GameAction validation errors for invalid AttackAction value", () => {
-      const invalidAction: any = { type: "AttackAction", val: { targetId: 123, damage: 50 } };
+      const invalidAction: any = { type: "AttackAction", val: { targetId: null, damage: 50 } };
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should detect GameAction validation errors for invalid UseItemAction value", () => {
-      const invalidAction: any = { type: "UseItemAction", val: { itemId: false } };
+      const invalidAction: any = { type: "UseItemAction", val: { itemId: null } };
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
@@ -1003,7 +1003,7 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
     it("should detect validation errors for players array", () => {
       const invalidState = {
         ...gameState1,
-        players: [{ id: 123, name: "Alice", score: 100, isActive: true }],
+        players: [{ id: null, name: "Alice", score: 100, isActive: true }],
       };
       expect(() => GameState.fromJson(invalidState)).toThrow();
     });
@@ -1098,7 +1098,7 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
     it("should detect record validation errors", () => {
       const invalidState = {
         ...gameState1,
-        metadata: new Map([[123, "value"]]),
+        metadata: new Map([[{} as any, "value"]]),
       };
       expect(() => GameState.fromJson(invalidState)).toThrow();
     });
@@ -1600,7 +1600,7 @@ export function runNestedValidationTests(Entity: DeltaPackApi<Entity>, GameState
       const invalidState = {
         players: [
           { id: "p1", name: "Alice", score: 100, isActive: true },
-          { id: 123, name: "Bob", score: 50, isActive: true }, // invalid id
+          { id: null, name: "Bob", score: 50, isActive: true }, // invalid id
         ],
         round: 1,
         metadata: new Map(),
@@ -1619,7 +1619,7 @@ export function runNestedValidationTests(Entity: DeltaPackApi<Entity>, GameState
             isActive: true,
             partner: {
               id: "p2",
-              name: 12345, // invalid name type
+              name: null, // invalid name type
               score: 50,
               isActive: true,
             },
@@ -1647,7 +1647,7 @@ export function runNestedValidationTests(Entity: DeltaPackApi<Entity>, GameState
       const invalidState = {
         players: [],
         round: 1,
-        metadata: new Map([["key", 123]]), // value should be string
+        metadata: new Map([["key", null]]), // value should be string
       };
 
       expect(() => GameState.fromJson(invalidState)).toThrow();

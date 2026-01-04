@@ -418,11 +418,22 @@ describe("Edge Cases - Enum Validation", () => {
     expect(() => api.fromJson({ color: "GREEN" })).not.toThrow();
   });
 
+  it("should accept enum values case-insensitively", () => {
+    expect(api.fromJson({ color: "red" }).color).toBe("RED");
+    expect(api.fromJson({ color: "Red" }).color).toBe("RED");
+    expect(api.fromJson({ color: "blue" }).color).toBe("BLUE");
+  });
+
+  it("should accept integer indices for enum values", () => {
+    expect(api.fromJson({ color: 0 }).color).toBe("RED");
+    expect(api.fromJson({ color: 1 }).color).toBe("BLUE");
+    expect(api.fromJson({ color: "0" }).color).toBe("RED");
+  });
+
   it("should reject invalid enum values", () => {
     expect(() => api.fromJson({ color: "PURPLE" })).toThrow();
-    expect(() => api.fromJson({ color: "red" })).toThrow(); // case sensitive
     expect(() => api.fromJson({ color: "" })).toThrow();
-    expect(() => api.fromJson({ color: 0 })).toThrow();
+    expect(() => api.fromJson({ color: 99 })).toThrow();
   });
 
   it("should encode and decode all enum values", () => {

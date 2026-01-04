@@ -22,12 +22,19 @@ describe("Helper Functions - Parse and Validation", () => {
       expect(parseString("123")).toBe("123");
     });
 
-    it("should reject non-strings", () => {
-      expect(() => parseString(123)).toThrow("Invalid string: 123");
+    it("should coerce numbers and booleans to strings", () => {
+      expect(parseString(123)).toBe("123");
+      expect(parseString(3.14)).toBe("3.14");
+      expect(parseString(true)).toBe("true");
+      expect(parseString(false)).toBe("false");
+      expect(parseString(0)).toBe("0");
+    });
+
+    it("should reject non-coercible values", () => {
       expect(() => parseString(null)).toThrow("Invalid string");
       expect(() => parseString(undefined)).toThrow("Invalid string");
-      expect(() => parseString(true)).toThrow("Invalid string");
       expect(() => parseString({})).toThrow("Invalid string");
+      expect(() => parseString([])).toThrow("Invalid string");
     });
   });
 
@@ -113,15 +120,26 @@ describe("Helper Functions - Parse and Validation", () => {
       expect(parseBoolean(false)).toBe(false);
     });
 
-    it('should accept string "true" and "false"', () => {
+    it('should accept string "true" and "false" (case-insensitive)', () => {
       expect(parseBoolean("true")).toBe(true);
       expect(parseBoolean("false")).toBe(false);
+      expect(parseBoolean("TRUE")).toBe(true);
+      expect(parseBoolean("FALSE")).toBe(false);
+      expect(parseBoolean("True")).toBe(true);
+      expect(parseBoolean("False")).toBe(false);
+    });
+
+    it("should accept 1/0 and '1'/'0' as booleans", () => {
+      expect(parseBoolean(1)).toBe(true);
+      expect(parseBoolean(0)).toBe(false);
+      expect(parseBoolean("1")).toBe(true);
+      expect(parseBoolean("0")).toBe(false);
     });
 
     it("should reject non-booleans", () => {
-      expect(() => parseBoolean(1)).toThrow("Invalid boolean: 1");
-      expect(() => parseBoolean(0)).toThrow("Invalid boolean: 0");
       expect(() => parseBoolean("yes")).toThrow("Invalid boolean");
+      expect(() => parseBoolean("no")).toThrow("Invalid boolean");
+      expect(() => parseBoolean(2)).toThrow("Invalid boolean");
       expect(() => parseBoolean(null)).toThrow("Invalid boolean");
       expect(() => parseBoolean(undefined)).toThrow("Invalid boolean");
     });
@@ -143,10 +161,25 @@ describe("Helper Functions - Parse and Validation", () => {
       expect(parseEnum("BLUE", Color)).toBe("BLUE");
     });
 
+    it("should match enum values case-insensitively", () => {
+      expect(parseEnum("red", Color)).toBe("RED");
+      expect(parseEnum("Red", Color)).toBe("RED");
+      expect(parseEnum("green", Color)).toBe("GREEN");
+      expect(parseEnum("blue", Color)).toBe("BLUE");
+    });
+
+    it("should accept integer indices", () => {
+      expect(parseEnum(0, Color)).toBe("RED");
+      expect(parseEnum(1, Color)).toBe("GREEN");
+      expect(parseEnum(2, Color)).toBe("BLUE");
+      expect(parseEnum("0", Color)).toBe("RED");
+      expect(parseEnum("1", Color)).toBe("GREEN");
+    });
+
     it("should reject invalid enum values", () => {
       expect(() => parseEnum("YELLOW", Color)).toThrow("Invalid enum: YELLOW");
-      expect(() => parseEnum("red", Color)).toThrow("Invalid enum: red");
-      expect(() => parseEnum(0, Color)).toThrow("Invalid enum: 0");
+      expect(() => parseEnum("purple", Color)).toThrow("Invalid enum: purple");
+      expect(() => parseEnum(99, Color)).toThrow("Invalid enum: 99");
       expect(() => parseEnum(null, Color)).toThrow("Invalid enum");
     });
   });
@@ -157,14 +190,22 @@ describe("Helper Functions - Parse and Validation", () => {
       expect(parseOptional(undefined, parseString)).toBeUndefined();
     });
 
+    it("should treat empty string as undefined", () => {
+      expect(parseOptional("", parseString)).toBeUndefined();
+    });
+
     it("should parse valid inner values", () => {
       expect(parseOptional("hello", parseString)).toBe("hello");
       expect(parseOptional(42, parseInt)).toBe(42);
     });
 
+    it("should coerce numbers to strings in optional", () => {
+      expect(parseOptional(123, parseString)).toBe("123");
+    });
+
     it("should throw with cause on invalid inner values", () => {
       try {
-        parseOptional(123, parseString);
+        parseOptional({}, parseString);
         expect.fail("Should have thrown");
       } catch (err: any) {
         expect(err.message).toContain("Invalid optional");
@@ -181,6 +222,10 @@ describe("Helper Functions - Parse and Validation", () => {
       expect(parseArray([], parseString)).toEqual([]);
     });
 
+    it("should coerce numbers to strings in array", () => {
+      expect(parseArray(["a", 123, "c"], parseString)).toEqual(["a", "123", "c"]);
+    });
+
     it("should reject non-arrays", () => {
       expect(() => parseArray("not array", parseString)).toThrow("Invalid array");
       expect(() => parseArray(null, parseString)).toThrow("Invalid array");
@@ -189,7 +234,7 @@ describe("Helper Functions - Parse and Validation", () => {
 
     it("should throw with index information on invalid element", () => {
       try {
-        parseArray(["a", 123, "c"], parseString);
+        parseArray(["a", {}, "c"], parseString);
         expect.fail("Should have thrown");
       } catch (err: any) {
         expect(err.message).toContain("Invalid array element at index 1");
@@ -252,13 +297,19 @@ describe("Helper Functions - Parse and Validation", () => {
       expect(parseRecord(obj, parseString, parseString)).toBeInstanceOf(Map);
     });
 
-    it("should throw with key/value information on invalid element", () => {
+    it("should coerce numbers to strings in record values", () => {
       const obj = { foo: "bar", baz: 123 };
+      const result = parseRecord(obj, parseString, parseString);
+      expect(result.get("baz")).toBe("123");
+    });
+
+    it("should throw with key/value information on invalid element", () => {
+      const obj = { foo: "bar", baz: {} };
       try {
         parseRecord(obj, parseString, parseString);
         expect.fail("Should have thrown");
       } catch (err: any) {
-        expect(err.message).toContain("Invalid record element (baz, 123)");
+        expect(err.message).toContain("Invalid record element");
         expect(err.cause).toBeDefined();
       }
     });
@@ -329,7 +380,7 @@ describe("Helper Functions - Parse and Validation", () => {
     it("should chain errors through optional fields", () => {
       try {
         tryParseField(() => {
-          parseOptional(123, parseString);
+          parseOptional({}, parseString);
         }, "optionalName");
         expect.fail("Should have thrown");
       } catch (err: any) {

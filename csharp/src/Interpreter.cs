@@ -519,17 +519,17 @@ public static class Interpreter
         {
             return type switch
             {
-                StringType => json.GetString(),
+                StringType => JsonHelpers.ParseString(json),
                 IntType it => ValidateInt(json.GetInt64(), it),
                 FloatType => json.GetSingle(),
-                BooleanType => json.GetBoolean(),
-                EnumType et => ValidateEnum(json.GetString()!, et),
+                BooleanType => JsonHelpers.ParseBoolean(json),
+                EnumType et => JsonHelpers.ParseEnum(json, et.Options),
                 ReferenceType rt => FromJson(json, ResolveRef(rt.Reference)),
                 ObjectType ot => FromJsonObject(json, ot),
                 ArrayType at => FromJsonArray(json, at),
                 RecordType rt => FromJsonRecord(json, rt),
                 UnionType ut => FromJsonUnion(json, ut),
-                OptionalType opt => json.ValueKind == JsonValueKind.Null ? null : FromJson(json, opt.Value),
+                OptionalType opt => JsonHelpers.IsNullOrEmpty(json) ? null : FromJson(json, opt.Value),
                 _ => throw new InvalidOperationException($"Unknown type: {type}")
             };
         }
@@ -540,13 +540,6 @@ public static class Interpreter
                 throw new ArgumentException($"Value {value} below minimum {it.Min.Value}");
             if (it.Max.HasValue && value > it.Max.Value)
                 throw new ArgumentException($"Value {value} above maximum {it.Max.Value}");
-            return value;
-        }
-
-        private static string ValidateEnum(string value, EnumType et)
-        {
-            if (!et.Options.Contains(value))
-                throw new ArgumentException($"Invalid enum value: {value}");
             return value;
         }
 
@@ -601,9 +594,9 @@ public static class Interpreter
                 json.TryGetProperty("val", out var valProp))
             {
                 var typeName = typeProp.GetString()!;
-                var option = ut.Options.FirstOrDefault(o => o.Reference == typeName)
+                var option = FindVariant(ut.Options, typeName)
                     ?? throw new ArgumentException($"Unknown union type: {typeName}");
-                return new UnionValue(typeName, FromJson(valProp, ResolveRef(option.Reference)));
+                return new UnionValue(option.Reference, FromJson(valProp, ResolveRef(option.Reference)));
             }
 
             // Check protobuf format: { "TypeName": ... }
@@ -613,13 +606,23 @@ public static class Interpreter
                 if (props.Count == 1)
                 {
                     var prop = props[0];
-                    var option = ut.Options.FirstOrDefault(o => o.Reference == prop.Name)
+                    var option = FindVariant(ut.Options, prop.Name)
                         ?? throw new ArgumentException($"Unknown union type: {prop.Name}");
-                    return new UnionValue(prop.Name, FromJson(prop.Value, ResolveRef(option.Reference)));
+                    return new UnionValue(option.Reference, FromJson(prop.Value, ResolveRef(option.Reference)));
                 }
             }
 
             throw new ArgumentException($"Invalid union format");
+        }
+
+        private static ReferenceType? FindVariant(IReadOnlyList<ReferenceType> options, string name)
+        {
+            // Exact match first
+            var exact = options.FirstOrDefault(o => o.Reference == name);
+            if (exact != null) return exact;
+            // Case-insensitive fallback
+            return options.FirstOrDefault(o =>
+                string.Equals(o.Reference, name, StringComparison.OrdinalIgnoreCase));
         }
 
         // === ToJson ===

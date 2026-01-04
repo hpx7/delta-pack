@@ -289,6 +289,7 @@ function renderUnion(
 ): string {
   const first = options[0]!.name;
 
+  const variantNames = options.map((opt) => `"${opt.name}"`).join(", ");
   const fromJsonCases = ifElseChain(
     options,
     (opt, _, p) =>
@@ -359,14 +360,14 @@ function renderUnion(
         {
             if (json.TryGetProperty("type", out var typeEl) && json.TryGetProperty("val", out var val))
             {
-                var typeName = typeEl.GetString();
+                var typeName = JsonHelpers.FindVariant(typeEl.GetString()!, ${variantNames});
 ${fromJsonCases}
-                throw new InvalidOperationException($"Unknown ${name} type: {typeName}");
+                throw new InvalidOperationException($"Unknown ${name} type: {typeEl.GetString()}");
             }
             var prop = json.EnumerateObject().FirstOrDefault();
             if (prop.Value.ValueKind != JsonValueKind.Undefined)
             {
-                var typeName = prop.Name;
+                var typeName = JsonHelpers.FindVariant(prop.Name, ${variantNames});
                 var valProp = prop.Value;
 ${fromJsonPropCases}
             }
@@ -532,19 +533,19 @@ function renderFromJson(
 ): string {
   switch (type.type) {
     case "string":
-      return `${key}.GetString() ?? ""`;
+      return `JsonHelpers.ParseString(${key})`;
     case "int":
       return `${key}.GetInt64()`;
     case "float":
       return `${key}.GetSingle()`;
     case "boolean":
-      return `${key}.GetBoolean()`;
+      return `JsonHelpers.ParseBoolean(${key})`;
     case "enum":
-      return `Enum.Parse<${type.name!}>(${key}.GetString()!, true)`;
+      return `JsonHelpers.ParseEnum<${type.name!}>(${key})`;
     case "array":
       return `${key}.EnumerateArray().Select(x => ${renderFromJson(ctx, type.value, name, "x")}).ToList()`;
     case "optional":
-      return `${key}.ValueKind == JsonValueKind.Null ? null : ${renderFromJson(ctx, type.value, name, key)}`;
+      return `JsonHelpers.IsNullOrEmpty(${key}) ? null : ${renderFromJson(ctx, type.value, name, key)}`;
     case "record":
       return type.key.type === "string"
         ? `${key}.EnumerateObject().ToDictionary(p => p.Name, p => ${renderFromJson(ctx, type.value, name, "p.Value")})`

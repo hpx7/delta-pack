@@ -1,8 +1,7 @@
 import * as _ from "@hpx7/delta-pack";
 
-
 export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
-    
+
 export type Player = {
   id: string;
   name: string;
@@ -10,30 +9,38 @@ export type Player = {
   isActive: boolean;
   partner?: Player | undefined;
 } & { _dirty?: Set<keyof Player> };
+
 export type Position = {
   x: number;
   y: number;
 } & { _dirty?: Set<keyof Position> };
+
 export type Velocity = {
   vx: number;
   vy: number;
 } & { _dirty?: Set<keyof Velocity> };
+
 export type Entity = {
   id: string;
   position: Position;
 } & { _dirty?: Set<keyof Entity> };
+
 export type MoveAction = {
   x: number;
   y: number;
 } & { _dirty?: Set<keyof MoveAction> };
+
 export type AttackAction = {
   targetId: string;
   damage: number;
 } & { _dirty?: Set<keyof AttackAction> };
+
 export type UseItemAction = {
   itemId: string;
 } & { _dirty?: Set<keyof UseItemAction> };
+
 export type GameAction = { type: "MoveAction"; val: MoveAction } | { type: "AttackAction"; val: AttackAction } | { type: "UseItemAction"; val: UseItemAction };
+
 export type GameState = {
   players: Player[] & { _dirty?: Set<number> };
   currentPlayer?: string | undefined;
@@ -42,9 +49,11 @@ export type GameState = {
   winningColor?: Color | undefined;
   lastAction?: GameAction | undefined;
 } & { _dirty?: Set<keyof GameState> };
+
 export type Inventory = {
   items?: (Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> } | undefined;
 } & { _dirty?: Set<keyof Inventory> };
+
 export type PlayerRegistry = {
   players: Map<string, Player> & { _dirty?: Set<string> };
 } & { _dirty?: Set<keyof PlayerRegistry> };
@@ -165,12 +174,7 @@ export const Player = {
     if (dirty != null && !dirty.has("partner")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiff<Player>(
-        a.partner,
-        b.partner,
-        (x) => Player._encode(x, encoder),
-        (x, y) => Player._encodeDiff(x, y, encoder)
-      );
+      encoder.pushOptionalDiff<Player>(a.partner, b.partner, (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder));
     }
   },
   decode(input: Uint8Array): Player {
@@ -199,11 +203,7 @@ export const Player = {
       name: decoder.nextStringDiff(obj.name),
       score: decoder.nextIntDiff(obj.score),
       isActive: decoder.nextBooleanDiff(obj.isActive),
-      partner: decoder.nextOptionalDiff<Player>(
-        obj.partner,
-        () => Player._decode(decoder),
-        (x) => Player._decodeDiff(x, decoder)
-      ),
+      partner: decoder.nextOptionalDiff<Player>(obj.partner, () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
     };
   },
 };
@@ -760,103 +760,40 @@ export const UseItemAction = {
 
 export const GameAction = {
   default(): GameAction {
-    return {
-      type: "MoveAction",
-      val: MoveAction.default(),
-    };
+    return { type: "MoveAction", val: MoveAction.default() };
   },
   values() {
     return ["MoveAction", "AttackAction", "UseItemAction"];
   },
   fromJson(obj: object): GameAction {
-    if (typeof obj !== "object" || obj == null) {
-      throw new Error(`Invalid GameAction: ${obj}`);
-    }
-    // check if it's delta-pack format: { type: "TypeName", val: ... }
-    if ("type" in obj && typeof (obj as Record<string, unknown>)["type"] === "string" && "val" in obj) {
-      if (obj["type"] === "MoveAction") {
-        return {
-          type: "MoveAction",
-          val: MoveAction.fromJson(obj["val"] as MoveAction),
-        };
-      }
-      else if (obj["type"] === "AttackAction") {
-        return {
-          type: "AttackAction",
-          val: AttackAction.fromJson(obj["val"] as AttackAction),
-        };
-      }
-      else if (obj["type"] === "UseItemAction") {
-        return {
-          type: "UseItemAction",
-          val: UseItemAction.fromJson(obj["val"] as UseItemAction),
-        };
-      }
-      else {
-        throw new Error(`Invalid GameAction: ${obj}`);
-      }
-    }
-    // check if it's protobuf format: { TypeName: ... }
-    const entries = Object.entries(obj);
-    if (entries.length === 1) {
-      const [fieldName, fieldValue] = entries[0]!;
-      if (fieldName === "MoveAction") {
-        return {
-          type: "MoveAction",
-          val: MoveAction.fromJson(fieldValue as MoveAction),
-        };
-      }
-      else if (fieldName === "AttackAction") {
-        return {
-          type: "AttackAction",
-          val: AttackAction.fromJson(fieldValue as AttackAction),
-        };
-      }
-      else if (fieldName === "UseItemAction") {
-        return {
-          type: "UseItemAction",
-          val: UseItemAction.fromJson(fieldValue as UseItemAction),
-        };
-      }
-    }
-    throw new Error(`Invalid GameAction: ${obj}`);
+    const result = _.parseUnion(obj, ["MoveAction", "AttackAction", "UseItemAction"] as const, {
+      MoveAction: (x: unknown) => MoveAction.fromJson(x as MoveAction),
+      AttackAction: (x: unknown) => AttackAction.fromJson(x as AttackAction),
+      UseItemAction: (x: unknown) => UseItemAction.fromJson(x as UseItemAction)
+    });
+    return result as GameAction;
   },
   toJson(obj: GameAction): Record<string, unknown> {
     if (obj.type === "MoveAction") {
-      return {
-        MoveAction: MoveAction.toJson(obj.val),
-      };
+      return { MoveAction: MoveAction.toJson(obj.val) };
     }
     else if (obj.type === "AttackAction") {
-      return {
-        AttackAction: AttackAction.toJson(obj.val),
-      };
+      return { AttackAction: AttackAction.toJson(obj.val) };
     }
     else if (obj.type === "UseItemAction") {
-      return {
-        UseItemAction: UseItemAction.toJson(obj.val),
-      };
+      return { UseItemAction: UseItemAction.toJson(obj.val) };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
   },
   clone(obj: GameAction): GameAction {
     if (obj.type === "MoveAction") {
-      return {
-        type: "MoveAction",
-        val: MoveAction.clone(obj.val),
-      };
+      return { type: "MoveAction", val: MoveAction.clone(obj.val) };
     }
     else if (obj.type === "AttackAction") {
-      return {
-        type: "AttackAction",
-        val: AttackAction.clone(obj.val),
-      };
+      return { type: "AttackAction", val: AttackAction.clone(obj.val) };
     }
     else if (obj.type === "UseItemAction") {
-      return {
-        type: "UseItemAction",
-        val: UseItemAction.clone(obj.val),
-      };
+      return { type: "UseItemAction", val: UseItemAction.clone(obj.val) };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
   },
@@ -947,43 +884,25 @@ export const GameAction = {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
       if (obj.type === "MoveAction") {
-        return {
-          type: "MoveAction",
-          val: MoveAction._decodeDiff(obj.val, decoder),
-        };
+        return { type: "MoveAction", val: MoveAction._decodeDiff(obj.val, decoder) };
       }
       else if (obj.type === "AttackAction") {
-        return {
-          type: "AttackAction",
-          val: AttackAction._decodeDiff(obj.val, decoder),
-        };
+        return { type: "AttackAction", val: AttackAction._decodeDiff(obj.val, decoder) };
       }
       else if (obj.type === "UseItemAction") {
-        return {
-          type: "UseItemAction",
-          val: UseItemAction._decodeDiff(obj.val, decoder),
-        };
+        return { type: "UseItemAction", val: UseItemAction._decodeDiff(obj.val, decoder) };
       }
       throw new Error("Invalid union diff");
     } else {
       const type = decoder.nextEnum(2);
       if (type === 0) {
-        return {
-          type: "MoveAction",
-          val: MoveAction._decode(decoder),
-        };
+        return { type: "MoveAction", val: MoveAction._decode(decoder) };
       }
       else if (type === 1) {
-        return {
-          type: "AttackAction",
-          val: AttackAction._decode(decoder),
-        };
+        return { type: "AttackAction", val: AttackAction._decode(decoder) };
       }
       else if (type === 2) {
-        return {
-          type: "UseItemAction",
-          val: UseItemAction._decode(decoder),
-        };
+        return { type: "UseItemAction", val: UseItemAction._decode(decoder) };
       }
       throw new Error("Invalid union diff");
     }
@@ -1080,23 +999,13 @@ export const GameState = {
     if (dirty != null && !dirty.has("players")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushArrayDiff<Player>(
-        a.players,
-        b.players,
-        (x, y) => Player.equals(x, y),
-        (x) => Player._encode(x, encoder),
-        (x, y) => Player._encodeDiff(x, y, encoder)
-      );
+      encoder.pushArrayDiff<Player>(a.players, b.players, (x, y) => Player.equals(x, y), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder));
     }
     // Field: currentPlayer
     if (dirty != null && !dirty.has("currentPlayer")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiffPrimitive<string>(
-        a.currentPlayer,
-        b.currentPlayer,
-        (x) => encoder.pushString(x)
-      );
+      encoder.pushOptionalDiffPrimitive<string>(a.currentPlayer, b.currentPlayer, (x) => encoder.pushString(x));
     }
     // Field: round
     if (dirty != null && !dirty.has("round")) {
@@ -1108,35 +1017,19 @@ export const GameState = {
     if (dirty != null && !dirty.has("metadata")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushRecordDiff<string, string>(
-        a.metadata,
-        b.metadata,
-        (x, y) => x === y,
-        (x) => encoder.pushString(x),
-        (x) => encoder.pushString(x),
-        (x, y) => encoder.pushStringDiff(x, y)
-      );
+      encoder.pushRecordDiff<string, string>(a.metadata, b.metadata, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
     }
     // Field: winningColor
     if (dirty != null && !dirty.has("winningColor")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiffPrimitive<Color>(
-        a.winningColor,
-        b.winningColor,
-        (x) => encoder.pushEnum(Color[x], 2)
-      );
+      encoder.pushOptionalDiffPrimitive<Color>(a.winningColor, b.winningColor, (x) => encoder.pushEnum(Color[x], 2));
     }
     // Field: lastAction
     if (dirty != null && !dirty.has("lastAction")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiff<GameAction>(
-        a.lastAction,
-        b.lastAction,
-        (x) => GameAction._encode(x, encoder),
-        (x, y) => GameAction._encodeDiff(x, y, encoder)
-      );
+      encoder.pushOptionalDiff<GameAction>(a.lastAction, b.lastAction, (x) => GameAction._encode(x, encoder), (x, y) => GameAction._encodeDiff(x, y, encoder));
     }
   },
   decode(input: Uint8Array): GameState {
@@ -1162,31 +1055,12 @@ export const GameState = {
       return obj;
     }
     return {
-      players: decoder.nextArrayDiff<Player>(
-        obj.players,
-        () => Player._decode(decoder),
-        (x) => Player._decodeDiff(x, decoder)
-      ),
-      currentPlayer: decoder.nextOptionalDiffPrimitive<string>(
-        obj.currentPlayer,
-        () => decoder.nextString()
-      ),
+      players: decoder.nextArrayDiff<Player>(obj.players, () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
+      currentPlayer: decoder.nextOptionalDiffPrimitive<string>(obj.currentPlayer, () => decoder.nextString()),
       round: decoder.nextBoundedIntDiff(obj.round, 0),
-      metadata: decoder.nextRecordDiff<string, string>(
-        obj.metadata,
-        () => decoder.nextString(),
-        () => decoder.nextString(),
-        (x) => decoder.nextStringDiff(x)
-      ),
-      winningColor: decoder.nextOptionalDiffPrimitive<Color>(
-        obj.winningColor,
-        () => (Color as any)[decoder.nextEnum(2)]
-      ),
-      lastAction: decoder.nextOptionalDiff<GameAction>(
-        obj.lastAction,
-        () => GameAction._decode(decoder),
-        (x) => GameAction._decodeDiff(x, decoder)
-      ),
+      metadata: decoder.nextRecordDiff<string, string>(obj.metadata, () => decoder.nextString(), () => decoder.nextString(), (x) => decoder.nextStringDiff(x)),
+      winningColor: decoder.nextOptionalDiffPrimitive<Color>(obj.winningColor, () => (Color as any)[decoder.nextEnum(2)]),
+      lastAction: decoder.nextOptionalDiff<GameAction>(obj.lastAction, () => GameAction._decode(decoder), (x) => GameAction._decodeDiff(x, decoder)),
     };
   },
 };
@@ -1247,25 +1121,7 @@ export const Inventory = {
     if (dirty != null && !dirty.has("items")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(
-        a.items,
-        b.items,
-        (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))),
-        (x, y) => encoder.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(
-        x,
-        y,
-        (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
-        (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x)),
-        (x, y) => encoder.pushRecordDiff<string, number>(
-        x,
-        y,
-        (x, y) => x === y,
-        (x) => encoder.pushString(x),
-        (x) => encoder.pushInt(x),
-        (x, y) => encoder.pushIntDiff(x, y)
-      )
-      )
-      );
+      encoder.pushOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(a.items, b.items, (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))), (x, y) => encoder.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y), (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x)), (x, y) => encoder.pushRecordDiff<string, number>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushInt(x), (x, y) => encoder.pushIntDiff(x, y))));
     }
   },
   decode(input: Uint8Array): Inventory {
@@ -1286,20 +1142,7 @@ export const Inventory = {
       return obj;
     }
     return {
-      items: decoder.nextOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(
-        obj.items,
-        () => decoder.nextArray(() => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt())),
-        (x) => decoder.nextArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(
-        x,
-        () => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt()),
-        (x) => decoder.nextRecordDiff<string, number>(
-        x,
-        () => decoder.nextString(),
-        () => decoder.nextInt(),
-        (x) => decoder.nextIntDiff(x)
-      )
-      )
-      ),
+      items: decoder.nextOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(obj.items, () => decoder.nextArray(() => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt())), (x) => decoder.nextArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, () => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt()), (x) => decoder.nextRecordDiff<string, number>(x, () => decoder.nextString(), () => decoder.nextInt(), (x) => decoder.nextIntDiff(x)))),
     };
   },
 };
@@ -1358,14 +1201,7 @@ export const PlayerRegistry = {
     if (dirty != null && !dirty.has("players")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushRecordDiff<string, Player>(
-        a.players,
-        b.players,
-        (x, y) => Player.equals(x, y),
-        (x) => encoder.pushString(x),
-        (x) => Player._encode(x, encoder),
-        (x, y) => Player._encodeDiff(x, y, encoder)
-      );
+      encoder.pushRecordDiff<string, Player>(a.players, b.players, (x, y) => Player.equals(x, y), (x) => encoder.pushString(x), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder));
     }
   },
   decode(input: Uint8Array): PlayerRegistry {
@@ -1386,12 +1222,7 @@ export const PlayerRegistry = {
       return obj;
     }
     return {
-      players: decoder.nextRecordDiff<string, Player>(
-        obj.players,
-        () => decoder.nextString(),
-        () => Player._decode(decoder),
-        (x) => Player._decodeDiff(x, decoder)
-      ),
+      players: decoder.nextRecordDiff<string, Player>(obj.players, () => decoder.nextString(), () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
     };
   },
 };

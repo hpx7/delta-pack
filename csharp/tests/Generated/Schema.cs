@@ -30,11 +30,11 @@ namespace Generated
         {
             return new Player
             {
-                Id = json.GetProperty("id").GetString() ?? "",
-                Name = json.GetProperty("name").GetString() ?? "",
+                Id = JsonHelpers.ParseString(json.GetProperty("id")),
+                Name = JsonHelpers.ParseString(json.GetProperty("name")),
                 Score = json.GetProperty("score").GetInt64(),
-                IsActive = json.GetProperty("isActive").GetBoolean(),
-                Partner = json.TryGetProperty("partner", out var partnerEl) ? partnerEl.ValueKind == JsonValueKind.Null ? null : Generated.Player.FromJson(partnerEl) : null,
+                IsActive = JsonHelpers.ParseBoolean(json.GetProperty("isActive")),
+                Partner = json.TryGetProperty("partner", out var partnerEl) ? JsonHelpers.IsNullOrEmpty(partnerEl) ? null : Generated.Player.FromJson(partnerEl) : null,
             };
         }
 
@@ -357,7 +357,7 @@ namespace Generated
         {
             return new Entity
             {
-                Id = json.GetProperty("id").GetString() ?? "",
+                Id = JsonHelpers.ParseString(json.GetProperty("id")),
                 Position = Generated.Position.FromJson(json.GetProperty("position")),
             };
         }
@@ -563,7 +563,7 @@ namespace Generated
         {
             return new AttackAction
             {
-                TargetId = json.GetProperty("targetId").GetString() ?? "",
+                TargetId = JsonHelpers.ParseString(json.GetProperty("targetId")),
                 Damage = json.GetProperty("damage").GetInt64(),
             };
         }
@@ -665,7 +665,7 @@ namespace Generated
         {
             return new UseItemAction
             {
-                ItemId = json.GetProperty("itemId").GetString() ?? "",
+                ItemId = JsonHelpers.ParseString(json.GetProperty("itemId")),
             };
         }
 
@@ -757,17 +757,16 @@ namespace Generated
         {
             if (json.TryGetProperty("type", out var typeEl) && json.TryGetProperty("val", out var val))
             {
-                var typeName = typeEl.GetString();
+                var typeName = JsonHelpers.FindVariant(typeEl.GetString()!, "MoveAction", "AttackAction", "UseItemAction");
                 if (typeName == "MoveAction") return MoveAction.FromJson(val);
                 else if (typeName == "AttackAction") return AttackAction.FromJson(val);
                 else if (typeName == "UseItemAction") return UseItemAction.FromJson(val);
-                throw new InvalidOperationException($"Unknown GameAction type: {typeName}");
+                throw new InvalidOperationException($"Unknown GameAction type: {typeEl.GetString()}");
             }
-            // Protobuf format: { "TypeName": {...} }
             var prop = json.EnumerateObject().FirstOrDefault();
             if (prop.Value.ValueKind != JsonValueKind.Undefined)
             {
-                var typeName = prop.Name;
+                var typeName = JsonHelpers.FindVariant(prop.Name, "MoveAction", "AttackAction", "UseItemAction");
                 var valProp = prop.Value;
                 if (typeName == "MoveAction") return MoveAction.FromJson(valProp);
                 else if (typeName == "AttackAction") return AttackAction.FromJson(valProp);
@@ -933,11 +932,11 @@ namespace Generated
             return new GameState
             {
                 Players = json.GetProperty("players").EnumerateArray().Select(x => Generated.Player.FromJson(x)).ToList(),
-                CurrentPlayer = json.TryGetProperty("currentPlayer", out var currentPlayerEl) ? currentPlayerEl.ValueKind == JsonValueKind.Null ? null : currentPlayerEl.GetString() ?? "" : null,
+                CurrentPlayer = json.TryGetProperty("currentPlayer", out var currentPlayerEl) ? JsonHelpers.IsNullOrEmpty(currentPlayerEl) ? null : JsonHelpers.ParseString(currentPlayerEl) : null,
                 Round = json.GetProperty("round").GetInt64(),
-                Metadata = json.GetProperty("metadata").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetString() ?? ""),
-                WinningColor = json.TryGetProperty("winningColor", out var winningColorEl) ? winningColorEl.ValueKind == JsonValueKind.Null ? null : Enum.Parse<Color>(winningColorEl.GetString()!, true) : null,
-                LastAction = json.TryGetProperty("lastAction", out var lastActionEl) ? lastActionEl.ValueKind == JsonValueKind.Null ? null : Generated.GameAction.FromJson(lastActionEl) : null,
+                Metadata = json.GetProperty("metadata").EnumerateObject().ToDictionary(p => p.Name, p => JsonHelpers.ParseString(p.Value)),
+                WinningColor = json.TryGetProperty("winningColor", out var winningColorEl) ? JsonHelpers.IsNullOrEmpty(winningColorEl) ? null : JsonHelpers.ParseEnum<Color>(winningColorEl) : null,
+                LastAction = json.TryGetProperty("lastAction", out var lastActionEl) ? JsonHelpers.IsNullOrEmpty(lastActionEl) ? null : Generated.GameAction.FromJson(lastActionEl) : null,
             };
         }
 
@@ -1073,7 +1072,7 @@ namespace Generated
         {
             return new Inventory
             {
-                Items = json.TryGetProperty("items", out var itemsEl) ? itemsEl.ValueKind == JsonValueKind.Null ? null : itemsEl.EnumerateArray().Select(x => x.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetInt64())).ToList() : null,
+                Items = json.TryGetProperty("items", out var itemsEl) ? JsonHelpers.IsNullOrEmpty(itemsEl) ? null : itemsEl.EnumerateArray().Select(x => x.EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetInt64())).ToList() : null,
             };
         }
 

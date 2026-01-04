@@ -1,10 +1,13 @@
 const FLOAT_EPSILON = 0.001;
 
 export function parseString(x: unknown): string {
-  if (typeof x !== "string") {
-    throw new Error(`Invalid string: ${x}`);
+  if (typeof x === "string") {
+    return x;
   }
-  return x;
+  if (typeof x === "number" || typeof x === "boolean") {
+    return String(x);
+  }
+  throw new Error(`Invalid string: ${x}`);
 }
 export function parseInt(x: unknown, min?: number, max?: number): number {
   if (typeof x === "string") {
@@ -31,25 +34,54 @@ export function parseFloat(x: unknown): number {
   return x;
 }
 export function parseBoolean(x: unknown): boolean {
-  if (x === "true") {
+  if (typeof x === "boolean") {
+    return x;
+  }
+  if (x === 1 || x === "1") {
     return true;
   }
-  if (x === "false") {
+  if (x === 0 || x === "0") {
     return false;
   }
-  if (typeof x !== "boolean") {
-    throw new Error(`Invalid boolean: ${x}`);
+  if (typeof x === "string") {
+    const lower = x.toLowerCase();
+    if (lower === "true") {
+      return true;
+    }
+    if (lower === "false") {
+      return false;
+    }
   }
-  return x;
+  throw new Error(`Invalid boolean: ${x}`);
 }
 export function parseEnum<K, T extends object>(x: unknown, enumObj: T): K {
-  if (typeof x !== "string" || !(x in enumObj)) {
-    throw new Error(`Invalid enum: ${x}`);
+  if (typeof x === "string") {
+    // Exact match first (must be a string key mapping to a number)
+    if (x in enumObj && typeof (enumObj as Record<string, unknown>)[x] === "number") {
+      return x as K;
+    }
+    // Case-insensitive fallback
+    const lowerInput = x.toLowerCase();
+    for (const key of Object.keys(enumObj)) {
+      if (typeof (enumObj as Record<string, unknown>)[key] === "number" && key.toLowerCase() === lowerInput) {
+        return key as K;
+      }
+    }
+    // Numeric string index lookup
+    if (/^-?\d+$/.test(x)) {
+      const val = (enumObj as Record<number, string>)[Number(x)];
+      if (typeof val === "string") return val as K;
+    }
   }
-  return x as K;
+  // Integer index lookup
+  if (typeof x === "number" && Number.isInteger(x)) {
+    const val = (enumObj as Record<number, string>)[x];
+    if (typeof val === "string") return val as K;
+  }
+  throw new Error(`Invalid enum: ${x}`);
 }
 export function parseOptional<T>(x: unknown, innerParse: (y: unknown) => T): T | undefined {
-  if (x == null) {
+  if (x == null || x === "") {
     return undefined;
   }
   try {
@@ -94,6 +126,44 @@ export function parseRecord<K, T>(
     }
   }
   return result;
+}
+export function parseUnion<T extends string>(
+  x: unknown,
+  variants: readonly T[],
+  parsers: Record<T, (val: unknown) => unknown>
+): { type: T; val: unknown } {
+  if (typeof x !== "object" || x == null) {
+    throw new Error(`Invalid union: ${JSON.stringify(x)}`);
+  }
+
+  const findVariant = (name: string): T | undefined => {
+    const exact = variants.find((v) => v === name);
+    if (exact) return exact;
+    const lower = name.toLowerCase();
+    return variants.find((v) => v.toLowerCase() === lower);
+  };
+
+  // Delta-pack format: { type: "TypeName", val: ... }
+  if ("type" in x && typeof (x as any).type === "string" && "val" in x) {
+    const variant = findVariant((x as any).type);
+    if (!variant) {
+      throw new Error(`Unknown union type variant: ${(x as any).type}`);
+    }
+    return { type: variant, val: parsers[variant]((x as any).val) };
+  }
+
+  // Protobuf format: { TypeName: ... }
+  const entries = Object.entries(x);
+  if (entries.length === 1) {
+    const [fieldName, fieldValue] = entries[0]!;
+    const variant = findVariant(fieldName);
+    if (!variant) {
+      throw new Error(`Unknown union type variant: ${fieldName}`);
+    }
+    return { type: variant, val: parsers[variant](fieldValue) };
+  }
+
+  throw new Error(`Invalid union: ${JSON.stringify(x)}`);
 }
 export function tryParseField<T>(parseFn: () => T, key: string): T {
   try {
