@@ -174,7 +174,7 @@ function loadExamples(): Example[] {
 
   for (const [name, mod] of Object.entries(deltapack)) {
     const api = (mod as Record<string, unknown>)[name] as DeltaPackApi<unknown>;
-    const protobufType = (protobuf as Record<string, unknown>)[name] as ProtobufType;
+    const protobufType = (protobuf as unknown as Record<string, Record<string, unknown>>)[name]?.[name] as ProtobufType;
 
     const exampleDir = `${examplesDir}/${name}`;
     const stateFiles = fs

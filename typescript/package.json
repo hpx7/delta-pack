@@ -70,13 +70,13 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "bin-serde": "^1.7.1",
+    "bin-serde": "^1.7.3",
     "reflect-metadata": "^0.2.2",
     "utf8-buffer-size": "^0.0.4",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
-    "@hpx7/delta-pack-cli": "^0.2.0",
+    "@hpx7/delta-pack-cli": "file:../cli",
     "msgpackr": "^1.11.5",
     "protobufjs": "^7.5.4",
     "protobufjs-cli": "^1.1.3",
