@@ -4,19 +4,23 @@ export function codegenCsharp(
   schema: Record<string, Type>,
   namespace: string = "Generated",
 ): string {
-  return renderSchema(schema, namespace);
+  const ctx = createContext(schema, namespace);
+  return renderSchema(ctx);
 }
 
-function renderSchema(schema: Record<string, Type>, namespace: string): string {
-  // Track the current type being processed for self-reference resolution
-  let currentTypeName: string;
+// ============ Context ============
 
-  // Qualify type name with namespace to avoid property names shadowing type names
-  function qualifyType(typeName: string): string {
-    return `${namespace}.${typeName}`;
-  }
+interface GeneratorContext {
+  schema: Record<string, Type>;
+  namespace: string;
+  currentTypeName: string;
+  variantToUnion: Map<string, string>;
+}
 
-  // First pass: identify which types are union variants and their base types
+function createContext(
+  schema: Record<string, Type>,
+  namespace: string,
+): GeneratorContext {
   const variantToUnion = new Map<string, string>();
   for (const [name, type] of Object.entries(schema)) {
     if (type.type === "union") {
@@ -25,20 +29,48 @@ function renderSchema(schema: Record<string, Type>, namespace: string): string {
       }
     }
   }
+  return { schema, namespace, currentTypeName: "", variantToUnion };
+}
 
-  // Collect all types
+// ============ Utilities ============
+
+function ifElseChain<T>(
+  items: readonly T[],
+  render: (item: T, i: number, prefix: string) => string,
+): string {
+  return items
+    .map((item, i) => render(item, i, i > 0 ? "else " : ""))
+    .join("\n");
+}
+
+function toPascalCase(str: string): string {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+}
+
+function toCamelCase(str: string): string {
+  return str ? str.charAt(0).toLowerCase() + str.slice(1) : str;
+}
+
+function qualify(ctx: GeneratorContext, name: string): string {
+  return `${ctx.namespace}.${name}`;
+}
+
+// ============ Main Renderer ============
+
+function renderSchema(ctx: GeneratorContext): string {
   const enums: string[] = [];
   const classes: string[] = [];
 
-  for (const [name, type] of Object.entries(schema)) {
-    currentTypeName = name;
+  for (const [name, type] of Object.entries(ctx.schema)) {
+    ctx.currentTypeName = name;
     if (type.type === "enum") {
       enums.push(renderEnum(name, type.options));
     } else if (type.type === "object") {
-      const baseClass = variantToUnion.get(name);
-      classes.push(renderObject(name, type.properties, baseClass));
+      classes.push(
+        renderObject(ctx, name, type.properties, ctx.variantToUnion.get(name)),
+      );
     } else if (type.type === "union") {
-      classes.push(renderUnion(name, type.options, type.numBits));
+      classes.push(renderUnion(ctx, name, type.options, type.numBits));
     }
   }
 
@@ -50,378 +82,278 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using DeltaPack;
 
-namespace ${namespace}
+namespace ${ctx.namespace}
 {
 ${[...enums, ...classes].join("\n\n")}
 }
 `;
+}
 
-  function renderEnum(name: string, options: readonly string[]): string {
-    const enumValues = options
-      .map((opt, i) => `        ${toPascalCase(opt)} = ${i}`)
-      .join(",\n");
-    return `    public enum ${name}
+// ============ Enum Renderer ============
+
+function renderEnum(name: string, options: readonly string[]): string {
+  const values = options
+    .map((opt, i) => `        ${toPascalCase(opt)} = ${i}`)
+    .join(",\n");
+  return `    public enum ${name}
     {
-${enumValues}
+${values}
     }`;
-  }
+}
 
-  function renderObject(
-    name: string,
-    properties: Record<string, Type>,
-    baseClass?: string,
-  ): string {
-    const props = Object.entries(properties);
-    const isVariant = baseClass != null;
+// ============ Object Renderer ============
 
-    // For union variants, add the Type property override
-    const typeProperty = isVariant
-      ? `        public override string Type => "${name}";\n\n`
-      : "";
+function renderObject(
+  ctx: GeneratorContext,
+  name: string,
+  properties: Record<string, Type>,
+  baseClass?: string,
+): string {
+  const props = Object.entries(properties);
+  const isVariant = baseClass != null;
+  const mod = isVariant ? "new " : "";
+  const p = (fn: (n: string, t: Type) => string) =>
+    props.map(([n, t]) => fn(n, t)).join("\n");
 
-    // Properties
-    const propertyLines = props
-      .map(([propName, propType]) => {
-        const csType = renderTypeArg(propType, propName);
-        // Skip redundant defaults: numeric types default to 0, bool to false, nullable to null
-        if (
-          propType.type === "boolean" ||
-          propType.type === "optional" ||
-          propType.type === "int" ||
-          propType.type === "float"
-        ) {
-          return `        public ${csType} ${toPascalCase(propName)} { get; set; }`;
-        }
-        const defaultVal = renderDefault(propType, propName);
-        return `        public ${csType} ${toPascalCase(propName)} { get; set; } = ${defaultVal};`;
-      })
-      .join("\n");
+  const propLines = p((n, t) => {
+    const csType = renderType(ctx, t, n);
+    const needsDefault =
+      t.type !== "boolean" &&
+      t.type !== "optional" &&
+      t.type !== "int" &&
+      t.type !== "float";
+    return needsDefault
+      ? `        public ${csType} ${toPascalCase(n)} { get; set; } = ${renderDefault(ctx, t, n)};`
+      : `        public ${csType} ${toPascalCase(n)} { get; set; }`;
+  });
 
-    // Default method - use 'new' modifier for variants to hide base class method
-    const newModifier = isVariant ? "new " : "";
-    const defaultMethod = `        public static ${newModifier}${name} Default() => new ${name}();`;
+  const fromJsonBody = p((n, t) => {
+    const pc = toPascalCase(n);
+    return t.type === "optional"
+      ? `                ${pc} = json.TryGetProperty("${n}", out var ${n}El) ? ${renderFromJson(ctx, t, n, `${n}El`)} : null,`
+      : `                ${pc} = ${renderFromJson(ctx, t, n, `json.GetProperty("${n}")`)},`;
+  });
 
-    // FromJson method
-    const fromJsonBody = props
-      .map(([propName, propType]) => {
-        if (propType.type === "optional") {
-          // For optional types, use TryGetProperty to handle missing properties
-          const varName = `${propName}El`;
-          return `                ${toPascalCase(propName)} = json.TryGetProperty("${propName}", out var ${varName}) ? ${renderFromJson(propType, propName, varName)} : null,`;
-        }
-        return `                ${toPascalCase(propName)} = ${renderFromJson(propType, propName, `json.GetProperty("${propName}")`)},`;
-      })
-      .join("\n");
+  const toJsonBody = p((n, t) => {
+    const pc = toPascalCase(n);
+    if (t.type === "optional") {
+      const check = isValueType(t.value)
+        ? `obj.${pc}.HasValue`
+        : `obj.${pc} != null`;
+      return `            if (${check}) result["${n}"] = ${renderToJson(ctx, t, n, `obj.${pc}`)};`;
+    }
+    return `            result["${n}"] = ${renderToJson(ctx, t, n, `obj.${pc}`)};`;
+  });
 
-    const fromJsonMethod = `        public static ${newModifier}${name} FromJson(JsonElement json)
+  const cloneBody = p((n, t) => {
+    const pc = toPascalCase(n);
+    return `                ${pc} = ${renderClone(ctx, t, n, `obj.${pc}`)},`;
+  });
+
+  const equalsBody = props
+    .map(([n, t]) => {
+      const pc = toPascalCase(n);
+      return renderEquals(ctx, t, n, `a.${pc}`, `b.${pc}`);
+    })
+    .join(" &&\n                ");
+
+  const encodeBody = p(
+    (n, t) =>
+      `            ${renderEncode(ctx, t, n, `obj.${toPascalCase(n)}`)};`,
+  );
+
+  const encodeDiffBody = p((n, t) => {
+    const pc = toPascalCase(n);
+    const enc = renderEncodeDiff(ctx, t, n, `a.${pc}`, `b.${pc}`);
+    const suffix = enc.trimStart().startsWith("{") ? "" : ";";
+    return `            ${enc}${suffix}`;
+  });
+
+  const decodeBody = p(
+    (n, t) =>
+      `                ${toPascalCase(n)} = ${renderDecode(ctx, t, n)},`,
+  );
+
+  const decodeDiffBody = p((n, t) => {
+    const pc = toPascalCase(n);
+    return `                ${pc} = ${renderDecodeDiff(ctx, t, n, `obj.${pc}`)},`;
+  });
+
+  const classDecl = baseClass
+    ? `    public class ${name} : ${baseClass}`
+    : `    public class ${name}`;
+  const typeOverride = isVariant
+    ? `        public override string Type => "${name}";\n\n`
+    : "";
+
+  return `${classDecl}
+    {
+${typeOverride}${propLines}
+
+        public static ${mod}${name} Default() => new ${name}();
+
+        public static ${mod}${name} FromJson(JsonElement json)
         {
             return new ${name}
             {
 ${fromJsonBody}
             };
-        }`;
-
-    // ToJson method - static like all other methods
-    const toJsonBody = props
-      .map(([propName, propType]) => {
-        if (propType.type === "optional") {
-          // Use .HasValue for value types, != null for reference types
-          const nullCheck = isValueType(propType.value)
-            ? `obj.${toPascalCase(propName)}.HasValue`
-            : `obj.${toPascalCase(propName)} != null`;
-          return `            if (${nullCheck}) result["${propName}"] = ${renderToJson(propType, propName, `obj.${toPascalCase(propName)}`)};`;
         }
-        return `            result["${propName}"] = ${renderToJson(propType, propName, `obj.${toPascalCase(propName)}`)};`;
-      })
-      .join("\n");
 
-    // ToJson doesn't need 'new' modifier for variants because the parameter type is different
-    // (e.g., EmailContact.ToJson(EmailContact) vs Contact.ToJson(Contact))
-    const toJsonMethod = `        public static JsonObject ToJson(${name} obj)
+        public static JsonObject ToJson(${name} obj)
         {
             var result = new JsonObject();
 ${toJsonBody}
             return result;
-        }`;
+        }
 
-    // Clone method
-    const cloneBody = props
-      .map(([propName, propType]) => {
-        return `                ${toPascalCase(propName)} = ${renderClone(propType, propName, `obj.${toPascalCase(propName)}`)},`;
-      })
-      .join("\n");
-
-    const cloneMethod = `        public static ${name} Clone(${name} obj)
+        public static ${name} Clone(${name} obj)
         {
             return new ${name}
             {
 ${cloneBody}
             };
-        }`;
+        }
 
-    // Equals method
-    const equalsBody = props.map(([propName, propType]) => {
-      return renderEquals(
-        propType,
-        propName,
-        `a.${toPascalCase(propName)}`,
-        `b.${toPascalCase(propName)}`,
-      );
-    });
-
-    // Use 'new' only for classes that inherit from object (which has Equals)
-    // For variants inheriting from union base, we don't need 'new' since base doesn't have a static Equals(T, T)
-    const equalsMethod = `        public static bool Equals(${name} a, ${name} b)
+        public static bool Equals(${name} a, ${name} b)
         {
-            return ${equalsBody.length > 0 ? equalsBody.join(" &&\n                ") : "true"};
-        }`;
+            return ${equalsBody || "true"};
+        }
 
-    // Encode method
-    const encodeMethod = `        public static byte[] Encode(${name} obj)
+        public static byte[] Encode(${name} obj)
         {
             var encoder = new Encoder();
             EncodeInternal(obj, encoder);
             return encoder.ToBuffer();
-        }`;
+        }
 
-    // EncodeInternal method
-    const encodeInternalBody = props
-      .map(([propName, propType]) => {
-        return `            ${renderEncode(propType, propName, `obj.${toPascalCase(propName)}`)};`;
-      })
-      .join("\n");
-
-    const encodeInternalMethod = `        internal static void EncodeInternal(${name} obj, Encoder encoder)
+        internal static void EncodeInternal(${name} obj, Encoder encoder)
         {
-${encodeInternalBody}
-        }`;
+${encodeBody}
+        }
 
-    // EncodeDiff method
-    const encodeDiffMethod = `        public static byte[] EncodeDiff(${name} a, ${name} b)
+        public static byte[] EncodeDiff(${name} a, ${name} b)
         {
             var encoder = new Encoder();
             EncodeDiffInternal(a, b, encoder);
             return encoder.ToBuffer();
-        }`;
+        }
 
-    // EncodeDiffInternal method
-    const encodeDiffInternalBody = props
-      .map(([propName, propType]) => {
-        const encoded = renderEncodeDiff(
-          propType,
-          propName,
-          `a.${toPascalCase(propName)}`,
-          `b.${toPascalCase(propName)}`,
-        );
-        // Don't add semicolon after block statements
-        const suffix = encoded.trimStart().startsWith("{") ? "" : ";";
-        return `            ${encoded}${suffix}`;
-      })
-      .join("\n");
-
-    const encodeDiffInternalMethod = `        internal static void EncodeDiffInternal(${name} a, ${name} b, Encoder encoder)
+        internal static void EncodeDiffInternal(${name} a, ${name} b, Encoder encoder)
         {
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-${encodeDiffInternalBody}
-        }`;
+${encodeDiffBody}
+        }
 
-    // Decode method - use 'new' for variants to hide base class method
-    const decodeMethod = `        public static ${newModifier}${name} Decode(byte[] buf)
+        public static ${mod}${name} Decode(byte[] buf)
         {
             var decoder = new Decoder(buf);
             return DecodeInternal(decoder);
-        }`;
+        }
 
-    // DecodeInternal method - use 'new' for variants to hide base class method
-    const decodeInternalBody = props
-      .map(([propName, propType]) => {
-        return `                ${toPascalCase(propName)} = ${renderDecode(propType, propName)},`;
-      })
-      .join("\n");
-
-    const decodeInternalMethod = `        internal static ${newModifier}${name} DecodeInternal(Decoder decoder)
+        internal static ${mod}${name} DecodeInternal(Decoder decoder)
         {
             return new ${name}
             {
-${decodeInternalBody}
+${decodeBody}
             };
-        }`;
+        }
 
-    // DecodeDiff method - no 'new' needed, signature differs from base (different obj type)
-    const decodeDiffMethod = `        public static ${name} DecodeDiff(${name} obj, byte[] diff)
+        public static ${name} DecodeDiff(${name} obj, byte[] diff)
         {
             var decoder = new Decoder(diff);
             return DecodeDiffInternal(obj, decoder);
-        }`;
+        }
 
-    // DecodeDiffInternal method - no 'new' needed, signature differs from base (different obj type)
-    const decodeDiffInternalBody = props
-      .map(([propName, propType]) => {
-        return `                ${toPascalCase(propName)} = ${renderDecodeDiff(propType, propName, `obj.${toPascalCase(propName)}`)},`;
-      })
-      .join("\n");
-
-    const decodeDiffInternalMethod = `        internal static ${name} DecodeDiffInternal(${name} obj, Decoder decoder)
+        internal static ${name} DecodeDiffInternal(${name} obj, Decoder decoder)
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
             return new ${name}
             {
-${decodeDiffInternalBody}
+${decodeDiffBody}
             };
-        }`;
-
-    const classDeclaration = baseClass
-      ? `    public class ${name} : ${baseClass}`
-      : `    public class ${name}`;
-
-    return `${classDeclaration}
-    {
-${typeProperty}${propertyLines}
-
-${defaultMethod}
-
-${fromJsonMethod}
-
-${toJsonMethod}
-
-${cloneMethod}
-
-${equalsMethod}
-
-${encodeMethod}
-
-${encodeInternalMethod}
-
-${encodeDiffMethod}
-
-${encodeDiffInternalMethod}
-
-${decodeMethod}
-
-${decodeInternalMethod}
-
-${decodeDiffMethod}
-
-${decodeDiffInternalMethod}
+        }
     }`;
-  }
+}
 
-  function renderUnion(
-    name: string,
-    options: readonly NamedType[],
-    numBits: number,
-  ): string {
-    // Generate abstract base class
+// ============ Union Renderer ============
 
-    // FromJson dispatches to variants
-    const fromJsonCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        return `${i > 0 ? "                else " : "                "}if (typeName == "${variantName}") return ${variantName}.FromJson(val);`;
-      })
-      .join("\n");
+function renderUnion(
+  ctx: GeneratorContext,
+  name: string,
+  options: readonly NamedType[],
+  numBits: number,
+): string {
+  const first = options[0]!.name;
 
-    // FromJson for protobuf format (uses valProp variable)
-    const fromJsonCasesProp = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        return `${i > 0 ? "                else " : "                "}if (typeName == "${variantName}") return ${variantName}.FromJson(valProp);`;
-      })
-      .join("\n");
-
-    // Encode dispatches based on Type property
-    const encodeCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        const varName = toCamelCase(variantName);
-        return `            ${i > 0 ? "else " : ""}if (obj is ${variantName} ${varName})
+  const fromJsonCases = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `                ${p}if (typeName == "${opt.name}") return ${opt.name}.FromJson(val);`,
+  );
+  const fromJsonPropCases = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `                ${p}if (typeName == "${opt.name}") return ${opt.name}.FromJson(valProp);`,
+  );
+  const toJsonCases = ifElseChain(options, (opt, _, p) => {
+    const v = toCamelCase(opt.name!);
+    return `            ${p}if (obj is ${opt.name} ${v}) return new JsonObject { ["${opt.name}"] = ${opt.name}.ToJson(${v}) };`;
+  });
+  const cloneCases = ifElseChain(options, (opt, _, p) => {
+    const v = toCamelCase(opt.name!);
+    return `            ${p}if (obj is ${opt.name} ${v}) return ${opt.name}.Clone(${v});`;
+  });
+  const equalsCases = ifElseChain(options, (opt, _, p) => {
+    const v = toCamelCase(opt.name!);
+    return `            ${p}if (a is ${opt.name} ${v}A && b is ${opt.name} ${v}B) return ${opt.name}.Equals(${v}A, ${v}B);`;
+  });
+  const encodeCases = ifElseChain(options, (opt, i, p) => {
+    const v = toCamelCase(opt.name!);
+    return `            ${p}if (obj is ${opt.name} ${v})
             {
                 encoder.PushEnum(${i}, ${numBits});
-                ${variantName}.EncodeInternal(${varName}, encoder);
+                ${opt.name}.EncodeInternal(${v}, encoder);
             }`;
-      })
-      .join("\n");
-
-    // Decode dispatches based on enum value
-    const decodeCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        return `            ${i > 0 ? "else " : ""}if (type == ${i}) return ${variantName}.DecodeInternal(decoder);`;
-      })
-      .join("\n");
-
-    // EncodeDiff
-    const encodeDiffCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        const varName = toCamelCase(variantName);
-        return `            ${i > 0 ? "else " : ""}if (b is ${variantName} ${varName}B)
+  });
+  const encodeDiffCases = ifElseChain(options, (opt, i, p) => {
+    const v = toCamelCase(opt.name!);
+    return `            ${p}if (b is ${opt.name} ${v}B)
             {
-                if (a is ${variantName} ${varName}A)
+                if (a is ${opt.name} ${v}A)
                 {
-                    ${variantName}.EncodeDiffInternal(${varName}A, ${varName}B, encoder);
+                    ${opt.name}.EncodeDiffInternal(${v}A, ${v}B, encoder);
                 }
                 else
                 {
                     encoder.PushEnum(${i}, ${numBits});
-                    ${variantName}.EncodeInternal(${varName}B, encoder);
+                    ${opt.name}.EncodeInternal(${v}B, encoder);
                 }
             }`;
-      })
-      .join("\n");
+  });
+  const decodeCases = ifElseChain(
+    options,
+    (opt, i, p) =>
+      `            ${p}if (type == ${i}) return ${opt.name}.DecodeInternal(decoder);`,
+  );
+  const decodeDiffSameCases = ifElseChain(options, (opt, _, p) => {
+    const v = toCamelCase(opt.name!);
+    return `                ${p}if (obj is ${opt.name} ${v}) return ${opt.name}.DecodeDiffInternal(${v}, decoder);`;
+  });
+  const decodeDiffNewCases = ifElseChain(
+    options,
+    (opt, i, p) =>
+      `                ${p}if (type == ${i}) return ${opt.name}.DecodeInternal(decoder);`,
+  );
 
-    // DecodeDiff - same type case
-    const decodeDiffSameTypeCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        const varName = toCamelCase(variantName);
-        return `                ${i > 0 ? "else " : ""}if (obj is ${variantName} ${varName}) return ${variantName}.DecodeDiffInternal(${varName}, decoder);`;
-      })
-      .join("\n");
-
-    // DecodeDiff - different type case
-    const decodeDiffNewTypeCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        return `                ${i > 0 ? "else " : ""}if (type == ${i}) return ${variantName}.DecodeInternal(decoder);`;
-      })
-      .join("\n");
-
-    // Equals
-    const equalsCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        const varName = toCamelCase(variantName);
-        return `            ${i > 0 ? "else " : ""}if (a is ${variantName} ${varName}A && b is ${variantName} ${varName}B) return ${variantName}.Equals(${varName}A, ${varName}B);`;
-      })
-      .join("\n");
-
-    // Clone
-    const cloneCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        const varName = toCamelCase(variantName);
-        return `            ${i > 0 ? "else " : ""}if (obj is ${variantName} ${varName}) return ${variantName}.Clone(${varName});`;
-      })
-      .join("\n");
-
-    // ToJson
-    const toJsonCases = options
-      .map((opt, i) => {
-        const variantName = opt.name!;
-        const varName = toCamelCase(variantName);
-        return `            ${i > 0 ? "else " : ""}if (obj is ${variantName} ${varName}) return new JsonObject { ["${variantName}"] = ${variantName}.ToJson(${varName}) };`;
-      })
-      .join("\n");
-
-    const baseClass = `    public abstract class ${name}
+  return `    public abstract class ${name}
     {
         public abstract string Type { get; }
 
-        public static ${name} Default() => ${options[0]!.name}.Default();
+        public static ${name} Default() => ${first}.Default();
 
         public static ${name} FromJson(JsonElement json)
         {
@@ -431,13 +363,12 @@ ${decodeDiffInternalMethod}
 ${fromJsonCases}
                 throw new InvalidOperationException($"Unknown ${name} type: {typeName}");
             }
-            // Protobuf format: { "TypeName": {...} }
             var prop = json.EnumerateObject().FirstOrDefault();
             if (prop.Value.ValueKind != JsonValueKind.Undefined)
             {
                 var typeName = prop.Name;
                 var valProp = prop.Value;
-${fromJsonCasesProp}
+${fromJsonPropCases}
             }
             throw new InvalidOperationException("Invalid ${name} format");
         }
@@ -510,461 +441,421 @@ ${decodeCases}
             var isSameType = decoder.NextBoolean();
             if (isSameType)
             {
-${decodeDiffSameTypeCases}
+${decodeDiffSameCases}
                 throw new InvalidOperationException("Invalid ${name} diff");
             }
             else
             {
                 var type = decoder.NextEnum(${numBits});
-${decodeDiffNewTypeCases}
+${decodeDiffNewCases}
                 throw new InvalidOperationException("Invalid ${name} diff");
             }
         }
     }`;
+}
 
-    // Variant classes are generated as standalone classes with inheritance
-    // via renderObject with baseClass parameter, so we only return the base class here
-    return baseClass;
-  }
+// ============ Type Helpers ============
 
-  // ============ Helper Functions ============
+function isValueType(type: Type): boolean {
+  if (type.type === "reference") return isValueType(type.ref);
+  return (
+    type.type === "int" ||
+    type.type === "float" ||
+    type.type === "boolean" ||
+    type.type === "enum"
+  );
+}
 
-  function renderTypeArg(type: Type, name: string): string {
-    if (type.type === "string") {
+function renderType(ctx: GeneratorContext, type: Type, name: string): string {
+  switch (type.type) {
+    case "string":
       return "string";
-    } else if (type.type === "int") {
+    case "int":
       return "long";
-    } else if (type.type === "float") {
+    case "float":
       return "float";
-    } else if (type.type === "boolean") {
+    case "boolean":
       return "bool";
-    } else if (type.type === "enum") {
+    case "enum":
       return type.name!;
-    } else if (type.type === "array") {
-      return `List<${renderTypeArg(type.value, name)}>`;
-    } else if (type.type === "optional") {
-      const inner = renderTypeArg(type.value, name);
-      // Value types need ? suffix, reference types are already nullable
-      if (isValueType(type.value)) {
-        return `${inner}?`;
-      }
-      return `${inner}?`;
-    } else if (type.type === "record") {
-      return `Dictionary<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}>`;
-    } else if (type.type === "reference") {
+    case "array":
+      return `List<${renderType(ctx, type.value, name)}>`;
+    case "optional":
+      return `${renderType(ctx, type.value, name)}?`;
+    case "record":
+      return `Dictionary<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}>`;
+    case "reference":
       return type.ref.name!;
-    } else if (type.type === "self-reference") {
-      return currentTypeName;
-    }
-    return "object";
+    case "self-reference":
+      return ctx.currentTypeName;
+    default:
+      throw new Error(`Unexpected type in renderType: ${type.type}`);
   }
+}
 
-  function isValueType(type: Type): boolean {
-    // Resolve reference types
-    if (type.type === "reference") {
-      return isValueType(type.ref);
-    }
-    return (
-      type.type === "int" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    );
-  }
-
-  function renderDefault(type: Type, name: string): string {
-    if (type.type === "string") {
+function renderDefault(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+): string {
+  switch (type.type) {
+    case "string":
       return '""';
-    } else if (type.type === "int") {
+    case "int":
       return "0";
-    } else if (type.type === "float") {
+    case "float":
       return "0f";
-    } else if (type.type === "boolean") {
+    case "boolean":
       return "false";
-    } else if (type.type === "enum") {
-      // Enums don't need namespace qualification in defaults (no shadowing risk)
+    case "enum":
       return `${type.name!}.${toPascalCase(type.options[0]!)}`;
-    } else if (type.type === "array") {
-      return `new List<${renderTypeArg(type.value, name)}>()`;
-    } else if (type.type === "optional") {
+    case "array":
+      return `new List<${renderType(ctx, type.value, name)}>()`;
+    case "optional":
       return "null";
-    } else if (type.type === "record") {
-      return `new Dictionary<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}>()`;
-    } else if (type.type === "reference") {
-      return renderDefault(type.ref, type.ref.name!);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.Default()`;
-    }
-    return `${qualifyType(name)}.Default()`;
+    case "record":
+      return `new Dictionary<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}>()`;
+    case "reference":
+      return renderDefault(ctx, type.ref, type.ref.name!);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.Default()`;
+    default:
+      return `${qualify(ctx, name)}.Default()`;
   }
+}
 
-  function renderFromJson(type: Type, name: string, key: string): string {
-    if (type.type === "string") {
+function renderFromJson(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
       return `${key}.GetString() ?? ""`;
-    } else if (type.type === "int") {
+    case "int":
       return `${key}.GetInt64()`;
-    } else if (type.type === "float") {
+    case "float":
       return `${key}.GetSingle()`;
-    } else if (type.type === "boolean") {
+    case "boolean":
       return `${key}.GetBoolean()`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `Enum.Parse<${type.name!}>(${key}.GetString()!, true)`;
-    } else if (type.type === "array") {
-      return `${key}.EnumerateArray().Select(x => ${renderFromJson(type.value, name, "x")}).ToList()`;
-    } else if (type.type === "optional") {
-      return `${key}.ValueKind == JsonValueKind.Null ? null : ${renderFromJson(type.value, name, key)}`;
-    } else if (type.type === "record") {
-      if (type.key.type === "string") {
-        return `${key}.EnumerateObject().ToDictionary(p => p.Name, p => ${renderFromJson(type.value, name, "p.Value")})`;
-      } else {
-        return `${key}.EnumerateObject().ToDictionary(p => long.Parse(p.Name), p => ${renderFromJson(type.value, name, "p.Value")})`;
-      }
-    } else if (type.type === "reference") {
-      return renderFromJson(type.ref, type.ref.name!, key);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.FromJson(${key})`;
-    }
-    return `${qualifyType(name)}.FromJson(${key})`;
+    case "array":
+      return `${key}.EnumerateArray().Select(x => ${renderFromJson(ctx, type.value, name, "x")}).ToList()`;
+    case "optional":
+      return `${key}.ValueKind == JsonValueKind.Null ? null : ${renderFromJson(ctx, type.value, name, key)}`;
+    case "record":
+      return type.key.type === "string"
+        ? `${key}.EnumerateObject().ToDictionary(p => p.Name, p => ${renderFromJson(ctx, type.value, name, "p.Value")})`
+        : `${key}.EnumerateObject().ToDictionary(p => long.Parse(p.Name), p => ${renderFromJson(ctx, type.value, name, "p.Value")})`;
+    case "reference":
+      return renderFromJson(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.FromJson(${key})`;
+    default:
+      return `${qualify(ctx, name)}.FromJson(${key})`;
   }
+}
 
-  function renderToJson(type: Type, name: string, key: string): string {
-    if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "float" ||
-      type.type === "boolean"
-    ) {
+function renderToJson(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
+    case "int":
+    case "float":
+    case "boolean":
       return key;
-    } else if (type.type === "enum") {
+    case "enum":
       return `${key}.ToString()`;
-    } else if (type.type === "array") {
-      const innerJson = renderToJson(type.value, name, "x");
-      return `new JsonArray(${key}.Select(x => (JsonNode?)${innerJson}).ToArray())`;
-    } else if (type.type === "optional") {
-      return renderToJson(type.value, name, key);
-    } else if (type.type === "record") {
-      if (type.key.type === "string") {
-        return `new JsonObject(${key}.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, ${renderToJson(type.value, name, "kvp.Value")})))`;
-      } else {
-        return `new JsonObject(${key}.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key.ToString(), ${renderToJson(type.value, name, "kvp.Value")})))`;
-      }
-    } else if (type.type === "reference") {
-      // Delegate to the referenced type
-      return renderToJson(type.ref, type.ref.name!, key);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.ToJson(${key})`;
-    }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.ToJson(${key})`;
-    }
-    return `${qualifyType(name)}.ToJson(${key})`;
+    case "array":
+      return `new JsonArray(${key}.Select(x => (JsonNode?)${renderToJson(ctx, type.value, name, "x")}).ToArray())`;
+    case "optional":
+      return renderToJson(ctx, type.value, name, key);
+    case "record":
+      return type.key.type === "string"
+        ? `new JsonObject(${key}.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key, ${renderToJson(ctx, type.value, name, "kvp.Value")})))`
+        : `new JsonObject(${key}.Select(kvp => new KeyValuePair<string, JsonNode?>(kvp.Key.ToString(), ${renderToJson(ctx, type.value, name, "kvp.Value")})))`;
+    case "reference":
+      return renderToJson(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.ToJson(${key})`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.ToJson(${key})`;
+    default:
+      return `${qualify(ctx, name)}.ToJson(${key})`;
   }
+}
 
-  function renderClone(type: Type, name: string, key: string): string {
-    if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
+function renderClone(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
+    case "int":
+    case "float":
+    case "boolean":
+    case "enum":
       return key;
-    } else if (type.type === "array") {
-      // For primitives, use new List<T>(source) instead of Select(x => x).ToList()
-      if (isPrimitiveOrEnum(type.value)) {
-        return `new List<${renderTypeArg(type.value, name)}>(${key})`;
-      }
-      return `${key}.Select(x => ${renderClone(type.value, name, "x")}).ToList()`;
-    } else if (type.type === "optional") {
-      // For primitives/enums, just return the value directly (no need to clone)
-      if (isPrimitiveOrEnum(type.value)) {
-        return key;
-      }
-      return `${key} != null ? ${renderClone(type.value, name, key)} : null`;
-    } else if (type.type === "record") {
-      // For primitive values, use Dictionary constructor; otherwise need to clone values
-      if (isPrimitiveOrEnum(type.value)) {
-        return `new Dictionary<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}>(${key})`;
-      }
-      return `${key}.ToDictionary(kvp => kvp.Key, kvp => ${renderClone(type.value, name, "kvp.Value")})`;
-    } else if (type.type === "reference") {
-      return renderClone(type.ref, type.ref.name!, key);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.Clone(${key})`;
-    }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.Clone(${key})`;
-    }
-    return `${qualifyType(name)}.Clone(${key})`;
+    case "array":
+      return isPrimitiveOrEnum(type.value)
+        ? `new List<${renderType(ctx, type.value, name)}>(${key})`
+        : `${key}.Select(x => ${renderClone(ctx, type.value, name, "x")}).ToList()`;
+    case "optional":
+      return isPrimitiveOrEnum(type.value)
+        ? key
+        : `${key} != null ? ${renderClone(ctx, type.value, name, key)} : null`;
+    case "record":
+      return isPrimitiveOrEnum(type.value)
+        ? `new Dictionary<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}>(${key})`
+        : `${key}.ToDictionary(kvp => kvp.Key, kvp => ${renderClone(ctx, type.value, name, "kvp.Value")})`;
+    case "reference":
+      return renderClone(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.Clone(${key})`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.Clone(${key})`;
+    default:
+      return `${qualify(ctx, name)}.Clone(${key})`;
   }
+}
 
-  function renderEquals(
-    type: Type,
-    name: string,
-    keyA: string,
-    keyB: string,
-  ): string {
-    if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
-      return `${keyA} == ${keyB}`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `Math.Abs(${keyA} - ${keyB}) < ${type.precision / 2}f`;
-      }
-      return `${keyA} == ${keyB}`;
-    } else if (type.type === "array") {
-      return `${keyA}.Count == ${keyB}.Count && ${keyA}.Zip(${keyB}).All(pair => ${renderEquals(type.value, name, "pair.First", "pair.Second")})`;
-    } else if (type.type === "optional") {
-      // For value types and primitives (including string), == works correctly
-      if (isValueType(type.value) || isPrimitiveOrEnum(type.value)) {
-        return `${keyA} == ${keyB}`;
-      }
-      return `(${keyA} == null && ${keyB} == null || ${keyA} != null && ${keyB} != null && ${renderEquals(type.value, name, keyA, keyB)})`;
-    } else if (type.type === "record") {
-      return `${keyA}.Count == ${keyB}.Count && ${keyA}.All(kvp => ${keyB}.TryGetValue(kvp.Key, out var v) && ${renderEquals(type.value, name, "kvp.Value", "v")})`;
-    } else if (type.type === "reference") {
-      return renderEquals(type.ref, type.ref.name!, keyA, keyB);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.Equals(${keyA}, ${keyB})`;
-    }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.Equals(${keyA}, ${keyB})`;
-    }
-    return `${qualifyType(name)}.Equals(${keyA}, ${keyB})`;
+function renderEquals(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  a: string,
+  b: string,
+): string {
+  switch (type.type) {
+    case "string":
+    case "int":
+    case "boolean":
+    case "enum":
+      return `${a} == ${b}`;
+    case "float":
+      return type.precision
+        ? `Math.Abs(${a} - ${b}) < ${type.precision / 2}f`
+        : `${a} == ${b}`;
+    case "array":
+      return `${a}.Count == ${b}.Count && ${a}.Zip(${b}).All(pair => ${renderEquals(ctx, type.value, name, "pair.First", "pair.Second")})`;
+    case "optional":
+      return isValueType(type.value) || isPrimitiveOrEnum(type.value)
+        ? `${a} == ${b}`
+        : `(${a} == null && ${b} == null || ${a} != null && ${b} != null && ${renderEquals(ctx, type.value, name, a, b)})`;
+    case "record":
+      return `${a}.Count == ${b}.Count && ${a}.All(kvp => ${b}.TryGetValue(kvp.Key, out var v) && ${renderEquals(ctx, type.value, name, "kvp.Value", "v")})`;
+    case "reference":
+      return renderEquals(ctx, type.ref, type.ref.name!, a, b);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.Equals(${a}, ${b})`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.Equals(${a}, ${b})`;
+    default:
+      return `${qualify(ctx, name)}.Equals(${a}, ${b})`;
   }
+}
 
-  function renderEncode(type: Type, name: string, key: string): string {
-    if (type.type === "string") {
+function renderEncode(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
       return `encoder.PushString(${key})`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `encoder.PushBoundedInt(${key}, ${type.min})`;
-      }
-      return `encoder.PushInt(${key})`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `encoder.PushFloatQuantized(${key}, ${type.precision}f)`;
-      }
-      return `encoder.PushFloat(${key})`;
-    } else if (type.type === "boolean") {
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `encoder.PushBoundedInt(${key}, ${type.min})`
+        : `encoder.PushInt(${key})`;
+    case "float":
+      return type.precision
+        ? `encoder.PushFloatQuantized(${key}, ${type.precision}f)`
+        : `encoder.PushFloat(${key})`;
+    case "boolean":
       return `encoder.PushBoolean(${key})`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `encoder.PushEnum((int)${key}, ${type.numBits})`;
-    } else if (type.type === "array") {
-      return `encoder.PushArray(${key}, x => ${renderEncode(type.value, name, "x")})`;
-    } else if (type.type === "optional") {
-      // For nullable value types (enums, ints, floats, bools), we need inline encoding
-      // since PushOptional requires reference types
+    case "array":
+      return `encoder.PushArray(${key}, x => ${renderEncode(ctx, type.value, name, "x")})`;
+    case "optional":
       if (isValueType(type.value)) {
-        const innerEncode = renderEncode(type.value, name, `${key}.Value`);
-        return `encoder.PushBoolean(${key}.HasValue);\n            if (${key}.HasValue) ${innerEncode}`;
+        return `encoder.PushBoolean(${key}.HasValue);\n            if (${key}.HasValue) ${renderEncode(ctx, type.value, name, `${key}.Value`)}`;
       }
-      return `encoder.PushOptional(${key}, x => ${renderEncode(type.value, name, "x")})`;
-    } else if (type.type === "record") {
-      const encodeKey = renderEncode(type.key, name, "x");
-      const encodeVal = renderEncode(type.value, name, "x");
-      return `encoder.PushRecord(${key}, x => ${encodeKey}, x => ${encodeVal})`;
-    } else if (type.type === "reference") {
-      return renderEncode(type.ref, type.ref.name!, key);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.EncodeInternal(${key}, encoder)`;
-    }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.EncodeInternal(${key}, encoder)`;
-    }
-    return `${qualifyType(name)}.EncodeInternal(${key}, encoder)`;
+      return `encoder.PushOptional(${key}, x => ${renderEncode(ctx, type.value, name, "x")})`;
+    case "record":
+      return `encoder.PushRecord(${key}, x => ${renderEncode(ctx, type.key, name, "x")}, x => ${renderEncode(ctx, type.value, name, "x")})`;
+    case "reference":
+      return renderEncode(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.EncodeInternal(${key}, encoder)`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.EncodeInternal(${key}, encoder)`;
+    default:
+      return `${qualify(ctx, name)}.EncodeInternal(${key}, encoder)`;
   }
+}
 
-  function renderDecode(type: Type, name: string): string {
-    if (type.type === "string") {
+function renderDecode(ctx: GeneratorContext, type: Type, name: string): string {
+  switch (type.type) {
+    case "string":
       return `decoder.NextString()`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `decoder.NextBoundedInt(${type.min})`;
-      }
-      return `decoder.NextInt()`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `decoder.NextFloatQuantized(${type.precision}f)`;
-      }
-      return `decoder.NextFloat()`;
-    } else if (type.type === "boolean") {
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `decoder.NextBoundedInt(${type.min})`
+        : `decoder.NextInt()`;
+    case "float":
+      return type.precision
+        ? `decoder.NextFloatQuantized(${type.precision}f)`
+        : `decoder.NextFloat()`;
+    case "boolean":
       return `decoder.NextBoolean()`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `(${type.name!})decoder.NextEnum(${type.numBits})`;
-    } else if (type.type === "array") {
-      return `decoder.NextArray(() => ${renderDecode(type.value, name)})`;
-    } else if (type.type === "optional") {
-      // For nullable value types (enums, ints, floats, bools), we need inline decoding
-      // since NextOptional requires reference types
+    case "array":
+      return `decoder.NextArray(() => ${renderDecode(ctx, type.value, name)})`;
+    case "optional":
       if (isValueType(type.value)) {
-        const csType = renderTypeArg(type.value, name);
-        // Resolve reference to get the underlying type
-        const innerType =
+        const t = renderType(ctx, type.value, name);
+        const inner =
           type.value.type === "reference" ? type.value.ref : type.value;
-        // For enums, cast int directly to nullable enum to avoid double cast
-        if (innerType.type === "enum") {
-          return `decoder.NextBoolean() ? (${csType}?)decoder.NextEnum(${innerType.numBits}) : null`;
+        if (inner.type === "enum") {
+          return `decoder.NextBoolean() ? (${t}?)decoder.NextEnum(${inner.numBits}) : null`;
         }
-        const innerDecode = renderDecode(type.value, name);
-        return `decoder.NextBoolean() ? (${csType}?)${innerDecode} : null`;
+        return `decoder.NextBoolean() ? (${t}?)${renderDecode(ctx, type.value, name)} : null`;
       }
-      return `decoder.NextOptional(() => ${renderDecode(type.value, name)})`;
-    } else if (type.type === "record") {
-      const decodeKey = renderDecode(type.key, name);
-      const decodeVal = renderDecode(type.value, name);
-      return `decoder.NextRecord(() => ${decodeKey}, () => ${decodeVal})`;
-    } else if (type.type === "reference") {
-      return renderDecode(type.ref, type.ref.name!);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.DecodeInternal(decoder)`;
-    }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.DecodeInternal(decoder)`;
-    }
-    return `${qualifyType(name)}.DecodeInternal(decoder)`;
+      return `decoder.NextOptional(() => ${renderDecode(ctx, type.value, name)})`;
+    case "record":
+      return `decoder.NextRecord(() => ${renderDecode(ctx, type.key, name)}, () => ${renderDecode(ctx, type.value, name)})`;
+    case "reference":
+      return renderDecode(ctx, type.ref, type.ref.name!);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.DecodeInternal(decoder)`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.DecodeInternal(decoder)`;
+    default:
+      return `${qualify(ctx, name)}.DecodeInternal(decoder)`;
   }
+}
 
-  function renderEncodeDiff(
-    type: Type,
-    name: string,
-    keyA: string,
-    keyB: string,
-  ): string {
-    if (type.type === "string") {
-      return `encoder.PushStringDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `encoder.PushBoundedIntDiff(${keyA}, ${keyB}, ${type.min})`;
-      }
-      return `encoder.PushIntDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `encoder.PushFloatQuantizedDiff(${keyA}, ${keyB}, ${type.precision}f)`;
-      }
-      return `encoder.PushFloatDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "boolean") {
-      return `encoder.PushBooleanDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "enum") {
-      return `encoder.PushEnumDiff((int)${keyA}, (int)${keyB}, ${type.numBits})`;
-    } else if (type.type === "array") {
-      const elemType = renderTypeArg(type.value, name);
-      const equalsFn = renderEquals(type.value, name, "x", "y");
-      const encodeFn = renderEncode(type.value, name, "x");
-      const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
-      return `encoder.PushArrayDiff<${elemType}>(${keyA}, ${keyB}, (x, y) => ${equalsFn}, x => ${encodeFn}, (x, y) => ${encodeDiffFn})`;
-    } else if (type.type === "optional") {
-      const elemType = renderTypeArg(type.value, name);
-      const encodeFn = renderEncode(type.value, name, "x");
-      // For nullable value types, generate inline diff encoding
+function renderEncodeDiff(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  a: string,
+  b: string,
+): string {
+  switch (type.type) {
+    case "string":
+      return `encoder.PushStringDiff(${a}, ${b})`;
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `encoder.PushBoundedIntDiff(${a}, ${b}, ${type.min})`
+        : `encoder.PushIntDiff(${a}, ${b})`;
+    case "float":
+      return type.precision
+        ? `encoder.PushFloatQuantizedDiff(${a}, ${b}, ${type.precision}f)`
+        : `encoder.PushFloatDiff(${a}, ${b})`;
+    case "boolean":
+      return `encoder.PushBooleanDiff(${a}, ${b})`;
+    case "enum":
+      return `encoder.PushEnumDiff((int)${a}, (int)${b}, ${type.numBits})`;
+    case "array": {
+      const t = renderType(ctx, type.value, name);
+      return `encoder.PushArrayDiff<${t}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")}, x => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
+    }
+    case "optional": {
+      const t = renderType(ctx, type.value, name);
       if (isValueType(type.value)) {
-        const innerEncode = renderEncode(type.value, name, `${keyB}.Value`);
         return `{
-                var eq = ${keyA} == ${keyB};
+                var eq = ${a} == ${b};
                 encoder.PushBoolean(!eq);
                 if (!eq)
                 {
-                    encoder.PushBoolean(${keyB}.HasValue);
-                    if (${keyB}.HasValue) ${innerEncode};
+                    encoder.PushBoolean(${b}.HasValue);
+                    if (${b}.HasValue) ${renderEncode(ctx, type.value, name, `${b}.Value`)};
                 }
             }`;
       }
-      if (isPrimitiveOrEnum(type.value)) {
-        return `encoder.PushOptionalDiffPrimitive<${elemType}>(${keyA}, ${keyB}, x => ${encodeFn})`;
-      } else {
-        const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
-        return `encoder.PushOptionalDiff<${elemType}>(${keyA}, ${keyB}, x => ${encodeFn}, (x, y) => ${encodeDiffFn})`;
-      }
-    } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key, name);
-      const valType = renderTypeArg(type.value, name);
-      const equalsFn = renderEquals(type.value, name, "x", "y");
-      const encodeKeyFn = renderEncode(type.key, name, "x");
-      const encodeValFn = renderEncode(type.value, name, "x");
-      const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
-      return `encoder.PushRecordDiff<${keyType}, ${valType}>(${keyA}, ${keyB}, (x, y) => ${equalsFn}, x => ${encodeKeyFn}, x => ${encodeValFn}, (x, y) => ${encodeDiffFn})`;
-    } else if (type.type === "reference") {
-      return renderEncodeDiff(type.ref, type.ref.name!, keyA, keyB);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.EncodeDiffInternal(${keyA}, ${keyB}, encoder)`;
+      return isPrimitiveOrEnum(type.value)
+        ? `encoder.PushOptionalDiffPrimitive<${t}>(${a}, ${b}, x => ${renderEncode(ctx, type.value, name, "x")})`
+        : `encoder.PushOptionalDiff<${t}>(${a}, ${b}, x => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
     }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.EncodeDiffInternal(${keyA}, ${keyB}, encoder)`;
+    case "record": {
+      const kt = renderType(ctx, type.key, name);
+      const vt = renderType(ctx, type.value, name);
+      return `encoder.PushRecordDiff<${kt}, ${vt}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")}, x => ${renderEncode(ctx, type.key, name, "x")}, x => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
     }
-    return `${qualifyType(name)}.EncodeDiffInternal(${keyA}, ${keyB}, encoder)`;
+    case "reference":
+      return renderEncodeDiff(ctx, type.ref, type.ref.name!, a, b);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.EncodeDiffInternal(${a}, ${b}, encoder)`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.EncodeDiffInternal(${a}, ${b}, encoder)`;
+    default:
+      return `${qualify(ctx, name)}.EncodeDiffInternal(${a}, ${b}, encoder)`;
   }
+}
 
-  function renderDecodeDiff(type: Type, name: string, key: string): string {
-    if (type.type === "string") {
+function renderDecodeDiff(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
       return `decoder.NextStringDiff(${key})`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `decoder.NextBoundedIntDiff(${key}, ${type.min})`;
-      }
-      return `decoder.NextIntDiff(${key})`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `decoder.NextFloatQuantizedDiff(${key}, ${type.precision}f)`;
-      }
-      return `decoder.NextFloatDiff(${key})`;
-    } else if (type.type === "boolean") {
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `decoder.NextBoundedIntDiff(${key}, ${type.min})`
+        : `decoder.NextIntDiff(${key})`;
+    case "float":
+      return type.precision
+        ? `decoder.NextFloatQuantizedDiff(${key}, ${type.precision}f)`
+        : `decoder.NextFloatDiff(${key})`;
+    case "boolean":
       return `decoder.NextBooleanDiff(${key})`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `(${type.name!})decoder.NextEnumDiff((int)${key}, ${type.numBits})`;
-    } else if (type.type === "array") {
-      const elemType = renderTypeArg(type.value, name);
-      const decodeFn = renderDecode(type.value, name);
-      const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
-      return `decoder.NextArrayDiff<${elemType}>(${key}, () => ${decodeFn}, x => ${decodeDiffFn})`;
-    } else if (type.type === "optional") {
-      const elemType = renderTypeArg(type.value, name);
-      const decodeFn = renderDecode(type.value, name);
-      // For nullable value types, generate inline diff decoding
+    case "array": {
+      const t = renderType(ctx, type.value, name);
+      return `decoder.NextArrayDiff<${t}>(${key}, () => ${renderDecode(ctx, type.value, name)}, x => ${renderDecodeDiff(ctx, type.value, name, "x")})`;
+    }
+    case "optional": {
+      const t = renderType(ctx, type.value, name);
       if (isValueType(type.value)) {
-        // Resolve reference to get the underlying type
-        const innerType =
+        const inner =
           type.value.type === "reference" ? type.value.ref : type.value;
-        // For enums, cast int directly to nullable enum to avoid double cast
-        if (innerType.type === "enum") {
-          return `decoder.NextBoolean() ? (decoder.NextBoolean() ? (${elemType}?)decoder.NextEnum(${innerType.numBits}) : null) : ${key}`;
+        if (inner.type === "enum") {
+          return `decoder.NextBoolean() ? (decoder.NextBoolean() ? (${t}?)decoder.NextEnum(${inner.numBits}) : null) : ${key}`;
         }
-        return `decoder.NextBoolean() ? (decoder.NextBoolean() ? (${elemType}?)${decodeFn} : null) : ${key}`;
+        return `decoder.NextBoolean() ? (decoder.NextBoolean() ? (${t}?)${renderDecode(ctx, type.value, name)} : null) : ${key}`;
       }
-      if (isPrimitiveOrEnum(type.value)) {
-        return `decoder.NextOptionalDiffPrimitive<${elemType}>(${key}, () => ${decodeFn})`;
-      } else {
-        const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
-        return `decoder.NextOptionalDiff<${elemType}>(${key}, () => ${decodeFn}, x => ${decodeDiffFn})`;
-      }
-    } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key, name);
-      const valType = renderTypeArg(type.value, name);
-      const decodeKeyFn = renderDecode(type.key, name);
-      const decodeValFn = renderDecode(type.value, name);
-      const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
-      return `decoder.NextRecordDiff<${keyType}, ${valType}>(${key}, () => ${decodeKeyFn}, () => ${decodeValFn}, x => ${decodeDiffFn})`;
-    } else if (type.type === "reference") {
-      return renderDecodeDiff(type.ref, type.ref.name!, key);
-    } else if (type.type === "self-reference") {
-      return `${qualifyType(currentTypeName)}.DecodeDiffInternal(${key}, decoder)`;
+      return isPrimitiveOrEnum(type.value)
+        ? `decoder.NextOptionalDiffPrimitive<${t}>(${key}, () => ${renderDecode(ctx, type.value, name)})`
+        : `decoder.NextOptionalDiff<${t}>(${key}, () => ${renderDecode(ctx, type.value, name)}, x => ${renderDecodeDiff(ctx, type.value, name, "x")})`;
     }
-    if (type.type === "union") {
-      return `${qualifyType(type.name!)}.DecodeDiffInternal(${key}, decoder)`;
+    case "record": {
+      const kt = renderType(ctx, type.key, name);
+      const vt = renderType(ctx, type.value, name);
+      return `decoder.NextRecordDiff<${kt}, ${vt}>(${key}, () => ${renderDecode(ctx, type.key, name)}, () => ${renderDecode(ctx, type.value, name)}, x => ${renderDecodeDiff(ctx, type.value, name, "x")})`;
     }
-    return `${qualifyType(name)}.DecodeDiffInternal(${key}, decoder)`;
+    case "reference":
+      return renderDecodeDiff(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${qualify(ctx, ctx.currentTypeName)}.DecodeDiffInternal(${key}, decoder)`;
+    case "union":
+      return `${qualify(ctx, type.name!)}.DecodeDiffInternal(${key}, decoder)`;
+    default:
+      return `${qualify(ctx, name)}.DecodeDiffInternal(${key}, decoder)`;
   }
-}
-
-function toPascalCase(str: string): string {
-  if (!str) return str;
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function toCamelCase(str: string): string {
-  if (!str) return str;
-  return str.charAt(0).toLowerCase() + str.slice(1);
 }

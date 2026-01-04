@@ -1,48 +1,137 @@
-import { Type, isPrimitiveOrEnum } from "@hpx7/delta-pack";
+import { Type, NamedType, isPrimitiveOrEnum } from "@hpx7/delta-pack";
 
-export function codegenTypescript(schema: Record<string, Type>) {
-  return renderSchema(schema);
+export function codegenTypescript(schema: Record<string, Type>): string {
+  const ctx = createContext(schema);
+  return renderSchema(ctx);
 }
 
-function renderSchema(schema: Record<string, Type>) {
-  // Track the current type being processed for self-reference resolution
-  let currentTypeName: string;
+// ============ Context ============
+
+interface GeneratorContext {
+  schema: Record<string, Type>;
+  currentTypeName: string;
+}
+
+function createContext(schema: Record<string, Type>): GeneratorContext {
+  return { schema, currentTypeName: "" };
+}
+
+// ============ Utilities ============
+
+function ifElseChain<T>(
+  items: readonly T[],
+  render: (item: T, i: number, prefix: string) => string,
+): string {
+  return items
+    .map((item, i) => render(item, i, i > 0 ? "else " : ""))
+    .join("\n");
+}
+
+// ============ Main Renderer ============
+
+function renderSchema(ctx: GeneratorContext): string {
+  const types: string[] = [];
+  const apis: string[] = [];
+
+  for (const [name, type] of Object.entries(ctx.schema)) {
+    ctx.currentTypeName = name;
+    if (type.type === "enum") {
+      types.push(renderEnumType(name, type.options));
+      apis.push(renderEnumApi(name, type.options));
+    } else if (type.type === "object") {
+      types.push(renderObjectType(ctx, name, type.properties));
+      apis.push(renderObjectApi(ctx, name, type.properties));
+    } else if (type.type === "union") {
+      types.push(renderUnionType(name, type.options));
+      apis.push(renderUnionApi(ctx, name, type.options, type.numBits));
+    }
+  }
 
   return `import * as _ from "@hpx7/delta-pack";
 
-${Object.entries(schema)
-  .map(([name, type]) => {
-    currentTypeName = name;
-    if (type.type === "enum") {
-      return `
-export type ${name} = ${type.options.map((option) => `"${option}"`).join(" | ")};
-    `;
-    } else {
-      return `export type ${name} = ${renderTypeArg(type, name)};`;
-    }
-  })
-  .join("\n")}
+${types.join("\n\n")}
 
-${Object.entries(schema)
-  .map(([name, type]) => {
-    currentTypeName = name;
-    if (type.type === "enum") {
-      return `
+${apis.join("\n")}
+`;
+}
+
+// ============ Enum Renderer ============
+
+function renderEnumType(name: string, options: readonly string[]): string {
+  return `export type ${name} = ${options.map((opt) => `"${opt}"`).join(" | ")};`;
+}
+
+function renderEnumApi(name: string, options: readonly string[]): string {
+  return `
 const ${name} = {
-  ${type.options.map((option, i) => `${i}: "${option}",`).join("\n  ")}
-  ${type.options.map((option, i) => `${option}: ${i},`).join("\n  ")}
+  ${options.map((opt, i) => `${i}: "${opt}",`).join("\n  ")}
+  ${options.map((opt, i) => `${opt}: ${i},`).join("\n  ")}
 };`;
-    }
-    if (type.type === "object") {
-      return `
+}
+
+// ============ Object Renderer ============
+
+function renderObjectType(
+  ctx: GeneratorContext,
+  name: string,
+  properties: Record<string, Type>,
+): string {
+  const props = Object.entries(properties)
+    .map(([propName, propType]) => {
+      const optional = propType.type === "optional" ? "?" : "";
+      return `  ${propName}${optional}: ${renderType(ctx, propType, propName)};`;
+    })
+    .join("\n");
+
+  return `export type ${name} = {
+${props}
+} & { _dirty?: Set<keyof ${name}> };`;
+}
+
+function renderObjectApi(
+  ctx: GeneratorContext,
+  name: string,
+  properties: Record<string, Type>,
+): string {
+  const props = Object.entries(properties);
+  const p = (fn: (n: string, t: Type) => string) =>
+    props.map(([n, t]) => fn(n, t)).join("\n");
+
+  const defaultBody = p((n, t) => `      ${n}: ${renderDefault(ctx, t, n)},`);
+  const fromJsonBody = p(
+    (n, t) =>
+      `      ${n}: _.tryParseField(() => ${renderFromJson(ctx, t, n, `o["${n}"]`)}, "${name}.${n}"),`,
+  );
+  const toJsonBody = p((n, t) =>
+    t.type === "optional"
+      ? `    if (obj.${n} != null) {\n      result["${n}"] = ${renderToJson(ctx, t, n, `obj.${n}`)};\n    }`
+      : `    result["${n}"] = ${renderToJson(ctx, t, n, `obj.${n}`)};`,
+  );
+  const cloneBody = p(
+    (n, t) => `      ${n}: ${renderClone(ctx, t, n, `obj.${n}`)},`,
+  );
+  const equalsBody = props
+    .map(([n, t]) => renderEquals(ctx, t, n, `a.${n}`, `b.${n}`))
+    .join(" &&\n      ");
+  const encodeBody = p((n, t) => `    ${renderEncode(ctx, t, n, `obj.${n}`)};`);
+  const encodeDiffBody = p(
+    (n, t) => `    // Field: ${n}
+    if (dirty != null && !dirty.has("${n}")) {
+      encoder.pushBoolean(false);
+    } else {
+      ${renderEncodeDiff(ctx, t, n, `a.${n}`, `b.${n}`)};
+    }`,
+  );
+  const decodeBody = p((n, t) => `      ${n}: ${renderDecode(ctx, t, n)},`);
+  const decodeDiffBody = p(
+    (n, t) => `      ${n}: ${renderDecodeDiff(ctx, t, n, `obj.${n}`)},`,
+  );
+
+  return `
 export const ${name} = {
   default(): ${name} {
     return {
-      ${Object.entries(type.properties)
-        .map(([name, childType]) => {
-          return `${name}: ${renderDefault(childType, name)},`;
-        })
-        .join("\n      ")}
+${defaultBody}
     };
   },
   fromJson(obj: object): ${name} {
@@ -51,49 +140,22 @@ export const ${name} = {
     }
     const o = obj as Record<string, unknown>;
     return {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: _.tryParseField(() => ${renderFromJson(childType, childName, `o["${childName}"]`)}, "${name}.${childName}"),`;
-        })
-        .join("\n      ")}
+${fromJsonBody}
     };
   },
   toJson(obj: ${name}): Record<string, unknown> {
     const result: Record<string, unknown> = {};
-    ${Object.entries(type.properties)
-      .map(([childName, childType]) => {
-        if (childType.type === "optional") {
-          return `if (obj.${childName} != null) {
-      result["${childName}"] = ${renderToJson(childType, childName, `obj.${childName}`)};
-    }`;
-        } else {
-          return `result["${childName}"] = ${renderToJson(childType, childName, `obj.${childName}`)};`;
-        }
-      })
-      .join("\n    ")}
+${toJsonBody}
     return result;
   },
   clone(obj: ${name}): ${name} {
     return {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: ${renderClone(childType, name, `obj.${childName}`)},`;
-        })
-        .join("\n      ")}
+${cloneBody}
     };
   },
   equals(a: ${name}, b: ${name}): boolean {
     return (
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return renderEquals(
-            childType,
-            name,
-            `a.${childName}`,
-            `b.${childName}`,
-          );
-        })
-        .join(" &&\n      ")}
+      ${equalsBody || "true"}
     );
   },
   encode(obj: ${name}): Uint8Array {
@@ -102,11 +164,7 @@ export const ${name} = {
     return encoder.toBuffer();
   },
   _encode(obj: ${name}, encoder: _.Encoder): void {
-    ${Object.entries(type.properties)
-      .map(([childName, childType]) => {
-        return `${renderEncode(childType, name, `obj.${childName}`)};`;
-      })
-      .join("\n    ")}
+${encodeBody}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
     const encoder = new _.Encoder();
@@ -120,27 +178,14 @@ export const ${name} = {
     if (!changed) {
       return;
     }
-    ${Object.entries(type.properties)
-      .map(([childName, childType]) => {
-        return `// Field: ${childName}
-    if (dirty != null && !dirty.has("${childName}")) {
-      encoder.pushBoolean(false);
-    } else {
-      ${renderEncodeDiff(childType, name, `a.${childName}`, `b.${childName}`)};
-    }`;
-      })
-      .join("\n    ")}
+${encodeDiffBody}
   },
   decode(input: Uint8Array): ${name} {
     return ${name}._decode(new _.Decoder(input));
   },
   _decode(decoder: _.Decoder): ${name} {
     return {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: ${renderDecode(childType, name, `obj.${childName}`)},`;
-        })
-        .join("\n      ")}
+${decodeBody}
     };
   },
   decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
@@ -153,96 +198,119 @@ export const ${name} = {
       return obj;
     }
     return {
-      ${Object.entries(type.properties)
-        .map(([childName, childType]) => {
-          return `${childName}: ${renderDecodeDiff(childType, name, `obj.${childName}`)},`;
-        })
-        .join("\n      ")}
+${decodeDiffBody}
     };
   },
 };`;
-    } else if (type.type === "union") {
-      return `
+}
+
+// ============ Union Renderer ============
+
+function renderUnionType(name: string, options: readonly NamedType[]): string {
+  return `export type ${name} = ${options.map((opt) => `{ type: "${opt.name}"; val: ${opt.name} }`).join(" | ")};`;
+}
+
+function renderUnionApi(
+  ctx: GeneratorContext,
+  name: string,
+  options: readonly NamedType[],
+  numBits: number,
+): string {
+  const first = options[0]!;
+
+  const fromJsonDeltaPack = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `      ${p}if (obj["type"] === "${opt.name}") {\n        return { type: "${opt.name}", val: ${renderFromJson(ctx, opt, opt.name!, `obj["val"]`)} };\n      }`,
+  );
+
+  const fromJsonProtobuf = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `      ${p}if (fieldName === "${opt.name}") {\n        return { type: "${opt.name}", val: ${renderFromJson(ctx, opt, opt.name!, "fieldValue")} };\n      }`,
+  );
+
+  const toJsonCases = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `    ${p}if (obj.type === "${opt.name}") {\n      return { ${opt.name}: ${renderToJson(ctx, opt, opt.name!, "obj.val")} };\n    }`,
+  );
+
+  const cloneCases = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `    ${p}if (obj.type === "${opt.name}") {\n      return { type: "${opt.name}", val: ${renderClone(ctx, opt, opt.name!, "obj.val")} };\n    }`,
+  );
+
+  const equalsCases = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `    ${p}if (a.type === "${opt.name}" && b.type === "${opt.name}") {\n      return ${renderEquals(ctx, opt, opt.name!, "a.val", "b.val")};\n    }`,
+  );
+
+  const encodeCases = ifElseChain(
+    options,
+    (opt, i, p) =>
+      `    ${p}if (obj.type === "${opt.name}") {\n      encoder.pushEnum(${i}, ${numBits});\n      ${renderEncode(ctx, opt, opt.name!, "obj.val")};\n    }`,
+  );
+
+  const encodeDiffCases = ifElseChain(
+    options,
+    (opt, i, p) =>
+      `    ${p}if (b.type === "${opt.name}") {\n      if (a.type === "${opt.name}") {\n        ${renderEncodeDiff(ctx, opt, opt.name!, "a.val", "b.val")};\n      } else {\n        encoder.pushEnum(${i}, ${numBits});\n        ${renderEncode(ctx, opt, opt.name!, "b.val")};\n      }\n    }`,
+  );
+
+  const decodeCases = ifElseChain(
+    options,
+    (opt, i, p) =>
+      `    ${p}if (type === ${i}) {\n      return { type: "${opt.name}", val: ${renderDecode(ctx, opt, opt.name!)} };\n    }`,
+  );
+
+  const decodeDiffSame = ifElseChain(
+    options,
+    (opt, _, p) =>
+      `      ${p}if (obj.type === "${opt.name}") {\n        return { type: "${opt.name}", val: ${renderDecodeDiff(ctx, opt, opt.name!, "obj.val")} };\n      }`,
+  );
+
+  const decodeDiffNew = ifElseChain(
+    options,
+    (opt, i, p) =>
+      `      ${p}if (type === ${i}) {\n        return { type: "${opt.name}", val: ${renderDecode(ctx, opt, opt.name!)} };\n      }`,
+  );
+
+  return `
 export const ${name} = {
-  default(): ${name} {
-    return {
-      type: "${type.options[0]!.name}",
-      val: ${renderDefault(type.options[0]!, type.options[0]!.name!)},
-    };
+  default(): ${first.name} {
+    return { type: "${first.name}", val: ${first.name}.default() };
   },
   values() {
-    return [${type.options.map((option) => `"${option.name}"`).join(", ")}];
+    return [${options.map((opt) => `"${opt.name}"`).join(", ")}];
   },
   fromJson(obj: object): ${name} {
     if (typeof obj !== "object" || obj == null) {
       throw new Error(\`Invalid ${name}: \${obj}\`);
     }
-    // check if it's delta-pack format: { type: "TypeName", val: ... }
     if ("type" in obj && typeof (obj as Record<string, unknown>)["type"] === "string" && "val" in obj) {
-      ${type.options
-        .map((option, i) => {
-          return `${i > 0 ? "else " : ""}if (obj["type"] === "${option.name}") {
-        return {
-          type: "${option.name}",
-          val: ${renderFromJson(option, option.name!, `obj["val"]`)},
-        };
-      }`;
-        })
-        .join("\n      ")}
-      else {
-        throw new Error(\`Invalid ${name}: \${obj}\`);
-      }
+${fromJsonDeltaPack}
+      else { throw new Error(\`Invalid ${name}: \${obj}\`); }
     }
-    // check if it's protobuf format: { TypeName: ... }
     const entries = Object.entries(obj);
     if (entries.length === 1) {
       const [fieldName, fieldValue] = entries[0]!;
-      ${type.options
-        .map((option, i) => {
-          return `${i > 0 ? "else " : ""}if (fieldName === "${option.name}") {
-        return {
-          type: "${option.name}",
-          val: ${renderFromJson(option, option.name!, "fieldValue")},
-        };
-      }`;
-        })
-        .join("\n      ")}
+${fromJsonProtobuf}
     }
     throw new Error(\`Invalid ${name}: \${obj}\`);
   },
   toJson(obj: ${name}): Record<string, unknown> {
-    ${type.options
-      .map((option, i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
-      return {
-        ${option.name}: ${renderToJson(option, option.name!, "obj.val")},
-      };
-    }`;
-      })
-      .join("\n    ")}
+${toJsonCases}
     throw new Error(\`Invalid ${name}: \${obj}\`);
   },
   clone(obj: ${name}): ${name} {
-    ${type.options
-      .map((option, i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
-      return {
-        type: "${option.name}",
-        val: ${renderClone(option, option.name!, "obj.val")},
-      };
-    }`;
-      })
-      .join("\n    ")}
+${cloneCases}
     throw new Error(\`Invalid ${name}: \${obj}\`);
   },
   equals(a: ${name}, b: ${name}): boolean {
-    ${type.options
-      .map((option, i) => {
-        return `${i > 0 ? "else " : ""}if (a.type === "${option.name}" && b.type === "${option.name}") {
-      return ${renderEquals(option, option.name!, "a.val", "b.val")};
-    }`;
-      })
-      .join("\n    ")}
+${equalsCases}
     return false;
   },
   encode(obj: ${name}): Uint8Array {
@@ -251,14 +319,7 @@ export const ${name} = {
     return encoder.toBuffer();
   },
   _encode(obj: ${name}, encoder: _.Encoder): void {
-    ${type.options
-      .map((option, i) => {
-        return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
-      encoder.pushEnum(${i}, ${type.numBits});
-      ${renderEncode(option, option.name!, "obj.val")};
-    }`;
-      })
-      .join("\n    ")}
+${encodeCases}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
     const encoder = new _.Encoder();
@@ -267,31 +328,14 @@ export const ${name} = {
   },
   _encodeDiff(a: ${name}, b: ${name}, encoder: _.Encoder): void {
     encoder.pushBoolean(a.type === b.type);
-    ${type.options
-      .map((option, i) => {
-        return `${i > 0 ? "else " : ""}if (b.type === "${option.name}") {
-      if (a.type === "${option.name}") {
-        ${renderEncodeDiff(option, option.name!, "a.val", "b.val")};
-      } else {
-        encoder.pushEnum(${i}, ${type.numBits});
-        ${renderEncode(option, option.name!, "b.val")};
-      }
-    }`;
-      })
-      .join("\n    ")}
+${encodeDiffCases}
   },
   decode(input: Uint8Array): ${name} {
     return ${name}._decode(new _.Decoder(input));
   },
   _decode(decoder: _.Decoder): ${name} {
-    const type = decoder.nextEnum(${type.numBits});
-    ${type.options
-      .map((option, i) => {
-        return `${i > 0 ? "else " : ""}if (type === ${i}) {
-      return { type: "${option.name}", val: ${renderDecode(option, option.name!, "obj.val")} };
-    }`;
-      })
-      .join("\n    ")}
+    const type = decoder.nextEnum(${numBits});
+${decodeCases}
     throw new Error("Invalid union");
   },
   decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
@@ -301,412 +345,360 @@ export const ${name} = {
   _decodeDiff(obj: ${name}, decoder: _.Decoder): ${name} {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
-      ${type.options
-        .map((option, i) => {
-          return `${i > 0 ? "else " : ""}if (obj.type === "${option.name}") {
-        return {
-          type: "${option.name}",
-          val: ${renderDecodeDiff(option, option.name!, "obj.val")},
-        };
-      }`;
-        })
-        .join("\n      ")}
+${decodeDiffSame}
       throw new Error("Invalid union diff");
     } else {
-      const type = decoder.nextEnum(${type.numBits});
-      ${type.options
-        .map((option, i) => {
-          return `${i > 0 ? "else " : ""}if (type === ${i}) {
-        return {
-          type: "${option.name}",
-          val: ${renderDecode(option, option.name!, "obj.val")},
-        };
-      }`;
-        })
-        .join("\n      ")}
+      const type = decoder.nextEnum(${numBits});
+${decodeDiffNew}
       throw new Error("Invalid union diff");
     }
   }
 }`;
-    }
-    return "";
-  })
-  .join("\n")}`;
+}
 
-  function renderTypeArg(type: Type, name: string): string {
-    if (type.type === "object") {
-      return `{
-  ${Object.entries(type.properties)
-    .map(([name, childType]) => {
-      return `${name}${childType.type === "optional" ? "?" : ""}: ${renderTypeArg(childType, name)};`;
-    })
-    .join("\n  ")}
-} & { _dirty?: Set<keyof ${name}> }`;
-    } else if (type.type === "union") {
-      return type.options
-        .map((option) => `{ type: "${option.name}"; val: ${option.name} }`)
-        .join(" | ");
-    } else if (type.type === "array") {
-      const elementType = renderTypeArg(type.value, name);
-      // Parenthesize if element type has _dirty (array or record - objects can't be direct children)
-      const needsParens =
-        type.value.type === "array" || type.value.type === "record";
-      return needsParens
-        ? `(${elementType})[] & { _dirty?: Set<number> }`
-        : `${elementType}[] & { _dirty?: Set<number> }`;
-    } else if (type.type === "optional") {
-      return `${renderTypeArg(type.value, name)} | undefined`;
-    } else if (type.type === "record") {
-      return `Map<${renderTypeArg(type.key, name)}, ${renderTypeArg(type.value, name)}> & { _dirty?: Set<${renderTypeArg(type.key, name)}> }`;
-    } else if (type.type === "reference") {
-      return type.ref.name!;
-    } else if (type.type === "int" || type.type === "float") {
+// ============ Type Helpers ============
+
+function renderType(ctx: GeneratorContext, type: Type, name: string): string {
+  switch (type.type) {
+    case "string":
+      return "string";
+    case "int":
+    case "float":
       return "number";
-    } else if (type.type === "self-reference") {
-      return currentTypeName;
+    case "boolean":
+      return "boolean";
+    case "enum":
+      return type.name!;
+    case "array": {
+      const elem = renderType(ctx, type.value, name);
+      const parens =
+        type.value.type === "array" || type.value.type === "record";
+      return parens
+        ? `(${elem})[] & { _dirty?: Set<number> }`
+        : `${elem}[] & { _dirty?: Set<number> }`;
     }
-    return type.type;
+    case "optional":
+      return `${renderType(ctx, type.value, name)} | undefined`;
+    case "record":
+      return `Map<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}> & { _dirty?: Set<${renderType(ctx, type.key, name)}> }`;
+    case "reference":
+      return type.ref.name!;
+    case "self-reference":
+      return ctx.currentTypeName;
+    default:
+      throw new Error(`Unexpected type in renderType: ${type.type}`);
   }
+}
 
-  function renderDefault(type: Type, name: string): string {
-    if (type.type === "array") {
-      return "[]";
-    } else if (type.type === "optional") {
-      return "undefined";
-    } else if (type.type === "record") {
-      return "new Map()";
-    } else if (type.type === "reference") {
-      return renderDefault(type.ref, type.ref.name!);
-    } else if (type.type === "string") {
+function renderDefault(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+): string {
+  switch (type.type) {
+    case "string":
       return '""';
-    } else if (type.type === "int") {
+    case "int":
       return "0";
-    } else if (type.type === "float") {
+    case "float":
       return "0.0";
-    } else if (type.type === "boolean") {
+    case "boolean":
       return "false";
-    } else if (type.type === "enum") {
+    case "enum":
       return `"${type.options[0]}"`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}.default()`;
-    }
-    return `${name}.default()`;
+    case "array":
+      return "[]";
+    case "optional":
+      return "undefined";
+    case "record":
+      return "new Map()";
+    case "reference":
+      return renderDefault(ctx, type.ref, type.ref.name!);
+    case "self-reference":
+      return `${ctx.currentTypeName}.default()`;
+    default:
+      return `${name}.default()`;
   }
+}
 
-  function renderFromJson(type: Type, name: string, key: string): string {
-    if (type.type === "array") {
-      return `_.parseArray(${key}, (x) => ${renderFromJson(type.value, name, "x")})`;
-    } else if (type.type === "optional") {
-      return `_.parseOptional(${key}, (x) => ${renderFromJson(type.value, name, "x")})`;
-    } else if (type.type === "record") {
-      const keyFn = renderFromJson(type.key, name, "x");
-      const valueFn = renderFromJson(type.value, name, "x");
-      return `_.parseRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
-    } else if (type.type === "reference") {
-      return renderFromJson(type.ref, type.ref.name!, key);
-    } else if (type.type === "string") {
+function renderFromJson(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
       return `_.parseString(${key})`;
-    } else if (type.type === "int") {
-      if (type.max != null) {
-        return `_.parseInt(${key}, ${type.min}, ${type.max})`;
-      }
-      if (type.min != null) {
-        return `_.parseInt(${key}, ${type.min})`;
-      }
-      return `_.parseInt(${key})`;
-    } else if (type.type === "float") {
+    case "int":
+      return type.max != null
+        ? `_.parseInt(${key}, ${type.min}, ${type.max})`
+        : type.min != null
+          ? `_.parseInt(${key}, ${type.min})`
+          : `_.parseInt(${key})`;
+    case "float":
       return `_.parseFloat(${key})`;
-    } else if (type.type === "boolean") {
+    case "boolean":
       return `_.parseBoolean(${key})`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `_.parseEnum(${key}, ${name})`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}.fromJson(${key} as ${currentTypeName})`;
-    }
-    return `${name}.fromJson(${key} as ${name})`;
+    case "array":
+      return `_.parseArray(${key}, (x) => ${renderFromJson(ctx, type.value, name, "x")})`;
+    case "optional":
+      return `_.parseOptional(${key}, (x) => ${renderFromJson(ctx, type.value, name, "x")})`;
+    case "record":
+      return `_.parseRecord(${key}, (x) => ${renderFromJson(ctx, type.key, name, "x")}, (x) => ${renderFromJson(ctx, type.value, name, "x")})`;
+    case "reference":
+      return renderFromJson(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${ctx.currentTypeName}.fromJson(${key} as ${ctx.currentTypeName})`;
+    default:
+      return `${name}.fromJson(${key} as ${name})`;
   }
+}
 
-  function renderToJson(type: Type, name: string, key: string): string {
-    if (type.type === "array") {
-      return `${key}.map((x) => ${renderToJson(type.value, name, "x")})`;
-    } else if (type.type === "optional") {
-      return renderToJson(type.value, name, key);
-    } else if (type.type === "record") {
-      return `_.mapToObject(${key}, (x) => ${renderToJson(type.value, name, "x")})`;
-    } else if (type.type === "reference") {
-      return renderToJson(type.ref, type.ref.name!, key);
-    } else if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
-      return `${key}`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}.toJson(${key})`;
-    }
-    return `${name}.toJson(${key})`;
+function renderToJson(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
+    case "int":
+    case "float":
+    case "boolean":
+    case "enum":
+      return key;
+    case "array":
+      return `${key}.map((x) => ${renderToJson(ctx, type.value, name, "x")})`;
+    case "optional":
+      return renderToJson(ctx, type.value, name, key);
+    case "record":
+      return `_.mapToObject(${key}, (x) => ${renderToJson(ctx, type.value, name, "x")})`;
+    case "reference":
+      return renderToJson(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${ctx.currentTypeName}.toJson(${key})`;
+    default:
+      return `${name}.toJson(${key})`;
   }
+}
 
-  function renderClone(type: Type, name: string, key: string): string {
-    if (type.type === "array") {
-      return `${key}.map((x) => ${renderClone(type.value, name, "x")})`;
-    } else if (type.type === "optional") {
-      return `${key} != null ? ${renderClone(type.value, name, key)} : undefined`;
-    } else if (type.type === "record") {
-      const valueFn = renderClone(type.value, name, "v");
-      return `new Map([...${key}].map(([k, v]) => [k, ${valueFn}]))`;
-    } else if (type.type === "reference") {
-      return renderClone(type.ref, type.ref.name!, key);
-    } else if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "float" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
-      return `${key}`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}.clone(${key})`;
-    }
-    return `${name}.clone(${key})`;
+function renderClone(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
+    case "int":
+    case "float":
+    case "boolean":
+    case "enum":
+      return key;
+    case "array":
+      return `${key}.map((x) => ${renderClone(ctx, type.value, name, "x")})`;
+    case "optional":
+      return `${key} != null ? ${renderClone(ctx, type.value, name, key)} : undefined`;
+    case "record":
+      return `new Map([...${key}].map(([k, v]) => [k, ${renderClone(ctx, type.value, name, "v")}]))`;
+    case "reference":
+      return renderClone(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${ctx.currentTypeName}.clone(${key})`;
+    default:
+      return `${name}.clone(${key})`;
   }
+}
 
-  function renderEquals(
-    type: Type,
-    name: string,
-    keyA: string,
-    keyB: string,
-  ): string {
-    if (type.type === "array") {
-      return `_.equalsArray(${keyA}, ${keyB}, (x, y) => ${renderEquals(type.value, name, "x", "y")})`;
-    } else if (type.type === "optional") {
-      return `_.equalsOptional(${keyA}, ${keyB}, (x, y) => ${renderEquals(type.value, name, "x", "y")})`;
-    } else if (type.type === "record") {
-      const keyEquals = renderEquals(type.key, name, "x", "y");
-      const valueEquals = renderEquals(type.value, name, "x", "y");
-      return `_.equalsRecord(${keyA}, ${keyB}, (x, y) => ${keyEquals}, (x, y) => ${valueEquals})`;
-    } else if (type.type === "reference") {
-      return renderEquals(type.ref, type.ref.name!, keyA, keyB);
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `_.equalsFloatQuantized(${keyA}, ${keyB}, ${type.precision})`;
-      }
-      return `_.equalsFloat(${keyA}, ${keyB})`;
-    } else if (
-      type.type === "string" ||
-      type.type === "int" ||
-      type.type === "boolean" ||
-      type.type === "enum"
-    ) {
-      return `${keyA} === ${keyB}`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}.equals(${keyA}, ${keyB})`;
-    }
-    return `${name}.equals(${keyA}, ${keyB})`;
+function renderEquals(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  a: string,
+  b: string,
+): string {
+  switch (type.type) {
+    case "string":
+    case "int":
+    case "boolean":
+    case "enum":
+      return `${a} === ${b}`;
+    case "float":
+      return type.precision
+        ? `_.equalsFloatQuantized(${a}, ${b}, ${type.precision})`
+        : `_.equalsFloat(${a}, ${b})`;
+    case "array":
+      return `_.equalsArray(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")})`;
+    case "optional":
+      return `_.equalsOptional(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")})`;
+    case "record":
+      return `_.equalsRecord(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.key, name, "x", "y")}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")})`;
+    case "reference":
+      return renderEquals(ctx, type.ref, type.ref.name!, a, b);
+    case "self-reference":
+      return `${ctx.currentTypeName}.equals(${a}, ${b})`;
+    default:
+      return `${name}.equals(${a}, ${b})`;
   }
+}
 
-  function renderEncode(type: Type, name: string, key: string): string {
-    if (type.type === "array") {
-      return `encoder.pushArray(${key}, (x) => ${renderEncode(type.value, name, "x")})`;
-    } else if (type.type === "optional") {
-      return `encoder.pushOptional(${key}, (x) => ${renderEncode(type.value, name, "x")})`;
-    } else if (type.type === "record") {
-      const keyFn = renderEncode(type.key, name, "x");
-      const valueFn = renderEncode(type.value, name, "x");
-      return `encoder.pushRecord(${key}, (x) => ${keyFn}, (x) => ${valueFn})`;
-    } else if (type.type === "reference") {
-      return renderEncode(type.ref, type.ref.name!, key);
-    } else if (type.type === "string") {
+function renderEncode(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
       return `encoder.pushString(${key})`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `encoder.pushBoundedInt(${key}, ${type.min})`;
-      }
-      return `encoder.pushInt(${key})`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `encoder.pushFloatQuantized(${key}, ${type.precision})`;
-      }
-      return `encoder.pushFloat(${key})`;
-    } else if (type.type === "boolean") {
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `encoder.pushBoundedInt(${key}, ${type.min})`
+        : `encoder.pushInt(${key})`;
+    case "float":
+      return type.precision
+        ? `encoder.pushFloatQuantized(${key}, ${type.precision})`
+        : `encoder.pushFloat(${key})`;
+    case "boolean":
       return `encoder.pushBoolean(${key})`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `encoder.pushEnum(${name}[${key}], ${type.numBits})`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}._encode(${key}, encoder)`;
-    }
-    return `${name}._encode(${key}, encoder)`;
+    case "array":
+      return `encoder.pushArray(${key}, (x) => ${renderEncode(ctx, type.value, name, "x")})`;
+    case "optional":
+      return `encoder.pushOptional(${key}, (x) => ${renderEncode(ctx, type.value, name, "x")})`;
+    case "record":
+      return `encoder.pushRecord(${key}, (x) => ${renderEncode(ctx, type.key, name, "x")}, (x) => ${renderEncode(ctx, type.value, name, "x")})`;
+    case "reference":
+      return renderEncode(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${ctx.currentTypeName}._encode(${key}, encoder)`;
+    default:
+      return `${name}._encode(${key}, encoder)`;
   }
+}
 
-  function renderDecode(type: Type, name: string, key: string): string {
-    if (type.type === "array") {
-      return `decoder.nextArray(() => ${renderDecode(type.value, name, "x")})`;
-    } else if (type.type === "optional") {
-      return `decoder.nextOptional(() => ${renderDecode(type.value, name, "x")})`;
-    } else if (type.type === "record") {
-      const keyFn = renderDecode(type.key, name, "x");
-      const valueFn = renderDecode(type.value, name, "x");
-      return `decoder.nextRecord(() => ${keyFn}, () => ${valueFn})`;
-    } else if (type.type === "reference") {
-      return renderDecode(type.ref, type.ref.name!, key);
-    } else if (type.type === "string") {
+function renderDecode(ctx: GeneratorContext, type: Type, name: string): string {
+  switch (type.type) {
+    case "string":
       return `decoder.nextString()`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `decoder.nextBoundedInt(${type.min})`;
-      }
-      return `decoder.nextInt()`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `decoder.nextFloatQuantized(${type.precision})`;
-      }
-      return `decoder.nextFloat()`;
-    } else if (type.type === "boolean") {
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `decoder.nextBoundedInt(${type.min})`
+        : `decoder.nextInt()`;
+    case "float":
+      return type.precision
+        ? `decoder.nextFloatQuantized(${type.precision})`
+        : `decoder.nextFloat()`;
+    case "boolean":
       return `decoder.nextBoolean()`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `(${name} as any)[decoder.nextEnum(${type.numBits})]`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}._decode(decoder)`;
-    }
-    return `${name}._decode(decoder)`;
+    case "array":
+      return `decoder.nextArray(() => ${renderDecode(ctx, type.value, name)})`;
+    case "optional":
+      return `decoder.nextOptional(() => ${renderDecode(ctx, type.value, name)})`;
+    case "record":
+      return `decoder.nextRecord(() => ${renderDecode(ctx, type.key, name)}, () => ${renderDecode(ctx, type.value, name)})`;
+    case "reference":
+      return renderDecode(ctx, type.ref, type.ref.name!);
+    case "self-reference":
+      return `${ctx.currentTypeName}._decode(decoder)`;
+    default:
+      return `${name}._decode(decoder)`;
   }
+}
 
-  function renderEncodeDiff(
-    type: Type,
-    name: string,
-    keyA: string,
-    keyB: string,
-  ): string {
-    if (type.type === "array") {
-      const valueType = renderTypeArg(type.value, name);
-      const equalsFn = renderEquals(type.value, name, "x", "y");
-      const encodeFn = renderEncode(type.value, name, "x");
-      const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
-      return `encoder.pushArrayDiff<${valueType}>(
-        ${keyA},
-        ${keyB},
-        (x, y) => ${equalsFn},
-        (x) => ${encodeFn},
-        (x, y) => ${encodeDiffFn}
-      )`;
-    } else if (type.type === "optional") {
-      const valueType = renderTypeArg(type.value, name);
-      const encodeFn = renderEncode(type.value, name, "x");
-      if (isPrimitiveOrEnum(type.value)) {
-        return `encoder.pushOptionalDiffPrimitive<${valueType}>(
-        ${keyA},
-        ${keyB},
-        (x) => ${encodeFn}
-      )`;
-      } else {
-        const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
-        return `encoder.pushOptionalDiff<${valueType}>(
-        ${keyA},
-        ${keyB},
-        (x) => ${encodeFn},
-        (x, y) => ${encodeDiffFn}
-      )`;
-      }
-    } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key, name);
-      const valueType = renderTypeArg(type.value, name);
-      const equalsFn = renderEquals(type.value, name, "x", "y");
-      const encodeKeyFn = renderEncode(type.key, name, "x");
-      const encodeValFn = renderEncode(type.value, name, "x");
-      const encodeDiffFn = renderEncodeDiff(type.value, name, "x", "y");
-      return `encoder.pushRecordDiff<${keyType}, ${valueType}>(
-        ${keyA},
-        ${keyB},
-        (x, y) => ${equalsFn},
-        (x) => ${encodeKeyFn},
-        (x) => ${encodeValFn},
-        (x, y) => ${encodeDiffFn}
-      )`;
-    } else if (type.type === "reference") {
-      return renderEncodeDiff(type.ref, type.ref.name!, keyA, keyB);
-    } else if (type.type === "string") {
-      return `encoder.pushStringDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `encoder.pushBoundedIntDiff(${keyA}, ${keyB}, ${type.min})`;
-      }
-      return `encoder.pushIntDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `encoder.pushFloatQuantizedDiff(${keyA}, ${keyB}, ${type.precision})`;
-      }
-      return `encoder.pushFloatDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "boolean") {
-      return `encoder.pushBooleanDiff(${keyA}, ${keyB})`;
-    } else if (type.type === "enum") {
-      return `encoder.pushEnumDiff(${name}[${keyA}], ${name}[${keyB}], ${type.numBits})`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}._encodeDiff(${keyA}, ${keyB}, encoder)`;
+function renderEncodeDiff(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  a: string,
+  b: string,
+): string {
+  switch (type.type) {
+    case "string":
+      return `encoder.pushStringDiff(${a}, ${b})`;
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `encoder.pushBoundedIntDiff(${a}, ${b}, ${type.min})`
+        : `encoder.pushIntDiff(${a}, ${b})`;
+    case "float":
+      return type.precision
+        ? `encoder.pushFloatQuantizedDiff(${a}, ${b}, ${type.precision})`
+        : `encoder.pushFloatDiff(${a}, ${b})`;
+    case "boolean":
+      return `encoder.pushBooleanDiff(${a}, ${b})`;
+    case "enum":
+      return `encoder.pushEnumDiff(${name}[${a}], ${name}[${b}], ${type.numBits})`;
+    case "array": {
+      const t = renderType(ctx, type.value, name);
+      return `encoder.pushArrayDiff<${t}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")}, (x) => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
     }
-    return `${name}._encodeDiff(${keyA}, ${keyB}, encoder)`;
+    case "optional": {
+      const t = renderType(ctx, type.value, name);
+      return isPrimitiveOrEnum(type.value)
+        ? `encoder.pushOptionalDiffPrimitive<${t}>(${a}, ${b}, (x) => ${renderEncode(ctx, type.value, name, "x")})`
+        : `encoder.pushOptionalDiff<${t}>(${a}, ${b}, (x) => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
+    }
+    case "record": {
+      const kt = renderType(ctx, type.key, name);
+      const vt = renderType(ctx, type.value, name);
+      return `encoder.pushRecordDiff<${kt}, ${vt}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")}, (x) => ${renderEncode(ctx, type.key, name, "x")}, (x) => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
+    }
+    case "reference":
+      return renderEncodeDiff(ctx, type.ref, type.ref.name!, a, b);
+    case "self-reference":
+      return `${ctx.currentTypeName}._encodeDiff(${a}, ${b}, encoder)`;
+    default:
+      return `${name}._encodeDiff(${a}, ${b}, encoder)`;
   }
+}
 
-  function renderDecodeDiff(type: Type, name: string, key: string): string {
-    if (type.type === "array") {
-      const valueType = renderTypeArg(type.value, name);
-      const decodeFn = renderDecode(type.value, name, "x");
-      const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
-      return `decoder.nextArrayDiff<${valueType}>(
-        ${key},
-        () => ${decodeFn},
-        (x) => ${decodeDiffFn}
-      )`;
-    } else if (type.type === "optional") {
-      const valueType = renderTypeArg(type.value, name);
-      const decodeFn = renderDecode(type.value, name, "x");
-      if (isPrimitiveOrEnum(type.value)) {
-        return `decoder.nextOptionalDiffPrimitive<${valueType}>(
-        ${key},
-        () => ${decodeFn}
-      )`;
-      } else {
-        const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
-        return `decoder.nextOptionalDiff<${valueType}>(
-        ${key},
-        () => ${decodeFn},
-        (x) => ${decodeDiffFn}
-      )`;
-      }
-    } else if (type.type === "record") {
-      const keyType = renderTypeArg(type.key, name);
-      const valueType = renderTypeArg(type.value, name);
-      const decodeKeyFn = renderDecode(type.key, name, "x");
-      const decodeValueFn = renderDecode(type.value, name, "x");
-      const decodeDiffFn = renderDecodeDiff(type.value, name, "x");
-      return `decoder.nextRecordDiff<${keyType}, ${valueType}>(
-        ${key},
-        () => ${decodeKeyFn},
-        () => ${decodeValueFn},
-        (x) => ${decodeDiffFn}
-      )`;
-    } else if (type.type === "reference") {
-      return renderDecodeDiff(type.ref, type.ref.name!, key);
-    } else if (type.type === "string") {
+function renderDecodeDiff(
+  ctx: GeneratorContext,
+  type: Type,
+  name: string,
+  key: string,
+): string {
+  switch (type.type) {
+    case "string":
       return `decoder.nextStringDiff(${key})`;
-    } else if (type.type === "int") {
-      if (type.min != null && type.min >= 0) {
-        return `decoder.nextBoundedIntDiff(${key}, ${type.min})`;
-      }
-      return `decoder.nextIntDiff(${key})`;
-    } else if (type.type === "float") {
-      if (type.precision) {
-        return `decoder.nextFloatQuantizedDiff(${key}, ${type.precision})`;
-      }
-      return `decoder.nextFloatDiff(${key})`;
-    } else if (type.type === "boolean") {
+    case "int":
+      return type.min != null && type.min >= 0
+        ? `decoder.nextBoundedIntDiff(${key}, ${type.min})`
+        : `decoder.nextIntDiff(${key})`;
+    case "float":
+      return type.precision
+        ? `decoder.nextFloatQuantizedDiff(${key}, ${type.precision})`
+        : `decoder.nextFloatDiff(${key})`;
+    case "boolean":
       return `decoder.nextBooleanDiff(${key})`;
-    } else if (type.type === "enum") {
+    case "enum":
       return `(${name} as any)[decoder.nextEnumDiff((${name} as any)[${key}], ${type.numBits})]`;
-    } else if (type.type === "self-reference") {
-      return `${currentTypeName}._decodeDiff(${key}, decoder)`;
+    case "array": {
+      const t = renderType(ctx, type.value, name);
+      return `decoder.nextArrayDiff<${t}>(${key}, () => ${renderDecode(ctx, type.value, name)}, (x) => ${renderDecodeDiff(ctx, type.value, name, "x")})`;
     }
-    return `${name}._decodeDiff(${key}, decoder)`;
+    case "optional": {
+      const t = renderType(ctx, type.value, name);
+      return isPrimitiveOrEnum(type.value)
+        ? `decoder.nextOptionalDiffPrimitive<${t}>(${key}, () => ${renderDecode(ctx, type.value, name)})`
+        : `decoder.nextOptionalDiff<${t}>(${key}, () => ${renderDecode(ctx, type.value, name)}, (x) => ${renderDecodeDiff(ctx, type.value, name, "x")})`;
+    }
+    case "record": {
+      const kt = renderType(ctx, type.key, name);
+      const vt = renderType(ctx, type.value, name);
+      return `decoder.nextRecordDiff<${kt}, ${vt}>(${key}, () => ${renderDecode(ctx, type.key, name)}, () => ${renderDecode(ctx, type.value, name)}, (x) => ${renderDecodeDiff(ctx, type.value, name, "x")})`;
+    }
+    case "reference":
+      return renderDecodeDiff(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${ctx.currentTypeName}._decodeDiff(${key}, decoder)`;
+    default:
+      return `${name}._decodeDiff(${key}, decoder)`;
   }
 }
