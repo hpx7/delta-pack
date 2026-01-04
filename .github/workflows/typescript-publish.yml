@@ -26,6 +26,10 @@ jobs:
           node-version: "24"
           cache: "npm"
           cache-dependency-path: typescript/package-lock.json
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - name: Build CLI
+        run: cd ../cli && bun install && bun run build
       - name: Install dependencies
         run: npm ci
       - name: Run tests
