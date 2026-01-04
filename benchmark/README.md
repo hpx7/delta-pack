@@ -10,7 +10,6 @@ For performance benchmarks, see:
 ## Running
 
 ```bash
-npm run build
 npm run bench
 ```
 
@@ -58,26 +57,26 @@ Lower is better. Multiplier shows size relative to smallest format.
 
 Compares delta-pack's `encodeDiff(prev, next)` vs re-encoding with other formats.
 
-This demonstrates bandwidth savings for incremental state updates. Other formats must send the full new state, while delta-pack only sends what changed.
+This demonstrates bandwidth savings for incremental state updates.
 
 ### GameState
 
-| Transition | JSON  | MessagePack | Protobuf | Delta-Pack | Delta-Pack Diff | Savings |
-| ---------- | ----- | ----------- | -------- | ---------- | --------------- | ------- |
-| State1→2   | 2683B | 2017B       | 572B     | 312B       | 142B            | 75%     |
-| State2→3   | 3094B | 2431B       | 714B     | 398B       | 200B            | 72%     |
-| State3→4   | 3273B | 2580B       | 761B     | 421B       | 97B             | 87%     |
-| State4→5   | 6693B | 5155B       | 1732B    | 971B       | 634B            | 63%     |
-| State5→6   | 6701B | 5161B       | 1732B    | 971B       | 75B             | 96%     |
+| Transition | JSON  | MessagePack | Protobuf | Delta-Pack Full | Delta-Pack Diff | Savings |
+| ---------- | ----- | ----------- | -------- | --------------- | --------------- | ------- |
+| State1→2   | 2683B | 2017B       | 572B     | 312B            | 142B            | 75%     |
+| State2→3   | 3094B | 2431B       | 714B     | 398B            | 200B            | 72%     |
+| State3→4   | 3273B | 2580B       | 761B     | 421B            | 97B             | 87%     |
+| State4→5   | 6693B | 5155B       | 1732B    | 971B            | 634B            | 63%     |
+| State5→6   | 6701B | 5161B       | 1732B    | 971B            | 75B             | 96%     |
 
 ### Primitives
 
-| Transition | JSON | MessagePack | Protobuf | Delta-Pack | Delta-Pack Diff | Savings |
-| ---------- | ---- | ----------- | -------- | ---------- | --------------- | ------- |
-| State1→2   | 114B | 99B         | 27B      | 23B        | 23B             | 15%     |
+| Transition | JSON | MessagePack | Protobuf | Delta-Pack Full | Delta-Pack Diff | Savings |
+| ---------- | ---- | ----------- | -------- | --------------- | --------------- | ------- |
+| State1→2   | 114B | 99B         | 27B      | 23B             | 23B             | 15%     |
 
 ### User
 
-| Transition | JSON | MessagePack | Protobuf | Delta-Pack | Delta-Pack Diff | Savings |
-| ---------- | ---- | ----------- | -------- | ---------- | --------------- | ------- |
-| State1→2   | 357B | 293B        | 173B     | 144B       | 50B             | 71%     |
+| Transition | JSON | MessagePack | Protobuf | Delta-Pack Full | Delta-Pack Diff | Savings |
+| ---------- | ---- | ----------- | -------- | --------------- | --------------- | ------- |
+| State1→2   | 357B | 293B        | 173B     | 144B            | 50B             | 71%     |

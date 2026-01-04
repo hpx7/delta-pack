@@ -1,11 +1,33 @@
 import * as fs from "node:fs";
 import assert from "assert";
 import * as msgpack from "msgpackr";
-import type { DeltaPackApi } from "@hpx7/delta-pack";
-import * as protobuf from "./generated/protobuf/index.js";
-import * as deltapack from "./generated/deltapack/index.js";
+import { load, parseSchemaYml, type DeltaPackApi } from "@hpx7/delta-pack";
+import protobuf from "protobufjs";
 
 const examplesDir = "../examples";
+
+// Cache for loaded schemas
+const deltaPackCache = new Map<string, DeltaPackApi<any>>();
+const protobufCache = new Map<string, protobuf.Type>();
+
+function getDeltaPackApi(example: string): DeltaPackApi<any> {
+  if (!deltaPackCache.has(example)) {
+    const schemaPath = `${examplesDir}/${example}/schema.yml`;
+    const schemaContent = fs.readFileSync(schemaPath, "utf8");
+    const schema = parseSchemaYml(schemaContent);
+    deltaPackCache.set(example, load(schema[example]!));
+  }
+  return deltaPackCache.get(example)!;
+}
+
+function getProtobufType(example: string): protobuf.Type {
+  if (!protobufCache.has(example)) {
+    const protoPath = `${examplesDir}/${example}/schema.proto`;
+    const root = protobuf.loadSync(protoPath);
+    protobufCache.set(example, root.lookupType(example));
+  }
+  return protobufCache.get(example)!;
+}
 
 // Deep equality check with float tolerance
 function deepEquals(a: unknown, b: unknown, tolerance = 0.01): boolean {
@@ -73,11 +95,11 @@ function main() {
 
     console.log(`### ${example}\n`);
 
-    const headers = ["Transition", "JSON", "MessagePack", "Protobuf", "Delta-Pack Diff", "Savings"];
+    const headers = ["Transition", "JSON", "MessagePack", "Protobuf", "Delta-Pack Full", "Delta-Pack Diff", "Savings"];
     const allRows = result.transitions.map((t) => {
       const minOther = Math.min(t.json, t.msgpack, t.protobuf);
       const savings = ((1 - t.deltaDiff / minOther) * 100).toFixed(0);
-      return [t.name, `${t.json}B`, `${t.msgpack}B`, `${t.protobuf}B`, `${t.deltaDiff}B`, `${savings}%`];
+      return [t.name, `${t.json}B`, `${t.msgpack}B`, `${t.protobuf}B`, `${t.deltaFull}B`, `${t.deltaDiff}B`, `${savings}%`];
     });
 
     printTable(headers, allRows);
@@ -131,13 +153,17 @@ function benchmarkDeltaEncode(example: string) {
   if (stateFiles.length < 2) return null;
 
   const states = stateFiles.map((f) => JSON.parse(fs.readFileSync(`${exampleDir}/${f}`, "utf8")));
-  const transitions: { name: string; json: number; msgpack: number; protobuf: number; deltaDiff: number }[] = [];
+  const transitions: {
+    name: string;
+    json: number;
+    msgpack: number;
+    protobuf: number;
+    deltaFull: number;
+    deltaDiff: number;
+  }[] = [];
 
-  const State = deltapack[example as keyof typeof deltapack] as DeltaPackApi<unknown>;
-  const MessageType = protobuf[example as keyof typeof protobuf] as unknown as {
-    fromObject: (object: any) => any;
-    encode: (message: any) => { finish: () => Uint8Array };
-  };
+  const State = getDeltaPackApi(example);
+  const MessageType = getProtobufType(example);
 
   for (let i = 0; i < states.length - 1; i++) {
     const prev = states[i];
@@ -151,6 +177,7 @@ function benchmarkDeltaEncode(example: string) {
     // Delta-pack can send just the diff
     const prevParsed = State.fromJson(prev);
     const nextParsed = State.fromJson(next);
+    const fullEncode = State.encode(nextParsed);
     const diff = State.encodeDiff(prevParsed, nextParsed);
 
     // Verify round-trip
@@ -165,6 +192,7 @@ function benchmarkDeltaEncode(example: string) {
       json: jsonSize,
       msgpack: msgpackSize,
       protobuf: protobufSize,
+      deltaFull: fullEncode.length,
       deltaDiff: diff.length,
     });
   }
@@ -191,12 +219,7 @@ function encodeMsgpack(states: any[]): number[] {
 }
 
 function encodeProtobuf(states: any[], example: string): number[] {
-  const MessageType = protobuf[example as keyof typeof protobuf] as unknown as {
-    fromObject: (object: any) => any;
-    toObject: (message: any, options?: any) => any;
-    encode: (message: any) => { finish: () => Uint8Array };
-    decode: (data: Uint8Array) => any;
-  };
+  const MessageType = getProtobufType(example);
 
   return states.map((state, i) => {
     const encoded = MessageType.encode(MessageType.fromObject(state)).finish();
@@ -211,7 +234,7 @@ function encodeProtobuf(states: any[], example: string): number[] {
 }
 
 function encodeDeltaPack(states: any[], example: string): number[] {
-  const State = deltapack[example as keyof typeof deltapack] as DeltaPackApi<unknown>;
+  const State = getDeltaPackApi(example);
 
   return states.map((state, i) => {
     const encoded = State.encode(State.fromJson(state));

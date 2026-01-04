@@ -1,7 +1,6 @@
 {
   "type": "module",
   "scripts": {
-    "build": "npx tsx build.ts",
     "bench": "npx tsx run.ts",
     "typecheck": "tsc",
     "format": "prettier --write .",
@@ -9,14 +8,12 @@
   },
   "dependencies": {
     "@hpx7/delta-pack": "file:../typescript",
-    "@hpx7/delta-pack-cli": "file:../cli",
     "msgpackr": "^1.11.5",
     "protobufjs": "^7.5.4"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "prettier": "^3.7.3",
-    "protobufjs-cli": "^1.1.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
