@@ -15,6 +15,17 @@ public class Program
     {
         var examples = LoadExamples();
 
+        if (args.Length > 0)
+        {
+            examples = examples.Where(e => args.Any(f => e.Name.Contains(f, StringComparison.OrdinalIgnoreCase))).ToList();
+            if (examples.Count == 0)
+            {
+                Console.Error.WriteLine($"No examples match filter: {string.Join(", ", args)}");
+                Console.Error.WriteLine($"Available: {string.Join(", ", LoadExamples().Select(e => e.Name))}");
+                Environment.Exit(1);
+            }
+        }
+
         // Burn-in to warm up measurement infrastructure (Stopwatch, Action delegates, etc.)
         Console.Error.WriteLine("Warming up...");
         var burnIn = examples[0].States[0];

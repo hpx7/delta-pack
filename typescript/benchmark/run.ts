@@ -36,7 +36,17 @@ interface StateData {
 }
 
 function main() {
-  const examples = loadExamples();
+  const filter = process.argv.slice(2);
+  let examples = loadExamples();
+
+  if (filter.length > 0) {
+    examples = examples.filter((e) => filter.some((f) => e.name.toLowerCase().includes(f.toLowerCase())));
+    if (examples.length === 0) {
+      console.error(`No examples match filter: ${filter.join(", ")}`);
+      console.error(`Available: ${loadExamples().map((e) => e.name).join(", ")}`);
+      process.exit(1);
+    }
+  }
 
   console.error("Warming up...");
   globalWarmup(examples);

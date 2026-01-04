@@ -7,7 +7,11 @@ Performance comparison of DeltaPack against System.Text.Json and MessagePack-CSh
 ```bash
 # From csharp directory
 benchmarks/build.sh                         # Generate code
-dotnet run -c Release --project benchmarks  # Run benchmarks
+dotnet run -c Release --project benchmarks  # Run all benchmarks
+
+# Run specific benchmarks (case-insensitive, partial match)
+dotnet run -c Release --project benchmarks Primitives
+dotnet run -c Release --project benchmarks GameState User
 ```
 
 ## Results

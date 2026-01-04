@@ -7,7 +7,11 @@ Performance comparison of DeltaPack against JSON and MessagePack.
 ```bash
 # From the typescript directory
 npm run bench:build  # Generate code + compile
-npm run bench        # Run benchmarks
+npm run bench        # Run all benchmarks
+
+# Run specific benchmarks (case-insensitive, partial match)
+npm run bench primitives
+npm run bench gamestate user
 ```
 
 ## Results
