@@ -47,7 +47,7 @@ function renderSchema(ctx: GeneratorContext): string {
     }
   }
 
-  return `import * as _ from "@hpx7/delta-pack";
+  return `import * as _ from "@hpx7/delta-pack/runtime";
 
 ${types.join("\n\n")}
 
