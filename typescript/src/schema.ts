@@ -127,6 +127,15 @@ function validateTypeName(name: string): void {
   }
 }
 
+function validatePropertyName(name: string): void {
+  if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
+    throw new Error(`Invalid property name "${name}": must be a valid identifier`);
+  }
+  if (name === "_type") {
+    throw new Error(`Property name "_type" is reserved for union discriminators`);
+  }
+}
+
 export function isPrimitiveOrEnum(type: Type): boolean {
   if (type.type === "reference") {
     return isPrimitiveOrEnum(type.ref);
@@ -274,6 +283,7 @@ export function ObjectType<const N extends string, const P extends Record<string
   validateTypeName(name);
   const cleanProperties: Record<string, PropertyType> = {};
   for (const [key, value] of Object.entries(properties)) {
+    validatePropertyName(key);
     cleanProperties[key] = stripDecorator(value as PropertyType);
   }
   return { type: "object", properties: cleanProperties as P, name };

@@ -23,7 +23,22 @@ public sealed record OptionalType(SchemaType Value) : SchemaType;
 public sealed record RecordType(SchemaType Key, SchemaType Value) : SchemaType;
 
 // Composite types
-public sealed record ObjectType(IReadOnlyDictionary<string, SchemaType> Properties) : SchemaType;
+public sealed record ObjectType : SchemaType
+{
+    private static readonly Regex ValidPropertyNameRegex = new(@"^[a-zA-Z_][a-zA-Z0-9_]*$", RegexOptions.Compiled);
+
+    public IReadOnlyDictionary<string, SchemaType> Properties { get; }
+
+    public ObjectType(IReadOnlyDictionary<string, SchemaType> Properties)
+    {
+        foreach (var key in Properties.Keys)
+        {
+            if (!ValidPropertyNameRegex.IsMatch(key))
+                throw new ArgumentException($"Invalid property name \"{key}\": must be a valid identifier");
+        }
+        this.Properties = Properties;
+    }
+}
 public sealed record UnionType(IReadOnlyList<ReferenceType> Options) : SchemaType
 {
     public int NumBits { get; } = Options.Count <= 1 ? 1 : (int)Math.Ceiling(Math.Log(Options.Count, 2));

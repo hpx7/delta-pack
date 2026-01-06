@@ -415,4 +415,15 @@ Player Name:
         var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
         Assert.Contains("conflicts with generated method name", ex.Message);
     }
+
+    [Fact]
+    public void ThrowsOnInvalidPropertyName()
+    {
+        var yaml = @"
+Test:
+  invalid-name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("valid identifier", ex.Message);
+    }
 }

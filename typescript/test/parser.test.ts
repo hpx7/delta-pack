@@ -392,4 +392,11 @@ TestType:
       expect((field as { max?: number }).max).toBeUndefined();
     });
   });
+
+  describe("Property name validation", () => {
+    it("should reject reserved and invalid property names", () => {
+      expect(() => parseSchemaYml("Test:\n  _type: string")).toThrow("_type");
+      expect(() => parseSchemaYml("Test:\n  invalid-name: string")).toThrow("valid identifier");
+    });
+  });
 });
