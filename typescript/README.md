@@ -1022,13 +1022,13 @@ Each example includes:
 
 ### Complex Types
 
-| Function                      | TypeScript Type            | Description                      |
-| ----------------------------- | -------------------------- | -------------------------------- |
-| `ObjectType("Name", { ... })` | `{ ... }`                  | Object with defined properties   |
-| `EnumType("Name", [...])`     | Union of string literals   | Enumerated string values         |
-| `UnionType("Name", [...])`    | `{ _type: string } & T`    | Tagged union of named types      |
-| `ReferenceType(Type)`         | Named type                 | Reference to another named type  |
-| `SelfReferenceType()`         | Self                       | Reference to the containing type |
+| Function                      | TypeScript Type          | Description                      |
+| ----------------------------- | ------------------------ | -------------------------------- |
+| `ObjectType("Name", { ... })` | `{ ... }`                | Object with defined properties   |
+| `EnumType("Name", [...])`     | Union of string literals | Enumerated string values         |
+| `UnionType("Name", [...])`    | `{ _type: string } & T`  | Tagged union of named types      |
+| `ReferenceType(Type)`         | Named type               | Reference to another named type  |
+| `SelfReferenceType()`         | Self                     | Reference to the containing type |
 
 ## Development
 
