@@ -405,7 +405,7 @@ internal sealed class SchemaBuilder
         if (type.IsEnum)
         {
             if (!_schema.ContainsKey(type.Name))
-                _schema[type.Name] = new EnumType(Enum.GetNames(type));
+                Schema.AddType(_schema, type.Name, new EnumType(Enum.GetNames(type)));
             return new EnumMapping(type);
         }
 
@@ -553,7 +553,7 @@ internal sealed class SchemaBuilder
 
         var objectMapping = new ObjectMapping(type, members);
         _mappings[type] = objectMapping;
-        _schema[type.Name] = new ObjectType(properties);
+        Schema.AddType(_schema, type.Name, new ObjectType(properties));
 
         _processing.Remove(type);
         return objectMapping;
@@ -579,7 +579,7 @@ internal sealed class SchemaBuilder
 
         var unionMapping = new UnionMapping(options);
         _mappings[baseType] = unionMapping;
-        _schema[baseType.Name] = new UnionType(schemaOptions);
+        Schema.AddType(_schema, baseType.Name, new UnionType(schemaOptions));
 
         return unionMapping;
     }

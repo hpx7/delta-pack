@@ -312,4 +312,107 @@ Invalid:
 ";
         Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
     }
+
+    [Fact]
+    public void AcceptsPascalCaseNames()
+    {
+        var yaml = @"
+Player:
+  name: string
+
+Player_With_Underscores:
+  name: string
+
+MyType123:
+  value: int
+";
+        var schema = Parser.ParseSchemaYml(yaml);
+        Assert.Equal(3, schema.Count);
+    }
+
+    [Fact]
+    public void ThrowsOnLowercaseTypeName()
+    {
+        var yaml = @"
+player:
+  name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("must start with uppercase letter", ex.Message);
+    }
+
+    [Fact]
+    public void ThrowsOnTypeNameStartingWithUnderscore()
+    {
+        var yaml = @"
+_Player:
+  name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("must start with uppercase letter", ex.Message);
+    }
+
+    [Fact]
+    public void ThrowsOnTypeNameStartingWithNumber()
+    {
+        var yaml = @"
+123Player:
+  name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("must start with uppercase letter", ex.Message);
+    }
+
+    [Fact]
+    public void ThrowsOnTypeNameWithSpecialCharacters()
+    {
+        var yaml = @"
+Player-Name:
+  name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("alphanumeric characters and underscores", ex.Message);
+    }
+
+    [Fact]
+    public void ThrowsOnTypeNameWithDot()
+    {
+        var yaml = @"
+Player.Name:
+  name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("alphanumeric characters and underscores", ex.Message);
+    }
+
+    [Fact]
+    public void ThrowsOnTypeNameWithSpace()
+    {
+        var yaml = @"
+Player Name:
+  name: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("alphanumeric characters and underscores", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Default")]
+    [InlineData("FromJson")]
+    [InlineData("ToJson")]
+    [InlineData("Clone")]
+    [InlineData("Equals")]
+    [InlineData("Encode")]
+    [InlineData("Decode")]
+    [InlineData("EncodeDiff")]
+    [InlineData("DecodeDiff")]
+    public void ThrowsOnReservedTypeName(string typeName)
+    {
+        var yaml = $@"
+{typeName}:
+  value: string
+";
+        var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
+        Assert.Contains("conflicts with generated method name", ex.Message);
+    }
 }

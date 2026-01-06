@@ -34,36 +34,20 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./schema": {
-      "types": "./dist/schema.d.ts",
-      "default": "./dist/schema.js"
-    },
-    "./helpers": {
-      "types": "./dist/helpers.d.ts",
-      "default": "./dist/helpers.js"
-    },
-    "./infer": {
-      "types": "./dist/infer.d.ts",
-      "default": "./dist/infer.js"
-    },
-    "./parser": {
-      "types": "./dist/parser.d.ts",
-      "default": "./dist/parser.js"
-    },
-    "./interpreter": {
-      "types": "./dist/interpreter.d.ts",
-      "default": "./dist/interpreter.js"
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
-    "test:gen": "npx delta-pack generate test/schema.yml -l typescript > test/generated-schema.ts",
+    "test:gen": "delta-pack generate test/schema.yml -l typescript > test/generated-schema.ts",
     "test": "npm run test:gen && vitest run",
     "test:coverage": "npm run test:gen && vitest run --coverage",
     "test:ui": "npm run test:gen && vitest --ui",
-    "bench:gen": "node --import tsx benchmark/build.ts",
+    "bench:gen": "tsx benchmark/build.ts",
     "bench:build": "npm run bench:gen && tsc -p benchmark/tsconfig.json",
     "bench": "node benchmark/dist/run.js",
     "format": "prettier --write .",

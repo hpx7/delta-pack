@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace DeltaPack;
 
 public abstract record SchemaType;
@@ -29,6 +31,30 @@ public sealed record UnionType(IReadOnlyList<ReferenceType> Options) : SchemaTyp
 
 public static class Schema
 {
+    private static readonly Regex ValidTypeNameRegex = new(@"^[A-Z][A-Za-z0-9_]*$", RegexOptions.Compiled);
+
+    private static readonly HashSet<string> ReservedTypeNames = new()
+    {
+        "Default",
+        "FromJson",
+        "ToJson",
+        "Clone",
+        "Equals",
+        "Encode",
+        "Decode",
+        "EncodeDiff",
+        "DecodeDiff",
+    };
+
+    public static void AddType(IDictionary<string, SchemaType> schema, string name, SchemaType type)
+    {
+        if (!ValidTypeNameRegex.IsMatch(name))
+            throw new ArgumentException($"Invalid type name \"{name}\": must start with uppercase letter and contain only alphanumeric characters and underscores");
+        if (ReservedTypeNames.Contains(name))
+            throw new ArgumentException($"Invalid type name \"{name}\": conflicts with generated method name");
+        schema[name] = type;
+    }
+
     public static bool IsPrimitiveType(SchemaType type, IReadOnlyDictionary<string, SchemaType> schema) =>
         type switch
         {

@@ -913,3 +913,74 @@ describe("Edge Cases - Bounded Integers", () => {
     });
   });
 });
+
+describe("Type Name Validation", () => {
+  it("should accept PascalCase names", () => {
+    expect(() => ObjectType("Player", { name: StringType() })).not.toThrow();
+    expect(() => EnumType("Color", ["RED", "BLUE"])).not.toThrow();
+    expect(() =>
+      UnionType("Action", [ObjectType("Move", { x: IntType() }), ObjectType("Jump", { height: IntType() })])
+    ).not.toThrow();
+  });
+
+  it("should reject names starting with lowercase", () => {
+    expect(() => ObjectType("player", { name: StringType() })).toThrow(/must start with uppercase letter/);
+    expect(() => EnumType("color", ["RED", "BLUE"])).toThrow(/must start with uppercase letter/);
+    expect(() => UnionType("action", [ObjectType("Move", { x: IntType() })])).toThrow(
+      /must start with uppercase letter/
+    );
+  });
+
+  it("should reject names starting with underscore", () => {
+    expect(() => ObjectType("_Player", { name: StringType() })).toThrow(/must start with uppercase letter/);
+  });
+
+  it("should reject names starting with number", () => {
+    expect(() => ObjectType("1Player", { name: StringType() })).toThrow(/must start with uppercase letter/);
+  });
+
+  it("should reject empty names", () => {
+    expect(() => ObjectType("", { name: StringType() })).toThrow(/must start with uppercase letter/);
+  });
+
+  it("should reject names with special characters", () => {
+    expect(() => ObjectType("Player-Name", { name: StringType() })).toThrow(/alphanumeric characters and underscores/);
+    expect(() => ObjectType("Player.Name", { name: StringType() })).toThrow(/alphanumeric characters and underscores/);
+    expect(() => ObjectType("Player Name", { name: StringType() })).toThrow(/alphanumeric characters and underscores/);
+  });
+
+  it("should allow underscores in middle of name", () => {
+    expect(() => ObjectType("Player_Name", { name: StringType() })).not.toThrow();
+    expect(() => ObjectType("My_Type_123", { name: StringType() })).not.toThrow();
+  });
+
+  it("should reject reserved TypeScript built-in names", () => {
+    const reservedNames = [
+      "String",
+      "Number",
+      "Boolean",
+      "Object",
+      "Array",
+      "Map",
+      "Set",
+      "Function",
+      "Symbol",
+      "BigInt",
+      "Date",
+      "RegExp",
+      "Error",
+      "Promise",
+      "Proxy",
+      "WeakMap",
+      "WeakSet",
+    ];
+
+    for (const name of reservedNames) {
+      expect(() => ObjectType(name, { value: StringType() })).toThrow(/conflicts with built-in TypeScript type/);
+      expect(() => EnumType(name, ["A", "B"])).toThrow(/conflicts with built-in TypeScript type/);
+      expect(() => UnionType(name, [ObjectType("TypeA", { x: IntType() })])).toThrow(
+        /conflicts with built-in TypeScript type/
+      );
+    }
+  });
+});

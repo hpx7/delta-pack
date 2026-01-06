@@ -31,7 +31,10 @@ public static class Parser
             return new ObjectType(properties);
         }
 
-        return schema.ToDictionary(kvp => kvp.Key, kvp => ParseType(kvp.Value));
+        var result = new Dictionary<string, SchemaType>();
+        foreach (var kvp in schema)
+            Schema.AddType(result, kvp.Key, ParseType(kvp.Value));
+        return result;
     }
 
     private static SchemaType ParseListType(List<object> list, Dictionary<string, object> schema)

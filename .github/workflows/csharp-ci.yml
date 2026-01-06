@@ -38,6 +38,8 @@ jobs:
         run: sudo apt-get install -y protobuf-compiler
       - name: Restore dependencies
         run: dotnet restore
+      - name: Check formatting
+        run: dotnet format --verify-no-changes
       - name: Generate benchmark code
         run: benchmarks/build.sh
       - name: Build

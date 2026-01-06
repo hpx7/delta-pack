@@ -1,4 +1,4 @@
-import * as _ from "@hpx7/delta-pack";
+import * as _ from "@hpx7/delta-pack/runtime";
 
 export type Color = "RED" | "BLUE" | "GREEN" | "YELLOW";
 

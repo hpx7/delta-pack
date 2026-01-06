@@ -96,6 +96,37 @@ export interface EnumType {
 
 // ============ Utility Functions ============
 
+const RESERVED_TYPE_NAMES = new Set([
+  "String",
+  "Number",
+  "Boolean",
+  "Object",
+  "Array",
+  "Map",
+  "Set",
+  "Function",
+  "Symbol",
+  "BigInt",
+  "Date",
+  "RegExp",
+  "Error",
+  "Promise",
+  "Proxy",
+  "WeakMap",
+  "WeakSet",
+]);
+
+function validateTypeName(name: string): void {
+  if (!/^[A-Z][A-Za-z0-9_]*$/.test(name)) {
+    throw new Error(
+      `Invalid type name "${name}": must start with uppercase letter and contain only alphanumeric characters and underscores`
+    );
+  }
+  if (RESERVED_TYPE_NAMES.has(name)) {
+    throw new Error(`Invalid type name "${name}": conflicts with built-in TypeScript type`);
+  }
+}
+
 export function isPrimitiveOrEnum(type: Type): boolean {
   if (type.type === "reference") {
     return isPrimitiveOrEnum(type.ref);
@@ -229,6 +260,7 @@ export function EnumType<const N extends string, const O extends readonly string
   name: N,
   options: O
 ): { type: "enum"; options: O; name: N; numBits: number } {
+  validateTypeName(name);
   // Calculate minimum bits needed: ceil(log2(n)) for n > 1, else 1
   const numBits = options.length <= 1 ? 1 : Math.ceil(Math.log2(options.length));
   return { type: "enum", options, name, numBits };
@@ -239,6 +271,7 @@ export function ObjectType<const N extends string, const P extends Record<string
   name: N,
   properties: P
 ): { type: "object"; properties: P; name: N } {
+  validateTypeName(name);
   const cleanProperties: Record<string, PropertyType> = {};
   for (const [key, value] of Object.entries(properties)) {
     cleanProperties[key] = stripDecorator(value as PropertyType);
@@ -261,6 +294,7 @@ export function UnionType(
   name: string,
   options: readonly any[]
 ): { type: "union"; options: readonly NamedType[]; name: string; numBits: number } | ClassUnionDef {
+  validateTypeName(name);
   // Check if first option is a class (function) or schema type (object with type)
   if (options.length > 0 && typeof options[0] === "function") {
     // Decorator mode - return class union def
