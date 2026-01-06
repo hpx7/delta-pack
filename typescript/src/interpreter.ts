@@ -512,21 +512,21 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     fromJson: (obj: object) => _fromJson(obj, rootType, rootType),
     toJson: (obj) => _toJson(obj, rootType, rootType) as Record<string, unknown>,
     encode: (obj) => {
-      const encoder = new Encoder();
+      const encoder = Encoder.create();
       _encode(obj, rootType, encoder, rootType);
       return encoder.toBuffer();
     },
     decode: (buf: Uint8Array) => {
-      const decoder = new Decoder(buf);
+      const decoder = Decoder.create(buf);
       return _decode(rootType, decoder, rootType);
     },
     encodeDiff: (a, b) => {
-      const encoder = new Encoder();
+      const encoder = Encoder.create();
       _encodeDiff(a, b, rootType, encoder, rootType);
       return encoder.toBuffer();
     },
     decodeDiff: (a, diff: Uint8Array) => {
-      const decoder = new Decoder(diff);
+      const decoder = Decoder.create(diff);
       return _decodeDiff(a, rootType, decoder, rootType);
     },
     equals: (a, b) => _equals(a, b, rootType, rootType),

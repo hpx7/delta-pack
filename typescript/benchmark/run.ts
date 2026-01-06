@@ -129,12 +129,15 @@ function runDecodeBenchmarks(examples: Example[]) {
 }
 
 function measureOpsPerSecond(action: () => void): number {
+  const BATCH_SIZE = 1000; // Check time every 1000 iterations to reduce overhead
   const start = performance.now();
   let ops = 0;
 
   while (performance.now() - start < BENCHMARK_DURATION_MS) {
-    action();
-    ops++;
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      action();
+    }
+    ops += BATCH_SIZE;
   }
 
   const elapsed = (performance.now() - start) / 1000;

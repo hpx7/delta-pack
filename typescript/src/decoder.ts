@@ -2,14 +2,23 @@ import { Reader } from "bin-serde";
 import { RleDecoder } from "./rle.js";
 
 export class Decoder {
+  private static _instance: Decoder | null = null;
+
   private dict: string[] = [];
-  private rle: RleDecoder;
+  private rle = new RleDecoder();
   private reader: Reader;
 
-  constructor(buf: Uint8Array) {
-    this.rle = new RleDecoder(buf);
+  static create(buf: Uint8Array): Decoder {
+    const dec = (Decoder._instance ??= new Decoder(buf));
+    dec.dict = [];
+    dec.rle.reset(buf);
+    dec.reader.reset(buf);
+    return dec;
+  }
+  private constructor(buf: Uint8Array) {
     this.reader = new Reader(buf);
   }
+
   nextString() {
     const lenOrIdx = this.reader.readVarint();
     if (lenOrIdx === 0) {

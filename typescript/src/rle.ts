@@ -11,6 +11,15 @@ export class RleEncoder {
   private runValue = -1; // -1 = no run yet, 0 = false, 1 = true
   private runCount = 0;
 
+  reset(): void {
+    this.bytes = [];
+    this.currentByte = 0;
+    this.bitPos = 0;
+    this.totalBits = 0;
+    this.runValue = -1;
+    this.runCount = 0;
+  }
+
   pushBit(val: boolean): void {
     const bit = val ? 1 : 0;
     if (this.runValue === -1) {
@@ -81,15 +90,17 @@ export class RleEncoder {
 }
 
 export class RleDecoder {
-  private buf: Uint8Array;
-  private bytePos: number;
+  private buf!: Uint8Array;
+  private bytePos = 0;
   private currentByte = 0;
-  private bitPos = 8; // Start at 8 to trigger first byte read
-  private currentValue: boolean;
-  private runRemaining: number;
+  private bitPos = 8;
+  private currentValue = false;
+  private runRemaining = 0;
 
-  constructor(buf: Uint8Array) {
+  reset(buf: Uint8Array): void {
     this.buf = buf;
+    this.currentByte = 0;
+    this.bitPos = 8;
     const { value: numBits, bytesRead: varintLen } = readReverseUVarint(buf);
     const numRleBytes = Math.ceil(numBits / 8);
     this.bytePos = buf.length - varintLen - numRleBytes;

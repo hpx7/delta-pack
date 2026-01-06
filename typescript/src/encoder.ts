@@ -4,9 +4,21 @@ import { equalsFloat, equalsArray, equalsRecord } from "./helpers.js";
 import { RleEncoder } from "./rle.js";
 
 export class Encoder {
+  private static _instance: Encoder | null = null;
+
   private dict: string[] = [];
   private rle = new RleEncoder();
   private writer = new Writer();
+
+  static create(): Encoder {
+    const enc = Encoder._instance ?? new Encoder();
+    Encoder._instance = null;
+    enc.dict = [];
+    enc.rle.reset();
+    enc.writer.reset();
+    return enc;
+  }
+  private constructor() {}
 
   pushString(val: string) {
     if (val === "") {
@@ -238,6 +250,7 @@ export class Encoder {
   }
   toBuffer() {
     this.rle.finalize(this.writer);
+    Encoder._instance = this;
     return this.writer.toBuffer();
   }
 }

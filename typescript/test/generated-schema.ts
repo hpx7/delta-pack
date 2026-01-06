@@ -123,7 +123,7 @@ export const Player = {
     );
   },
   encode(obj: Player): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Player._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -135,7 +135,7 @@ export const Player = {
     encoder.pushOptional(obj.partner, (x) => Player._encode(x, encoder));
   },
   encodeDiff(a: Player, b: Player): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Player._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -178,7 +178,7 @@ export const Player = {
     }
   },
   decode(input: Uint8Array): Player {
-    return Player._decode(new _.Decoder(input));
+    return Player._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): Player {
     return {
@@ -190,8 +190,7 @@ export const Player = {
     };
   },
   decodeDiff(obj: Player, input: Uint8Array): Player {
-    const decoder = new _.Decoder(input);
-    return Player._decodeDiff(obj, decoder);
+    return Player._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: Player, decoder: _.Decoder): Player {
     const changed = decoder.nextBoolean();
@@ -244,7 +243,7 @@ export const Position = {
     );
   },
   encode(obj: Position): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Position._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -253,7 +252,7 @@ export const Position = {
     encoder.pushFloatQuantized(obj.y, 0.1);
   },
   encodeDiff(a: Position, b: Position): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Position._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -278,7 +277,7 @@ export const Position = {
     }
   },
   decode(input: Uint8Array): Position {
-    return Position._decode(new _.Decoder(input));
+    return Position._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): Position {
     return {
@@ -287,8 +286,7 @@ export const Position = {
     };
   },
   decodeDiff(obj: Position, input: Uint8Array): Position {
-    const decoder = new _.Decoder(input);
-    return Position._decodeDiff(obj, decoder);
+    return Position._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: Position, decoder: _.Decoder): Position {
     const changed = decoder.nextBoolean();
@@ -338,7 +336,7 @@ export const Velocity = {
     );
   },
   encode(obj: Velocity): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Velocity._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -347,7 +345,7 @@ export const Velocity = {
     encoder.pushFloat(obj.vy);
   },
   encodeDiff(a: Velocity, b: Velocity): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Velocity._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -372,7 +370,7 @@ export const Velocity = {
     }
   },
   decode(input: Uint8Array): Velocity {
-    return Velocity._decode(new _.Decoder(input));
+    return Velocity._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): Velocity {
     return {
@@ -381,8 +379,7 @@ export const Velocity = {
     };
   },
   decodeDiff(obj: Velocity, input: Uint8Array): Velocity {
-    const decoder = new _.Decoder(input);
-    return Velocity._decodeDiff(obj, decoder);
+    return Velocity._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: Velocity, decoder: _.Decoder): Velocity {
     const changed = decoder.nextBoolean();
@@ -432,7 +429,7 @@ export const Entity = {
     );
   },
   encode(obj: Entity): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Entity._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -441,7 +438,7 @@ export const Entity = {
     Position._encode(obj.position, encoder);
   },
   encodeDiff(a: Entity, b: Entity): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Entity._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -466,7 +463,7 @@ export const Entity = {
     }
   },
   decode(input: Uint8Array): Entity {
-    return Entity._decode(new _.Decoder(input));
+    return Entity._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): Entity {
     return {
@@ -475,8 +472,7 @@ export const Entity = {
     };
   },
   decodeDiff(obj: Entity, input: Uint8Array): Entity {
-    const decoder = new _.Decoder(input);
-    return Entity._decodeDiff(obj, decoder);
+    return Entity._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: Entity, decoder: _.Decoder): Entity {
     const changed = decoder.nextBoolean();
@@ -526,7 +522,7 @@ export const MoveAction = {
     );
   },
   encode(obj: MoveAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     MoveAction._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -535,7 +531,7 @@ export const MoveAction = {
     encoder.pushInt(obj.y);
   },
   encodeDiff(a: MoveAction, b: MoveAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     MoveAction._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -560,7 +556,7 @@ export const MoveAction = {
     }
   },
   decode(input: Uint8Array): MoveAction {
-    return MoveAction._decode(new _.Decoder(input));
+    return MoveAction._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): MoveAction {
     return {
@@ -569,8 +565,7 @@ export const MoveAction = {
     };
   },
   decodeDiff(obj: MoveAction, input: Uint8Array): MoveAction {
-    const decoder = new _.Decoder(input);
-    return MoveAction._decodeDiff(obj, decoder);
+    return MoveAction._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: MoveAction, decoder: _.Decoder): MoveAction {
     const changed = decoder.nextBoolean();
@@ -620,7 +615,7 @@ export const AttackAction = {
     );
   },
   encode(obj: AttackAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     AttackAction._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -629,7 +624,7 @@ export const AttackAction = {
     encoder.pushBoundedInt(obj.damage, 0);
   },
   encodeDiff(a: AttackAction, b: AttackAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     AttackAction._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -654,7 +649,7 @@ export const AttackAction = {
     }
   },
   decode(input: Uint8Array): AttackAction {
-    return AttackAction._decode(new _.Decoder(input));
+    return AttackAction._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): AttackAction {
     return {
@@ -663,8 +658,7 @@ export const AttackAction = {
     };
   },
   decodeDiff(obj: AttackAction, input: Uint8Array): AttackAction {
-    const decoder = new _.Decoder(input);
-    return AttackAction._decodeDiff(obj, decoder);
+    return AttackAction._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: AttackAction, decoder: _.Decoder): AttackAction {
     const changed = decoder.nextBoolean();
@@ -709,7 +703,7 @@ export const UseItemAction = {
     );
   },
   encode(obj: UseItemAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     UseItemAction._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -717,7 +711,7 @@ export const UseItemAction = {
     encoder.pushString(obj.itemId);
   },
   encodeDiff(a: UseItemAction, b: UseItemAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     UseItemAction._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -736,7 +730,7 @@ export const UseItemAction = {
     }
   },
   decode(input: Uint8Array): UseItemAction {
-    return UseItemAction._decode(new _.Decoder(input));
+    return UseItemAction._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): UseItemAction {
     return {
@@ -744,8 +738,7 @@ export const UseItemAction = {
     };
   },
   decodeDiff(obj: UseItemAction, input: Uint8Array): UseItemAction {
-    const decoder = new _.Decoder(input);
-    return UseItemAction._decodeDiff(obj, decoder);
+    return UseItemAction._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: UseItemAction, decoder: _.Decoder): UseItemAction {
     const changed = decoder.nextBoolean();
@@ -810,7 +803,7 @@ export const GameAction = {
     return false;
   },
   encode(obj: GameAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     GameAction._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -829,7 +822,7 @@ export const GameAction = {
     }
   },
   encodeDiff(a: GameAction, b: GameAction): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     GameAction._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -861,7 +854,7 @@ export const GameAction = {
     }
   },
   decode(input: Uint8Array): GameAction {
-    return GameAction._decode(new _.Decoder(input));
+    return GameAction._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): GameAction {
     const type = decoder.nextEnum(2);
@@ -877,8 +870,7 @@ export const GameAction = {
     throw new Error("Invalid union");
   },
   decodeDiff(obj: GameAction, input: Uint8Array): GameAction {
-    const decoder = new _.Decoder(input);
-    return GameAction._decodeDiff(obj, decoder);
+    return GameAction._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: GameAction, decoder: _.Decoder): GameAction {
     const isSameType = decoder.nextBoolean();
@@ -971,7 +963,7 @@ export const GameState = {
     );
   },
   encode(obj: GameState): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     GameState._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -984,7 +976,7 @@ export const GameState = {
     encoder.pushOptional(obj.lastAction, (x) => GameAction._encode(x, encoder));
   },
   encodeDiff(a: GameState, b: GameState): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     GameState._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -1033,7 +1025,7 @@ export const GameState = {
     }
   },
   decode(input: Uint8Array): GameState {
-    return GameState._decode(new _.Decoder(input));
+    return GameState._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): GameState {
     return {
@@ -1046,8 +1038,7 @@ export const GameState = {
     };
   },
   decodeDiff(obj: GameState, input: Uint8Array): GameState {
-    const decoder = new _.Decoder(input);
-    return GameState._decodeDiff(obj, decoder);
+    return GameState._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: GameState, decoder: _.Decoder): GameState {
     const changed = decoder.nextBoolean();
@@ -1098,7 +1089,7 @@ export const Inventory = {
     );
   },
   encode(obj: Inventory): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Inventory._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -1106,7 +1097,7 @@ export const Inventory = {
     encoder.pushOptional(obj.items, (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))));
   },
   encodeDiff(a: Inventory, b: Inventory): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     Inventory._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -1125,7 +1116,7 @@ export const Inventory = {
     }
   },
   decode(input: Uint8Array): Inventory {
-    return Inventory._decode(new _.Decoder(input));
+    return Inventory._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): Inventory {
     return {
@@ -1133,8 +1124,7 @@ export const Inventory = {
     };
   },
   decodeDiff(obj: Inventory, input: Uint8Array): Inventory {
-    const decoder = new _.Decoder(input);
-    return Inventory._decodeDiff(obj, decoder);
+    return Inventory._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: Inventory, decoder: _.Decoder): Inventory {
     const changed = decoder.nextBoolean();
@@ -1178,7 +1168,7 @@ export const PlayerRegistry = {
     );
   },
   encode(obj: PlayerRegistry): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     PlayerRegistry._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -1186,7 +1176,7 @@ export const PlayerRegistry = {
     encoder.pushRecord(obj.players, (x) => encoder.pushString(x), (x) => Player._encode(x, encoder));
   },
   encodeDiff(a: PlayerRegistry, b: PlayerRegistry): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     PlayerRegistry._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -1205,7 +1195,7 @@ export const PlayerRegistry = {
     }
   },
   decode(input: Uint8Array): PlayerRegistry {
-    return PlayerRegistry._decode(new _.Decoder(input));
+    return PlayerRegistry._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): PlayerRegistry {
     return {
@@ -1213,8 +1203,7 @@ export const PlayerRegistry = {
     };
   },
   decodeDiff(obj: PlayerRegistry, input: Uint8Array): PlayerRegistry {
-    const decoder = new _.Decoder(input);
-    return PlayerRegistry._decodeDiff(obj, decoder);
+    return PlayerRegistry._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: PlayerRegistry, decoder: _.Decoder): PlayerRegistry {
     const changed = decoder.nextBoolean();

@@ -54,7 +54,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "bin-serde": "^1.7.3",
+    "bin-serde": "^1.7.8",
     "reflect-metadata": "^0.2.2",
     "utf8-buffer-size": "^0.0.4",
     "yaml": "^2.8.1"

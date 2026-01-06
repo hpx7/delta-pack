@@ -159,7 +159,7 @@ ${cloneBody}
     );
   },
   encode(obj: ${name}): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     ${name}._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -167,7 +167,7 @@ ${cloneBody}
 ${encodeBody}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     ${name}._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -181,7 +181,7 @@ ${encodeBody}
 ${encodeDiffBody}
   },
   decode(input: Uint8Array): ${name} {
-    return ${name}._decode(new _.Decoder(input));
+    return ${name}._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): ${name} {
     return {
@@ -189,8 +189,7 @@ ${decodeBody}
     };
   },
   decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
-    const decoder = new _.Decoder(input);
-    return ${name}._decodeDiff(obj, decoder);
+    return ${name}._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: ${name}, decoder: _.Decoder): ${name} {
     const changed = decoder.nextBoolean();
@@ -293,7 +292,7 @@ ${equalsCases}
     return false;
   },
   encode(obj: ${name}): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     ${name}._encode(obj, encoder);
     return encoder.toBuffer();
   },
@@ -301,7 +300,7 @@ ${equalsCases}
 ${encodeCases}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
-    const encoder = new _.Encoder();
+    const encoder = _.Encoder.create();
     ${name}._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -310,7 +309,7 @@ ${encodeCases}
 ${encodeDiffCases}
   },
   decode(input: Uint8Array): ${name} {
-    return ${name}._decode(new _.Decoder(input));
+    return ${name}._decode(_.Decoder.create(input));
   },
   _decode(decoder: _.Decoder): ${name} {
     const type = decoder.nextEnum(${numBits});
@@ -318,8 +317,7 @@ ${decodeCases}
     throw new Error("Invalid union");
   },
   decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
-    const decoder = new _.Decoder(input);
-    return ${name}._decodeDiff(obj, decoder);
+    return ${name}._decodeDiff(obj, _.Decoder.create(input));
   },
   _decodeDiff(obj: ${name}, decoder: _.Decoder): ${name} {
     const isSameType = decoder.nextBoolean();
