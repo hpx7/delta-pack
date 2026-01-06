@@ -131,7 +131,7 @@ export function parseUnion<T extends string>(
   x: unknown,
   variants: readonly T[],
   parsers: Record<T, (val: unknown) => unknown>
-): { type: T; val: unknown } {
+): { _type: T } & Record<string, unknown> {
   if (typeof x !== "object" || x == null) {
     throw new Error(`Invalid union: ${JSON.stringify(x)}`);
   }
@@ -143,13 +143,13 @@ export function parseUnion<T extends string>(
     return variants.find((v) => v.toLowerCase() === lower);
   };
 
-  // Delta-pack format: { type: "TypeName", val: ... }
-  if ("type" in x && typeof (x as any).type === "string" && "val" in x) {
-    const variant = findVariant((x as any).type);
+  // Delta-pack format: { _type: "TypeName", ...props }
+  if ("_type" in x && typeof x._type === "string") {
+    const variant = findVariant(x._type);
     if (!variant) {
-      throw new Error(`Unknown union type variant: ${(x as any).type}`);
+      throw new Error(`Unknown union type variant: ${x._type}`);
     }
-    return { type: variant, val: parsers[variant]((x as any).val) };
+    return { _type: variant, ...(parsers[variant](x) as Record<string, unknown>) };
   }
 
   // Protobuf format: { TypeName: ... }
@@ -160,7 +160,7 @@ export function parseUnion<T extends string>(
     if (!variant) {
       throw new Error(`Unknown union type variant: ${fieldName}`);
     }
-    return { type: variant, val: parsers[variant](fieldValue) };
+    return { _type: variant, ...(parsers[variant](fieldValue) as Record<string, unknown>) };
   }
 
   throw new Error(`Invalid union: ${JSON.stringify(x)}`);

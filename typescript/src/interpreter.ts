@@ -15,7 +15,7 @@ export type DeltaPackApi<T> = {
   clone: (obj: T) => T;
 };
 
-type UnionVal = { type: string; val: unknown };
+type UnionVal = { _type: string; [k: string]: unknown };
 
 // Overload for type inference (when using TypeScript-defined schemas)
 export function load<T extends NamedType>(rootType: T): DeltaPackApi<Infer<T>>;
@@ -105,12 +105,12 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       return _.mapToObject(map, (val) => _toJson(val, objType.value, parent));
     } else if (objType.type === "union") {
       const union = objVal as UnionVal;
-      const variant = objType.options.find((v) => v.name === union.type);
+      const variant = objType.options.find((v) => v.name === union._type);
       if (!variant) {
-        throw new Error(`Unknown union variant: ${union.type}`);
+        throw new Error(`Unknown union variant: ${union._type}`);
       }
       return {
-        [union.type]: _toJson(union.val, variant, variant),
+        [union._type]: _toJson(union, variant, variant),
       };
     } else if (objType.type === "optional") {
       if (objVal == null) {
@@ -161,13 +161,13 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       );
     } else if (objType.type === "union") {
       const union = objVal as UnionVal;
-      const variantIndex = objType.options.findIndex((v) => v.name === union.type);
+      const variantIndex = objType.options.findIndex((v) => v.name === union._type);
       if (variantIndex === -1) {
-        throw new Error(`Unknown union variant: ${union.type}`);
+        throw new Error(`Unknown union variant: ${union._type}`);
       }
       const variant = objType.options[variantIndex]!;
       encoder.pushEnum(variantIndex, objType.numBits);
-      _encode(union.val, variant, encoder, variant);
+      _encode(union, variant, encoder, variant);
     } else if (objType.type === "optional") {
       encoder.pushOptional(objVal, (val) => _encode(val, objType.value, encoder, parent));
     }
@@ -216,8 +216,8 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
         throw new Error(`Invalid union variant index: ${variantIndex}`);
       }
       return {
-        type: variant.name,
-        val: _decode(variant, decoder, variant),
+        _type: variant.name,
+        ...(_decode(variant, decoder, variant) as Record<string, unknown>),
       };
     } else if (objType.type === "optional") {
       return decoder.nextBoolean() ? _decode(objType.value, decoder, parent) : undefined;
@@ -273,10 +273,10 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "union") {
       const unionA = a as UnionVal;
       const unionB = b as UnionVal;
-      if (unionA.type !== unionB.type) return false;
-      const variant = objType.options.find((v) => v.name === unionA.type);
+      if (unionA._type !== unionB._type) return false;
+      const variant = objType.options.find((v) => v.name === unionA._type);
       if (!variant) return false;
-      return _equals(unionA.val, unionB.val, variant, variant);
+      return _equals(unionA, unionB, variant, variant);
     } else if (objType.type === "optional") {
       if (a == null && b == null) return true;
       if (a == null || b == null) return false;
@@ -317,13 +317,13 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
       return newMap;
     } else if (objType.type === "union") {
       const union = obj as UnionVal;
-      const variant = objType.options.find((v) => v.name === union.type);
+      const variant = objType.options.find((v) => v.name === union._type);
       if (!variant) {
-        throw new Error(`Unknown union variant: ${union.type}`);
+        throw new Error(`Unknown union variant: ${union._type}`);
       }
       return {
-        type: union.type,
-        val: _clone(union.val, variant, variant),
+        _type: union._type,
+        ...(_clone(union, variant, variant) as Record<string, unknown>),
       };
     } else if (objType.type === "optional") {
       if (obj == null) return undefined;
@@ -392,18 +392,18 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     } else if (objType.type === "union") {
       const unionA = a as UnionVal;
       const unionB = b as UnionVal;
-      if (unionB.type !== unionA.type) {
+      if (unionB._type !== unionA._type) {
         // Type changed - encode new discriminator and value
         encoder.pushBoolean(false);
-        const variantIndex = objType.options.findIndex((v) => v.name === unionB.type);
+        const variantIndex = objType.options.findIndex((v) => v.name === unionB._type);
         const variant = objType.options[variantIndex]!;
         encoder.pushEnum(variantIndex, objType.numBits);
-        _encode(unionB.val, variant, encoder, variant);
+        _encode(unionB, variant, encoder, variant);
       } else {
         // Same type - encode diff
         encoder.pushBoolean(true);
-        const variant = objType.options.find((v) => v.name === unionA.type)!;
-        _encodeDiff(unionA.val, unionB.val, variant, encoder, variant);
+        const variant = objType.options.find((v) => v.name === unionA._type)!;
+        _encodeDiff(unionA, unionB, variant, encoder, variant);
       }
     } else if (objType.type === "optional") {
       const valueType = objType.value;
@@ -481,15 +481,15 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
           throw new Error(`Invalid union variant index: ${variantIndex}`);
         }
         return {
-          type: variant.name,
-          val: _decode(variant, decoder, variant),
+          _type: variant.name,
+          ...(_decode(variant, decoder, variant) as Record<string, unknown>),
         };
       } else {
         // Same type - decode diff
-        const variant = objType.options.find((v) => v.name === unionA.type)!;
+        const variant = objType.options.find((v) => v.name === unionA._type)!;
         return {
-          type: unionA.type,
-          val: _decodeDiff(unionA.val, variant, decoder, variant),
+          _type: unionA._type,
+          ...(_decodeDiff(unionA, variant, decoder, variant) as Record<string, unknown>),
         };
       }
     } else if (objType.type === "optional") {

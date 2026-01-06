@@ -118,7 +118,7 @@ describe("Examples - User", () => {
     expect(parsed.name).toBe("John Doe");
     expect(parsed.age).toBe(31);
     expect(parsed.children).toHaveLength(3);
-    expect(parsed.preferredContact.type).toBe("PhoneContact");
+    expect(parsed.preferredContact._type).toBe("PhoneContact");
   });
 
   it("should encode and decode state1", () => {

@@ -326,7 +326,7 @@ describe("Delta Pack Reflection", () => {
         round: 5,
         metadata: new Map([["mode", "ranked"]]),
         winningColor: "BLUE",
-        lastAction: { type: "AttackAction", val: { targetId: "p2", damage: 25 } },
+        lastAction: { _type: "AttackAction", targetId: "p2", damage: 25 },
       });
 
       expect(reflectionEncoded).toEqual(schemaEncoded);
@@ -617,7 +617,7 @@ describe("Delta Pack Reflection", () => {
         boolMatrix: [] as boolean[][],
         stringMatrix: [] as string[][],
         intMatrix: [] as number[][],
-        action: { type: "MoveAction", val: { x: 5, y: 10 } },
+        action: { _type: "MoveAction", x: 5, y: 10 },
       };
 
       const encoded = api.encode(obj as unknown as CoverageTestSchema);

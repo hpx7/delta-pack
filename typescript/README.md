@@ -230,18 +230,15 @@ const GameState = ObjectType("GameState", {
 });
 ```
 
-**Union value format:** In schema/interpreter mode, union values use the format `{ type: "VariantName", val: {...} }`:
+**Union value format:** Union values use a flattened discriminated union format with `_type`:
 
 ```typescript
 // Creating a union value
-const action: GameAction = {
-  type: "MoveAction",
-  val: { x: 10, y: 20 },
-};
+const action: GameAction = { _type: "MoveAction", x: 10, y: 20 };
 
 // Type narrowing with discriminant
-if (action.type === "MoveAction") {
-  console.log(action.val.x, action.val.y);
+if (action._type === "MoveAction") {
+  console.log(action.x, action.y);
 }
 ```
 
@@ -309,12 +306,12 @@ const jsonString = JSON.stringify(json);
 **Example with unions:**
 
 ```typescript
-const action: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+const action: GameAction = { _type: "MoveAction", x: 10, y: 20 };
 const json = GameAction.toJson(action);
 // Result: { MoveAction: { x: 10, y: 20 } }
 ```
 
-This format is compatible with protobuf JSON encoding and can be parsed back with `fromJson()`.
+The JSON output uses protobuf format (`{ TypeName: {...} }`) which can be parsed back with `fromJson()`.
 
 #### `encode(obj: T): Uint8Array`
 
@@ -1029,7 +1026,7 @@ Each example includes:
 | ----------------------------- | -------------------------- | -------------------------------- |
 | `ObjectType("Name", { ... })` | `{ ... }`                  | Object with defined properties   |
 | `EnumType("Name", [...])`     | Union of string literals   | Enumerated string values         |
-| `UnionType("Name", [...])`    | `{ type: string, val: T }` | Tagged union of named types      |
+| `UnionType("Name", [...])`    | `{ _type: string } & T`    | Tagged union of named types      |
 | `ReferenceType(Type)`         | Named type                 | Reference to another named type  |
 | `SelfReferenceType()`         | Self                       | Reference to the containing type |
 

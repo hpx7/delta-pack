@@ -39,7 +39,7 @@ export type UseItemAction = {
   itemId: string;
 } & { _dirty?: Set<keyof UseItemAction> };
 
-export type GameAction = { type: "MoveAction"; val: MoveAction } | { type: "AttackAction"; val: AttackAction } | { type: "UseItemAction"; val: UseItemAction };
+export type GameAction = { _type: "MoveAction" } & MoveAction | { _type: "AttackAction" } & AttackAction | { _type: "UseItemAction" } & UseItemAction;
 
 export type GameState = {
   players: Player[] & { _dirty?: Set<number> };
@@ -760,7 +760,7 @@ export const UseItemAction = {
 
 export const GameAction = {
   default(): GameAction {
-    return { type: "MoveAction", val: MoveAction.default() };
+    return { _type: "MoveAction", ...MoveAction.default() };
   },
   values() {
     return ["MoveAction", "AttackAction", "UseItemAction"];
@@ -774,38 +774,38 @@ export const GameAction = {
     return result as GameAction;
   },
   toJson(obj: GameAction): Record<string, unknown> {
-    if (obj.type === "MoveAction") {
-      return { MoveAction: MoveAction.toJson(obj.val) };
+    if (obj._type === "MoveAction") {
+      return { MoveAction: MoveAction.toJson(obj) };
     }
-    else if (obj.type === "AttackAction") {
-      return { AttackAction: AttackAction.toJson(obj.val) };
+    else if (obj._type === "AttackAction") {
+      return { AttackAction: AttackAction.toJson(obj) };
     }
-    else if (obj.type === "UseItemAction") {
-      return { UseItemAction: UseItemAction.toJson(obj.val) };
+    else if (obj._type === "UseItemAction") {
+      return { UseItemAction: UseItemAction.toJson(obj) };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
   },
   clone(obj: GameAction): GameAction {
-    if (obj.type === "MoveAction") {
-      return { type: "MoveAction", val: MoveAction.clone(obj.val) };
+    if (obj._type === "MoveAction") {
+      return { _type: "MoveAction", ...MoveAction.clone(obj) };
     }
-    else if (obj.type === "AttackAction") {
-      return { type: "AttackAction", val: AttackAction.clone(obj.val) };
+    else if (obj._type === "AttackAction") {
+      return { _type: "AttackAction", ...AttackAction.clone(obj) };
     }
-    else if (obj.type === "UseItemAction") {
-      return { type: "UseItemAction", val: UseItemAction.clone(obj.val) };
+    else if (obj._type === "UseItemAction") {
+      return { _type: "UseItemAction", ...UseItemAction.clone(obj) };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
   },
   equals(a: GameAction, b: GameAction): boolean {
-    if (a.type === "MoveAction" && b.type === "MoveAction") {
-      return MoveAction.equals(a.val, b.val);
+    if (a._type === "MoveAction" && b._type === "MoveAction") {
+      return MoveAction.equals(a, b);
     }
-    else if (a.type === "AttackAction" && b.type === "AttackAction") {
-      return AttackAction.equals(a.val, b.val);
+    else if (a._type === "AttackAction" && b._type === "AttackAction") {
+      return AttackAction.equals(a, b);
     }
-    else if (a.type === "UseItemAction" && b.type === "UseItemAction") {
-      return UseItemAction.equals(a.val, b.val);
+    else if (a._type === "UseItemAction" && b._type === "UseItemAction") {
+      return UseItemAction.equals(a, b);
     }
     return false;
   },
@@ -815,17 +815,17 @@ export const GameAction = {
     return encoder.toBuffer();
   },
   _encode(obj: GameAction, encoder: _.Encoder): void {
-    if (obj.type === "MoveAction") {
+    if (obj._type === "MoveAction") {
       encoder.pushEnum(0, 2);
-      MoveAction._encode(obj.val, encoder);
+      MoveAction._encode(obj, encoder);
     }
-    else if (obj.type === "AttackAction") {
+    else if (obj._type === "AttackAction") {
       encoder.pushEnum(1, 2);
-      AttackAction._encode(obj.val, encoder);
+      AttackAction._encode(obj, encoder);
     }
-    else if (obj.type === "UseItemAction") {
+    else if (obj._type === "UseItemAction") {
       encoder.pushEnum(2, 2);
-      UseItemAction._encode(obj.val, encoder);
+      UseItemAction._encode(obj, encoder);
     }
   },
   encodeDiff(a: GameAction, b: GameAction): Uint8Array {
@@ -834,29 +834,29 @@ export const GameAction = {
     return encoder.toBuffer();
   },
   _encodeDiff(a: GameAction, b: GameAction, encoder: _.Encoder): void {
-    encoder.pushBoolean(a.type === b.type);
-    if (b.type === "MoveAction") {
-      if (a.type === "MoveAction") {
-        MoveAction._encodeDiff(a.val, b.val, encoder);
+    encoder.pushBoolean(a._type === b._type);
+    if (b._type === "MoveAction") {
+      if (a._type === "MoveAction") {
+        MoveAction._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(0, 2);
-        MoveAction._encode(b.val, encoder);
+        MoveAction._encode(b, encoder);
       }
     }
-    else if (b.type === "AttackAction") {
-      if (a.type === "AttackAction") {
-        AttackAction._encodeDiff(a.val, b.val, encoder);
+    else if (b._type === "AttackAction") {
+      if (a._type === "AttackAction") {
+        AttackAction._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(1, 2);
-        AttackAction._encode(b.val, encoder);
+        AttackAction._encode(b, encoder);
       }
     }
-    else if (b.type === "UseItemAction") {
-      if (a.type === "UseItemAction") {
-        UseItemAction._encodeDiff(a.val, b.val, encoder);
+    else if (b._type === "UseItemAction") {
+      if (a._type === "UseItemAction") {
+        UseItemAction._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(2, 2);
-        UseItemAction._encode(b.val, encoder);
+        UseItemAction._encode(b, encoder);
       }
     }
   },
@@ -866,13 +866,13 @@ export const GameAction = {
   _decode(decoder: _.Decoder): GameAction {
     const type = decoder.nextEnum(2);
     if (type === 0) {
-      return { type: "MoveAction", val: MoveAction._decode(decoder) };
+      return { _type: "MoveAction", ...MoveAction._decode(decoder) };
     }
     else if (type === 1) {
-      return { type: "AttackAction", val: AttackAction._decode(decoder) };
+      return { _type: "AttackAction", ...AttackAction._decode(decoder) };
     }
     else if (type === 2) {
-      return { type: "UseItemAction", val: UseItemAction._decode(decoder) };
+      return { _type: "UseItemAction", ...UseItemAction._decode(decoder) };
     }
     throw new Error("Invalid union");
   },
@@ -883,26 +883,26 @@ export const GameAction = {
   _decodeDiff(obj: GameAction, decoder: _.Decoder): GameAction {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
-      if (obj.type === "MoveAction") {
-        return { type: "MoveAction", val: MoveAction._decodeDiff(obj.val, decoder) };
+      if (obj._type === "MoveAction") {
+        return { _type: "MoveAction", ...MoveAction._decodeDiff(obj, decoder) };
       }
-      else if (obj.type === "AttackAction") {
-        return { type: "AttackAction", val: AttackAction._decodeDiff(obj.val, decoder) };
+      else if (obj._type === "AttackAction") {
+        return { _type: "AttackAction", ...AttackAction._decodeDiff(obj, decoder) };
       }
-      else if (obj.type === "UseItemAction") {
-        return { type: "UseItemAction", val: UseItemAction._decodeDiff(obj.val, decoder) };
+      else if (obj._type === "UseItemAction") {
+        return { _type: "UseItemAction", ...UseItemAction._decodeDiff(obj, decoder) };
       }
       throw new Error("Invalid union diff");
     } else {
       const type = decoder.nextEnum(2);
       if (type === 0) {
-        return { type: "MoveAction", val: MoveAction._decode(decoder) };
+        return { _type: "MoveAction", ...MoveAction._decode(decoder) };
       }
       else if (type === 1) {
-        return { type: "AttackAction", val: AttackAction._decode(decoder) };
+        return { _type: "AttackAction", ...AttackAction._decode(decoder) };
       }
       else if (type === 2) {
-        return { type: "UseItemAction", val: UseItemAction._decode(decoder) };
+        return { _type: "UseItemAction", ...UseItemAction._decode(decoder) };
       }
       throw new Error("Invalid union diff");
     }

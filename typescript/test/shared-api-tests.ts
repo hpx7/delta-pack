@@ -802,85 +802,85 @@ export function runActionTests(
 export function runGameActionTests(GameAction: DeltaPackApi<GameAction>) {
   describe("Union Types - GameAction", () => {
     it("should check GameAction equality for same type and value", () => {
-      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action1: GameAction = { _type: "MoveAction", x: 10, y: 20 };
+      const action2: GameAction = { _type: "MoveAction", x: 10, y: 20 };
       expect(GameAction.equals(action1, action2)).toBe(true);
     });
 
     it("should check GameAction equality for same type but different value", () => {
-      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: "MoveAction", val: { x: 15, y: 25 } };
+      const action1: GameAction = { _type: "MoveAction", x: 10, y: 20 };
+      const action2: GameAction = { _type: "MoveAction", x: 15, y: 25 };
       expect(GameAction.equals(action1, action2)).toBe(false);
     });
 
     it("should check GameAction equality for different types", () => {
-      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+      const action1: GameAction = { _type: "MoveAction", x: 10, y: 20 };
+      const action2: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
       expect(GameAction.equals(action1, action2)).toBe(false);
     });
 
     it("should check GameAction equality for AttackAction", () => {
-      const action1: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
-      const action2: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
-      const action3: GameAction = { type: "AttackAction", val: { targetId: "enemy-2", damage: 50 } };
+      const action1: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
+      const action2: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
+      const action3: GameAction = { _type: "AttackAction", targetId: "enemy-2", damage: 50 };
       expect(GameAction.equals(action1, action2)).toBe(true);
       expect(GameAction.equals(action1, action3)).toBe(false);
     });
 
     it("should check GameAction equality for UseItemAction", () => {
-      const action1: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
-      const action2: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
-      const action3: GameAction = { type: "UseItemAction", val: { itemId: "potion-2" } };
+      const action1: GameAction = { _type: "UseItemAction", itemId: "potion-1" };
+      const action2: GameAction = { _type: "UseItemAction", itemId: "potion-1" };
+      const action3: GameAction = { _type: "UseItemAction", itemId: "potion-2" };
       expect(GameAction.equals(action1, action2)).toBe(true);
       expect(GameAction.equals(action1, action3)).toBe(false);
     });
 
-    it("should parse MoveAction in union", () => {
-      const moveAction: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+    it("should parse flattened MoveAction in union", () => {
+      const moveAction: GameAction = { _type: "MoveAction", x: 10, y: 20 };
       expect(() => GameAction.fromJson(moveAction)).not.toThrow();
     });
 
-    it("should parse AttackAction in union", () => {
-      const attackAction: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+    it("should parse flattened AttackAction in union", () => {
+      const attackAction: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
       expect(() => GameAction.fromJson(attackAction)).not.toThrow();
     });
 
-    it("should parse UseItemAction in union", () => {
-      const useItemAction: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
+    it("should parse flattened UseItemAction in union", () => {
+      const useItemAction: GameAction = { _type: "UseItemAction", itemId: "potion-1" };
       expect(() => GameAction.fromJson(useItemAction)).not.toThrow();
     });
 
     it("should parse protobuf-style MoveAction union", () => {
       const protobufAction: any = { MoveAction: { x: 10, y: 20 } };
       const parsed = GameAction.fromJson(protobufAction);
-      expect(parsed).toEqual({ type: "MoveAction", val: { x: 10, y: 20 } });
+      expect(parsed).toEqual({ _type: "MoveAction", x: 10, y: 20 });
     });
 
     it("should parse protobuf-style AttackAction union", () => {
       const protobufAction: any = { AttackAction: { targetId: "enemy-1", damage: 50 } };
       const parsed = GameAction.fromJson(protobufAction);
-      expect(parsed).toEqual({ type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } });
+      expect(parsed).toEqual({ _type: "AttackAction", targetId: "enemy-1", damage: 50 });
     });
 
     it("should parse protobuf-style UseItemAction union", () => {
       const protobufAction: any = { UseItemAction: { itemId: "potion-1" } };
       const parsed = GameAction.fromJson(protobufAction);
-      expect(parsed).toEqual({ type: "UseItemAction", val: { itemId: "potion-1" } });
+      expect(parsed).toEqual({ _type: "UseItemAction", itemId: "potion-1" });
     });
 
-    it("should encode protobuf-style union the same as delta-pack format", () => {
-      const deltaPackAction: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
+    it("should encode protobuf-style union the same as flattened format", () => {
+      const flattenedAction: GameAction = { _type: "MoveAction", x: 100, y: 200 };
       const protobufAction: any = { MoveAction: { x: 100, y: 200 } };
 
       const parsedProtobuf = GameAction.fromJson(protobufAction);
-      const encodedDeltaPack = GameAction.encode(deltaPackAction);
+      const encodedFlattened = GameAction.encode(flattenedAction);
       const encodedProtobuf = GameAction.encode(parsedProtobuf);
 
-      expect(encodedProtobuf).toEqual(encodedDeltaPack);
+      expect(encodedProtobuf).toEqual(encodedFlattened);
     });
 
     it("should detect GameAction validation errors for invalid type", () => {
-      const invalidAction: any = { type: "InvalidAction", val: {} };
+      const invalidAction: any = { _type: "InvalidAction" };
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
@@ -889,88 +889,100 @@ export function runGameActionTests(GameAction: DeltaPackApi<GameAction>) {
     });
 
     it("should detect GameAction validation errors for invalid MoveAction value", () => {
-      const invalidAction: any = { type: "MoveAction", val: { x: "invalid", y: 20 } };
+      const invalidAction: any = { _type: "MoveAction", x: "invalid", y: 20 };
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should detect GameAction validation errors for invalid AttackAction value", () => {
-      const invalidAction: any = { type: "AttackAction", val: { targetId: null, damage: 50 } };
+      const invalidAction: any = { _type: "AttackAction", targetId: null, damage: 50 };
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should detect GameAction validation errors for invalid UseItemAction value", () => {
-      const invalidAction: any = { type: "UseItemAction", val: { itemId: null } };
+      const invalidAction: any = { _type: "UseItemAction", itemId: null };
       expect(() => GameAction.fromJson(invalidAction)).toThrow();
     });
 
     it("should convert MoveAction union to protobuf JSON format", () => {
-      const action: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action: GameAction = { _type: "MoveAction", x: 10, y: 20 };
       const json = GameAction.toJson(action);
       expect(json).toEqual({ MoveAction: { x: 10, y: 20 } });
     });
 
     it("should convert AttackAction union to protobuf JSON format", () => {
-      const action: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+      const action: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
       const json = GameAction.toJson(action);
       expect(json).toEqual({ AttackAction: { targetId: "enemy-1", damage: 50 } });
     });
 
     it("should convert UseItemAction union to protobuf JSON format", () => {
-      const action: GameAction = { type: "UseItemAction", val: { itemId: "potion-1" } };
+      const action: GameAction = { _type: "UseItemAction", itemId: "potion-1" };
       const json = GameAction.toJson(action);
       expect(json).toEqual({ UseItemAction: { itemId: "potion-1" } });
     });
 
     it("should round-trip union fromJson/toJson with protobuf format", () => {
-      const action: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
+      const action: GameAction = { _type: "MoveAction", x: 100, y: 200 };
       const json = GameAction.toJson(action);
       const parsed = GameAction.fromJson(json);
       expect(GameAction.equals(parsed, action)).toBe(true);
     });
 
     it("should encode and decode MoveAction union", () => {
-      const action: GameAction = { type: "MoveAction", val: { x: 100, y: 200 } };
+      const action: GameAction = { _type: "MoveAction", x: 100, y: 200 };
       const encoded = GameAction.encode(action);
       const decoded = GameAction.decode(encoded);
 
-      expect(decoded.type).toBe("MoveAction");
-      expect(decoded.val).toEqual({ x: 100, y: 200 });
+      expect(decoded._type).toBe("MoveAction");
+      if (decoded._type === "MoveAction") {
+        expect(decoded.x).toBe(100);
+        expect(decoded.y).toBe(200);
+      }
     });
 
     it("should encode and decode AttackAction union", () => {
-      const action: GameAction = { type: "AttackAction", val: { targetId: "enemy-5", damage: 75 } };
+      const action: GameAction = { _type: "AttackAction", targetId: "enemy-5", damage: 75 };
       const encoded = GameAction.encode(action);
       const decoded = GameAction.decode(encoded);
 
-      expect(decoded.type).toBe("AttackAction");
-      expect(decoded.val).toEqual({ targetId: "enemy-5", damage: 75 });
+      expect(decoded._type).toBe("AttackAction");
+      if (decoded._type === "AttackAction") {
+        expect(decoded.targetId).toBe("enemy-5");
+        expect(decoded.damage).toBe(75);
+      }
     });
 
     it("should handle diff within same union variant", () => {
-      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: "MoveAction", val: { x: 15, y: 25 } };
+      const action1: GameAction = { _type: "MoveAction", x: 10, y: 20 };
+      const action2: GameAction = { _type: "MoveAction", x: 15, y: 25 };
 
       const encodedDiff = GameAction.encodeDiff(action1, action2);
       const result = GameAction.decodeDiff(action1, encodedDiff);
 
-      expect(result.type).toBe("MoveAction");
-      expect(result.val).toEqual({ x: 15, y: 25 });
+      expect(result._type).toBe("MoveAction");
+      if (result._type === "MoveAction") {
+        expect(result.x).toBe(15);
+        expect(result.y).toBe(25);
+      }
       expect(GameAction.equals(result, action2)).toBe(true);
     });
 
     it("should handle diff when changing union variant", () => {
-      const action1: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
-      const action2: GameAction = { type: "AttackAction", val: { targetId: "enemy-1", damage: 50 } };
+      const action1: GameAction = { _type: "MoveAction", x: 10, y: 20 };
+      const action2: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
 
       const encodedDiff = GameAction.encodeDiff(action1, action2);
       const result = GameAction.decodeDiff(action1, encodedDiff);
 
-      expect(result.type).toBe("AttackAction");
-      expect(result.val).toEqual({ targetId: "enemy-1", damage: 50 });
+      expect(result._type).toBe("AttackAction");
+      if (result._type === "AttackAction") {
+        expect(result.targetId).toBe("enemy-1");
+        expect(result.damage).toBe(50);
+      }
     });
 
     it("should handle identical union values (no diff)", () => {
-      const action: GameAction = { type: "MoveAction", val: { x: 10, y: 20 } };
+      const action: GameAction = { _type: "MoveAction", x: 10, y: 20 };
       const encodedDiff = GameAction.encodeDiff(action, action);
       const result = GameAction.decodeDiff(action, encodedDiff);
 
@@ -993,7 +1005,7 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
         ["mode", "classic"],
         ["difficulty", "hard"],
       ]),
-      lastAction: { type: "MoveAction", val: { x: 10, y: 20 } },
+      lastAction: { _type: "MoveAction", x: 10, y: 20 },
     };
 
     it("should parse valid GameState", () => {
@@ -1069,7 +1081,7 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
         ...gameState1,
         currentPlayer: "p2",
         round: 2,
-        lastAction: { type: "AttackAction", val: { targetId: "p1", damage: 25 } },
+        lastAction: { _type: "AttackAction", targetId: "p1", damage: 25 },
       };
 
       const encodedDiff = GameState.encodeDiff(gameState1, gameState2);
@@ -1077,7 +1089,7 @@ export function runGameStateTests(GameState: DeltaPackApi<GameState>) {
 
       expect(result.currentPlayer).toBe("p2");
       expect(result.round).toBe(2);
-      expect(result.lastAction?.type).toBe("AttackAction");
+      expect(result.lastAction?._type).toBe("AttackAction");
       expect(GameState.equals(result, gameState2)).toBe(true);
     });
 
@@ -1483,24 +1495,21 @@ export function runCloneTests(
     });
 
     it("should clone union types", () => {
-      const moveAction: GameAction = {
-        type: "MoveAction",
-        val: { x: 10, y: 20 },
-      };
+      const moveAction: GameAction = { _type: "MoveAction", x: 10, y: 20 };
 
       const clonedAction = GameAction.clone(moveAction);
 
       expect(clonedAction).toEqual(moveAction);
       expect(clonedAction).not.toBe(moveAction);
 
-      if (clonedAction.type === "MoveAction") {
-        clonedAction.val.x = 999;
+      if (clonedAction._type === "MoveAction") {
+        clonedAction.x = 999;
       }
-      if (moveAction.type === "MoveAction") {
-        expect(moveAction.val.x).toBe(10);
+      if (moveAction._type === "MoveAction") {
+        expect(moveAction.x).toBe(10);
       }
-      if (clonedAction.type === "MoveAction") {
-        expect(clonedAction.val.x).toBe(999);
+      if (clonedAction._type === "MoveAction") {
+        expect(clonedAction.x).toBe(999);
       }
     });
 
@@ -1637,7 +1646,7 @@ export function runNestedValidationTests(Entity: DeltaPackApi<Entity>, GameState
         players: [],
         round: 1,
         metadata: new Map(),
-        lastAction: { type: "InvalidAction", val: {} },
+        lastAction: { _type: "InvalidAction" },
       };
 
       expect(() => GameState.fromJson(invalidState)).toThrow();
@@ -1698,10 +1707,7 @@ export function runDeterminismTests(
     });
 
     it("should produce identical bytes for same union value", () => {
-      const action: GameAction = {
-        type: "AttackAction",
-        val: { targetId: "enemy-1", damage: 50 },
-      };
+      const action: GameAction = { _type: "AttackAction", targetId: "enemy-1", damage: 50 };
 
       const encoded1 = GameAction.encode(action);
       const encoded2 = GameAction.encode(action);

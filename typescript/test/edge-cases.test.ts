@@ -646,34 +646,34 @@ describe("Edge Cases - Union Type Transitions", () => {
   const api = load(UnionHolder);
 
   it("should handle all variant combinations in diff", () => {
-    const actionA1: UnionHolder = { action: { type: "ActionA", val: { value: 1 } } };
-    const actionA2: UnionHolder = { action: { type: "ActionA", val: { value: 2 } } };
-    const actionB1: UnionHolder = { action: { type: "ActionB", val: { name: "test1" } } };
-    const actionB2: UnionHolder = { action: { type: "ActionB", val: { name: "test2" } } };
+    const actionA1: UnionHolder = { action: { _type: "ActionA", value: 1 } };
+    const actionA2: UnionHolder = { action: { _type: "ActionA", value: 2 } };
+    const actionB1: UnionHolder = { action: { _type: "ActionB", name: "test1" } };
+    const actionB2: UnionHolder = { action: { _type: "ActionB", name: "test2" } };
 
     // A -> A (same variant, different value)
     let diff = api.encodeDiff(actionA1, actionA2);
     let decoded = api.decodeDiff(actionA1, diff);
-    expect(decoded.action.type).toBe("ActionA");
-    expect((decoded.action.val as { value: number }).value).toBe(2);
+    expect(decoded.action._type).toBe("ActionA");
+    expect((decoded.action as { value: number }).value).toBe(2);
 
     // A -> B (different variant)
     diff = api.encodeDiff(actionA1, actionB1);
     decoded = api.decodeDiff(actionA1, diff);
-    expect(decoded.action.type).toBe("ActionB");
-    expect((decoded.action.val as { name: string }).name).toBe("test1");
+    expect(decoded.action._type).toBe("ActionB");
+    expect((decoded.action as { name: string }).name).toBe("test1");
 
     // B -> A (different variant)
     diff = api.encodeDiff(actionB1, actionA1);
     decoded = api.decodeDiff(actionB1, diff);
-    expect(decoded.action.type).toBe("ActionA");
-    expect((decoded.action.val as { value: number }).value).toBe(1);
+    expect(decoded.action._type).toBe("ActionA");
+    expect((decoded.action as { value: number }).value).toBe(1);
 
     // B -> B (same variant, different value)
     diff = api.encodeDiff(actionB1, actionB2);
     decoded = api.decodeDiff(actionB1, diff);
-    expect(decoded.action.type).toBe("ActionB");
-    expect((decoded.action.val as { name: string }).name).toBe("test2");
+    expect(decoded.action._type).toBe("ActionB");
+    expect((decoded.action as { name: string }).name).toBe("test2");
   });
 });
 

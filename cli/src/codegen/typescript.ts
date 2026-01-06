@@ -207,7 +207,7 @@ ${decodeDiffBody}
 // ============ Union Renderer ============
 
 function renderUnionType(name: string, options: readonly NamedType[]): string {
-  return `export type ${name} = ${options.map((opt) => `{ type: "${opt.name}"; val: ${opt.name} }`).join(" | ")};`;
+  return `export type ${name} = ${options.map((opt) => `{ _type: "${opt.name}" } & ${opt.name}`).join(" | ")};`;
 }
 
 function renderUnionApi(
@@ -221,55 +221,55 @@ function renderUnionApi(
   const toJsonCases = ifElseChain(
     options,
     (opt, _, p) =>
-      `    ${p}if (obj.type === "${opt.name}") {\n      return { ${opt.name}: ${renderToJson(ctx, opt, opt.name!, "obj.val")} };\n    }`,
+      `    ${p}if (obj._type === "${opt.name}") {\n      return { ${opt.name}: ${renderToJson(ctx, opt, opt.name!, "obj")} };\n    }`,
   );
 
   const cloneCases = ifElseChain(
     options,
     (opt, _, p) =>
-      `    ${p}if (obj.type === "${opt.name}") {\n      return { type: "${opt.name}", val: ${renderClone(ctx, opt, opt.name!, "obj.val")} };\n    }`,
+      `    ${p}if (obj._type === "${opt.name}") {\n      return { _type: "${opt.name}", ...${renderClone(ctx, opt, opt.name!, "obj")} };\n    }`,
   );
 
   const equalsCases = ifElseChain(
     options,
     (opt, _, p) =>
-      `    ${p}if (a.type === "${opt.name}" && b.type === "${opt.name}") {\n      return ${renderEquals(ctx, opt, opt.name!, "a.val", "b.val")};\n    }`,
+      `    ${p}if (a._type === "${opt.name}" && b._type === "${opt.name}") {\n      return ${renderEquals(ctx, opt, opt.name!, "a", "b")};\n    }`,
   );
 
   const encodeCases = ifElseChain(
     options,
     (opt, i, p) =>
-      `    ${p}if (obj.type === "${opt.name}") {\n      encoder.pushEnum(${i}, ${numBits});\n      ${renderEncode(ctx, opt, opt.name!, "obj.val")};\n    }`,
+      `    ${p}if (obj._type === "${opt.name}") {\n      encoder.pushEnum(${i}, ${numBits});\n      ${renderEncode(ctx, opt, opt.name!, "obj")};\n    }`,
   );
 
   const encodeDiffCases = ifElseChain(
     options,
     (opt, i, p) =>
-      `    ${p}if (b.type === "${opt.name}") {\n      if (a.type === "${opt.name}") {\n        ${renderEncodeDiff(ctx, opt, opt.name!, "a.val", "b.val")};\n      } else {\n        encoder.pushEnum(${i}, ${numBits});\n        ${renderEncode(ctx, opt, opt.name!, "b.val")};\n      }\n    }`,
+      `    ${p}if (b._type === "${opt.name}") {\n      if (a._type === "${opt.name}") {\n        ${renderEncodeDiff(ctx, opt, opt.name!, "a", "b")};\n      } else {\n        encoder.pushEnum(${i}, ${numBits});\n        ${renderEncode(ctx, opt, opt.name!, "b")};\n      }\n    }`,
   );
 
   const decodeCases = ifElseChain(
     options,
     (opt, i, p) =>
-      `    ${p}if (type === ${i}) {\n      return { type: "${opt.name}", val: ${renderDecode(ctx, opt, opt.name!)} };\n    }`,
+      `    ${p}if (type === ${i}) {\n      return { _type: "${opt.name}", ...${renderDecode(ctx, opt, opt.name!)} };\n    }`,
   );
 
   const decodeDiffSame = ifElseChain(
     options,
     (opt, _, p) =>
-      `      ${p}if (obj.type === "${opt.name}") {\n        return { type: "${opt.name}", val: ${renderDecodeDiff(ctx, opt, opt.name!, "obj.val")} };\n      }`,
+      `      ${p}if (obj._type === "${opt.name}") {\n        return { _type: "${opt.name}", ...${renderDecodeDiff(ctx, opt, opt.name!, "obj")} };\n      }`,
   );
 
   const decodeDiffNew = ifElseChain(
     options,
     (opt, i, p) =>
-      `      ${p}if (type === ${i}) {\n        return { type: "${opt.name}", val: ${renderDecode(ctx, opt, opt.name!)} };\n      }`,
+      `      ${p}if (type === ${i}) {\n        return { _type: "${opt.name}", ...${renderDecode(ctx, opt, opt.name!)} };\n      }`,
   );
 
   return `
 export const ${name} = {
   default(): ${name} {
-    return { type: "${first.name}", val: ${first.name}.default() };
+    return { _type: "${first.name}", ...${first.name}.default() };
   },
   values() {
     return [${options.map((opt) => `"${opt.name}"`).join(", ")}];
@@ -306,7 +306,7 @@ ${encodeCases}
     return encoder.toBuffer();
   },
   _encodeDiff(a: ${name}, b: ${name}, encoder: _.Encoder): void {
-    encoder.pushBoolean(a.type === b.type);
+    encoder.pushBoolean(a._type === b._type);
 ${encodeDiffCases}
   },
   decode(input: Uint8Array): ${name} {

@@ -280,11 +280,10 @@ export function loadClass<T extends object>(
     }
 
     if (type.type === "union") {
-      // Union values are { type: "VariantName", val: {...} }
-      // Hydrate val to a class instance of the variant type
-      if (obj && typeof obj === "object" && "type" in obj && "val" in obj) {
-        const unionObj = obj as { type: string; val: unknown };
-        return hydrate(unionObj.val, unionObj.type);
+      // Union values are { _type: "VariantName", ...props }
+      // Hydrate props to a class instance of the variant type
+      if (obj && typeof obj === "object" && "_type" in obj && typeof obj._type === "string") {
+        return hydrate(obj, obj._type);
       }
     }
 
@@ -389,19 +388,13 @@ function wrapUnions(
   if (obj == null) return obj;
 
   if (objType.type === "union") {
-    // Check if obj is already in { type, val } format
-    if (
-      typeof obj === "object" &&
-      obj !== null &&
-      "type" in obj &&
-      "val" in obj &&
-      typeof (obj as { type: unknown }).type === "string"
-    ) {
-      const unionVal = obj as { type: string; val: unknown };
-      const variantType = schema[unionVal.type];
+    // Check if obj is already in { _type, ...props } format
+    if (typeof obj === "object" && obj !== null && "_type" in obj && typeof obj._type === "string") {
+      const variantType = schema[obj._type];
+      const wrappedProps = variantType ? wrapUnions(obj, variantType, schema, unionVariants) : obj;
       return {
-        type: unionVal.type,
-        val: variantType ? wrapUnions(unionVal.val, variantType, schema, unionVariants) : unionVal.val,
+        _type: obj._type,
+        ...(wrappedProps as Record<string, unknown>),
       };
     }
 
@@ -411,9 +404,10 @@ function wrapUnions(
       const className = proto.constructor.name;
       if (className && unionVariants.has(className)) {
         const variantType = schema[className];
+        const wrappedProps = variantType ? wrapUnions(obj, variantType, schema, unionVariants) : obj;
         return {
-          type: className,
-          val: variantType ? wrapUnions(obj, variantType, schema, unionVariants) : obj,
+          _type: className,
+          ...(wrappedProps as Record<string, unknown>),
         };
       }
     }

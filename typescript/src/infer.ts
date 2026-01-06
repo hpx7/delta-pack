@@ -89,5 +89,5 @@ type InferComplex<T, Parent extends NamedType, D extends number> = T extends {
 
 // Helper for union type inference
 type InferUnion<V, D extends number> = V extends readonly [infer First extends NamedType, ...infer Rest]
-  ? { type: First["name"]; val: Infer<First, Prev[D]> } | InferUnion<Rest, Prev[D]>
+  ? ({ _type: First["name"] } & Infer<First, Prev[D]>) | InferUnion<Rest, Prev[D]>
   : never;

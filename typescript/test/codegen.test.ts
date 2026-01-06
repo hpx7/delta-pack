@@ -59,7 +59,7 @@ describe("Delta Pack Codegen - Unified API", () => {
 
     it("should create default GameAction", () => {
       const defaultAction = apis.GameAction.default();
-      expect(defaultAction.type).toBe("MoveAction");
+      expect(defaultAction._type).toBe("MoveAction");
     });
 
     it("should create default game state", () => {
