@@ -1,12 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "noEmit": false,
-    "declaration": false,
-    "outDir": "dist",
-    "rootDir": ".",
-    "paths": {},
     "allowJs": true
   },
-  "include": ["run.ts", "run-node.ts", "build.ts", "generated/**/*.ts", "generated/**/*.js"]
+  "include": ["*.ts", "generated/**/*.ts", "generated/**/*.js"]
 }

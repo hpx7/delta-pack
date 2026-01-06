@@ -58,13 +58,9 @@ async function main() {
   fs.writeFileSync(`${generatedDir}/protobuf/index.ts`, protobufIndexContent);
   console.log(`Generated ${generatedDir}/protobuf/index.ts`);
 
-  // Build browser bundle
-  await esbuild.build({
-    entryPoints: [path.join(__dirname, "run-browser.ts")],
-    outfile: path.join(__dirname, "dist/run-browser.js"),
+  const sharedOptions: esbuild.BuildOptions = {
     bundle: true,
     format: "esm",
-    platform: "browser",
     target: "es2020",
     minify: false,
     sourcemap: true,
@@ -72,6 +68,24 @@ async function main() {
       "@hpx7/delta-pack/runtime": path.join(__dirname, "../src/runtime.ts"),
       "@hpx7/delta-pack": path.join(__dirname, "../src/index.ts"),
     },
+  };
+
+  // Build node bundle
+  await esbuild.build({
+    ...sharedOptions,
+    entryPoints: [path.join(__dirname, "run-node.ts")],
+    outfile: path.join(__dirname, "dist/run-node.js"),
+    platform: "node",
+    packages: "external",
+  });
+  console.log("Built benchmark/dist/run-node.js");
+
+  // Build browser bundle
+  await esbuild.build({
+    ...sharedOptions,
+    entryPoints: [path.join(__dirname, "run-browser.ts")],
+    outfile: path.join(__dirname, "dist/run-browser.js"),
+    platform: "browser",
   });
   console.log("Built benchmark/dist/run-browser.js");
 }

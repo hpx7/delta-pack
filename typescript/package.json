@@ -48,7 +48,7 @@
     "test:coverage": "npm run test:gen && vitest run --coverage",
     "test:ui": "npm run test:gen && vitest --ui",
     "bench:gen": "tsx benchmark/build.ts",
-    "bench:build": "npm run bench:gen && tsc -p benchmark/tsconfig.json",
+    "bench:build": "npm run bench:gen",
     "bench": "node benchmark/dist/run-node.js",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
