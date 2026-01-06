@@ -14,8 +14,11 @@ on:
 
 jobs:
   test:
-    name: Test typescript delta-pack package
-    runs-on: ubuntu-latest
+    name: Test typescript (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     defaults:
       run:
         working-directory: typescript
@@ -45,6 +48,6 @@ jobs:
       - name: Run benchmarks
         run: |
           npm run bench:build
-          echo "# TypeScript Benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo "# TypeScript Benchmarks (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           node benchmark/dist/run-node.js >> $GITHUB_STEP_SUMMARY

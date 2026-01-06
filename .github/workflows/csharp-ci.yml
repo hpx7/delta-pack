@@ -14,8 +14,11 @@ on:
 
 jobs:
   test:
-    name: Test C# delta-pack package
-    runs-on: ubuntu-latest
+    name: Test csharp (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     defaults:
       run:
         working-directory: csharp
@@ -34,8 +37,12 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Build and install delta-pack CLI
         run: cd ../cli && bun install && bun run build && npm link
-      - name: Install protoc
+      - name: Install protoc (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt-get install -y protobuf-compiler
+      - name: Install protoc (macOS)
+        if: runner.os == 'macOS'
+        run: brew install protobuf
       - name: Restore dependencies
         run: dotnet restore
       - name: Check formatting
@@ -48,6 +55,6 @@ jobs:
         run: dotnet test --no-build --verbosity normal
       - name: Run benchmarks
         run: |
-          echo "# C# Benchmarks" >> $GITHUB_STEP_SUMMARY
+          echo "# C# Benchmarks (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           dotnet run -c Release --project benchmarks >> $GITHUB_STEP_SUMMARY
