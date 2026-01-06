@@ -1,19 +1,13 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import * as url from "node:url";
 import * as msgpack from "msgpackr";
 import type { DeltaPackApi } from "@hpx7/delta-pack";
 import * as deltapack from "./generated/deltapack/index.js";
 import * as protobuf from "./generated/protobuf/index.js";
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const examplesDir = path.join(__dirname, "../../../examples");
 const WARMUP_ITERATIONS = 1000;
 const BENCHMARK_DURATION_MS = 500;
 
 interface ProtobufType {
   fromObject: (object: unknown) => unknown;
-  toObject: (message: unknown, options?: object) => unknown;
   encode: (message: unknown) => { finish: () => Uint8Array };
   decode: (data: Uint8Array) => unknown;
 }
@@ -26,7 +20,7 @@ interface Example {
 interface StateData {
   typedState: unknown;
   plainState: unknown;
-  jsonEncoded: string;
+  jsonEncoded: Uint8Array;
   msgpackEncoded: Uint8Array;
   deltaPackEncoded: Uint8Array;
   protobufEncoded: Uint8Array;
@@ -35,26 +29,28 @@ interface StateData {
   protobufType: ProtobufType;
 }
 
-function main() {
-  const filter = process.argv.slice(2);
-  let examples = loadExamples();
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
-  if (filter.length > 0) {
+export function runBenchmarks(exampleData: Record<string, object[]>, filter?: string[]) {
+  let examples = loadExamples(exampleData);
+
+  if (filter && filter.length > 0) {
     examples = examples.filter((e) => filter.some((f) => e.name.toLowerCase().includes(f.toLowerCase())));
     if (examples.length === 0) {
       console.error(`No examples match filter: ${filter.join(", ")}`);
       console.error(
-        `Available: ${loadExamples()
+        `Available: ${loadExamples(exampleData)
           .map((e) => e.name)
           .join(", ")}`
       );
-      process.exit(1);
+      return;
     }
   }
 
-  console.error("Warming up...");
+  console.log("Warming up...");
   globalWarmup(examples);
-  console.error("Running benchmarks...\n");
+  console.log("Running benchmarks...\n");
 
   console.log("## Encoding Speed Comparison (ops/s)\n");
   console.log("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
@@ -70,14 +66,14 @@ function globalWarmup(examples: Example[]) {
     for (const state of example.states) {
       // Warmup encode
       for (let i = 0; i < WARMUP_ITERATIONS; i++) {
-        Buffer.from(JSON.stringify(state.plainState));
+        textEncoder.encode(JSON.stringify(state.plainState));
         msgpack.pack(state.plainState);
         state.protobufType.encode(state.protobufMessage).finish();
         state.api.encode(state.typedState);
       }
       // Warmup decode
       for (let i = 0; i < WARMUP_ITERATIONS; i++) {
-        JSON.parse(state.jsonEncoded);
+        JSON.parse(textDecoder.decode(state.jsonEncoded));
         msgpack.unpack(state.msgpackEncoded);
         state.protobufType.decode(state.protobufEncoded);
         state.api.decode(state.deltaPackEncoded);
@@ -98,7 +94,7 @@ function runEncodeBenchmarks(examples: Example[]) {
     };
 
     for (const state of example.states) {
-      results["JSON"]!.push(measureOpsPerSecond(() => Buffer.from(JSON.stringify(state.plainState))));
+      results["JSON"]!.push(measureOpsPerSecond(() => textEncoder.encode(JSON.stringify(state.plainState))));
       results["MessagePack"]!.push(measureOpsPerSecond(() => msgpack.pack(state.plainState)));
       results["Protobuf"]!.push(measureOpsPerSecond(() => state.protobufType.encode(state.protobufMessage).finish()));
       results["DeltaPack"]!.push(measureOpsPerSecond(() => state.api.encode(state.typedState)));
@@ -121,7 +117,7 @@ function runDecodeBenchmarks(examples: Example[]) {
     };
 
     for (const state of example.states) {
-      results["JSON"]!.push(measureOpsPerSecond(() => JSON.parse(state.jsonEncoded)));
+      results["JSON"]!.push(measureOpsPerSecond(() => JSON.parse(textDecoder.decode(state.jsonEncoded))));
       results["MessagePack"]!.push(measureOpsPerSecond(() => msgpack.unpack(state.msgpackEncoded)));
       results["Protobuf"]!.push(measureOpsPerSecond(() => state.protobufType.decode(state.protobufEncoded)));
       results["DeltaPack"]!.push(measureOpsPerSecond(() => state.api.decode(state.deltaPackEncoded)));
@@ -183,33 +179,23 @@ function formatOps(ops: number): string {
   return ops.toFixed(0);
 }
 
-function loadExamples(): Example[] {
+function loadExamples(exampleData: Record<string, object[]>): Example[] {
   const examples: Example[] = [];
 
   for (const [name, api] of Object.entries(deltapack) as [string, DeltaPackApi<unknown>][]) {
     const protobufType = (protobuf as unknown as Record<string, Record<string, unknown>>)[name]?.[name] as ProtobufType;
-
-    const exampleDir = `${examplesDir}/${name}`;
-    const stateFiles = fs
-      .readdirSync(exampleDir)
-      .filter((f) => f.match(/^state\d+\.json$/))
-      .sort((a, b) => {
-        const numA = parseInt(a.match(/\d+/)![0]!);
-        const numB = parseInt(b.match(/\d+/)![0]!);
-        return numA - numB;
-      });
+    const stateJsons = exampleData[name];
+    if (!stateJsons) continue;
 
     const states: StateData[] = [];
-    for (const file of stateFiles) {
-      const json = fs.readFileSync(`${exampleDir}/${file}`, "utf8");
-      const plainState = JSON.parse(json);
+    for (const plainState of stateJsons) {
       const typedState = api.fromJson(plainState);
       const protobufMessage = protobufType.fromObject(plainState);
 
       states.push({
         typedState,
         plainState,
-        jsonEncoded: JSON.stringify(plainState),
+        jsonEncoded: textEncoder.encode(JSON.stringify(plainState)),
         msgpackEncoded: msgpack.pack(plainState),
         deltaPackEncoded: api.encode(typedState),
         protobufEncoded: protobufType.encode(protobufMessage).finish(),
@@ -226,5 +212,3 @@ function loadExamples(): Example[] {
 
   return examples;
 }
-
-main();

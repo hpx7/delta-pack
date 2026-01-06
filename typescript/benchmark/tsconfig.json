@@ -8,5 +8,5 @@
     "paths": {},
     "allowJs": true
   },
-  "include": ["run.ts", "build.ts", "generated/**/*.ts", "generated/**/*.js"]
+  "include": ["run.ts", "run-node.ts", "build.ts", "generated/**/*.ts", "generated/**/*.js"]
 }

@@ -1,7 +1,12 @@
 import * as fs from "node:fs";
+import * as path from "node:path";
+import * as url from "node:url";
+import * as esbuild from "esbuild";
 import { parseSchemaYml } from "@hpx7/delta-pack";
 import { codegenTypescript } from "@hpx7/delta-pack-cli/codegen";
 import * as pbjs from "protobufjs-cli/pbjs.js";
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 const examplesDir = "../examples";
 const generatedDir = "./benchmark/generated";
@@ -52,6 +57,23 @@ async function main() {
     generatedExamples.map((e) => `export { ${e.toLowerCase()} as ${e} } from "./${e}.js";`).join("\n") + "\n";
   fs.writeFileSync(`${generatedDir}/protobuf/index.ts`, protobufIndexContent);
   console.log(`Generated ${generatedDir}/protobuf/index.ts`);
+
+  // Build browser bundle
+  await esbuild.build({
+    entryPoints: [path.join(__dirname, "run-browser.ts")],
+    outfile: path.join(__dirname, "dist/run-browser.js"),
+    bundle: true,
+    format: "esm",
+    platform: "browser",
+    target: "es2020",
+    minify: false,
+    sourcemap: true,
+    alias: {
+      "@hpx7/delta-pack/runtime": path.join(__dirname, "../src/runtime.ts"),
+      "@hpx7/delta-pack": path.join(__dirname, "../src/index.ts"),
+    },
+  });
+  console.log("Built benchmark/dist/run-browser.js");
 }
 
 function runPbjs(args: string[]): Promise<string> {
