@@ -47,16 +47,13 @@
     "test": "npm run test:gen && vitest run",
     "test:coverage": "npm run test:gen && vitest run --coverage",
     "test:ui": "npm run test:gen && vitest --ui",
-    "bench:gen": "tsx benchmark/build.ts",
-    "bench:build": "npm run bench:gen",
-    "bench": "node benchmark/dist/run-node.js",
+    "bench:build": "tsx benchmark/build.ts",
+    "bench": "npm run bench:build && node benchmark/dist/run-node.js",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "bin-serde": "^1.7.9",
     "reflect-metadata": "^0.2.2",
-    "utf8-buffer-size": "^0.0.4",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

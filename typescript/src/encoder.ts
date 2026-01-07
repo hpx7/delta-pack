@@ -1,77 +1,86 @@
-import { Writer } from "bin-serde";
-import utf8BufferSize from "utf8-buffer-size";
 import { equalsFloat, equalsArray, equalsRecord } from "./helpers.js";
-import { RleEncoder } from "./rle.js";
+import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, RleWriter } from "./serde.js";
 
 export class Encoder {
   private static _instance: Encoder | null = null;
 
-  private dict: string[] = [];
-  private rle = new RleEncoder();
-  private writer = new Writer();
+  private bytes = allocFromSlab(256);
+  private pos!: number;
+  private dict!: string[];
+  private rle = new RleWriter();
 
   static create(): Encoder {
     const enc = Encoder._instance ?? new Encoder();
     Encoder._instance = null;
+    enc.pos = 0;
     enc.dict = [];
     enc.rle.reset();
-    enc.writer.reset();
     return enc;
   }
   private constructor() {}
 
   pushString(val: string) {
     if (val === "") {
-      this.writer.writeVarint(0);
+      this.writeVarint(0);
       return;
     }
     const idx = this.dict.indexOf(val);
     if (idx < 0) {
       this.dict.push(val);
-      const len = utf8BufferSize(val);
-      this.writer.writeVarint(len);
-      this.writer.writeStringUtf8(val, len);
+      const len = utf8Size(val);
+      this.writeVarint(len);
+      this.writeStringUtf8(val, len);
     } else {
-      this.writer.writeVarint(-idx - 1);
+      this.writeVarint(-idx - 1);
     }
   }
+
   pushInt(val: number) {
-    this.writer.writeVarint(val);
+    this.writeVarint(val);
   }
+
   pushBoundedInt(val: number, min: number) {
-    this.writer.writeUVarint(val - min);
+    this.writeUVarint(val - min);
   }
+
   pushFloat(val: number) {
-    this.writer.writeFloat(val);
+    this.writeFloat(val);
   }
+
   pushFloatQuantized(val: number, precision: number) {
     this.pushInt(Math.round(val / precision));
   }
+
   pushBoolean(val: boolean) {
     this.rle.pushBit(val);
   }
+
   pushEnum(val: number, numBits: number) {
     this.rle.pushBits(val, numBits);
   }
+
   pushOptional<T>(val: T | undefined, innerWrite: (x: T) => void) {
     this.pushBoolean(val != null);
     if (val != null) {
       innerWrite(val);
     }
   }
+
   pushArray<T>(val: T[], innerWrite: (x: T) => void) {
-    this.writer.writeUVarint(val.length);
+    this.writeUVarint(val.length);
     for (const item of val) {
       innerWrite(item);
     }
   }
+
   pushRecord<K, T>(val: Map<K, T>, innerKeyWrite: (x: K) => void, innerValWrite: (x: T) => void) {
-    this.writer.writeUVarint(val.size);
+    this.writeUVarint(val.size);
     for (const [key, value] of val) {
       innerKeyWrite(key);
       innerValWrite(value);
     }
   }
+
   pushStringDiff(a: string, b: string) {
     if (!this.dict.includes(a)) {
       this.dict.push(a);
@@ -81,16 +90,18 @@ export class Encoder {
       this.pushString(b);
     }
   }
+
   pushIntDiff(a: number, b: number) {
     this.pushBoolean(a !== b);
     if (a !== b) {
       this.pushInt(b);
     }
   }
+
   pushBoundedIntDiff(a: number, b: number, min: number) {
     this.pushBoolean(a !== b);
     if (a !== b) {
-      this.writer.writeUVarint(b - min);
+      this.writeUVarint(b - min);
     }
   }
   pushFloatDiff(a: number, b: number) {
@@ -100,18 +111,22 @@ export class Encoder {
       this.pushFloat(b);
     }
   }
+
   pushFloatQuantizedDiff(a: number, b: number, precision: number) {
     this.pushIntDiff(Math.round(a / precision), Math.round(b / precision));
   }
+
   pushBooleanDiff(a: boolean, b: boolean) {
     this.pushBoolean(a !== b);
   }
+
   pushEnumDiff(a: number, b: number, numBits: number) {
     this.pushBoolean(a !== b);
     if (a !== b) {
       this.pushEnum(b, numBits);
     }
   }
+
   pushOptionalDiffPrimitive<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void) {
     if (a == null) {
       this.pushBoolean(b != null);
@@ -133,6 +148,7 @@ export class Encoder {
       }
     }
   }
+
   pushOptionalDiff<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void, encodeDiff: (a: T, b: T) => void) {
     if (a == null) {
       this.pushBoolean(b != null);
@@ -150,6 +166,7 @@ export class Encoder {
       // else value → null
     }
   }
+
   pushArrayDiff<T>(
     a: T[],
     b: T[] & { _dirty?: Set<number> },
@@ -163,7 +180,7 @@ export class Encoder {
     if (!changed) {
       return;
     }
-    this.writer.writeUVarint(b.length);
+    this.writeUVarint(b.length);
     const minLen = Math.min(a.length, b.length);
     for (let i = 0; i < minLen; i++) {
       const elementChanged = dirty != null ? dirty.has(i) : !equals(a[i]!, b[i]!);
@@ -176,6 +193,7 @@ export class Encoder {
       encode(b[i]!);
     }
   }
+
   pushRecordDiff<K, T>(
     a: Map<K, T>,
     b: Map<K, T> & { _dirty?: Set<K> },
@@ -190,12 +208,10 @@ export class Encoder {
     if (!changed) {
       return;
     }
-
     const orderedKeys = [...a.keys()].sort();
     const updates: number[] = [];
     const deletions: number[] = [];
     const additions: [K, T][] = [];
-
     if (dirty != null) {
       // With dirty tracking: only process dirty keys
       dirty.forEach((dirtyKey) => {
@@ -229,28 +245,79 @@ export class Encoder {
         }
       });
     }
-
     if (a.size > 0) {
-      this.writer.writeUVarint(deletions.length);
+      this.writeUVarint(deletions.length);
       deletions.forEach((idx) => {
-        this.writer.writeUVarint(idx);
+        this.writeUVarint(idx);
       });
-      this.writer.writeUVarint(updates.length);
+      this.writeUVarint(updates.length);
       updates.forEach((idx) => {
-        this.writer.writeUVarint(idx);
+        this.writeUVarint(idx);
         const key = orderedKeys[idx]!;
         encodeDiff(a.get(key)!, b.get(key)!);
       });
     }
-    this.writer.writeUVarint(additions.length);
+    this.writeUVarint(additions.length);
     additions.forEach(([key, val]) => {
       encodeKey(key);
       encodeVal(val);
     });
   }
+
   toBuffer() {
-    this.rle.finalize(this.writer);
+    const rleBytes = this.rle.toBytes();
+    this.ensureSize(rleBytes.length);
+    for (let i = 0; i < rleBytes.length; i++) {
+      this.bytes[this.pos++] = rleBytes[i]!;
+    }
     Encoder._instance = this;
-    return this.writer.toBuffer();
+    return copyBuffer(this.bytes.subarray(0, this.pos));
+  }
+
+  private writeVarint(val: number) {
+    const encoded = val >= 0 ? val * 2 : val * -2 - 1;
+    this.writeUVarint(encoded);
+  }
+
+  private writeUVarint(val: number) {
+    if (val <= 0xfffffff) {
+      this.ensureSize(4);
+      while (val >= 0x80) {
+        this.bytes[this.pos++] = (val & 0x7f) | 0x80;
+        val >>>= 7;
+      }
+    } else {
+      this.ensureSize(8);
+      while (val >= 0x80) {
+        this.bytes[this.pos++] = (val & 0x7f) | 0x80;
+        val = Math.floor(val / 128);
+      }
+    }
+    this.bytes[this.pos++] = val;
+  }
+
+  private writeFloat(val: number) {
+    this.ensureSize(4);
+    floatWrite(val, this.bytes, this.pos);
+    this.pos += 4;
+  }
+
+  private writeStringUtf8(val: string, len: number) {
+    this.ensureSize(len);
+    utf8Write(val, this.bytes, this.pos, len);
+    this.pos += len;
+  }
+
+  private ensureSize(size: number) {
+    if (this.bytes.length >= this.pos + size) {
+      return;
+    }
+    let newSize = this.bytes.length * 2;
+    while (newSize < this.pos + size) {
+      newSize *= 2;
+    }
+    const newBytes = allocFromSlab(newSize);
+    newBytes.set(this.bytes);
+    this.bytes = newBytes;
   }
 }
