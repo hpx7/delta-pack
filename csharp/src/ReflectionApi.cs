@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using System.Text.Json;
 
 namespace DeltaPack;
 
@@ -83,6 +84,11 @@ public sealed class DeltaPackCodec<T> where T : class
     private readonly Func<T>? _factory;
 
     /// <summary>
+    /// The schema generated from type T. Useful for debugging or inspection.
+    /// </summary>
+    public IReadOnlyDictionary<string, SchemaType> Schema { get; }
+
+    /// <summary>
     /// Creates a new codec for type T.
     /// Call this during initialization (e.g., loading screen), not in hot paths.
     /// </summary>
@@ -96,10 +102,10 @@ public sealed class DeltaPackCodec<T> where T : class
     {
         var builder = new SchemaBuilder();
         _rootMapping = builder.BuildMapping(typeof(T));
-        var schema = builder.GetSchema();
+        Schema = builder.GetSchema();
         _mappings = builder.GetMappings();
         _factories = builder.GetFactories();
-        _api = Interpreter.Load<object?>(schema, typeof(T).Name);
+        _api = Interpreter.Load<object?>(Schema, typeof(T).Name);
         // Union types don't need a factory - variants are created directly
         _factory = _rootMapping is UnionMapping ? null : (factory ?? CreateDefaultFactory());
     }
@@ -128,6 +134,10 @@ public sealed class DeltaPackCodec<T> where T : class
         _api.Equals(ToUntyped(a, _rootMapping), ToUntyped(b, _rootMapping));
 
     public T Clone(T obj) => ToTyped(_api.Clone(ToUntyped(obj, _rootMapping)), _rootMapping);
+
+    public T FromJson(JsonElement json) => ToTyped(_api.FromJson(json), _rootMapping);
+
+    public JsonElement ToJson(T obj) => _api.ToJson(ToUntyped(obj, _rootMapping));
 
     private object? ToUntyped(object? obj, TypeMapping mapping)
     {

@@ -151,7 +151,7 @@ public class Player
 Define polymorphic types:
 
 ```csharp
-[DeltaPackUnion(typeof(Sword), typeof(Bow), typeof(Staff))]
+[DeltaPackUnion(typeof(Sword), typeof(Bow))]
 public abstract class Weapon
 {
     public string Name { get; set; } = "";
@@ -181,6 +181,9 @@ public class Bow : Weapon
 | `DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b                |
 | `Equals(T a, T b)`             | Deep equality comparison                    |
 | `Clone(T obj)`                 | Deep clone                                  |
+| `FromJson(JsonElement json)`   | Deserialize from JSON                       |
+| `ToJson(T obj)`                | Serialize to JSON                           |
+| `Schema`                       | The generated schema (for debugging)        |
 
 ### Custom Factory
 

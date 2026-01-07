@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Xunit;
 
 namespace DeltaPack.Tests;
@@ -19,6 +20,18 @@ public class ReflectionApiTests
     {
         var schema = ReflectionSchema.BuildSchema<Player>();
         var player = (ObjectType)schema["Player"];
+
+        Assert.Equal(3, player.Properties.Count);
+        Assert.IsType<StringType>(player.Properties["name"]);
+        Assert.IsType<IntType>(player.Properties["score"]);
+        Assert.IsType<BooleanType>(player.Properties["active"]);
+    }
+
+    [Fact]
+    public void Codec_ExposesSchema()
+    {
+        var codec = new DeltaPackCodec<Player>();
+        var player = (ObjectType)codec.Schema["Player"];
 
         Assert.Equal(3, player.Properties.Count);
         Assert.IsType<StringType>(player.Properties["name"]);
@@ -148,6 +161,33 @@ public class ReflectionApiTests
         Assert.Equal("Alice", decoded.Name);
         Assert.Equal(100, decoded.Score);
         Assert.True(decoded.Active);
+    }
+
+    [Fact]
+    public void SimpleObject_JsonRoundTrips()
+    {
+        var codec = new DeltaPackCodec<Player>();
+        var player = new Player { Name = "Alice", Score = 100, Active = true };
+
+        var json = codec.ToJson(player);
+        var fromJson = codec.FromJson(json);
+
+        Assert.Equal("Alice", fromJson.Name);
+        Assert.Equal(100, fromJson.Score);
+        Assert.True(fromJson.Active);
+    }
+
+    [Fact]
+    public void SimpleObject_FromJsonString()
+    {
+        var codec = new DeltaPackCodec<Player>();
+        var json = JsonDocument.Parse("""{"name": "Bob", "score": 50, "active": false}""").RootElement;
+
+        var player = codec.FromJson(json);
+
+        Assert.Equal("Bob", player.Name);
+        Assert.Equal(50, player.Score);
+        Assert.False(player.Active);
     }
 
     // Nested objects
@@ -815,23 +855,6 @@ public class ReflectionApiTests
 
         Assert.Equal("first", result.Value);
         Assert.Equal("modified", result.Next!.Value);
-    }
-
-    // Custom factory for types without parameterless constructors
-    public class ImmutablePlayer
-    {
-        public string Name { get; }
-        public int Score { get; }
-
-        public ImmutablePlayer(string name, int score)
-        {
-            Name = name;
-            Score = score;
-        }
-
-        // Private setters for deserialization
-        private string _name = "";
-        private int _score;
     }
 
     // Union types with explicit variants
