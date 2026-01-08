@@ -407,6 +407,17 @@ export function runPositionTests(Position: DeltaPackApi<Position>) {
       expect(Position.equals(result, pos1)).toBe(true);
     });
 
+    it("should encode minimal diff for floats within same precision bucket", () => {
+      const pos1 = { x: 100.01, y: 200.02 };
+      const pos2 = { x: 100.04, y: 200.04 }; // same after 0.1 quantization (both round to 100.0, 200.0)
+
+      const noDiff = Position.encodeDiff(pos1, pos2);
+      // Should be minimal - just "no change" flag
+      // Compare against an actual change to verify optimization works
+      const actualChange = Position.encodeDiff(pos1, { x: 100.5, y: 200.5 });
+      expect(noDiff.length).toBeLessThan(actualChange.length);
+    });
+
     it("should use less bandwidth than full precision for small changes", () => {
       const pos1 = { x: 100.0, y: 200.0 };
       const pos2 = { x: 100.5, y: 200.3 };
@@ -1264,7 +1275,7 @@ export function runDirtyTrackingTests(Player: DeltaPackApi<Player>, GameState: D
       expect(GameState.equals(decoded, state2)).toBe(true);
     });
 
-    it("should support dirty tracking for records", () => {
+    it("should support dirty tracking for record updates", () => {
       const state1: GameState = {
         players: [],
         currentPlayer: "p1",
@@ -1272,24 +1283,65 @@ export function runDirtyTrackingTests(Player: DeltaPackApi<Player>, GameState: D
         metadata: new Map([
           ["mode", "classic"],
           ["difficulty", "hard"],
-          ["map", "desert"],
         ]),
       };
 
-      const metadata = state1.metadata;
+      const metadata: GameState["metadata"] = new Map(state1.metadata);
       metadata.set("mode", "ranked");
       metadata._dirty = new Set(["mode"]);
 
-      const state2: GameState = {
-        ...state1,
-        metadata,
-      };
+      const state2: GameState = { ...state1, metadata };
 
       const diff = GameState.encodeDiff(state1, state2);
       const decoded = GameState.decodeDiff(state1, diff);
 
       expect(decoded.metadata.get("mode")).toBe("ranked");
       expect(GameState.equals(decoded, state2)).toBe(true);
+    });
+
+    it("should support dirty tracking for record additions", () => {
+      const state1: GameState = {
+        players: [],
+        currentPlayer: "p1",
+        round: 1,
+        metadata: new Map([["mode", "classic"]]),
+      };
+
+      const metadata: GameState["metadata"] = new Map(state1.metadata);
+      metadata.set("newKey", "newValue");
+      metadata._dirty = new Set(["newKey"]);
+
+      const state2: GameState = { ...state1, metadata };
+
+      const diff = GameState.encodeDiff(state1, state2);
+      const decoded = GameState.decodeDiff(state1, diff);
+
+      expect(decoded.metadata.get("newKey")).toBe("newValue");
+      expect(decoded.metadata.size).toBe(2);
+    });
+
+    it("should support dirty tracking for record deletions", () => {
+      const state1: GameState = {
+        players: [],
+        currentPlayer: "p1",
+        round: 1,
+        metadata: new Map([
+          ["mode", "classic"],
+          ["toDelete", "value"],
+        ]),
+      };
+
+      const metadata: GameState["metadata"] = new Map(state1.metadata);
+      metadata.delete("toDelete");
+      metadata._dirty = new Set(["toDelete"]);
+
+      const state2: GameState = { ...state1, metadata };
+
+      const diff = GameState.encodeDiff(state1, state2);
+      const decoded = GameState.decodeDiff(state1, diff);
+
+      expect(decoded.metadata.has("toDelete")).toBe(false);
+      expect(decoded.metadata.size).toBe(1);
     });
   });
 }

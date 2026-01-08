@@ -44,7 +44,7 @@ jobs:
       - name: Format check
         run: npm run format:check
       - name: Run tests
-        run: npm test
+        run: npm run test:coverage
       - name: Run benchmarks
         run: |
           npm run bench:build

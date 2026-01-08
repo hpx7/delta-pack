@@ -512,7 +512,7 @@ function renderEquals(
     case "optional":
       return `_.equalsOptional(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")})`;
     case "record":
-      return `_.equalsRecord(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.key, name, "x", "y")}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")})`;
+      return `_.equalsRecord(${a}, ${b}, (x, y) => x === y, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")})`;
     case "reference":
       return renderEquals(ctx, type.ref, type.ref.name!, a, b);
     case "self-reference":

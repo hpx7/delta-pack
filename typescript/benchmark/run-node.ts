@@ -1,10 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import * as url from "node:url";
 import { runBenchmarks } from "./run.js";
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const examplesDir = path.join(__dirname, "../../../examples");
+const examplesDir = path.join(process.cwd(), "../examples");
 
 function loadExampleData(): Record<string, object[]> {
   const data: Record<string, object[]> = {};
