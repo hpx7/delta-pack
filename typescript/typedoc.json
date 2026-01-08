@@ -1,0 +1,19 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "name": "Delta-Pack",
+  "readme": "README.md",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "includeVersion": true,
+  "navigationLinks": {
+    "GitHub": "https://github.com/hpx7/delta-pack"
+  },
+  "githubPages": true,
+  "sort": ["source-order"],
+  "validation": {
+    "invalidLink": true
+  },
+  "gitRevision": "main"
+}

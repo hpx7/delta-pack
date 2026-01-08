@@ -32,6 +32,58 @@ interface UnresolvedUnion {
 
 type ParsedType = Type | UnresolvedReference | UnresolvedUnion;
 
+/**
+ * Parse a YAML schema definition into Delta-Pack type objects.
+ *
+ * This function converts a YAML schema string into a record of named types
+ * that can be passed to {@link load}. Use this when you want to define
+ * schemas in YAML files rather than TypeScript code.
+ *
+ * @param yamlContent - The YAML schema as a string
+ * @returns A record mapping type names to their parsed {@link NamedType} definitions
+ *
+ * @example
+ * ```ts
+ * const yaml = `
+ * Position:
+ *   x: float(precision=0.01)
+ *   y: float(precision=0.01)
+ *
+ * Player:
+ *   name: string
+ *   score: uint
+ *   position: Position
+ *
+ * Direction:
+ *   - up
+ *   - down
+ *   - left
+ *   - right
+ * `;
+ *
+ * const types = parseSchemaYml(yaml);
+ * const api = load<Player>(types.Player);
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Load schema from file
+ * import { readFileSync } from "fs";
+ *
+ * const schema = parseSchemaYml(readFileSync("schema.yml", "utf-8"));
+ * const api = load(schema.GameState);
+ * ```
+ *
+ * @remarks
+ * YAML schema syntax:
+ * - **Objects**: Key-value pairs where values are property types
+ * - **Enums**: Arrays of string literals
+ * - **Unions**: Arrays where all items are references to other schema types
+ * - **Primitives**: `string`, `int`, `uint`, `float`, `boolean`
+ * - **Parameterized**: `int(min=0, max=100)`, `float(precision=0.01)`
+ * - **Containers**: `Type[]` (array), `Type?` (optional), `<Key, Value>` (record)
+ * - **References**: Use the type name directly (e.g., `position: Position`)
+ */
 export function parseSchemaYml(yamlContent: string): Record<string, NamedType> {
   // the yaml schema is a mapping from type names to type definitions
   const rawSchema: Record<string, unknown> = yaml.parse(yamlContent);

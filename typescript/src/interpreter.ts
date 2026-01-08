@@ -3,22 +3,95 @@ import { NamedType, Type } from "./schema.js";
 import type { Infer } from "./infer.js";
 import { compileEncodeDecode } from "./jit.js";
 
+/**
+ * The serialization API returned by {@link load} for a given schema type.
+ * Provides methods for encoding, decoding, delta compression, and object utilities.
+ *
+ * @typeParam T - The TypeScript type that this API serializes
+ *
+ * @example
+ * ```ts
+ * const GameState = ObjectType("GameState", {
+ *   score: IntType(),
+ *   players: ArrayType(StringType()),
+ * });
+ *
+ * const api: DeltaPackApi<{ score: number; players: string[] }> = load(GameState);
+ *
+ * const encoded = api.encode({ score: 100, players: ["alice"] });
+ * const decoded = api.decode(encoded);
+ * ```
+ */
 export type DeltaPackApi<T> = {
+  /** Parse a JSON object into the typed representation, with lenient type coercion */
   fromJson: (obj: object) => T;
+  /** Convert a typed object to a JSON-serializable representation */
   toJson: (obj: T) => Record<string, unknown>;
+  /** Encode an object to a compact binary format */
   encode: (obj: T) => Uint8Array;
+  /** Decode a binary buffer back to an object */
   decode: (buf: Uint8Array) => T;
+  /** Encode only the differences between two objects (delta compression) */
   encodeDiff: (a: T, b: T) => Uint8Array;
+  /** Apply a delta to a base object to produce the updated object */
   decodeDiff: (a: T, diff: Uint8Array) => T;
+  /** Deep equality comparison that respects float precision settings */
   equals: (a: T, b: T) => boolean;
+  /** Create a deep clone of an object */
   clone: (obj: T) => T;
 };
 
 type UnionVal = { _type: string; [k: string]: unknown };
 
-// Overload for type inference (when using TypeScript-defined schemas)
+/**
+ * Create a {@link DeltaPackApi} from a schema definition.
+ *
+ * This is the main entry point for using Delta-Pack in interpreter mode.
+ * Pass a schema type (created with {@link ObjectType}, {@link UnionType}, or {@link EnumType})
+ * to get back an API for serializing objects of that type.
+ *
+ * @typeParam T - Automatically inferred from the schema, or explicitly specified
+ * @param rootType - The root schema type (must be a named type: object, union, or enum)
+ * @returns A {@link DeltaPackApi} for encoding/decoding objects of the schema type
+ *
+ * @example
+ * ```ts
+ * // Define a schema using type constructors
+ * const Player = ObjectType("Player", {
+ *   name: StringType(),
+ *   score: IntType({ min: 0 }),
+ *   position: ObjectType("Position", {
+ *     x: FloatType({ precision: 0.01 }),
+ *     y: FloatType({ precision: 0.01 }),
+ *   }),
+ * });
+ *
+ * // Load the schema to get the API (type is inferred)
+ * const api = load(Player);
+ *
+ * // Use the API
+ * const player = { name: "Alice", score: 100, position: { x: 1.5, y: 2.5 } };
+ * const encoded = api.encode(player);
+ * const decoded = api.decode(encoded);
+ *
+ * // Delta compression for state sync
+ * const updated = { ...player, score: 150 };
+ * const diff = api.encodeDiff(player, updated);
+ * const applied = api.decodeDiff(player, diff);
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Load from parsed YAML schema with explicit type
+ * const schema = parseSchemaYml(yamlString);
+ * const api = load<MyType>(schema);
+ * ```
+ */
 export function load<T extends NamedType>(rootType: T): DeltaPackApi<Infer<T>>;
-// Overload for explicit type specification (useful when loading from parsed YAML schemas)
+/**
+ * Create a {@link DeltaPackApi} with an explicit type parameter.
+ * Useful when loading schemas parsed from YAML where types can't be inferred.
+ */
 export function load<T>(rootType: NamedType): DeltaPackApi<T>;
 // Implementation
 export function load(rootType: NamedType): DeltaPackApi<unknown> {
