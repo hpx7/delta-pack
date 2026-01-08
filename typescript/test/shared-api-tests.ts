@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DeltaPackApi, equalsFloat, equalsFloatQuantized, Infer } from "@hpx7/delta-pack";
+import { DeltaPackApi, Infer } from "@hpx7/delta-pack";
 import { schema } from "./schema.js";
 
 // Infer types from schema
@@ -471,8 +471,7 @@ export function runVelocityTests(Position: DeltaPackApi<Position>, Velocity: Del
       const encoded = Velocity.encode(vel);
       const decoded = Velocity.decode(encoded);
 
-      expect(equalsFloat(decoded.vx, 123.456789)).toBe(true);
-      expect(equalsFloat(decoded.vy, 78.912345)).toBe(true);
+      expect(Velocity.equals(decoded, vel)).toBe(true);
     });
 
     it("should handle exact float values", () => {
@@ -480,8 +479,7 @@ export function runVelocityTests(Position: DeltaPackApi<Position>, Velocity: Del
       const encoded = Velocity.encode(vel);
       const decoded = Velocity.decode(encoded);
 
-      expect(equalsFloat(decoded.vx, 100.0)).toBe(true);
-      expect(equalsFloat(decoded.vy, 200.5)).toBe(true);
+      expect(Velocity.equals(decoded, vel)).toBe(true);
     });
 
     it("should check equality with epsilon tolerance", () => {
@@ -505,8 +503,6 @@ export function runVelocityTests(Position: DeltaPackApi<Position>, Velocity: Del
       const encodedDiff = Velocity.encodeDiff(vel1, vel2);
       const result = Velocity.decodeDiff(vel1, encodedDiff);
 
-      expect(equalsFloat(result.vx, 100.234567)).toBe(true);
-      expect(equalsFloat(result.vy, 200.765432)).toBe(true);
       expect(Velocity.equals(result, vel2)).toBe(true);
     });
 
@@ -525,8 +521,7 @@ export function runVelocityTests(Position: DeltaPackApi<Position>, Velocity: Del
       const encoded = Velocity.encode(vel);
       const decoded = Velocity.decode(encoded);
 
-      expect(equalsFloat(decoded.vx, vel.vx)).toBe(true);
-      expect(equalsFloat(decoded.vy, vel.vy)).toBe(true);
+      expect(Velocity.equals(decoded, vel)).toBe(true);
     });
 
     it("should handle negative velocities", () => {
@@ -536,8 +531,7 @@ export function runVelocityTests(Position: DeltaPackApi<Position>, Velocity: Del
       const encodedDiff = Velocity.encodeDiff(vel1, vel2);
       const result = Velocity.decodeDiff(vel1, encodedDiff);
 
-      expect(equalsFloat(result.vx, -50.234567)).toBe(true);
-      expect(equalsFloat(result.vy, -100.765432)).toBe(true);
+      expect(Velocity.equals(result, vel2)).toBe(true);
     });
 
     it("should handle zero velocities", () => {
@@ -554,26 +548,22 @@ export function runVelocityTests(Position: DeltaPackApi<Position>, Velocity: Del
       const encoded = Velocity.encode(vel);
       const decoded = Velocity.decode(encoded);
 
-      expect(equalsFloat(decoded.vx, 0.000001)).toBe(true);
-      expect(equalsFloat(decoded.vy, 0.000002)).toBe(true);
+      expect(Velocity.equals(decoded, vel)).toBe(true);
     });
 
     it("should distinguish between quantized and non-quantized floats", () => {
+      // Position has quantized floats (0.1 precision)
       const pos = { x: 123.456, y: 78.912 };
-      const encodedPos = Position.encode(pos);
-      const decodedPos = Position.decode(encodedPos);
-
-      const vel = { vx: 123.456, vy: 78.912 };
-      const encodedVel = Velocity.encode(vel);
-      const decodedVel = Velocity.decode(encodedVel);
-
-      expect(equalsFloatQuantized(decodedPos.x, 123.456, 0.1)).toBe(true);
-      expect(equalsFloatQuantized(decodedPos.y, 78.912, 0.1)).toBe(true);
+      const decodedPos = Position.decode(Position.encode(pos));
+      // Quantized values snap to precision
       expect(decodedPos.x).toBe(123.5);
       expect(decodedPos.y).toBe(78.9);
 
-      expect(equalsFloat(decodedVel.vx, 123.456)).toBe(true);
-      expect(equalsFloat(decodedVel.vy, 78.912)).toBe(true);
+      // Velocity has full precision floats
+      const vel = { vx: 123.456, vy: 78.912 };
+      const decodedVel = Velocity.decode(Velocity.encode(vel));
+      // Full precision preserved
+      expect(Velocity.equals(decodedVel, vel)).toBe(true);
     });
   });
 }

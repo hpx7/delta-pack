@@ -12,7 +12,7 @@ import {
   mapValues,
   Encoder,
   Decoder,
-} from "@hpx7/delta-pack";
+} from "@hpx7/delta-pack/runtime";
 
 describe("Helper Functions - Parse and Validation", () => {
   describe("parseString", () => {
