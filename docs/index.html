@@ -4,23 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DeltaPack Documentation</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
-      padding: 80px 20px;
+      padding: 48px 20px;
       color: #24292f;
       line-height: 1.6;
     }
-    h1 { margin-bottom: 16px; }
-    .subtitle { color: #57606a; margin-bottom: 48px; font-size: 1.1em; }
-    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 48px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid #d0d7de;
+    }
     .card {
       border: 1px solid #d0d7de;
       border-radius: 8px;
-      padding: 24px;
+      padding: 20px;
       text-decoration: none;
       color: inherit;
       transition: border-color 0.2s, box-shadow 0.2s;
@@ -29,32 +35,62 @@
       border-color: #0969da;
       box-shadow: 0 4px 12px rgba(9, 105, 218, 0.1);
     }
-    .card h2 { margin: 0 0 8px 0; color: #0969da; font-size: 1.25em; }
-    .card p { margin: 0; color: #57606a; font-size: 0.95em; }
-    .links { margin-top: 48px; padding-top: 24px; border-top: 1px solid #d0d7de; }
-    .links a { color: #0969da; text-decoration: none; margin-right: 24px; }
-    .links a:hover { text-decoration: underline; }
+    .card h2 { margin: 0 0 6px 0; color: #0969da; font-size: 1.1em; }
+    .card p { margin: 0; color: #57606a; font-size: 0.9em; }
+
+    /* README styles */
+    #readme h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 8px; }
+    #readme h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 6px; margin-top: 32px; }
+    #readme pre {
+      background: #f6f8fa;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+    #readme code {
+      background: #f6f8fa;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    #readme pre code { background: none; padding: 0; }
+    #readme a { color: #0969da; text-decoration: none; }
+    #readme a:hover { text-decoration: underline; }
+    #readme table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    #readme th, #readme td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+    #readme th { background: #f6f8fa; }
+    #readme img { max-width: 100%; }
+    #readme blockquote {
+      border-left: 4px solid #d0d7de;
+      margin: 16px 0;
+      padding: 0 16px;
+      color: #57606a;
+    }
   </style>
 </head>
 <body>
-  <h1>DeltaPack</h1>
-  <p class="subtitle">Binary serialization with delta compression for real-time state synchronization.</p>
-
   <div class="cards">
     <a href="typescript/" class="card">
-      <h2>TypeScript</h2>
-      <p>API reference for the TypeScript/JavaScript package.</p>
+      <h2>TypeScript API Reference</h2>
+      <p>Documentation for the TypeScript/JavaScript package.</p>
     </a>
     <a href="csharp/" class="card">
-      <h2>C# / .NET</h2>
-      <p>API reference for the C# package (Unity-compatible).</p>
+      <h2>C# API Reference</h2>
+      <p>Documentation for the C# package (Unity-compatible).</p>
     </a>
   </div>
 
-  <div class="links">
-    <a href="https://github.com/hpx7/delta-pack">GitHub</a>
-    <a href="https://www.npmjs.com/package/delta-pack">npm</a>
-    <a href="https://www.nuget.org/packages/DeltaPack">NuGet</a>
-  </div>
+  <div id="readme">Loading...</div>
+
+  <script>
+    fetch('https://raw.githubusercontent.com/hpx7/delta-pack/main/README.md')
+      .then(res => res.text())
+      .then(md => {
+        document.getElementById('readme').innerHTML = marked.parse(md);
+      })
+      .catch(() => {
+        document.getElementById('readme').innerHTML = '<p>Failed to load README.</p>';
+      });
+  </script>
 </body>
 </html>
