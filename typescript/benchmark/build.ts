@@ -52,11 +52,14 @@ async function main() {
   fs.writeFileSync(`${generatedDir}/deltapack/index.ts`, deltapackIndexContent);
   console.log(`Generated ${generatedDir}/deltapack/index.ts`);
 
-  // Generate protobuf index.ts (protobuf exports lowercase package names)
+  // Generate protobuf index.js (protobuf exports lowercase package names)
   const protobufIndexContent =
     generatedExamples.map((e) => `export { ${e.toLowerCase()} as ${e} } from "./${e}.js";`).join("\n") + "\n";
-  fs.writeFileSync(`${generatedDir}/protobuf/index.ts`, protobufIndexContent);
-  console.log(`Generated ${generatedDir}/protobuf/index.ts`);
+  fs.writeFileSync(`${generatedDir}/protobuf/index.js`, protobufIndexContent);
+  console.log(`Generated ${generatedDir}/protobuf/index.js`);
+
+  // Generate data.ts with all static imports for bundling
+  generateData(generatedExamples);
 
   const sharedOptions: esbuild.BuildOptions = {
     bundle: true,
@@ -67,6 +70,10 @@ async function main() {
     alias: {
       "@hpx7/delta-pack/runtime": path.join(__dirname, "../src/runtime.ts"),
       "@hpx7/delta-pack": path.join(__dirname, "../src/index.ts"),
+    },
+    loader: {
+      ".yml": "text",
+      ".proto": "text",
     },
   };
 
@@ -97,6 +104,74 @@ function runPbjs(args: string[]): Promise<string> {
       else resolve(output ?? "");
     });
   });
+}
+
+function generateData(examples: string[]) {
+  const lines: string[] = [];
+
+  // Collect state files for each example
+  const exampleStates: Record<string, string[]> = {};
+  for (const example of examples) {
+    const exampleDir = `${examplesDir}/${example}`;
+    const stateFiles = fs
+      .readdirSync(exampleDir)
+      .filter((f) => f.match(/^state\d+\.json$/))
+      .sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)![0]!);
+        const numB = parseInt(b.match(/\d+/)![0]!);
+        return numA - numB;
+      });
+    exampleStates[example] = stateFiles;
+  }
+
+  // Import state JSON files
+  for (const example of examples) {
+    for (const stateFile of exampleStates[example]!) {
+      const stateName = stateFile.replace(".json", "");
+      lines.push(`import ${example}_${stateName} from "../../../examples/${example}/${stateFile}";`);
+    }
+  }
+  lines.push("");
+
+  // Import schema YAML files
+  for (const example of examples) {
+    lines.push(`import ${example}_schema from "../../../examples/${example}/schema.yml";`);
+  }
+  lines.push("");
+
+  // Import proto files
+  for (const example of examples) {
+    lines.push(`import ${example}_proto from "../../../examples/${example}/schema.proto";`);
+  }
+  lines.push("");
+
+  // Export exampleData
+  lines.push("export const exampleData: Record<string, object[]> = {");
+  for (const example of examples) {
+    const states = exampleStates[example]!.map((f) => `${example}_${f.replace(".json", "")}`);
+    lines.push(`  ${example}: [${states.join(", ")}],`);
+  }
+  lines.push("};");
+  lines.push("");
+
+  // Export schemas
+  lines.push("export const schemas: Record<string, string> = {");
+  for (const example of examples) {
+    lines.push(`  ${example}: ${example}_schema,`);
+  }
+  lines.push("};");
+  lines.push("");
+
+  // Export protos
+  lines.push("export const protos: Record<string, string> = {");
+  for (const example of examples) {
+    lines.push(`  ${example}: ${example}_proto,`);
+  }
+  lines.push("};");
+  lines.push("");
+
+  fs.writeFileSync(`${generatedDir}/data.ts`, lines.join("\n"));
+  console.log(`Generated ${generatedDir}/data.ts`);
 }
 
 main();
