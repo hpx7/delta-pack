@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>DeltaPack for C# | DeltaPack </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="DeltaPack for C# | DeltaPack ">
+      
+      
+      <link rel="icon" href="favicon.ico">
+      <link rel="stylesheet" href="public/docfx.min.css">
+      <link rel="stylesheet" href="public/main.css">
+      <meta name="docfx:navrel" content="toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/hpx7/delta-pack/blob/main/csharp/README.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="index.html">
+            <img id="logo" class="svg" src="logo.svg" alt="DeltaPack">
+            DeltaPack
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+
+      <div class="content">
+        <div class="actionbar">
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="deltapack-for-c">DeltaPack for C#</h1>
+
+<p>Binary serialization library optimized for delta encoding of game state.</p>
+<h2 id="installation">Installation</h2>
+<pre><code class="lang-bash">dotnet add package DeltaPack
+</code></pre>
+<h2 id="quick-start">Quick Start</h2>
+<pre><code class="lang-csharp">using DeltaPack;
+
+// Define your types
+public class Player
+{
+    public string Name { get; set; } = &quot;&quot;;
+    public int Score { get; set; }
+    public bool Active { get; set; }
+}
+
+// Create a codec (do this once during initialization)
+var codec = new DeltaPackCodec&lt;Player&gt;();
+
+// Encode
+var player = new Player { Name = &quot;Alice&quot;, Score = 100, Active = true };
+byte[] encoded = codec.Encode(player);
+
+// Decode
+Player decoded = codec.Decode(encoded);
+</code></pre>
+<h2 id="delta-encoding">Delta Encoding</h2>
+<p>Send only what changed between two states:</p>
+<pre><code class="lang-csharp">var stateA = new GameState { Score = 100, Health = 100 };
+var stateB = new GameState { Score = 150, Health = 100 }; // Only score changed
+
+byte[] diff = codec.EncodeDiff(stateA, stateB);
+GameState result = codec.DecodeDiff(stateA, diff);
+
+// diff is smaller than full encode when few fields change
+</code></pre>
+<h2 id="code-generation">Code Generation</h2>
+<p>As an alternative to reflection-based serialization, you can generate C# code from a YAML schema:</p>
+<pre><code class="lang-yaml"># schema.yml
+Player:
+  name: string
+  score: int
+  active: boolean
+
+GameState:
+  players: &lt;string, Player&gt;
+  round: uint
+</code></pre>
+<p>Generate C# code using the CLI:</p>
+<pre><code class="lang-bash">npx delta-pack generate schema.yml -l csharp -o Generated.cs
+</code></pre>
+<p>The generated code provides static methods for each type:</p>
+<pre><code class="lang-csharp">// Generated types are plain classes
+var player = new Player { Name = &quot;Alice&quot;, Score = 100, Active = true };
+
+// Static encode/decode methods
+byte[] encoded = Player.Encode(player);
+Player decoded = Player.Decode(encoded);
+
+// Delta encoding
+byte[] diff = Player.EncodeDiff(oldPlayer, newPlayer);
+Player result = Player.DecodeDiff(oldPlayer, diff);
+</code></pre>
+<p><strong>When to use codegen vs reflection:</strong></p>
+<ul>
+<li><strong>Codegen</strong>: Shared schemas across TypeScript/C#, compile-time type safety, no reflection overhead</li>
+<li><strong>Reflection</strong>: Define types directly in C#, no build step, works with existing classes</li>
+</ul>
+<h2 id="supported-types">Supported Types</h2>
+<ul>
+<li><strong>Primitives</strong>: <code>string</code>, <code>bool</code>, <code>int</code>, <code>uint</code>, <code>long</code>, <code>ulong</code>, <code>float</code>, <code>double</code>, <code>byte</code>, <code>short</code>, etc.</li>
+<li><strong>Enums</strong>: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)</li>
+<li><strong>Collections</strong>: <code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey, TValue&gt;</code> (TKey: <code>string</code>, <code>int</code>, <code>uint</code>, <code>long</code>, <code>ulong</code>)</li>
+<li><strong>Nullable value types</strong>: <code>int?</code>, <code>float?</code>, etc.</li>
+<li><strong>Nullable reference types</strong>: <code>Player?</code>, <code>string?</code>, etc.</li>
+<li><strong>Nested objects</strong>: Any class with public properties</li>
+<li><strong>Self-referencing types</strong>: Types that reference themselves (e.g., linked lists, trees)</li>
+<li><strong>Union types</strong>: Abstract classes with <code>[DeltaPackUnion]</code> attribute</li>
+</ul>
+<h2 id="attributes">Attributes</h2>
+<h3 id="deltapackprecision"><code>[DeltaPackPrecision]</code></h3>
+<p>Quantize floats for smaller encoding:</p>
+<pre><code class="lang-csharp">public class Position
+{
+    [DeltaPackPrecision(0.01)]
+    public float X { get; set; }
+
+    [DeltaPackPrecision(0.01)]
+    public float Y { get; set; }
+}
+</code></pre>
+<h3 id="deltapackrange"><code>[DeltaPackRange]</code></h3>
+<p>Specify bounds for integers (enables more efficient encoding):</p>
+<pre><code class="lang-csharp">public class Stats
+{
+    [DeltaPackRange(0, 100)]
+    public int Health { get; set; }
+
+    [DeltaPackRange(1)]  // min only
+    public int PlayerId { get; set; }
+}
+</code></pre>
+<h3 id="deltapackignore"><code>[DeltaPackIgnore]</code></h3>
+<p>Exclude a property from serialization:</p>
+<pre><code class="lang-csharp">public class Player
+{
+    public string Name { get; set; } = &quot;&quot;;
+    public int Score { get; set; }
+
+    [DeltaPackIgnore]
+    public string CachedDisplayName { get; set; } = &quot;&quot;;
+}
+</code></pre>
+<h3 id="deltapackunion"><code>[DeltaPackUnion]</code></h3>
+<p>Define polymorphic types:</p>
+<pre><code class="lang-csharp">[DeltaPackUnion(typeof(Sword), typeof(Bow))]
+public abstract class Weapon
+{
+    public string Name { get; set; } = &quot;&quot;;
+}
+
+public class Sword : Weapon
+{
+    public int SlashDamage { get; set; }
+}
+
+public class Bow : Weapon
+{
+    public int ArrowDamage { get; set; }
+    public float Range { get; set; }
+}
+</code></pre>
+<h2 id="api-reference">API Reference</h2>
+<h3 id="deltapackcodect"><code>DeltaPackCodec&lt;T&gt;</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Encode(T obj)</code></td>
+<td>Serialize object to bytes</td>
+</tr>
+<tr>
+<td><code>Decode(byte[] buf)</code></td>
+<td>Deserialize bytes to object</td>
+</tr>
+<tr>
+<td><code>EncodeDiff(T a, T b)</code></td>
+<td>Encode only the differences between a and b</td>
+</tr>
+<tr>
+<td><code>DecodeDiff(T a, byte[] diff)</code></td>
+<td>Apply diff to a, producing b</td>
+</tr>
+<tr>
+<td><code>Equals(T a, T b)</code></td>
+<td>Deep equality comparison</td>
+</tr>
+<tr>
+<td><code>Clone(T obj)</code></td>
+<td>Deep clone</td>
+</tr>
+<tr>
+<td><code>FromJson(JsonElement json)</code></td>
+<td>Deserialize from JSON</td>
+</tr>
+<tr>
+<td><code>ToJson(T obj)</code></td>
+<td>Serialize to JSON</td>
+</tr>
+<tr>
+<td><code>Schema</code></td>
+<td>The generated schema (for debugging)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="custom-factory">Custom Factory</h3>
+<p>For types without parameterless constructors, such as records:</p>
+<pre><code class="lang-csharp">public record ImmutablePlayer(string Name, int Score);
+
+var codec = new DeltaPackCodec&lt;ImmutablePlayer&gt;(
+    () =&gt; new ImmutablePlayer(&quot;&quot;, 0)
+);
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> Union types (abstract classes with <code>[DeltaPackUnion]</code>) don't require a factory—variants are instantiated directly during decoding.</p>
+</blockquote>
+<h2 id="unity-compatibility">Unity Compatibility</h2>
+<p>This library targets <code>netstandard2.1</code> and is compatible with Unity 2021.2+.</p>
+<p><strong>Recommended usage pattern:</strong></p>
+<pre><code class="lang-csharp">public class NetworkManager : MonoBehaviour
+{
+    // Create codecs once during initialization
+    private DeltaPackCodec&lt;GameState&gt; _stateCodec;
+    private DeltaPackCodec&lt;PlayerInput&gt; _inputCodec;
+
+    void Awake()
+    {
+        _stateCodec = new DeltaPackCodec&lt;GameState&gt;();
+        _inputCodec = new DeltaPackCodec&lt;PlayerInput&gt;();
+    }
+
+    void SendState(GameState state)
+    {
+        byte[] data = _stateCodec.Encode(state);
+        // Send data...
+    }
+
+    GameState ReceiveState(byte[] data)
+    {
+        return _stateCodec.Decode(data);
+    }
+}
+</code></pre>
+<h2 id="requirements">Requirements</h2>
+<h3 id="runtime">Runtime</h3>
+<ul>
+<li>.NET 6.0+ or .NET Standard 2.1 (Unity 2021.2+)</li>
+</ul>
+<h3 id="type-definitions">Type Definitions</h3>
+<ul>
+<li><strong>Parameterless constructor</strong> required (or provide a factory)</li>
+<li><strong>Public properties</strong> with both getter and setter are serialized</li>
+<li><strong>Public fields</strong> are also serialized</li>
+<li><strong><code>init</code> setters</strong> work (reflection bypasses compile-time restriction)</li>
+<li><strong>Private members</strong> are skipped</li>
+<li><strong>Read-only properties</strong> (getter only) are skipped</li>
+<li><strong>Dictionary keys</strong> must be <code>string</code>, <code>int</code>, <code>uint</code>, <code>long</code>, or <code>ulong</code></li>
+</ul>
+<pre><code class="lang-csharp">public class Player
+{
+    public string Name { get; set; } = &quot;&quot;;     // ✓ Serialized
+    public int Score { get; init; }            // ✓ Serialized (init works)
+    public int Health;                         // ✓ Serialized (public field)
+    public string Id { get; }                  // ✗ Skipped (no setter)
+    private int _internalId;                   // ✗ Skipped (private)
+
+    [DeltaPackIgnore]
+    public string CachedValue { get; set; }    // ✗ Skipped (ignored)
+}
+</code></pre>
+<h2 id="binary-format">Binary Format</h2>
+<p>Data layout: <code>[field data][RLE bits][numRleBits: reverse varint]</code></p>
+<ul>
+<li>Integers use varint encoding (zigzag for signed)</li>
+<li>Booleans are collected and RLE-compressed at the end of the buffer</li>
+<li>Floats can be quantized to reduce precision and size</li>
+<li>Strings are length-prefixed UTF-8</li>
+</ul>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/hpx7/delta-pack/blob/main/csharp/README.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

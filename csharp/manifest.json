@@ -1,0 +1,471 @@
+{
+  "source_base_path": "/home/runner/work/delta-pack/delta-pack/csharp",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      }
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "README.md",
+      "output": {
+        ".html": {
+          "relative_path": "README.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.ArrayType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.ArrayType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.ArrayType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.BooleanType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.BooleanType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.BooleanType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.Decoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.Decoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.Decoder",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DeltaPackCodec-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DeltaPackCodec-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DeltaPackCodec<T>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackCodec-1.yml\" sourcestartlinenumber=\"1\">Unity-friendly codec for encoding/decoding C# types.\nCreate once during initialization, reuse in hot paths.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DeltaPackIgnoreAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DeltaPackIgnoreAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DeltaPackIgnoreAttribute",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackIgnoreAttribute.yml\" sourcestartlinenumber=\"1\">Excludes a property or field from serialization.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DeltaPackPrecisionAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DeltaPackPrecisionAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DeltaPackPrecisionAttribute",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackPrecisionAttribute.yml\" sourcestartlinenumber=\"1\">Specifies float precision for quantized encoding.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DeltaPackRangeAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DeltaPackRangeAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DeltaPackRangeAttribute",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackRangeAttribute.yml\" sourcestartlinenumber=\"1\">Specifies min/max bounds for integer encoding.\nBounded integers are encoded more efficiently when values are constrained.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DeltaPackUnionAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DeltaPackUnionAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DeltaPackUnionAttribute",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackUnionAttribute.yml\" sourcestartlinenumber=\"1\">Marks a type as a union variant. Apply to the base class/interface.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.Encoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.Encoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.Encoder",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.EnumType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.EnumType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.EnumType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.EqualityHelpers.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.EqualityHelpers.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.EqualityHelpers",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.FloatType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.FloatType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.FloatType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.IDeltaPackApi-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.IDeltaPackApi-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.IDeltaPackApi<T>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.IDeltaPackApi-1.yml\" sourcestartlinenumber=\"1\">Core interface for DeltaPack serialization operations.\nImplementations are returned by <xref href=\"DeltaPack.Interpreter.Load%60%601(System.Collections.Generic.IReadOnlyDictionary%7bSystem.String%2cDeltaPack.SchemaType%7d%2cSystem.String)\" data-throw-if-not-resolved=\"false\"></xref> or generated code.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.IntType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.IntType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.IntType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.Interpreter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.Interpreter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.Interpreter",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.JsonHelpers.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.JsonHelpers.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.JsonHelpers",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.ObjectType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.ObjectType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.ObjectType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.OptionalType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.OptionalType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.OptionalType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.Parser.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.Parser.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.Parser",
+      "Summary": "<p sourcefile=\"api/DeltaPack.Parser.yml\" sourcestartlinenumber=\"1\">Parses YAML schema definitions into DeltaPack schema types.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.RecordType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.RecordType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.RecordType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.ReferenceType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.ReferenceType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.ReferenceType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.ReflectionSchema.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.ReflectionSchema.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.ReflectionSchema",
+      "Summary": "<p sourcefile=\"api/DeltaPack.ReflectionSchema.yml\" sourcestartlinenumber=\"1\">Builds a schema from a C# type using reflection.\nUseful for inspecting the generated schema or comparing with manual schema definitions.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.Rle.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.Rle.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.Rle",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.Schema.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.Schema.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.Schema",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.SchemaType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.SchemaType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.SchemaType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.StringType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.StringType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.StringType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.UnionType.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.UnionType.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.UnionType",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.UnionValue.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.UnionValue.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.UnionValue",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack",
+      "Summary": null
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html"
+        },
+        ".json": {
+          "relative_path": "api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html"
+        },
+        ".json": {
+          "relative_path": "toc.json"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}
