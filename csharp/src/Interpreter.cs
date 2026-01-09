@@ -58,6 +58,11 @@ public sealed record UnionValue(string Type, object? Val);
 
 public static class Interpreter
 {
+    /// <summary>
+    /// Loads a schema and returns an API for serialization operations.
+    /// </summary>
+    /// <param name="schema">The parsed schema dictionary.</param>
+    /// <param name="typeName">The root type name to load.</param>
     public static IDeltaPackApi<T> Load<T>(IReadOnlyDictionary<string, SchemaType> schema, string typeName)
     {
         if (!schema.TryGetValue(typeName, out var rootType))
@@ -74,19 +79,41 @@ public static class Interpreter
         private readonly IReadOnlyDictionary<string, SchemaType> _schema;
         private readonly SchemaType _rootType;
 
+        // Cached enum indices (avoid creating Dictionary on every encode/decode)
+        private readonly Dictionary<EnumType, Dictionary<string, int>> _enumIndicesCache = new();
+        private readonly Dictionary<UnionType, Dictionary<string, int>> _unionIndicesCache = new();
+
         public DeltaPackApi(IReadOnlyDictionary<string, SchemaType> schema, SchemaType rootType)
         {
             _schema = schema;
             _rootType = rootType;
         }
 
-        private SchemaType ResolveRef(string name) =>
-            _schema.TryGetValue(name, out var type)
-                ? type
-                : throw new InvalidOperationException($"Unknown reference type: {name}");
+        private SchemaType ResolveRef(string name) => _schema[name];
 
-        private static Dictionary<string, int> EnumIndices(IReadOnlyList<string> options) =>
-            options.Select((opt, i) => (opt, i)).ToDictionary(x => x.opt, x => x.i);
+        private Dictionary<string, int> GetEnumIndices(EnumType et)
+        {
+            if (!_enumIndicesCache.TryGetValue(et, out var indices))
+            {
+                indices = new Dictionary<string, int>();
+                for (int i = 0; i < et.Options.Count; i++)
+                    indices[et.Options[i]] = i;
+                _enumIndicesCache[et] = indices;
+            }
+            return indices;
+        }
+
+        private int GetUnionVariantIndex(UnionType ut, string typeName)
+        {
+            if (!_unionIndicesCache.TryGetValue(ut, out var indices))
+            {
+                indices = new Dictionary<string, int>();
+                for (int i = 0; i < ut.Options.Count; i++)
+                    indices[ut.Options[i].Reference] = i;
+                _unionIndicesCache[ut] = indices;
+            }
+            return indices[typeName];
+        }
 
         private static object? GetProp(object? obj, string key) =>
             obj is Dictionary<string, object?> dict && dict.TryGetValue(key, out var val) ? val : null;
@@ -122,7 +149,7 @@ public static class Interpreter
                     break;
 
                 case EnumType et:
-                    encoder.PushEnum(EnumIndices(et.Options)[(string)obj!], et.NumBits);
+                    encoder.PushEnum(GetEnumIndices(et)[(string)obj!], et.NumBits);
                     break;
 
                 case ReferenceType rt:
@@ -136,27 +163,34 @@ public static class Interpreter
 
                 case ArrayType at:
                     var list = (IList<object?>)obj!;
-                    encoder.PushArray(list, item => Encode(item, at.Value, encoder));
+                    // Inline PushArray to avoid lambda allocation
+                    encoder.PushUInt((uint)list.Count);
+                    foreach (var item in list)
+                        Encode(item, at.Value, encoder);
                     break;
 
                 case RecordType rt:
                     var dict = (IDictionary<object, object?>)obj!;
-                    encoder.PushRecord(
-                        dict,
-                        key => Encode(key, rt.Key, encoder),
-                        val => Encode(val, rt.Value, encoder));
+                    // Inline PushRecord to avoid lambda allocation
+                    encoder.PushUInt((uint)dict.Count);
+                    foreach (var (key, val) in dict)
+                    {
+                        Encode(key, rt.Key, encoder);
+                        Encode(val, rt.Value, encoder);
+                    }
                     break;
 
                 case UnionType ut:
                     var union = (UnionValue)obj!;
-                    var variantIndex = ut.Options.Select((o, i) => (o, i))
-                        .First(x => x.o.Reference == union.Type).i;
-                    encoder.PushEnum(variantIndex, ut.NumBits);
+                    encoder.PushEnum(GetUnionVariantIndex(ut, union.Type), ut.NumBits);
                     Encode(union.Val, ResolveRef(union.Type), encoder);
                     break;
 
                 case OptionalType opt:
-                    encoder.PushOptional(obj, o => Encode(o, opt.Value, encoder));
+                    // Inline PushOptional to avoid lambda allocation
+                    encoder.PushBoolean(obj is not null);
+                    if (obj is not null)
+                        Encode(obj, opt.Value, encoder);
                     break;
 
                 default:
@@ -182,7 +216,8 @@ public static class Interpreter
                 ArrayType at => DecodeArray(at, decoder),
                 RecordType rt => DecodeRecord(rt, decoder),
                 UnionType ut => DecodeUnion(ut, decoder),
-                OptionalType opt => decoder.NextOptional<object>(() => Decode(opt.Value, decoder)!),
+                // Inline NextOptional to avoid lambda allocation
+                OptionalType opt => decoder.NextBoolean() ? Decode(opt.Value, decoder) : null,
                 _ => throw new InvalidOperationException($"Unknown type: {type}")
             };
         }
@@ -195,11 +230,25 @@ public static class Interpreter
             return result;
         }
 
-        private List<object?> DecodeArray(ArrayType at, Decoder decoder) =>
-            decoder.NextArray(() => Decode(at.Value, decoder));
+        private List<object?> DecodeArray(ArrayType at, Decoder decoder)
+        {
+            // Inline NextArray to avoid lambda allocation
+            var len = (int)decoder.NextUInt();
+            var arr = new List<object?>(len);
+            for (var i = 0; i < len; i++)
+                arr.Add(Decode(at.Value, decoder));
+            return arr;
+        }
 
-        private Dictionary<object, object?> DecodeRecord(RecordType rt, Decoder decoder) =>
-            decoder.NextRecord(() => Decode(rt.Key, decoder)!, () => Decode(rt.Value, decoder));
+        private Dictionary<object, object?> DecodeRecord(RecordType rt, Decoder decoder)
+        {
+            // Inline NextRecord to avoid lambda allocation
+            var len = (int)decoder.NextUInt();
+            var dict = new Dictionary<object, object?>(len);
+            for (var i = 0; i < len; i++)
+                dict[Decode(rt.Key, decoder)!] = Decode(rt.Value, decoder);
+            return dict;
+        }
 
         private UnionValue DecodeUnion(UnionType ut, Decoder decoder)
         {
@@ -354,8 +403,8 @@ public static class Interpreter
                     break;
 
                 case EnumType et:
-                    var indices = EnumIndices(et.Options);
-                    encoder.PushEnumDiff(indices[(string)a!], indices[(string)b!], et.NumBits);
+                    var enumIndices = GetEnumIndices(et);
+                    encoder.PushEnumDiff(enumIndices[(string)a!], enumIndices[(string)b!], et.NumBits);
                     break;
 
                 case ReferenceType rt:
@@ -439,9 +488,7 @@ public static class Interpreter
             {
                 // Type changed - encode new discriminator and value
                 encoder.PushBoolean(false);
-                var variantIndex = ut.Options.Select((o, i) => (o, i))
-                    .First(x => x.o.Reference == unionB.Type).i;
-                encoder.PushEnum(variantIndex, ut.NumBits);
+                encoder.PushEnum(GetUnionVariantIndex(ut, unionB.Type), ut.NumBits);
                 Encode(unionB.Val, ResolveRef(unionB.Type), encoder);
             }
             else
@@ -488,8 +535,8 @@ public static class Interpreter
 
         private string DecodeDiffEnum(object? a, EnumType et, Decoder decoder)
         {
-            var indices = EnumIndices(et.Options);
-            var newIdx = decoder.NextEnumDiff(indices[(string)a!], et.NumBits);
+            var enumIndices = GetEnumIndices(et);
+            var newIdx = decoder.NextEnumDiff(enumIndices[(string)a!], et.NumBits);
             return et.Options[newIdx];
         }
 

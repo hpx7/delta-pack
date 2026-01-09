@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using DeltaPack;
 using Google.Protobuf;
 using MessagePack;
 
@@ -13,18 +14,30 @@ public class Program
 
     public static void Main(string[] args)
     {
-        var examples = LoadExamples();
+        // Parse flags
+        bool interpreterMode = args.Contains("--interpreter", StringComparer.OrdinalIgnoreCase);
+        var filter = args.Where(a => !a.StartsWith("--")).ToArray();
 
-        if (args.Length > 0)
+        var examplesDir = Path.Combine("..", "examples");
+        var deltaPackOps = interpreterMode
+            ? CreateInterpreterOps(examplesDir)
+            : CreateCodegenOps();
+
+        var examples = LoadExamples(examplesDir, deltaPackOps, interpreterMode);
+
+        if (filter.Length > 0)
         {
-            examples = examples.Where(e => args.Any(f => e.Name.Contains(f, StringComparison.OrdinalIgnoreCase))).ToList();
+            examples = examples.Where(e => filter.Any(f => e.Name.Contains(f, StringComparison.OrdinalIgnoreCase))).ToList();
             if (examples.Count == 0)
             {
-                Console.Error.WriteLine($"No examples match filter: {string.Join(", ", args)}");
-                Console.Error.WriteLine($"Available: {string.Join(", ", LoadExamples().Select(e => e.Name))}");
+                Console.Error.WriteLine($"No examples match filter: {string.Join(", ", filter)}");
+                Console.Error.WriteLine($"Available: {string.Join(", ", deltaPackOps.Keys)}");
                 Environment.Exit(1);
             }
         }
+
+        var mode = interpreterMode ? "INTERPRETER" : "CODEGEN";
+        Console.WriteLine($"Running benchmarks in {mode} mode\n");
 
         // Burn-in to warm up measurement infrastructure (Stopwatch, Action delegates, etc.)
         Console.Error.WriteLine("Warming up...");
@@ -41,8 +54,6 @@ public class Program
         MeasureOpsPerSecond(() => MessagePackSerializer.Typeless.Deserialize(burnIn.MsgPackEncoded));
         Warmup(() => burnIn.DeltaPackDecode(burnIn.DeltaPackEncoded));
         MeasureOpsPerSecond(() => burnIn.DeltaPackDecode(burnIn.DeltaPackEncoded));
-
-        Console.Error.WriteLine("Running benchmarks...\n");
 
         Console.WriteLine("## Encoding Speed Comparison (ops/s)\n");
         Console.WriteLine("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
@@ -205,65 +216,96 @@ public class Program
         return $"{ops:F0}";
     }
 
-    static List<Example> LoadExamples()
+    static Dictionary<string, DeltaPackOps> CreateCodegenOps()
     {
-        var examplesDir = Path.Combine("..", "examples");
+        return new Dictionary<string, DeltaPackOps>
+        {
+            ["GameState"] = new(
+                GameStateGen.GameState.FromJson,
+                obj => GameStateGen.GameState.ToJson((GameStateGen.GameState)obj!),
+                obj => GameStateGen.GameState.Encode((GameStateGen.GameState)obj!),
+                buf => GameStateGen.GameState.Decode(buf),
+                (a, b) => GameStateGen.GameState.Equals((GameStateGen.GameState)a!, (GameStateGen.GameState)b!)),
+            ["Primitives"] = new(
+                PrimitivesGen.Primitives.FromJson,
+                obj => PrimitivesGen.Primitives.ToJson((PrimitivesGen.Primitives)obj!),
+                obj => PrimitivesGen.Primitives.Encode((PrimitivesGen.Primitives)obj!),
+                buf => PrimitivesGen.Primitives.Decode(buf),
+                (a, b) => PrimitivesGen.Primitives.Equals((PrimitivesGen.Primitives)a!, (PrimitivesGen.Primitives)b!)),
+            ["Test"] = new(
+                TestGen.Test.FromJson,
+                obj => TestGen.Test.ToJson((TestGen.Test)obj!),
+                obj => TestGen.Test.Encode((TestGen.Test)obj!),
+                buf => TestGen.Test.Decode(buf),
+                (a, b) => TestGen.Test.Equals((TestGen.Test)a!, (TestGen.Test)b!)),
+            ["User"] = new(
+                UserGen.User.FromJson,
+                obj => UserGen.User.ToJson((UserGen.User)obj!),
+                obj => UserGen.User.Encode((UserGen.User)obj!),
+                buf => UserGen.User.Decode(buf),
+                (a, b) => UserGen.User.Equals((UserGen.User)a!, (UserGen.User)b!)),
+        };
+    }
+
+    static Dictionary<string, DeltaPackOps> CreateInterpreterOps(string examplesDir)
+    {
+        var ops = new Dictionary<string, DeltaPackOps>();
+        foreach (var dir in Directory.GetDirectories(examplesDir))
+        {
+            var schemaPath = Path.Combine(dir, "schema.yml");
+            if (!File.Exists(schemaPath)) continue;
+
+            var name = Path.GetFileName(dir);
+            var yamlContent = File.ReadAllText(schemaPath);
+            var schema = Parser.ParseSchemaYml(yamlContent);
+
+            if (schema.ContainsKey(name))
+            {
+                var api = Interpreter.Load<object?>(schema, name);
+                ops[name] = new DeltaPackOps(
+                    api.FromJson,
+                    obj => JsonSerializer.Deserialize<JsonObject>(api.ToJson(obj))!,
+                    api.Encode,
+                    api.Decode,
+                    api.Equals);
+            }
+        }
+        return ops;
+    }
+
+    static (Func<JsonParser, string, IMessage> parseJson, Func<byte[], IMessage> decode)? GetProtoParser(string name)
+    {
+        return name switch
+        {
+            "GameState" => ((jp, json) => jp.Parse<Gamestate.GameState>(json), bytes => Gamestate.GameState.Parser.ParseFrom(bytes)),
+            "Primitives" => ((jp, json) => jp.Parse<Primitives.Primitives>(json), bytes => Primitives.Primitives.Parser.ParseFrom(bytes)),
+            "Test" => ((jp, json) => jp.Parse<Test.Test>(json), bytes => Test.Test.Parser.ParseFrom(bytes)),
+            "User" => ((jp, json) => jp.Parse<User.User>(json), bytes => User.User.Parser.ParseFrom(bytes)),
+            _ => null
+        };
+    }
+
+    static List<Example> LoadExamples(string examplesDir, Dictionary<string, DeltaPackOps> deltaPackOps, bool interpreterMode)
+    {
         var examples = new List<Example>();
         var jsonParser = new JsonParser(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
 
-        // GameState
-        examples.Add(LoadExample<GameStateGen.GameState, Gamestate.GameState>(
-            "GameState", examplesDir, jsonParser,
-            GameStateGen.GameState.FromJson,
-            GameStateGen.GameState.ToJson,
-            GameStateGen.GameState.Encode,
-            GameStateGen.GameState.Decode,
-            GameStateGen.GameState.Equals,
-            Gamestate.GameState.Parser));
-
-        // Primitives
-        examples.Add(LoadExample<PrimitivesGen.Primitives, Primitives.Primitives>(
-            "Primitives", examplesDir, jsonParser,
-            PrimitivesGen.Primitives.FromJson,
-            PrimitivesGen.Primitives.ToJson,
-            PrimitivesGen.Primitives.Encode,
-            PrimitivesGen.Primitives.Decode,
-            PrimitivesGen.Primitives.Equals,
-            Primitives.Primitives.Parser));
-
-        // Test
-        examples.Add(LoadExample<TestGen.Test, Test.Test>(
-            "Test", examplesDir, jsonParser,
-            TestGen.Test.FromJson,
-            TestGen.Test.ToJson,
-            TestGen.Test.Encode,
-            TestGen.Test.Decode,
-            TestGen.Test.Equals,
-            Test.Test.Parser));
-
-        // User
-        examples.Add(LoadExample<UserGen.User, User.User>(
-            "User", examplesDir, jsonParser,
-            UserGen.User.FromJson,
-            UserGen.User.ToJson,
-            UserGen.User.Encode,
-            UserGen.User.Decode,
-            UserGen.User.Equals,
-            User.User.Parser));
+        foreach (var (name, ops) in deltaPackOps)
+        {
+            var protoInfo = GetProtoParser(name);
+            examples.Add(LoadExample(name, examplesDir, jsonParser, ops, protoInfo, interpreterMode));
+        }
 
         return examples;
     }
 
-    static Example LoadExample<T, TProto>(
+    static Example LoadExample(
         string name,
         string examplesDir,
         JsonParser jsonParser,
-        Func<JsonElement, T> fromJson,
-        Func<T, JsonObject> toJson,
-        Func<T, byte[]> encode,
-        Func<byte[], T> decode,
-        Func<T, T, bool> equals,
-        MessageParser<TProto> protoParser) where TProto : IMessage<TProto>, new()
+        DeltaPackOps ops,
+        (Func<JsonParser, string, IMessage> parseJson, Func<byte[], IMessage> decode)? protoInfo,
+        bool interpreterMode)
     {
         var exampleDir = Path.Combine(examplesDir, name);
         var stateFiles = Directory.GetFiles(exampleDir, "state*.json")
@@ -275,32 +317,43 @@ public class Program
         {
             var json = File.ReadAllText(file);
             var doc = JsonDocument.Parse(json);
-            var typed = fromJson(doc.RootElement);
-            var jsonState = toJson(typed);
-            var deltaPackEncoded = encode(typed);
+            var typed = ops.FromJson(doc.RootElement);
+            var jsonState = ops.ToJson(typed);
+            var deltaPackEncoded = ops.Encode(typed);
 
             // Verify DeltaPack round-trip
-            var deltaPackDecoded = decode(deltaPackEncoded);
-            if (!equals(typed, deltaPackDecoded))
+            var deltaPackDecoded = ops.Decode(deltaPackEncoded);
+            if (!ops.AreEqual(typed, deltaPackDecoded))
             {
                 throw new Exception($"DeltaPack round-trip failed for {name}: {Path.GetFileName(file)}");
             }
 
-            // Verify MessagePack round-trip (direct serialization of typed state)
-            var msgPackEncoded = MessagePackSerializer.Typeless.Serialize(typed);
-            var msgPackDecoded = (T)MessagePackSerializer.Typeless.Deserialize(msgPackEncoded)!;
-            if (!equals(typed, msgPackDecoded))
+            // MessagePack serialization
+            byte[] msgPackEncoded = MessagePackSerializer.Typeless.Serialize(typed);
+            if (!interpreterMode)
             {
-                throw new Exception($"MessagePack round-trip failed for {name}: {Path.GetFileName(file)}");
+                // Verify round-trip in codegen mode only (interpreter produces different object structure)
+                var msgPackDecoded = MessagePackSerializer.Typeless.Deserialize(msgPackEncoded);
+                if (!ops.AreEqual(typed, msgPackDecoded))
+                {
+                    throw new Exception($"MessagePack round-trip failed for {name}: {Path.GetFileName(file)}");
+                }
             }
 
-            // Parse and verify Protobuf round-trip
-            var protoMessage = jsonParser.Parse<TProto>(json);
-            var protoEncoded = protoMessage.ToByteArray();
-            var protoDecoded = protoParser.ParseFrom(protoEncoded);
-            if (!protoMessage.Equals(protoDecoded))
+            // Parse and verify Protobuf round-trip (always uses codegen)
+            IMessage? protoMessage = null;
+            byte[] protoEncoded = [];
+            Func<byte[], IMessage>? protoDecode = null;
+            if (protoInfo != null)
             {
-                throw new Exception($"Protobuf round-trip failed for {name}: {Path.GetFileName(file)}");
+                protoMessage = protoInfo.Value.parseJson(jsonParser, json);
+                protoEncoded = protoMessage.ToByteArray();
+                var protoDecoded = protoInfo.Value.decode(protoEncoded);
+                if (!protoMessage.Equals(protoDecoded))
+                {
+                    throw new Exception($"Protobuf round-trip failed for {name}: {Path.GetFileName(file)}");
+                }
+                protoDecode = protoInfo.Value.decode;
             }
 
             states.Add(new StateData(
@@ -310,10 +363,10 @@ public class Program
                 MsgPackEncoded: msgPackEncoded,
                 ProtobufEncoded: protoEncoded,
                 DeltaPackEncoded: deltaPackEncoded,
-                DeltaPackEncode: obj => encode((T)obj),
-                DeltaPackDecode: bytes => decode(bytes)!,
-                ProtobufMessage: protoMessage,
-                ProtobufDecode: bytes => protoParser.ParseFrom(bytes)));
+                DeltaPackEncode: ops.Encode,
+                DeltaPackDecode: buf => ops.Decode(buf)!,
+                ProtobufMessage: protoMessage!,
+                ProtobufDecode: protoDecode ?? (bytes => null!)));
         }
 
         return new Example(name, states);
@@ -333,3 +386,10 @@ record StateData(
     Func<byte[], object> DeltaPackDecode,
     IMessage ProtobufMessage,
     Func<byte[], IMessage> ProtobufDecode);
+
+record DeltaPackOps(
+    Func<JsonElement, object?> FromJson,
+    Func<object?, JsonObject> ToJson,
+    Func<object?, byte[]> Encode,
+    Func<byte[], object?> Decode,
+    Func<object?, object?, bool> AreEqual);
