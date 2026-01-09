@@ -2,15 +2,55 @@ using System.Text.Json;
 
 namespace DeltaPack;
 
+/// <summary>
+/// Core interface for DeltaPack serialization operations.
+/// Implementations are returned by <see cref="Interpreter.Load{T}"/> or generated code.
+/// </summary>
+/// <typeparam name="T">The type being serialized (typically object? for interpreter, or specific types for codegen).</typeparam>
 public interface IDeltaPackApi<T>
 {
+    /// <summary>
+    /// Deserializes an object from a JSON element.
+    /// </summary>
     T FromJson(JsonElement json);
+
+    /// <summary>
+    /// Serializes an object to a JSON element.
+    /// </summary>
     JsonElement ToJson(T obj);
+
+    /// <summary>
+    /// Serializes an object to a byte array.
+    /// </summary>
     byte[] Encode(T obj);
+
+    /// <summary>
+    /// Deserializes an object from a byte array.
+    /// </summary>
     T Decode(byte[] buf);
+
+    /// <summary>
+    /// Encodes only the differences between two objects.
+    /// </summary>
+    /// <param name="a">The previous state.</param>
+    /// <param name="b">The current state.</param>
     byte[] EncodeDiff(T a, T b);
+
+    /// <summary>
+    /// Applies a diff to reconstruct the current state from a previous state.
+    /// </summary>
+    /// <param name="a">The previous state.</param>
+    /// <param name="diff">The diff produced by <see cref="EncodeDiff"/>.</param>
     T DecodeDiff(T a, byte[] diff);
+
+    /// <summary>
+    /// Performs a deep equality comparison.
+    /// </summary>
     bool Equals(T a, T b);
+
+    /// <summary>
+    /// Creates a deep copy of an object.
+    /// </summary>
     T Clone(T obj);
 }
 

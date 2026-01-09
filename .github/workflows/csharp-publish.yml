@@ -45,3 +45,30 @@ jobs:
           user: hpx77
       - name: Publish to NuGet
         run: dotnet nuget push src/bin/Release/*.nupkg --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+  docs:
+    name: Publish docs to GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: csharp
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Restore DocFX tool
+        run: dotnet tool restore
+      - name: Generate docs
+        run: dotnet docfx
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./csharp/_site
+          destination_dir: csharp
+          keep_files: true

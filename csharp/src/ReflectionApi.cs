@@ -68,12 +68,14 @@ public static class ReflectionSchema
 /// Create once during initialization, reuse in hot paths.
 /// </summary>
 /// <example>
+/// <code>
 /// // During loading/initialization
 /// var playerCodec = new DeltaPackCodec&lt;Player&gt;();
 ///
 /// // In game loop - no reflection, no allocations
 /// byte[] encoded = playerCodec.Encode(player);
 /// Player decoded = playerCodec.Decode(encoded);
+/// </code>
 /// </example>
 public sealed class DeltaPackCodec<T> where T : class
 {
@@ -120,23 +122,68 @@ public sealed class DeltaPackCodec<T> where T : class
         return () => (T)ctor.Invoke(null);
     }
 
+    /// <summary>
+    /// Serializes an object to a byte array.
+    /// </summary>
+    /// <param name="obj">The object to encode.</param>
+    /// <returns>The encoded byte array.</returns>
     public byte[] Encode(T obj) => _api.Encode(ToUntyped(obj, _rootMapping));
 
+    /// <summary>
+    /// Deserializes an object from a byte array.
+    /// </summary>
+    /// <param name="buf">The byte array to decode.</param>
+    /// <returns>The decoded object.</returns>
     public T Decode(byte[] buf) => ToTyped(_api.Decode(buf), _rootMapping);
 
+    /// <summary>
+    /// Encodes only the differences between two objects.
+    /// The resulting diff is typically smaller than a full encode when few fields changed.
+    /// </summary>
+    /// <param name="a">The previous state.</param>
+    /// <param name="b">The current state.</param>
+    /// <returns>A byte array representing the differences.</returns>
     public byte[] EncodeDiff(T a, T b) =>
         _api.EncodeDiff(ToUntyped(a, _rootMapping), ToUntyped(b, _rootMapping));
 
+    /// <summary>
+    /// Applies a diff to a previous state to produce the current state.
+    /// </summary>
+    /// <param name="a">The previous state.</param>
+    /// <param name="diff">The diff produced by <see cref="EncodeDiff"/>.</param>
+    /// <returns>The reconstructed current state.</returns>
     public T DecodeDiff(T a, byte[] diff) =>
         ToTyped(_api.DecodeDiff(ToUntyped(a, _rootMapping), diff), _rootMapping);
 
+    /// <summary>
+    /// Performs a deep equality comparison between two objects.
+    /// </summary>
+    /// <param name="a">The first object.</param>
+    /// <param name="b">The second object.</param>
+    /// <returns>True if the objects are deeply equal, false otherwise.</returns>
     public bool Equals(T a, T b) =>
         _api.Equals(ToUntyped(a, _rootMapping), ToUntyped(b, _rootMapping));
 
+    /// <summary>
+    /// Creates a deep copy of an object.
+    /// </summary>
+    /// <param name="obj">The object to clone.</param>
+    /// <returns>A new object with the same values.</returns>
     public T Clone(T obj) => ToTyped(_api.Clone(ToUntyped(obj, _rootMapping)), _rootMapping);
 
+    /// <summary>
+    /// Deserializes an object from a JSON element.
+    /// Performs lenient parsing (e.g., accepts numeric strings as numbers).
+    /// </summary>
+    /// <param name="json">The JSON element to parse.</param>
+    /// <returns>The deserialized object.</returns>
     public T FromJson(JsonElement json) => ToTyped(_api.FromJson(json), _rootMapping);
 
+    /// <summary>
+    /// Serializes an object to a JSON element.
+    /// </summary>
+    /// <param name="obj">The object to serialize.</param>
+    /// <returns>The JSON representation.</returns>
     public JsonElement ToJson(T obj) => _api.ToJson(ToUntyped(obj, _rootMapping));
 
     private object? ToUntyped(object? obj, TypeMapping mapping)

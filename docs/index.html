@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DeltaPack Documentation</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 80px 20px;
+      color: #24292f;
+      line-height: 1.6;
+    }
+    h1 { margin-bottom: 16px; }
+    .subtitle { color: #57606a; margin-bottom: 48px; font-size: 1.1em; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .card {
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      border-color: #0969da;
+      box-shadow: 0 4px 12px rgba(9, 105, 218, 0.1);
+    }
+    .card h2 { margin: 0 0 8px 0; color: #0969da; font-size: 1.25em; }
+    .card p { margin: 0; color: #57606a; font-size: 0.95em; }
+    .links { margin-top: 48px; padding-top: 24px; border-top: 1px solid #d0d7de; }
+    .links a { color: #0969da; text-decoration: none; margin-right: 24px; }
+    .links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>DeltaPack</h1>
+  <p class="subtitle">Binary serialization with delta compression for real-time state synchronization.</p>
+
+  <div class="cards">
+    <a href="typescript/" class="card">
+      <h2>TypeScript</h2>
+      <p>API reference for the TypeScript/JavaScript package.</p>
+    </a>
+    <a href="csharp/" class="card">
+      <h2>C# / .NET</h2>
+      <p>API reference for the C# package (Unity-compatible).</p>
+    </a>
+  </div>
+
+  <div class="links">
+    <a href="https://github.com/hpx7/delta-pack">GitHub</a>
+    <a href="https://www.npmjs.com/package/delta-pack">npm</a>
+    <a href="https://www.nuget.org/packages/DeltaPack">NuGet</a>
+  </div>
+</body>
+</html>

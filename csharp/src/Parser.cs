@@ -4,8 +4,27 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace DeltaPack;
 
+/// <summary>
+/// Parses YAML schema definitions into DeltaPack schema types.
+/// </summary>
 public static class Parser
 {
+    /// <summary>
+    /// Parses a YAML schema string into a dictionary of schema types.
+    /// </summary>
+    /// <param name="yamlContent">The YAML schema content.</param>
+    /// <returns>A dictionary mapping type names to their schema definitions.</returns>
+    /// <example>
+    /// <code>
+    /// string yaml = @"
+    /// Player:
+    ///   name: string
+    ///   score: int
+    /// ";
+    /// var schema = Parser.ParseSchemaYml(yaml);
+    /// var api = Interpreter.Load&lt;object?&gt;(schema, "Player");
+    /// </code>
+    /// </example>
     public static IReadOnlyDictionary<string, SchemaType> ParseSchemaYml(string yamlContent)
     {
         var deserializer = new DeserializerBuilder()
