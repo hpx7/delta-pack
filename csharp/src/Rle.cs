@@ -1,186 +1,126 @@
 namespace DeltaPack;
 
-public static class Rle
+/// <summary>
+/// Streaming RLE writer - encodes bits on-the-fly without buffering.
+/// </summary>
+public class RleWriter
 {
-    public static int Encode(List<bool> bits, byte[] output, int startPos)
+    private readonly List<byte> _bytes = new(64);
+    private int _currentByte;
+    private int _bitPos;
+    private int _totalBits;
+    private int _runValue = -1;
+    private int _runCount;
+
+    public void Reset()
     {
-        var pos = startPos;
-
-        if (bits.Count == 0)
-        {
-            pos = WriteReverseUVarint(output, pos, 0);
-            return pos;
-        }
-
-        var currentByte = 0;
-        var bitPos = 0;
-        var totalBits = 0;
-        var rleStartPos = pos;
-
-        void WriteBit(bool bit)
-        {
-            if (bit)
-                currentByte |= 1 << bitPos;
-
-            bitPos++;
-            totalBits++;
-
-            if (bitPos == 8)
-            {
-                output[pos++] = (byte)currentByte;
-                currentByte = 0;
-                bitPos = 0;
-            }
-        }
-
-        void WriteBits(int val, int numBits)
-        {
-            for (var i = numBits - 1; i >= 0; i--)
-                WriteBit((val & (1 << i)) > 0);
-        }
-
-        var last = bits[0];
-        var count = 1;
-        WriteBit(last);
-
-        for (var i = 1; i <= bits.Count; i++)
-        {
-            if (i < bits.Count && bits[i] == last)
-            {
-                count++;
-            }
-            else
-            {
-                // Variable-length unary coding for run lengths
-                if (count == 1)
-                {
-                    WriteBit(false);
-                }
-                else if (count <= 3)
-                {
-                    WriteBit(true);
-                    WriteBit(false);
-                    WriteBit(count == 3);
-                }
-                else if (count <= 5)
-                {
-                    WriteBit(true);
-                    WriteBit(true);
-                    WriteBit(false);
-                    WriteBit(count == 5);
-                }
-                else if (count <= 13)
-                {
-                    WriteBit(true);
-                    WriteBit(true);
-                    WriteBit(true);
-                    WriteBit(false);
-                    WriteBits(count - 6, 3);
-                }
-                else if (count <= 269)
-                {
-                    WriteBit(true);
-                    WriteBit(true);
-                    WriteBit(true);
-                    WriteBit(true);
-                    WriteBits(count - 14, 8);
-                }
-                else
-                {
-                    throw new InvalidOperationException($"RLE count too large: {count}");
-                }
-
-                if (i < bits.Count)
-                {
-                    last = bits[i];
-                    count = 1;
-                }
-            }
-        }
-
-        // Flush remaining bits
-        if (bitPos > 0)
-            output[pos++] = (byte)currentByte;
-
-        pos = WriteReverseUVarint(output, pos, totalBits);
-        return pos;
+        _bytes.Clear();
+        _currentByte = 0;
+        _bitPos = 0;
+        _totalBits = 0;
+        _runValue = -1;
+        _runCount = 0;
     }
 
-    public static bool[] Decode(byte[] buf)
+    public void PushBit(bool val)
     {
-        var (numBits, varintLen) = ReadReverseUVarint(buf);
-        if (numBits == 0)
-            return Array.Empty<bool>();
-
-        var numRleBytes = (numBits + 7) / 8;
-        var bytePos = buf.Length - varintLen - numRleBytes;
-        var currentByte = 0;
-        var bitPos = 8; // Start at 8 to trigger first byte read
-        var bitsRead = 0;
-
-        int ReadBit()
+        var bit = val ? 1 : 0;
+        if (_runValue == -1)
         {
-            if (bitPos == 8)
-            {
-                currentByte = buf[bytePos++];
-                bitPos = 0;
-            }
-            bitsRead++;
-            return (currentByte >> bitPos++) & 1;
+            _runValue = bit;
+            _runCount = 1;
+            WriteBit(bit);
+        }
+        else if (bit == _runValue)
+        {
+            _runCount++;
+        }
+        else
+        {
+            EmitRunLength(_runCount);
+            _runValue = bit;
+            _runCount = 1;
+        }
+    }
+
+    public void PushBits(int val, int numBits)
+    {
+        for (var i = numBits - 1; i >= 0; i--)
+            PushBit(((val >> i) & 1) == 1);
+    }
+
+    public int WriteToBuffer(byte[] output, int startPos)
+    {
+        if (_runValue == -1)
+        {
+            // No bits written
+            return WriteReverseUVarint(output, startPos, 0);
         }
 
-        int ReadBits(int numBitsToRead)
+        EmitRunLength(_runCount);
+        _runValue = -1; // Mark as flushed
+
+        // Flush remaining bits in current byte
+        if (_bitPos > 0)
+            _bytes.Add((byte)_currentByte);
+
+        // Copy RLE bytes to output
+        var pos = startPos;
+        foreach (var b in _bytes)
+            output[pos++] = b;
+
+        // Write reverse varint for total bits
+        return WriteReverseUVarint(output, pos, _totalBits);
+    }
+
+    private void WriteBit(int bit)
+    {
+        if (bit == 1)
+            _currentByte |= 1 << _bitPos;
+
+        _bitPos++;
+        _totalBits++;
+
+        if (_bitPos == 8)
         {
-            var val = 0;
-            for (var i = numBitsToRead - 1; i >= 0; i--)
-            {
-                if (ReadBit() == 1)
-                    val |= 1 << i;
-            }
-            return val;
+            _bytes.Add((byte)_currentByte);
+            _currentByte = 0;
+            _bitPos = 0;
         }
+    }
 
-        var bits = new List<bool>();
-        var last = ReadBit() == 1;
+    private void WriteBits(int val, int numBits)
+    {
+        for (var i = numBits - 1; i >= 0; i--)
+            WriteBit((val >> i) & 1);
+    }
 
-        while (bitsRead < numBits)
+    private void EmitRunLength(int count)
+    {
+        if (count == 1)
         {
-            int count;
-
-            // Variable-length unary decoding
-            if (ReadBit() == 0)
-            {
-                // '0' = run of 1
-                count = 1;
-            }
-            else if (ReadBit() == 0)
-            {
-                // '10' + 1 bit = run of 2-3
-                count = ReadBits(1) + 2;
-            }
-            else if (ReadBit() == 0)
-            {
-                // '110' + 1 bit = run of 4-5
-                count = ReadBits(1) + 4;
-            }
-            else if (ReadBit() == 0)
-            {
-                // '1110' + 3 bits = run of 6-13
-                count = ReadBits(3) + 6;
-            }
-            else
-            {
-                // '1111' + 8 bits = run of 14-269
-                count = ReadBits(8) + 14;
-            }
-
-            for (var i = 0; i < count; i++)
-                bits.Add(last);
-
-            last = !last;
+            WriteBit(0);
         }
-
-        return bits.ToArray();
+        else if (count <= 3)
+        {
+            WriteBits(0b100 | (count - 2), 3);
+        }
+        else if (count <= 5)
+        {
+            WriteBits(0b1100 | (count - 4), 4);
+        }
+        else if (count <= 13)
+        {
+            WriteBits((0b1110 << 3) | (count - 6), 7);
+        }
+        else if (count <= 269)
+        {
+            WriteBits((0b1111 << 8) | (count - 14), 12);
+        }
+        else
+        {
+            throw new InvalidOperationException($"RLE count too large: {count}");
+        }
     }
 
     private static int WriteReverseUVarint(byte[] output, int pos, int val)
@@ -195,6 +135,96 @@ public static class Rle
             output[pos++] = (byte)((val & 0x7F) | 0x80);
         }
         return pos;
+    }
+}
+
+/// <summary>
+/// Streaming RLE reader - decodes bits lazily on-demand.
+/// </summary>
+public class RleReader
+{
+    private byte[] _buf = null!;
+    private int _bytePos;
+    private int _currentByte;
+    private int _bitPos;
+    private bool _value;
+    private int _remaining;
+    private bool _initialized;
+
+    public void Reset(byte[] buf)
+    {
+        _buf = buf;
+        _currentByte = 0;
+        _bitPos = 8;
+
+        var (numBits, varintLen) = ReadReverseUVarint(buf);
+        if (numBits == 0)
+        {
+            _initialized = false;
+            return;
+        }
+
+        var numRleBytes = (numBits + 7) / 8;
+        _bytePos = buf.Length - varintLen - numRleBytes;
+        _value = ReadBit() == 1;
+        _remaining = DecodeRunLength();
+        _initialized = true;
+    }
+
+    public bool NextBit()
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("No bits to read");
+
+        if (_remaining == 0)
+        {
+            _value = !_value;
+            _remaining = DecodeRunLength();
+        }
+
+        _remaining--;
+        return _value;
+    }
+
+    public int NextBits(int numBits)
+    {
+        var val = 0;
+        for (var i = numBits - 1; i >= 0; i--)
+        {
+            if (NextBit())
+                val |= 1 << i;
+        }
+        return val;
+    }
+
+    private int ReadBit()
+    {
+        if (_bitPos == 8)
+        {
+            _currentByte = _buf[_bytePos++];
+            _bitPos = 0;
+        }
+        return (_currentByte >> _bitPos++) & 1;
+    }
+
+    private int ReadBits(int numBits)
+    {
+        var val = 0;
+        for (var i = numBits - 1; i >= 0; i--)
+        {
+            if (ReadBit() == 1)
+                val |= 1 << i;
+        }
+        return val;
+    }
+
+    private int DecodeRunLength()
+    {
+        if (ReadBit() == 0) return 1;
+        if (ReadBit() == 0) return ReadBits(1) + 2;
+        if (ReadBit() == 0) return ReadBits(1) + 4;
+        if (ReadBit() == 0) return ReadBits(3) + 6;
+        return ReadBits(8) + 14;
     }
 
     private static (int value, int bytesRead) ReadReverseUVarint(byte[] buf)

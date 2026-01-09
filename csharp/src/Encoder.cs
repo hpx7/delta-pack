@@ -10,14 +10,19 @@ public class Encoder
     [ThreadStatic]
     private static byte[]? _sharedBuffer;
 
+    [ThreadStatic]
+    private static RleWriter? _sharedRle;
+
     private readonly List<string> _dict = new();
-    private readonly List<bool> _bits = new();
+    private readonly RleWriter _rle;
     private byte[] _buffer;
     private int _pos;
 
     public Encoder()
     {
         _buffer = _sharedBuffer ??= new byte[DefaultBufferSize];
+        _rle = _sharedRle ??= new RleWriter();
+        _rle.Reset();
         _pos = 0;
     }
 
@@ -91,14 +96,10 @@ public class Encoder
         PushInt((long)Math.Round(val / precision));
 
     public void PushBoolean(bool val) =>
-        _bits.Add(val);
+        _rle.PushBit(val);
 
-    public void PushEnum(int val, int numBits)
-    {
-        // Push bits from most significant to least significant
-        for (var i = numBits - 1; i >= 0; i--)
-            _bits.Add(((val >> i) & 1) == 1);
-    }
+    public void PushEnum(int val, int numBits) =>
+        _rle.PushBits(val, numBits);
 
     // Container methods
 
@@ -319,11 +320,10 @@ public class Encoder
 
     public byte[] ToBuffer()
     {
-        // Estimate RLE size: bits + varint overhead
-        var maxRleSize = (_bits.Count + 7) / 8 + 10;
-        EnsureCapacity(maxRleSize);
+        // Estimate RLE size: assume worst case expansion
+        EnsureCapacity(256);
 
-        var finalPos = Rle.Encode(_bits, _buffer, _pos);
+        var finalPos = _rle.WriteToBuffer(_buffer, _pos);
 
         return _buffer.AsSpan(0, finalPos).ToArray();
     }

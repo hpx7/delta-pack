@@ -4,16 +4,19 @@ namespace DeltaPack;
 
 public class Decoder
 {
+    [ThreadStatic]
+    private static RleReader? _sharedRle;
+
     private readonly List<string> _dict = new();
-    private readonly bool[] _bits;
-    private int _bitsIdx;
+    private readonly RleReader _rle;
     private readonly byte[] _buffer;
     private int _pos;
 
     public Decoder(byte[] buf)
     {
         _buffer = buf;
-        _bits = Rle.Decode(buf);
+        _rle = _sharedRle ??= new RleReader();
+        _rle.Reset(buf);
         _pos = 0;
     }
 
@@ -57,16 +60,10 @@ public class Decoder
         NextInt() * precision;
 
     public bool NextBoolean() =>
-        _bits[_bitsIdx++];
+        _rle.NextBit();
 
-    public int NextEnum(int numBits)
-    {
-        // Read bits from most significant to least significant
-        var val = 0;
-        for (var i = 0; i < numBits; i++)
-            val = (val << 1) | (_bits[_bitsIdx++] ? 1 : 0);
-        return val;
-    }
+    public int NextEnum(int numBits) =>
+        _rle.NextBits(numBits);
 
     // Container methods
 
