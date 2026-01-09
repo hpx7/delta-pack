@@ -49,6 +49,32 @@ export function floatRead(bytes: Uint8Array, pos: number): number {
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
+export function utf8Encode(val: string, bytes: Uint8Array, pos: number): number {
+  let index = pos;
+  let c1: number, c2: number;
+  for (let i = 0; i < val.length; i++) {
+    c1 = val.charCodeAt(i);
+    if (c1 < 128) {
+      bytes[index++] = c1;
+    } else if (c1 < 2048) {
+      bytes[index++] = (c1 >> 6) | 192;
+      bytes[index++] = (c1 & 63) | 128;
+    } else if ((c1 & 0xfc00) === 0xd800 && ((c2 = val.charCodeAt(i + 1)) & 0xfc00) === 0xdc00) {
+      c1 = 0x10000 + ((c1 & 0x03ff) << 10) + (c2 & 0x03ff);
+      i++;
+      bytes[index++] = (c1 >> 18) | 240;
+      bytes[index++] = ((c1 >> 12) & 63) | 128;
+      bytes[index++] = ((c1 >> 6) & 63) | 128;
+      bytes[index++] = (c1 & 63) | 128;
+    } else {
+      bytes[index++] = (c1 >> 12) | 224;
+      bytes[index++] = ((c1 >> 6) & 63) | 128;
+      bytes[index++] = (c1 & 63) | 128;
+    }
+  }
+  return index - pos;
+}
+
 export function utf8Size(str: string): number {
   let bytes = 0;
   for (let i = 0, len = str.length; i < len; i++) {
@@ -73,28 +99,7 @@ export function utf8Write(val: string, bytes: Uint8Array, pos: number, len: numb
   } else if (len > 64) {
     textEncoder.encodeInto(val, bytes.subarray(pos));
   } else {
-    let index = pos;
-    let c1: number, c2: number;
-    for (let i = 0; i < val.length; i++) {
-      c1 = val.charCodeAt(i);
-      if (c1 < 128) {
-        bytes[index++] = c1;
-      } else if (c1 < 2048) {
-        bytes[index++] = (c1 >> 6) | 192;
-        bytes[index++] = (c1 & 63) | 128;
-      } else if ((c1 & 0xfc00) === 0xd800 && ((c2 = val.charCodeAt(i + 1)) & 0xfc00) === 0xdc00) {
-        c1 = 0x10000 + ((c1 & 0x03ff) << 10) + (c2 & 0x03ff);
-        i++;
-        bytes[index++] = (c1 >> 18) | 240;
-        bytes[index++] = ((c1 >> 12) & 63) | 128;
-        bytes[index++] = ((c1 >> 6) & 63) | 128;
-        bytes[index++] = (c1 & 63) | 128;
-      } else {
-        bytes[index++] = (c1 >> 12) | 224;
-        bytes[index++] = ((c1 >> 6) & 63) | 128;
-        bytes[index++] = (c1 & 63) | 128;
-      }
-    }
+    utf8Encode(val, bytes, pos);
   }
 }
 

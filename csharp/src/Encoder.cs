@@ -55,16 +55,28 @@ public class Encoder
         if (idx >= 0)
         {
             PushInt(-idx - 1);
+            return;
         }
-        else
+
+        _dict.Add(val);
+
+        // Fast path: strings ≤21 chars have max 63 UTF-8 bytes, fits in 1-byte zigzag varint
+        if (val.Length <= 21)
         {
-            _dict.Add(val);
-            var byteCount = Encoding.UTF8.GetByteCount(val);
-            PushInt(byteCount);
-            EnsureCapacity(byteCount);
-            Encoding.UTF8.GetBytes(val, _buffer.AsSpan(_pos, byteCount));
-            _pos += byteCount;
+            EnsureCapacity(1 + val.Length * 3);
+            var lengthPos = _pos++;
+            var written = Encoding.UTF8.GetBytes(val, _buffer.AsSpan(_pos));
+            _buffer[lengthPos] = (byte)(written * 2); // Zigzag encode: positive n → n*2
+            _pos += written;
+            return;
         }
+
+        // Standard path: compute byte count first for longer strings
+        var byteCount = Encoding.UTF8.GetByteCount(val);
+        PushInt(byteCount);
+        EnsureCapacity(byteCount);
+        Encoding.UTF8.GetBytes(val, _buffer.AsSpan(_pos, byteCount));
+        _pos += byteCount;
     }
 
     public void PushInt(long val)

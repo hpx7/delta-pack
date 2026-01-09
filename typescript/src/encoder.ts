@@ -1,5 +1,5 @@
 import { equalsFloat, equalsArray, equalsRecord } from "./helpers.js";
-import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, RleWriter } from "./serde.js";
+import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
 
 export class Encoder {
   private static _instance: Encoder | null = null;
@@ -25,14 +25,23 @@ export class Encoder {
       return;
     }
     const idx = this.dict.indexOf(val);
-    if (idx < 0) {
-      this.dict.push(val);
-      const len = utf8Size(val);
-      this.writeVarint(len);
-      this.writeStringUtf8(val, len);
-    } else {
+    if (idx >= 0) {
       this.writeVarint(-idx - 1);
+      return;
     }
+
+    this.dict.push(val);
+
+    // Fast path: strings ≤21 chars have max 63 UTF-8 bytes, fits in 1-byte zigzag varint
+    if (val.length <= 21) {
+      this.writeStringFastPath(val);
+      return;
+    }
+
+    // Standard path: compute byte count first for longer strings
+    const len = utf8Size(val);
+    this.writeVarint(len);
+    this.writeStringUtf8(val, len);
   }
 
   pushInt(val: number) {
@@ -306,6 +315,14 @@ export class Encoder {
     this.ensureSize(len);
     utf8Write(val, this.bytes, this.pos, len);
     this.pos += len;
+  }
+
+  private writeStringFastPath(val: string) {
+    this.ensureSize(1 + val.length * 3); // max utf8 size
+    const lengthPos = this.pos++;
+    const written = utf8Encode(val, this.bytes, this.pos);
+    this.bytes[lengthPos] = written * 2; // Zigzag encode: positive n → n*2
+    this.pos += written;
   }
 
   private ensureSize(size: number) {
