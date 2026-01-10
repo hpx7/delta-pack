@@ -330,17 +330,31 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.Rle.yml",
+      "source_relative_path": "api/DeltaPack.RleReader.yml",
       "output": {
         ".html": {
-          "relative_path": "api/DeltaPack.Rle.html"
+          "relative_path": "api/DeltaPack.RleReader.html"
         }
       },
       "version": "",
       "Uid": null,
       "IsMRef": true,
-      "Title": "DeltaPack.Rle",
-      "Summary": null
+      "Title": "DeltaPack.RleReader",
+      "Summary": "<p sourcefile=\"api/DeltaPack.RleReader.yml\" sourcestartlinenumber=\"1\">Streaming RLE reader - decodes bits lazily on-demand.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.RleWriter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.RleWriter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.RleWriter",
+      "Summary": "<p sourcefile=\"api/DeltaPack.RleWriter.yml\" sourcestartlinenumber=\"1\">Streaming RLE writer - encodes bits on-the-fly without buffering.</p>\n"
     },
     {
       "type": "ManagedReference",

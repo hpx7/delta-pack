@@ -1827,44 +1827,124 @@ references:
   fullName.vb: DeltaPack.ReflectionSchema.BuildSchema(Of T)()
   nameWithType: ReflectionSchema.BuildSchema<T>()
   nameWithType.vb: ReflectionSchema.BuildSchema(Of T)()
-- uid: DeltaPack.Rle
-  name: Rle
-  href: api/DeltaPack.Rle.html
-  commentId: T:DeltaPack.Rle
-  fullName: DeltaPack.Rle
-  nameWithType: Rle
-- uid: DeltaPack.Rle.Decode(System.Byte[])
-  name: Decode(byte[])
-  href: api/DeltaPack.Rle.html#DeltaPack_Rle_Decode_System_Byte___
-  commentId: M:DeltaPack.Rle.Decode(System.Byte[])
-  name.vb: Decode(Byte())
-  fullName: DeltaPack.Rle.Decode(byte[])
-  fullName.vb: DeltaPack.Rle.Decode(Byte())
-  nameWithType: Rle.Decode(byte[])
-  nameWithType.vb: Rle.Decode(Byte())
-- uid: DeltaPack.Rle.Decode*
-  name: Decode
-  href: api/DeltaPack.Rle.html#DeltaPack_Rle_Decode_
-  commentId: Overload:DeltaPack.Rle.Decode
+- uid: DeltaPack.RleReader
+  name: RleReader
+  href: api/DeltaPack.RleReader.html
+  commentId: T:DeltaPack.RleReader
+  fullName: DeltaPack.RleReader
+  nameWithType: RleReader
+- uid: DeltaPack.RleReader.NextBit
+  name: NextBit()
+  href: api/DeltaPack.RleReader.html#DeltaPack_RleReader_NextBit
+  commentId: M:DeltaPack.RleReader.NextBit
+  fullName: DeltaPack.RleReader.NextBit()
+  nameWithType: RleReader.NextBit()
+- uid: DeltaPack.RleReader.NextBit*
+  name: NextBit
+  href: api/DeltaPack.RleReader.html#DeltaPack_RleReader_NextBit_
+  commentId: Overload:DeltaPack.RleReader.NextBit
   isSpec: "True"
-  fullName: DeltaPack.Rle.Decode
-  nameWithType: Rle.Decode
-- uid: DeltaPack.Rle.Encode(System.Collections.Generic.List{System.Boolean},System.Byte[],System.Int32)
-  name: Encode(List<bool>, byte[], int)
-  href: api/DeltaPack.Rle.html#DeltaPack_Rle_Encode_System_Collections_Generic_List_System_Boolean__System_Byte___System_Int32_
-  commentId: M:DeltaPack.Rle.Encode(System.Collections.Generic.List{System.Boolean},System.Byte[],System.Int32)
-  name.vb: Encode(List(Of Boolean), Byte(), Integer)
-  fullName: DeltaPack.Rle.Encode(System.Collections.Generic.List<bool>, byte[], int)
-  fullName.vb: DeltaPack.Rle.Encode(System.Collections.Generic.List(Of Boolean), Byte(), Integer)
-  nameWithType: Rle.Encode(List<bool>, byte[], int)
-  nameWithType.vb: Rle.Encode(List(Of Boolean), Byte(), Integer)
-- uid: DeltaPack.Rle.Encode*
-  name: Encode
-  href: api/DeltaPack.Rle.html#DeltaPack_Rle_Encode_
-  commentId: Overload:DeltaPack.Rle.Encode
+  fullName: DeltaPack.RleReader.NextBit
+  nameWithType: RleReader.NextBit
+- uid: DeltaPack.RleReader.NextBits(System.Int32)
+  name: NextBits(int)
+  href: api/DeltaPack.RleReader.html#DeltaPack_RleReader_NextBits_System_Int32_
+  commentId: M:DeltaPack.RleReader.NextBits(System.Int32)
+  name.vb: NextBits(Integer)
+  fullName: DeltaPack.RleReader.NextBits(int)
+  fullName.vb: DeltaPack.RleReader.NextBits(Integer)
+  nameWithType: RleReader.NextBits(int)
+  nameWithType.vb: RleReader.NextBits(Integer)
+- uid: DeltaPack.RleReader.NextBits*
+  name: NextBits
+  href: api/DeltaPack.RleReader.html#DeltaPack_RleReader_NextBits_
+  commentId: Overload:DeltaPack.RleReader.NextBits
   isSpec: "True"
-  fullName: DeltaPack.Rle.Encode
-  nameWithType: Rle.Encode
+  fullName: DeltaPack.RleReader.NextBits
+  nameWithType: RleReader.NextBits
+- uid: DeltaPack.RleReader.Reset(System.Byte[])
+  name: Reset(byte[])
+  href: api/DeltaPack.RleReader.html#DeltaPack_RleReader_Reset_System_Byte___
+  commentId: M:DeltaPack.RleReader.Reset(System.Byte[])
+  name.vb: Reset(Byte())
+  fullName: DeltaPack.RleReader.Reset(byte[])
+  fullName.vb: DeltaPack.RleReader.Reset(Byte())
+  nameWithType: RleReader.Reset(byte[])
+  nameWithType.vb: RleReader.Reset(Byte())
+- uid: DeltaPack.RleReader.Reset*
+  name: Reset
+  href: api/DeltaPack.RleReader.html#DeltaPack_RleReader_Reset_
+  commentId: Overload:DeltaPack.RleReader.Reset
+  isSpec: "True"
+  fullName: DeltaPack.RleReader.Reset
+  nameWithType: RleReader.Reset
+- uid: DeltaPack.RleWriter
+  name: RleWriter
+  href: api/DeltaPack.RleWriter.html
+  commentId: T:DeltaPack.RleWriter
+  fullName: DeltaPack.RleWriter
+  nameWithType: RleWriter
+- uid: DeltaPack.RleWriter.PushBit(System.Boolean)
+  name: PushBit(bool)
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_PushBit_System_Boolean_
+  commentId: M:DeltaPack.RleWriter.PushBit(System.Boolean)
+  name.vb: PushBit(Boolean)
+  fullName: DeltaPack.RleWriter.PushBit(bool)
+  fullName.vb: DeltaPack.RleWriter.PushBit(Boolean)
+  nameWithType: RleWriter.PushBit(bool)
+  nameWithType.vb: RleWriter.PushBit(Boolean)
+- uid: DeltaPack.RleWriter.PushBit*
+  name: PushBit
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_PushBit_
+  commentId: Overload:DeltaPack.RleWriter.PushBit
+  isSpec: "True"
+  fullName: DeltaPack.RleWriter.PushBit
+  nameWithType: RleWriter.PushBit
+- uid: DeltaPack.RleWriter.PushBits(System.Int32,System.Int32)
+  name: PushBits(int, int)
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_PushBits_System_Int32_System_Int32_
+  commentId: M:DeltaPack.RleWriter.PushBits(System.Int32,System.Int32)
+  name.vb: PushBits(Integer, Integer)
+  fullName: DeltaPack.RleWriter.PushBits(int, int)
+  fullName.vb: DeltaPack.RleWriter.PushBits(Integer, Integer)
+  nameWithType: RleWriter.PushBits(int, int)
+  nameWithType.vb: RleWriter.PushBits(Integer, Integer)
+- uid: DeltaPack.RleWriter.PushBits*
+  name: PushBits
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_PushBits_
+  commentId: Overload:DeltaPack.RleWriter.PushBits
+  isSpec: "True"
+  fullName: DeltaPack.RleWriter.PushBits
+  nameWithType: RleWriter.PushBits
+- uid: DeltaPack.RleWriter.Reset
+  name: Reset()
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_Reset
+  commentId: M:DeltaPack.RleWriter.Reset
+  fullName: DeltaPack.RleWriter.Reset()
+  nameWithType: RleWriter.Reset()
+- uid: DeltaPack.RleWriter.Reset*
+  name: Reset
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_Reset_
+  commentId: Overload:DeltaPack.RleWriter.Reset
+  isSpec: "True"
+  fullName: DeltaPack.RleWriter.Reset
+  nameWithType: RleWriter.Reset
+- uid: DeltaPack.RleWriter.WriteToBuffer(System.Byte[],System.Int32)
+  name: WriteToBuffer(byte[], int)
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_WriteToBuffer_System_Byte___System_Int32_
+  commentId: M:DeltaPack.RleWriter.WriteToBuffer(System.Byte[],System.Int32)
+  name.vb: WriteToBuffer(Byte(), Integer)
+  fullName: DeltaPack.RleWriter.WriteToBuffer(byte[], int)
+  fullName.vb: DeltaPack.RleWriter.WriteToBuffer(Byte(), Integer)
+  nameWithType: RleWriter.WriteToBuffer(byte[], int)
+  nameWithType.vb: RleWriter.WriteToBuffer(Byte(), Integer)
+- uid: DeltaPack.RleWriter.WriteToBuffer*
+  name: WriteToBuffer
+  href: api/DeltaPack.RleWriter.html#DeltaPack_RleWriter_WriteToBuffer_
+  commentId: Overload:DeltaPack.RleWriter.WriteToBuffer
+  isSpec: "True"
+  fullName: DeltaPack.RleWriter.WriteToBuffer
+  nameWithType: RleWriter.WriteToBuffer
 - uid: DeltaPack.Schema
   name: Schema
   href: api/DeltaPack.Schema.html

@@ -77,7 +77,7 @@
   "api/DeltaPack.Interpreter.html": {
     "href": "api/DeltaPack.Interpreter.html",
     "title": "Class Interpreter | DeltaPack",
-    "summary": "Class Interpreter Namespace DeltaPack Assembly DeltaPack.dll public static class Interpreter Inheritance object Interpreter Inherited Members object.Equals(object) object.Equals(object, object) object.GetHashCode() object.GetType() object.MemberwiseClone() object.ReferenceEquals(object, object) object.ToString() Methods Load<T>(IReadOnlyDictionary<string, SchemaType>, string) public static IDeltaPackApi<T> Load<T>(IReadOnlyDictionary<string, SchemaType> schema, string typeName) Parameters schema IReadOnlyDictionary<string, SchemaType> typeName string Returns IDeltaPackApi<T> Type Parameters T"
+    "summary": "Class Interpreter Namespace DeltaPack Assembly DeltaPack.dll public static class Interpreter Inheritance object Interpreter Inherited Members object.Equals(object) object.Equals(object, object) object.GetHashCode() object.GetType() object.MemberwiseClone() object.ReferenceEquals(object, object) object.ToString() Methods Load<T>(IReadOnlyDictionary<string, SchemaType>, string) Loads a schema and returns an API for serialization operations. public static IDeltaPackApi<T> Load<T>(IReadOnlyDictionary<string, SchemaType> schema, string typeName) Parameters schema IReadOnlyDictionary<string, SchemaType> The parsed schema dictionary. typeName string The root type name to load. Returns IDeltaPackApi<T> Type Parameters T"
   },
   "api/DeltaPack.JsonHelpers.html": {
     "href": "api/DeltaPack.JsonHelpers.html",
@@ -114,10 +114,15 @@
     "title": "Class ReflectionSchema | DeltaPack",
     "summary": "Class ReflectionSchema Namespace DeltaPack Assembly DeltaPack.dll Builds a schema from a C# type using reflection. Useful for inspecting the generated schema or comparing with manual schema definitions. public static class ReflectionSchema Inheritance object ReflectionSchema Inherited Members object.Equals(object) object.Equals(object, object) object.GetHashCode() object.GetType() object.MemberwiseClone() object.ReferenceEquals(object, object) object.ToString() Methods BuildSchema<T>() public static IReadOnlyDictionary<string, SchemaType> BuildSchema<T>() where T : class Returns IReadOnlyDictionary<string, SchemaType> Type Parameters T"
   },
-  "api/DeltaPack.Rle.html": {
-    "href": "api/DeltaPack.Rle.html",
-    "title": "Class Rle | DeltaPack",
-    "summary": "Class Rle Namespace DeltaPack Assembly DeltaPack.dll public static class Rle Inheritance object Rle Inherited Members object.Equals(object) object.Equals(object, object) object.GetHashCode() object.GetType() object.MemberwiseClone() object.ReferenceEquals(object, object) object.ToString() Methods Decode(byte[]) public static bool[] Decode(byte[] buf) Parameters buf byte[] Returns bool[] Encode(List<bool>, byte[], int) public static int Encode(List<bool> bits, byte[] output, int startPos) Parameters bits List<bool> output byte[] startPos int Returns int"
+  "api/DeltaPack.RleReader.html": {
+    "href": "api/DeltaPack.RleReader.html",
+    "title": "Class RleReader | DeltaPack",
+    "summary": "Class RleReader Namespace DeltaPack Assembly DeltaPack.dll Streaming RLE reader - decodes bits lazily on-demand. public class RleReader Inheritance object RleReader Inherited Members object.Equals(object) object.Equals(object, object) object.GetHashCode() object.GetType() object.MemberwiseClone() object.ReferenceEquals(object, object) object.ToString() Methods NextBit() public bool NextBit() Returns bool NextBits(int) public int NextBits(int numBits) Parameters numBits int Returns int Reset(byte[]) public void Reset(byte[] buf) Parameters buf byte[]"
+  },
+  "api/DeltaPack.RleWriter.html": {
+    "href": "api/DeltaPack.RleWriter.html",
+    "title": "Class RleWriter | DeltaPack",
+    "summary": "Class RleWriter Namespace DeltaPack Assembly DeltaPack.dll Streaming RLE writer - encodes bits on-the-fly without buffering. public class RleWriter Inheritance object RleWriter Inherited Members object.Equals(object) object.Equals(object, object) object.GetHashCode() object.GetType() object.MemberwiseClone() object.ReferenceEquals(object, object) object.ToString() Methods PushBit(bool) public void PushBit(bool val) Parameters val bool PushBits(int, int) public void PushBits(int val, int numBits) Parameters val int numBits int Reset() public void Reset() WriteToBuffer(byte[], int) public int WriteToBuffer(byte[] output, int startPos) Parameters output byte[] startPos int Returns int"
   },
   "api/DeltaPack.Schema.html": {
     "href": "api/DeltaPack.Schema.html",
@@ -147,7 +152,7 @@
   "api/DeltaPack.html": {
     "href": "api/DeltaPack.html",
     "title": "Namespace DeltaPack | DeltaPack",
-    "summary": "Namespace DeltaPack Classes ArrayType BooleanType Decoder DeltaPackCodec<T> Unity-friendly codec for encoding/decoding C# types. Create once during initialization, reuse in hot paths. DeltaPackIgnoreAttribute Excludes a property or field from serialization. DeltaPackPrecisionAttribute Specifies float precision for quantized encoding. DeltaPackRangeAttribute Specifies min/max bounds for integer encoding. Bounded integers are encoded more efficiently when values are constrained. DeltaPackUnionAttribute Marks a type as a union variant. Apply to the base class/interface. Encoder EnumType EqualityHelpers FloatType IntType Interpreter JsonHelpers ObjectType OptionalType Parser Parses YAML schema definitions into DeltaPack schema types. RecordType ReferenceType ReflectionSchema Builds a schema from a C# type using reflection. Useful for inspecting the generated schema or comparing with manual schema definitions. Rle Schema SchemaType StringType UnionType UnionValue Interfaces IDeltaPackApi<T> Core interface for DeltaPack serialization operations. Implementations are returned by Load<T>(IReadOnlyDictionary<string, SchemaType>, string) or generated code."
+    "summary": "Namespace DeltaPack Classes ArrayType BooleanType Decoder DeltaPackCodec<T> Unity-friendly codec for encoding/decoding C# types. Create once during initialization, reuse in hot paths. DeltaPackIgnoreAttribute Excludes a property or field from serialization. DeltaPackPrecisionAttribute Specifies float precision for quantized encoding. DeltaPackRangeAttribute Specifies min/max bounds for integer encoding. Bounded integers are encoded more efficiently when values are constrained. DeltaPackUnionAttribute Marks a type as a union variant. Apply to the base class/interface. Encoder EnumType EqualityHelpers FloatType IntType Interpreter JsonHelpers ObjectType OptionalType Parser Parses YAML schema definitions into DeltaPack schema types. RecordType ReferenceType ReflectionSchema Builds a schema from a C# type using reflection. Useful for inspecting the generated schema or comparing with manual schema definitions. RleReader Streaming RLE reader - decodes bits lazily on-demand. RleWriter Streaming RLE writer - encodes bits on-the-fly without buffering. Schema SchemaType StringType UnionType UnionValue Interfaces IDeltaPackApi<T> Core interface for DeltaPack serialization operations. Implementations are returned by Load<T>(IReadOnlyDictionary<string, SchemaType>, string) or generated code."
   },
   "index.html": {
     "href": "index.html",
