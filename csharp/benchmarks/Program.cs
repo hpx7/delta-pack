@@ -221,29 +221,29 @@ public class Program
         return new Dictionary<string, DeltaPackOps>
         {
             ["GameState"] = new(
-                GameStateGen.GameState.FromJson,
-                obj => GameStateGen.GameState.ToJson((GameStateGen.GameState)obj!),
-                obj => GameStateGen.GameState.Encode((GameStateGen.GameState)obj!),
-                buf => GameStateGen.GameState.Decode(buf),
-                (a, b) => GameStateGen.GameState.Equals((GameStateGen.GameState)a!, (GameStateGen.GameState)b!)),
+                Generated.Examples.GameState.FromJson,
+                obj => Generated.Examples.GameState.ToJson((Generated.Examples.GameState)obj!),
+                obj => Generated.Examples.GameState.Encode((Generated.Examples.GameState)obj!),
+                buf => Generated.Examples.GameState.Decode(buf),
+                (a, b) => Generated.Examples.GameState.Equals((Generated.Examples.GameState)a!, (Generated.Examples.GameState)b!)),
             ["Primitives"] = new(
-                PrimitivesGen.Primitives.FromJson,
-                obj => PrimitivesGen.Primitives.ToJson((PrimitivesGen.Primitives)obj!),
-                obj => PrimitivesGen.Primitives.Encode((PrimitivesGen.Primitives)obj!),
-                buf => PrimitivesGen.Primitives.Decode(buf),
-                (a, b) => PrimitivesGen.Primitives.Equals((PrimitivesGen.Primitives)a!, (PrimitivesGen.Primitives)b!)),
+                Generated.Examples.Primitives.FromJson,
+                obj => Generated.Examples.Primitives.ToJson((Generated.Examples.Primitives)obj!),
+                obj => Generated.Examples.Primitives.Encode((Generated.Examples.Primitives)obj!),
+                buf => Generated.Examples.Primitives.Decode(buf),
+                (a, b) => Generated.Examples.Primitives.Equals((Generated.Examples.Primitives)a!, (Generated.Examples.Primitives)b!)),
             ["Test"] = new(
-                TestGen.Test.FromJson,
-                obj => TestGen.Test.ToJson((TestGen.Test)obj!),
-                obj => TestGen.Test.Encode((TestGen.Test)obj!),
-                buf => TestGen.Test.Decode(buf),
-                (a, b) => TestGen.Test.Equals((TestGen.Test)a!, (TestGen.Test)b!)),
+                Generated.Examples.Test.FromJson,
+                obj => Generated.Examples.Test.ToJson((Generated.Examples.Test)obj!),
+                obj => Generated.Examples.Test.Encode((Generated.Examples.Test)obj!),
+                buf => Generated.Examples.Test.Decode(buf),
+                (a, b) => Generated.Examples.Test.Equals((Generated.Examples.Test)a!, (Generated.Examples.Test)b!)),
             ["User"] = new(
-                UserGen.User.FromJson,
-                obj => UserGen.User.ToJson((UserGen.User)obj!),
-                obj => UserGen.User.Encode((UserGen.User)obj!),
-                buf => UserGen.User.Decode(buf),
-                (a, b) => UserGen.User.Equals((UserGen.User)a!, (UserGen.User)b!)),
+                Generated.Examples.User.FromJson,
+                obj => Generated.Examples.User.ToJson((Generated.Examples.User)obj!),
+                obj => Generated.Examples.User.Encode((Generated.Examples.User)obj!),
+                buf => Generated.Examples.User.Decode(buf),
+                (a, b) => Generated.Examples.User.Equals((Generated.Examples.User)a!, (Generated.Examples.User)b!)),
         };
     }
 

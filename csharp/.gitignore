@@ -4,6 +4,8 @@ obj/
 *.suo
 .vs/
 
+generated/
+
 # DocFX
 _site/
 api/

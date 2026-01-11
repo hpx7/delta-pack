@@ -156,6 +156,24 @@ public class Decoder
         }
     }
 
+    public T? NextOptionalDiffValue<T>(T? a, Func<T> decode) where T : struct
+    {
+        if (a is null)
+        {
+            var present = NextBoolean();
+            return present ? decode() : null;
+        }
+        else
+        {
+            var changed = NextBoolean();
+            if (!changed)
+                return a;
+
+            var present = NextBoolean();
+            return present ? decode() : null;
+        }
+    }
+
     public T? NextOptionalDiff<T>(T? a, Func<T> decode, Func<T, T> decodeDiff) where T : class
     {
         if (a is null)
@@ -196,8 +214,7 @@ public class Decoder
         IDictionary<TKey, TValue> obj,
         Func<TKey> decodeKey,
         Func<TValue> decodeVal,
-        Func<TValue, TValue> decodeDiff,
-        IComparer<TKey>? comparer = null)
+        Func<TValue, TValue> decodeDiff)
         where TKey : notnull
     {
         var changed = NextBoolean();
@@ -205,7 +222,7 @@ public class Decoder
             return new Dictionary<TKey, TValue>(obj);
 
         var result = new Dictionary<TKey, TValue>(obj);
-        var orderedKeys = obj.Keys.OrderBy(k => k, comparer).ToList();
+        var orderedKeys = obj.Keys.ToList();
 
         if (obj.Count > 0)
         {

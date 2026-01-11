@@ -618,7 +618,7 @@ function renderEncodeDiff(
     case "optional": {
       const t = renderType(ctx, type.value, name);
       return isPrimitiveOrEnum(type.value)
-        ? `encoder.pushOptionalDiffPrimitive<${t}>(${a}, ${b}, (x) => ${renderEncode(ctx, type.value, name, "x")})`
+        ? `encoder.pushOptionalDiffPrimitive<${t}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")}, (x) => ${renderEncode(ctx, type.value, name, "x")})`
         : `encoder.pushOptionalDiff<${t}>(${a}, ${b}, (x) => ${renderEncode(ctx, type.value, name, "x")}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y")})`;
     }
     case "record": {

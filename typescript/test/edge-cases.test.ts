@@ -14,6 +14,7 @@ import {
   UnionType,
   Infer,
 } from "@hpx7/delta-pack";
+import { utf8Write, utf8Read, utf8Size } from "../src/serde.js";
 
 /**
  * Edge case tests for boundary values, error handling, and special scenarios
@@ -34,6 +35,11 @@ const RecordHolder = ObjectType("RecordHolder", {
   data: RecordType(StringType(), IntType()),
 });
 type RecordHolder = Infer<typeof RecordHolder>;
+
+const MapWithObjects = ObjectType("MapWithObjects", {
+  items: RecordType(StringType(), ReferenceType(EnumHolder)),
+});
+type MapWithObjects = Infer<typeof MapWithObjects>;
 
 describe("Edge Cases - Boundary Values", () => {
   describe("Integer Boundaries", () => {
@@ -982,5 +988,103 @@ describe("Type Name Validation", () => {
         /conflicts with built-in TypeScript type/
       );
     }
+  });
+});
+
+describe("Edge Cases - Clone with Maps", () => {
+  const api = load(MapWithObjects);
+
+  it("should clone objects with Map fields", () => {
+    const original: MapWithObjects = {
+      items: new Map([
+        ["a", { color: "RED" }],
+        ["b", { color: "BLUE" }],
+      ]),
+    };
+
+    const cloned = api.clone(original);
+
+    // Should be deeply equal
+    expect(api.equals(original, cloned)).toBe(true);
+
+    // But not the same reference
+    expect(cloned).not.toBe(original);
+    expect(cloned.items).not.toBe(original.items);
+    expect(cloned.items.get("a")).not.toBe(original.items.get("a"));
+
+    // Modifying clone shouldn't affect original
+    cloned.items.get("a")!.color = "GREEN";
+    expect(original.items.get("a")!.color).toBe("RED");
+  });
+});
+
+describe("Edge Cases - UTF-8 Encoding without Buffer", () => {
+  // These tests use plain Uint8Array (not Node.js Buffer) to cover
+  // the non-Buffer code paths in serde.ts
+
+  it("should encode/decode short ASCII strings (manual encode path)", () => {
+    const buf = new Uint8Array(100);
+    const str = "hello world";
+    const len = utf8Size(str);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should encode/decode short multi-byte strings (manual encode path)", () => {
+    const buf = new Uint8Array(100);
+    const str = "日本語αβγ"; // Multi-byte UTF-8
+    const len = utf8Size(str);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should encode/decode short emoji strings (4-byte UTF-8)", () => {
+    const buf = new Uint8Array(100);
+    const str = "👋🌍🎮"; // 4-byte UTF-8 sequences (surrogate pairs)
+    const len = utf8Size(str);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should encode/decode long ASCII strings (textEncoder path)", () => {
+    const buf = new Uint8Array(500);
+    const str = "a".repeat(100); // > 64 chars triggers textEncoder path
+    const len = utf8Size(str);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should encode/decode long multi-byte strings (textEncoder path)", () => {
+    const buf = new Uint8Array(500);
+    const str = "日本語テスト".repeat(20); // > 64 bytes triggers textEncoder path
+    const len = utf8Size(str);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should handle empty string", () => {
+    const buf = new Uint8Array(10);
+    const str = "";
+    const len = utf8Size(str);
+    expect(len).toBe(0);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should handle mixed content string", () => {
+    const buf = new Uint8Array(200);
+    const str = "Hello 你好 مرحبا 👋";
+    const len = utf8Size(str);
+    utf8Write(str, buf, 0, len);
+    expect(utf8Read(buf, 0, len)).toBe(str);
+  });
+
+  it("should handle string at non-zero offset", () => {
+    const buf = new Uint8Array(100);
+    const str = "test string";
+    const len = utf8Size(str);
+    const offset = 10;
+    utf8Write(str, buf, offset, len);
+    expect(utf8Read(buf, offset, len)).toBe(str);
   });
 });

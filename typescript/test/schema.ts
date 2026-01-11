@@ -80,7 +80,7 @@ const PlayerRegistry = ObjectType("PlayerRegistry", {
   players: RecordType(StringType(), ReferenceType(Player)),
 });
 
-// Export individual types for interpreter tests
+// Export individual types
 export const schema = {
   Color,
   Player,

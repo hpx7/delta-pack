@@ -34,6 +34,6 @@ User:
   married: boolean
   hairColor: HairColor
   address: Address?
-  children: UserId[]
+  children: User[]
   metadata: <string, string>
   preferredContact: Contact?

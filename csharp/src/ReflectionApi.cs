@@ -276,7 +276,7 @@ public sealed class DeltaPackCodec<T> where T : class
             EnumMapping em => Enum.Parse(em.EnumType, (string)obj),
             ObjectMapping om => ToTypedObject((Dictionary<string, object?>)obj, om),
             ArrayMapping am => ToTypedArray((List<object?>)obj, am),
-            DictionaryMapping dm => ToTypedDictionary((Dictionary<object, object?>)obj, dm),
+            DictionaryMapping dm => ToTypedDictionary((IDictionary<object, object?>)obj, dm),
             OptionalMapping optm => ToTypedInternal(obj, optm.Inner, targetType),
             UnionMapping um => ToTypedUnion((UnionValue)obj, um),
             _ => throw new InvalidOperationException($"Unknown mapping: {mapping}")
@@ -379,7 +379,7 @@ public sealed class DeltaPackCodec<T> where T : class
         _ => typeof(object)
     };
 
-    private object ToTypedDictionary(Dictionary<object, object?> dict, DictionaryMapping mapping)
+    private object ToTypedDictionary(IDictionary<object, object?> dict, DictionaryMapping mapping)
     {
         var valueType = GetElementType(mapping.Value);
         var typedDict = (IDictionary)Activator.CreateInstance(

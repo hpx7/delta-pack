@@ -4,9 +4,8 @@ import { join } from "path";
 import { codegenTypescript } from "@hpx7/delta-pack-cli/codegen";
 import { schema } from "./schema.js";
 import * as apis from "./generated-schema.js";
-import { runAllSharedTests } from "./shared-api-tests.js";
 
-describe("Delta Pack Codegen - Unified API", () => {
+describe("Delta Pack Codegen", () => {
   describe("Code Generation", () => {
     it("should generate code matching generated-schema.ts", () => {
       const generatedCode = codegenTypescript(schema);
@@ -16,7 +15,7 @@ describe("Delta Pack Codegen - Unified API", () => {
     });
   });
 
-  describe("Default Values (codegen-specific)", () => {
+  describe("Default Values", () => {
     it("should create default player", () => {
       const defaultPlayer = apis.Player.default();
       expect(defaultPlayer).toEqual({
@@ -71,7 +70,4 @@ describe("Delta Pack Codegen - Unified API", () => {
       });
     });
   });
-
-  // Run all shared tests
-  runAllSharedTests(apis);
 });

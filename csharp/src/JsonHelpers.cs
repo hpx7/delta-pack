@@ -100,4 +100,7 @@ public static class JsonHelpers
         }
         return null;
     }
+
+    public static float ParseFloatQuantized(JsonElement json, float precision) =>
+        (float)(Math.Round(json.GetSingle() / precision) * precision);
 }

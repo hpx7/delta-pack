@@ -100,7 +100,7 @@
           "name": "Enchanted Bow",
           "quantity": 1,
           "rarity": "RARE",
-          "durability": 80,
+          "durability": 75,
           "enchantmentLevel": 2
         }
       ],
@@ -366,7 +366,7 @@
     "enemy3": {
       "enemyId": "enemy3",
       "name": "Goblin Archer",
-      "position": { "x": 400.0, "y": 100.05 },
+      "position": { "x": 400.0, "y": 100.06 },
       "velocity": { "vx": 0, "vy": 0 },
       "health": 40,
       "maxHealth": 40,

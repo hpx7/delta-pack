@@ -506,6 +506,61 @@ describe("Dirty Tracking", () => {
       expect(state.items._dirty!.size).toBe(0);
       expect(state.items[0]!._dirty!.size).toBe(0);
     });
+
+    it("should ignore setting _dirty property", () => {
+      const state = track({ x: 0 });
+      (state as any)._dirty = new Set(["fake"]);
+      // Should still be empty since we ignore _dirty sets
+      expect(state._dirty!.size).toBe(0);
+    });
+
+    it("should handle symbol properties on objects", () => {
+      const sym = Symbol("test");
+      const state = track({ x: 0 });
+      // Setting symbol should not throw and should be ignored for dirty tracking
+      (state as any)[sym] = "symbol-value";
+      expect(state._dirty!.size).toBe(0); // Symbols don't mark dirty
+      // Getting symbol should return undefined (not tracked)
+      expect((state as any)[sym]).toBeUndefined();
+    });
+
+    it("should handle symbol iteration", () => {
+      const state = track({ items: [1, 2, 3] });
+      // Symbol.iterator should work for arrays
+      const values = [...state.items];
+      expect(values).toEqual([1, 2, 3]);
+    });
+
+    it("should ignore setting _dirty on arrays", () => {
+      const state = track({ items: [1, 2, 3] });
+      (state.items as any)._dirty = new Set([99]);
+      // Should still be empty
+      expect(state.items._dirty!.size).toBe(0);
+    });
+
+    it("should handle setting array length directly", () => {
+      const state = track({ items: [1, 2, 3, 4, 5] });
+      state.items.length = 2;
+      expect(state.items.length).toBe(2);
+      expect(state.items).toEqual([1, 2]);
+    });
+
+    it("should track direct array index assignment", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }, { v: 3 }] });
+
+      // Direct index assignment
+      state.items[1] = { v: 99 };
+
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+      expect(state.items[1]!.v).toBe(99);
+
+      // The new object should be tracked
+      clearTracking(state);
+      state.items[1]!.v = 100;
+      expect(state.items[1]!._dirty!.has("v")).toBe(true);
+      expect(state.items._dirty!.has(1)).toBe(true);
+    });
   });
 
   describe("Integration with delta-pack interpreter API", () => {
@@ -527,6 +582,103 @@ describe("Dirty Tracking", () => {
 
       expect(decoded.x).toBe(100);
       expect(decoded.y).toBe(200);
+    });
+
+    it("should work with Map encodeDiff - updates", () => {
+      type GameState = Infer<typeof schema.GameState>;
+      const api = load(schema.GameState);
+
+      const state1: GameState = {
+        players: [],
+        round: 1,
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
+      };
+
+      const state2 = track({
+        players: [],
+        round: 1,
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
+      }) as GameState;
+
+      // Update an existing key
+      state2.metadata.set("key1", "updated");
+
+      expect(state2.metadata._dirty!.has("key1")).toBe(true);
+      expect(state2.metadata._dirty!.size).toBe(1);
+
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+
+      expect(decoded.metadata.get("key1")).toBe("updated");
+      expect(decoded.metadata.get("key2")).toBe("value2");
+    });
+
+    it("should work with Map encodeDiff - additions", () => {
+      type GameState = Infer<typeof schema.GameState>;
+      const api = load(schema.GameState);
+
+      const state1: GameState = {
+        players: [],
+        round: 1,
+        metadata: new Map([["key1", "value1"]]),
+      };
+
+      const state2 = track({
+        players: [],
+        round: 1,
+        metadata: new Map([["key1", "value1"]]),
+      }) as GameState;
+
+      // Add a new key
+      state2.metadata.set("key2", "newvalue");
+
+      expect(state2.metadata._dirty!.has("key2")).toBe(true);
+
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+
+      expect(decoded.metadata.get("key1")).toBe("value1");
+      expect(decoded.metadata.get("key2")).toBe("newvalue");
+    });
+
+    it("should work with Map encodeDiff - deletions", () => {
+      type GameState = Infer<typeof schema.GameState>;
+      const api = load(schema.GameState);
+
+      const state1: GameState = {
+        players: [],
+        round: 1,
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
+      };
+
+      const state2 = track({
+        players: [],
+        round: 1,
+        metadata: new Map([
+          ["key1", "value1"],
+          ["key2", "value2"],
+        ]),
+      }) as GameState;
+
+      // Delete a key
+      state2.metadata.delete("key2");
+
+      expect(state2.metadata._dirty!.has("key2")).toBe(true);
+
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+
+      expect(decoded.metadata.get("key1")).toBe("value1");
+      expect(decoded.metadata.has("key2")).toBe(false);
     });
 
     it("should produce smaller diffs with dirty tracking", () => {

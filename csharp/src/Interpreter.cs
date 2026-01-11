@@ -171,13 +171,9 @@ public static class Interpreter
 
                 case RecordType rt:
                     var dict = (IDictionary<object, object?>)obj!;
-                    // Inline PushRecord to avoid lambda allocation
-                    encoder.PushUInt((uint)dict.Count);
-                    foreach (var (key, val) in dict)
-                    {
-                        Encode(key, rt.Key, encoder);
-                        Encode(val, rt.Value, encoder);
-                    }
+                    encoder.PushRecord(dict,
+                        key => Encode(key, rt.Key, encoder),
+                        val => Encode(val, rt.Value, encoder));
                     break;
 
                 case UnionType ut:
@@ -466,18 +462,7 @@ public static class Interpreter
                 (x, y) => Equals(x, y, rt.Value),
                 key => Encode(key, rt.Key, encoder),
                 val => Encode(val, rt.Value, encoder),
-                (x, y) => EncodeDiff(x, y, rt.Value, encoder),
-                GetKeyComparer(rt.Key));
-
-        private static IComparer<object> GetKeyComparer(SchemaType keyType)
-        {
-            return keyType switch
-            {
-                StringType => Comparer<object>.Create((a, b) => string.Compare((string)a, (string)b, StringComparison.Ordinal)),
-                IntType => Comparer<object>.Create((a, b) => Convert.ToInt64(a).CompareTo(Convert.ToInt64(b))),
-                _ => throw new InvalidOperationException($"Unsupported record key type: {keyType}")
-            };
-        }
+                (x, y) => EncodeDiff(x, y, rt.Value, encoder));
 
         private void EncodeDiffUnion(object? a, object? b, UnionType ut, Encoder encoder)
         {
@@ -503,7 +488,7 @@ public static class Interpreter
         {
             var valueType = opt.Value;
             if (Schema.IsPrimitiveType(valueType, _schema))
-                encoder.PushOptionalDiffPrimitive<object>(a, b, x => Encode(x, valueType, encoder));
+                encoder.PushOptionalDiffPrimitive<object>(a, b, (x, y) => Equals(x, y, valueType), x => Encode(x, valueType, encoder));
             else
                 encoder.PushOptionalDiff<object>(a, b, x => Encode(x, valueType, encoder), (x, y) => EncodeDiff(x, y, valueType, encoder));
         }
@@ -566,8 +551,7 @@ public static class Interpreter
                 (IDictionary<object, object?>)a!,
                 () => Decode(rt.Key, decoder)!,
                 () => Decode(rt.Value, decoder),
-                val => DecodeDiff(val, rt.Value, decoder),
-                GetKeyComparer(rt.Key));
+                val => DecodeDiff(val, rt.Value, decoder));
 
         private UnionValue DecodeDiffUnion(object? a, UnionType ut, Decoder decoder)
         {
@@ -608,7 +592,9 @@ public static class Interpreter
             {
                 StringType => JsonHelpers.ParseString(json),
                 IntType it => ValidateInt(json.GetInt64(), it),
-                FloatType => json.GetSingle(),
+                FloatType ft => ft.Precision.HasValue
+                    ? JsonHelpers.ParseFloatQuantized(json, (float)ft.Precision.Value)
+                    : json.GetSingle(),
                 BooleanType => JsonHelpers.ParseBoolean(json),
                 EnumType et => JsonHelpers.ParseEnum(json, et.Options),
                 ReferenceType rt => FromJson(json, ResolveRef(rt.Reference)),

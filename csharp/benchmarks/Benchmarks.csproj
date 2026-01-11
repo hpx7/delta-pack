@@ -20,4 +20,8 @@
     <None Include="../../examples/**/*.json" Link="examples/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../generated/examples/Examples.cs" Link="Generated/Examples.cs" />
+  </ItemGroup>
+
 </Project>

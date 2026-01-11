@@ -43,6 +43,6 @@ internal static class Varint
     {
         var unsigned = ReadUVarint(buf, ref pos);
         // Zigzag decoding
-        return unsigned % 2 == 0 ? (long)(unsigned / 2) : -((long)(unsigned + 1) / 2);
+        return (long)(unsigned >> 1) ^ -(long)(unsigned & 1);
     }
 }

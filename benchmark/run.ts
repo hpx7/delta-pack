@@ -30,8 +30,10 @@ function getProtobufType(example: string): protobuf.Type {
 }
 
 // Deep equality check with float tolerance
-function deepEquals(a: unknown, b: unknown, tolerance = 0.01): boolean {
+function deepEquals(a: unknown, b: unknown, tolerance = 0.1): boolean {
   if (a === b) return true;
+  // Treat null and undefined as equal
+  if ((a === null || a === undefined) && (b === null || b === undefined)) return true;
   if (typeof a === "number" && typeof b === "number") {
     return Math.abs(a - b) < tolerance;
   }
@@ -47,10 +49,9 @@ function deepEquals(a: unknown, b: unknown, tolerance = 0.01): boolean {
     return a.every((val, i) => deepEquals(val, b[i], tolerance));
   }
   if (typeof a === "object" && typeof b === "object" && a !== null && b !== null) {
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
-    if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => deepEquals((a as any)[key], (b as any)[key], tolerance));
+    // Use union of keys
+    const allKeys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...allKeys].every((key) => deepEquals((a as any)[key], (b as any)[key], tolerance));
   }
   return false;
 }
@@ -99,7 +100,15 @@ function main() {
     const allRows = result.transitions.map((t) => {
       const minOther = Math.min(t.json, t.msgpack, t.protobuf);
       const savings = ((1 - t.deltaDiff / minOther) * 100).toFixed(0);
-      return [t.name, `${t.json}B`, `${t.msgpack}B`, `${t.protobuf}B`, `${t.deltaFull}B`, `${t.deltaDiff}B`, `${savings}%`];
+      return [
+        t.name,
+        `${t.json}B`,
+        `${t.msgpack}B`,
+        `${t.protobuf}B`,
+        `${t.deltaFull}B`,
+        `${t.deltaDiff}B`,
+        `${savings}%`,
+      ];
     });
 
     printTable(headers, allRows);

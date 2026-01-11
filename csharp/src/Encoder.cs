@@ -136,6 +136,7 @@ public class Encoder
         where TKey : notnull
     {
         PushUInt((uint)val.Count);
+        // Keys are already sorted (SortedDictionary)
         foreach (var (key, value) in val)
         {
             innerKeyWrite(key);
@@ -196,7 +197,7 @@ public class Encoder
             PushEnum(b, numBits);
     }
 
-    public void PushOptionalDiffPrimitive<T>(T? a, T? b, Action<T> encode) where T : class
+    public void PushOptionalDiffPrimitive<T>(T? a, T? b, Func<T, T, bool> equals, Action<T> encode) where T : class
     {
         if (a is null)
         {
@@ -207,13 +208,36 @@ public class Encoder
         }
         else
         {
-            var changed = b is null || !a.Equals(b);
+            var changed = b is null || !equals(a, b);
             PushBoolean(changed);
             if (changed)
             {
                 PushBoolean(b is not null);
                 if (b is not null)
                     encode(b); // value → value
+                // else value → null
+            }
+        }
+    }
+
+    public void PushOptionalDiffValue<T>(T? a, T? b, Func<T, T, bool> equals, Action<T> encode) where T : struct
+    {
+        if (a is null)
+        {
+            PushBoolean(b is not null);
+            if (b is not null)
+                encode(b.Value); // null → value
+            // else null → null
+        }
+        else
+        {
+            var changed = b is null || !equals(a.Value, b.Value);
+            PushBoolean(changed);
+            if (changed)
+            {
+                PushBoolean(b is not null);
+                if (b is not null)
+                    encode(b.Value); // value → value
                 // else value → null
             }
         }
@@ -270,8 +294,7 @@ public class Encoder
         Func<TValue, TValue, bool> valueEquals,
         Action<TKey> encodeKey,
         Action<TValue> encodeVal,
-        Action<TValue, TValue> encodeDiff,
-        IComparer<TKey>? comparer = null)
+        Action<TValue, TValue> encodeDiff)
         where TKey : notnull
     {
         var changed = !EqualityHelpers.EqualsRecord(a, b, (x, y) => x.Equals(y), valueEquals);
@@ -279,7 +302,8 @@ public class Encoder
         if (!changed)
             return;
 
-        var orderedKeys = a.Keys.OrderBy(k => k, comparer).ToList();
+        // Keys are already sorted (SortedDictionary)
+        var orderedKeys = a.Keys.ToList();
         var updates = new List<int>();
         var deletions = new List<int>();
         var additions = new List<(TKey key, TValue val)>();

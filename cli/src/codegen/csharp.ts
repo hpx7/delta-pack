@@ -549,7 +549,9 @@ function renderFromJson(
     case "int":
       return `${key}.GetInt64()`;
     case "float":
-      return `${key}.GetSingle()`;
+      return type.precision !== undefined
+        ? `DeltaPack.JsonHelpers.ParseFloatQuantized(${key}, ${type.precision}f)`
+        : `${key}.GetSingle()`;
     case "boolean":
       return `DeltaPack.JsonHelpers.ParseBoolean(${key})`;
     case "enum":
@@ -657,15 +659,16 @@ function renderEquals(
     case "enum":
       return `${a} == ${b}`;
     case "float":
-      return type.precision
-        ? `System.Math.Abs(${a} - ${b}) < ${type.precision / 2}f`
-        : `${a} == ${b}`;
+      return type.precision !== undefined
+        ? `DeltaPack.EqualityHelpers.EqualsFloatQuantized(${a}, ${b}, ${type.precision}f)`
+        : `DeltaPack.EqualityHelpers.EqualsFloat(${a}, ${b})`;
     case "array":
       return `${a}.Count == ${b}.Count && ${a}.Zip(${b}).All(pair => ${renderEquals(ctx, type.value, name, "pair.First", "pair.Second", true)})`;
     case "optional":
-      return isValueType(type.value) || isPrimitiveOrEnum(type.value)
-        ? `${a} == ${b}`
-        : `(${a} == null && ${b} == null || ${a} != null && ${b} != null && ${renderEquals(ctx, type.value, name, a, b, inLambda)})`;
+      if (isValueType(type.value)) {
+        return `DeltaPack.EqualityHelpers.EqualsOptionalValue(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y", true)})`;
+      }
+      return `DeltaPack.EqualityHelpers.EqualsOptional(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y", true)})`;
     case "record":
       return `${a}.Count == ${b}.Count && ${a}.All(kvp => ${b}.TryGetValue(kvp.Key, out var v) && ${renderEquals(ctx, type.value, name, "kvp.Value", "v", true)})`;
     case "reference":
@@ -798,18 +801,10 @@ function renderEncodeDiff(
     case "optional": {
       const t = renderType(ctx, type.value, name);
       if (isValueType(type.value)) {
-        return `{
-                var eq = ${a} == ${b};
-                encoder.PushBoolean(!eq);
-                if (!eq)
-                {
-                    encoder.PushBoolean(${b}.HasValue);
-                    if (${b}.HasValue) ${renderEncode(ctx, type.value, name, `${b}.Value`, inLambda)};
-                }
-            }`;
+        return `encoder.PushOptionalDiffValue<${t}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y", true)}, x => ${renderEncode(ctx, type.value, name, "x", true)})`;
       }
       return isPrimitiveOrEnum(type.value)
-        ? `encoder.PushOptionalDiffPrimitive<${t}>(${a}, ${b}, x => ${renderEncode(ctx, type.value, name, "x", true)})`
+        ? `encoder.PushOptionalDiffPrimitive<${t}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y", true)}, x => ${renderEncode(ctx, type.value, name, "x", true)})`
         : `encoder.PushOptionalDiff<${t}>(${a}, ${b}, x => ${renderEncode(ctx, type.value, name, "x", true)}, (x, y) => ${renderEncodeDiff(ctx, type.value, name, "x", "y", true)})`;
     }
     case "record": {
@@ -857,12 +852,8 @@ function renderDecodeDiff(
     case "optional": {
       const t = renderType(ctx, type.value, name);
       if (isValueType(type.value)) {
-        const inner =
-          type.value.type === "reference" ? type.value.ref : type.value;
-        if (inner.type === "enum") {
-          return `decoder.NextBoolean() ? (decoder.NextBoolean() ? (${t}?)decoder.NextEnum(${inner.numBits}) : null) : ${key}`;
-        }
-        return `decoder.NextBoolean() ? (decoder.NextBoolean() ? (${t}?)${renderDecode(ctx, type.value, name, inLambda)} : null) : ${key}`;
+        // Use NextOptionalDiffValue for value types
+        return `decoder.NextOptionalDiffValue<${t}>(${key}, () => ${renderDecode(ctx, type.value, name, true)})`;
       }
       return isPrimitiveOrEnum(type.value)
         ? `decoder.NextOptionalDiffPrimitive<${t}>(${key}, () => ${renderDecode(ctx, type.value, name, true)})`

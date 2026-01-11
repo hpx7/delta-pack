@@ -62,7 +62,7 @@ namespace Generated
                 a.Name == b.Name &&
                 a.Score == b.Score &&
                 a.IsActive == b.IsActive &&
-                (a.Partner == null && b.Partner == null || a.Partner != null && b.Partner != null && Player.Equals(a.Partner, b.Partner));
+                DeltaPack.EqualityHelpers.EqualsOptional(a.Partner, b.Partner, (x, y) => Player.Equals(x, y));
         }
 
         public static byte[] Encode(Player obj)
@@ -150,8 +150,8 @@ namespace Generated
         {
             return new()
             {
-                X = json.GetProperty("x").GetSingle(),
-                Y = json.GetProperty("y").GetSingle(),
+                X = DeltaPack.JsonHelpers.ParseFloatQuantized(json.GetProperty("x"), 0.1f),
+                Y = DeltaPack.JsonHelpers.ParseFloatQuantized(json.GetProperty("y"), 0.1f),
             };
         }
 
@@ -174,8 +174,8 @@ namespace Generated
 
         public static bool Equals(Position a, Position b)
         {
-            return System.Math.Abs(a.X - b.X) < 0.05f &&
-                System.Math.Abs(a.Y - b.Y) < 0.05f;
+            return DeltaPack.EqualityHelpers.EqualsFloatQuantized(a.X, b.X, 0.1f) &&
+                DeltaPack.EqualityHelpers.EqualsFloatQuantized(a.Y, b.Y, 0.1f);
         }
 
         public static byte[] Encode(Position obj)
@@ -275,8 +275,8 @@ namespace Generated
 
         public static bool Equals(Velocity a, Velocity b)
         {
-            return a.Vx == b.Vx &&
-                a.Vy == b.Vy;
+            return DeltaPack.EqualityHelpers.EqualsFloat(a.Vx, b.Vx) &&
+                DeltaPack.EqualityHelpers.EqualsFloat(a.Vy, b.Vy);
         }
 
         public static byte[] Encode(Velocity obj)
@@ -963,11 +963,11 @@ namespace Generated
         public static bool Equals(GameState a, GameState b)
         {
             return a.Players.Count == b.Players.Count && a.Players.Zip(b.Players).All(pair => Player.Equals(pair.First, pair.Second)) &&
-                a.CurrentPlayer == b.CurrentPlayer &&
+                DeltaPack.EqualityHelpers.EqualsOptional(a.CurrentPlayer, b.CurrentPlayer, (x, y) => x == y) &&
                 a.Round == b.Round &&
                 a.Metadata.Count == b.Metadata.Count && a.Metadata.All(kvp => b.Metadata.TryGetValue(kvp.Key, out var v) && kvp.Value == v) &&
-                a.WinningColor == b.WinningColor &&
-                (a.LastAction == null && b.LastAction == null || a.LastAction != null && b.LastAction != null && GameAction.Equals(a.LastAction, b.LastAction));
+                DeltaPack.EqualityHelpers.EqualsOptionalValue(a.WinningColor, b.WinningColor, (x, y) => x == y) &&
+                DeltaPack.EqualityHelpers.EqualsOptional(a.LastAction, b.LastAction, (x, y) => GameAction.Equals(x, y));
         }
 
         public static byte[] Encode(GameState obj)
@@ -1001,18 +1001,10 @@ namespace Generated
             encoder.PushBoolean(changed);
             if (!changed) return;
             encoder.PushArrayDiff<Player>(a.Players, b.Players, (x, y) => Player.Equals(x, y), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder));
-            encoder.PushOptionalDiffPrimitive<string>(a.CurrentPlayer, b.CurrentPlayer, x => encoder.PushString(x));
+            encoder.PushOptionalDiffPrimitive<string>(a.CurrentPlayer, b.CurrentPlayer, (x, y) => x == y, x => encoder.PushString(x));
             encoder.PushBoundedIntDiff(a.Round, b.Round, 0);
             encoder.PushRecordDiff<string, string>(a.Metadata, b.Metadata, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y));
-            {
-                var eq = a.WinningColor == b.WinningColor;
-                encoder.PushBoolean(!eq);
-                if (!eq)
-                {
-                    encoder.PushBoolean(b.WinningColor.HasValue);
-                    if (b.WinningColor.HasValue) encoder.PushEnum((int)b.WinningColor.Value, 2);
-                }
-            }
+            encoder.PushOptionalDiffValue<Color>(a.WinningColor, b.WinningColor, (x, y) => x == y, x => encoder.PushEnum((int)x, 2));
             encoder.PushOptionalDiff<GameAction>(a.LastAction, b.LastAction, x => GameAction.Encode_(x, encoder), (x, y) => GameAction.EncodeDiff_(x, y, encoder));
         }
 
@@ -1051,7 +1043,7 @@ namespace Generated
                 CurrentPlayer = decoder.NextOptionalDiffPrimitive<string>(obj.CurrentPlayer, () => decoder.NextString()),
                 Round = decoder.NextBoundedIntDiff(obj.Round, 0),
                 Metadata = decoder.NextRecordDiff<string, string>(obj.Metadata, () => decoder.NextString(), () => decoder.NextString(), x => decoder.NextStringDiff(x)),
-                WinningColor = decoder.NextBoolean() ? (decoder.NextBoolean() ? (Color?)decoder.NextEnum(2) : null) : obj.WinningColor,
+                WinningColor = decoder.NextOptionalDiffValue<Color>(obj.WinningColor, () => (Color)decoder.NextEnum(2)),
                 LastAction = decoder.NextOptionalDiff<GameAction>(obj.LastAction, () => GameAction.Decode_(decoder), x => GameAction.DecodeDiff_(x, decoder)),
             };
         }
@@ -1088,7 +1080,7 @@ namespace Generated
 
         public static bool Equals(Inventory a, Inventory b)
         {
-            return (a.Items == null && b.Items == null || a.Items != null && b.Items != null && a.Items.Count == b.Items.Count && a.Items.Zip(b.Items).All(pair => pair.First.Count == pair.Second.Count && pair.First.All(kvp => pair.Second.TryGetValue(kvp.Key, out var v) && kvp.Value == v)));
+            return DeltaPack.EqualityHelpers.EqualsOptional(a.Items, b.Items, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => pair.First.Count == pair.Second.Count && pair.First.All(kvp => pair.Second.TryGetValue(kvp.Key, out var v) && kvp.Value == v)));
         }
 
         public static byte[] Encode(Inventory obj)

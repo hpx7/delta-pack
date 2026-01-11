@@ -9,9 +9,6 @@ import {
   parseArray,
   parseRecord,
   tryParseField,
-  mapValues,
-  Encoder,
-  Decoder,
 } from "@hpx7/delta-pack/runtime";
 
 describe("Helper Functions - Parse and Validation", () => {
@@ -335,32 +332,6 @@ describe("Helper Functions - Parse and Validation", () => {
     });
   });
 
-  describe("mapValues", () => {
-    it("should transform object values", () => {
-      const obj = { a: 1, b: 2, c: 3 };
-      const result = mapValues(obj, (val) => val * 2);
-      expect(result).toEqual({ a: 2, b: 4, c: 6 });
-    });
-
-    it("should pass key to transform function", () => {
-      const obj = { a: 1, b: 2, c: 3 };
-      const result = mapValues(obj, (val, key) => `${key}:${val}`);
-      expect(result).toEqual({ a: "a:1", b: "b:2", c: "c:3" });
-    });
-
-    it("should handle empty objects", () => {
-      const obj = {};
-      const result = mapValues(obj, (val) => val);
-      expect(result).toEqual({});
-    });
-
-    it("should preserve key names", () => {
-      const obj = { foo: "bar", baz: "qux" };
-      const result = mapValues(obj, (val) => val.toUpperCase());
-      expect(Object.keys(result)).toEqual(["foo", "baz"]);
-    });
-  });
-
   describe("Error chaining", () => {
     it("should chain errors through nested structures", () => {
       try {
@@ -391,136 +362,5 @@ describe("Helper Functions - Parse and Validation", () => {
         expect(err.cause.cause.message).toContain("Invalid string");
       }
     });
-  });
-});
-
-describe("Encoder/Decoder - RLE Boolean Encoding", () => {
-  it("should handle empty boolean sequences", () => {
-    const encoder = Encoder.create();
-    const buf = encoder.toBuffer();
-    // No booleans pushed, parsing should still succeed
-    expect(buf.length).toBeGreaterThan(0);
-    expect(() => Decoder.create(buf)).not.toThrow();
-  });
-
-  it("should encode and decode single boolean", () => {
-    const encoder = Encoder.create();
-    encoder.pushBoolean(true);
-    const buf = encoder.toBuffer();
-    const decoder = Decoder.create(buf);
-    expect(decoder.nextBoolean()).toBe(true);
-  });
-
-  it("should encode and decode run of 1 (alternating pattern)", () => {
-    const encoder = Encoder.create();
-    encoder.pushBoolean(true);
-    encoder.pushBoolean(false);
-    encoder.pushBoolean(true);
-    encoder.pushBoolean(false);
-    const buf = encoder.toBuffer();
-    const decoder = Decoder.create(buf);
-    expect(decoder.nextBoolean()).toBe(true);
-    expect(decoder.nextBoolean()).toBe(false);
-    expect(decoder.nextBoolean()).toBe(true);
-    expect(decoder.nextBoolean()).toBe(false);
-  });
-
-  it("should encode and decode runs of 2-3 (previously buggy)", () => {
-    // Run of 2
-    const encoder2 = Encoder.create();
-    for (let i = 0; i < 2; i++) encoder2.pushBoolean(true);
-    for (let i = 0; i < 2; i++) encoder2.pushBoolean(false);
-    const buf2 = encoder2.toBuffer();
-    const decoder2 = Decoder.create(buf2);
-    expect(decoder2.nextBoolean()).toBe(true);
-    expect(decoder2.nextBoolean()).toBe(true);
-    expect(decoder2.nextBoolean()).toBe(false);
-    expect(decoder2.nextBoolean()).toBe(false);
-
-    // Run of 3
-    const encoder3 = Encoder.create();
-    for (let i = 0; i < 3; i++) encoder3.pushBoolean(false);
-    for (let i = 0; i < 3; i++) encoder3.pushBoolean(true);
-    const buf3 = encoder3.toBuffer();
-    const decoder3 = Decoder.create(buf3);
-    for (let i = 0; i < 3; i++) expect(decoder3.nextBoolean()).toBe(false);
-    for (let i = 0; i < 3; i++) expect(decoder3.nextBoolean()).toBe(true);
-  });
-
-  it("should encode and decode runs of 4-5 (previously buggy)", () => {
-    // Run of 4
-    const encoder4 = Encoder.create();
-    for (let i = 0; i < 4; i++) encoder4.pushBoolean(true);
-    const buf4 = encoder4.toBuffer();
-    const decoder4 = Decoder.create(buf4);
-    for (let i = 0; i < 4; i++) expect(decoder4.nextBoolean()).toBe(true);
-
-    // Run of 5
-    const encoder5 = Encoder.create();
-    for (let i = 0; i < 5; i++) encoder5.pushBoolean(false);
-    const buf5 = encoder5.toBuffer();
-    const decoder5 = Decoder.create(buf5);
-    for (let i = 0; i < 5; i++) expect(decoder5.nextBoolean()).toBe(false);
-  });
-
-  it("should encode and decode runs of 6-13 (previously buggy)", () => {
-    for (const runLength of [6, 7, 10, 13]) {
-      const encoder = Encoder.create();
-      for (let i = 0; i < runLength; i++) encoder.pushBoolean(true);
-      for (let i = 0; i < runLength; i++) encoder.pushBoolean(false);
-      const buf = encoder.toBuffer();
-      const decoder = Decoder.create(buf);
-      for (let i = 0; i < runLength; i++) {
-        expect(decoder.nextBoolean()).toBe(true);
-      }
-      for (let i = 0; i < runLength; i++) {
-        expect(decoder.nextBoolean()).toBe(false);
-      }
-    }
-  });
-
-  it("should encode and decode runs of 14-269", () => {
-    for (const runLength of [14, 50, 100, 269]) {
-      const encoder = Encoder.create();
-      for (let i = 0; i < runLength; i++) encoder.pushBoolean(true);
-      const buf = encoder.toBuffer();
-      const decoder = Decoder.create(buf);
-      for (let i = 0; i < runLength; i++) {
-        expect(decoder.nextBoolean()).toBe(true);
-      }
-    }
-  });
-
-  it("should handle mixed run lengths", () => {
-    const encoder = Encoder.create();
-    // Run of 1
-    encoder.pushBoolean(true);
-    // Run of 3
-    for (let i = 0; i < 3; i++) encoder.pushBoolean(false);
-    // Run of 5
-    for (let i = 0; i < 5; i++) encoder.pushBoolean(true);
-    // Run of 10
-    for (let i = 0; i < 10; i++) encoder.pushBoolean(false);
-    // Run of 20
-    for (let i = 0; i < 20; i++) encoder.pushBoolean(true);
-
-    const buf = encoder.toBuffer();
-    const decoder = Decoder.create(buf);
-
-    expect(decoder.nextBoolean()).toBe(true);
-    for (let i = 0; i < 3; i++) expect(decoder.nextBoolean()).toBe(false);
-    for (let i = 0; i < 5; i++) expect(decoder.nextBoolean()).toBe(true);
-    for (let i = 0; i < 10; i++) expect(decoder.nextBoolean()).toBe(false);
-    for (let i = 0; i < 20; i++) expect(decoder.nextBoolean()).toBe(true);
-  });
-
-  it("should handle long sequences of same value", () => {
-    const encoder = Encoder.create();
-    for (let i = 0; i < 100; i++) encoder.pushBoolean(false);
-    const buf = encoder.toBuffer();
-    const decoder = Decoder.create(buf);
-    for (let i = 0; i < 100; i++) {
-      expect(decoder.nextBoolean()).toBe(false);
-    }
   });
 });

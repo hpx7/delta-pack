@@ -136,7 +136,12 @@ export class Encoder {
     }
   }
 
-  pushOptionalDiffPrimitive<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void) {
+  pushOptionalDiffPrimitive<T>(
+    a: T | undefined,
+    b: T | undefined,
+    equals: (a: T, b: T) => boolean,
+    encode: (x: T) => void
+  ) {
     if (a == null) {
       this.pushBoolean(b != null);
       if (b != null) {
@@ -145,7 +150,7 @@ export class Encoder {
       }
       // else null → null
     } else {
-      const changed = b == null || a !== b;
+      const changed = b == null || !equals(a, b);
       this.pushBoolean(changed);
       if (changed) {
         this.pushBoolean(b != null);
@@ -217,7 +222,7 @@ export class Encoder {
     if (!changed) {
       return;
     }
-    const orderedKeys = [...a.keys()].sort();
+    const orderedKeys = [...a.keys()];
     const updates: number[] = [];
     const deletions: number[] = [];
     const additions: [K, T][] = [];

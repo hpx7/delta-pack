@@ -1,7 +1,7 @@
 import * as msgpack from "msgpackr";
 import protobuf from "protobufjs";
 import { load, parseSchemaYml, type DeltaPackApi } from "@hpx7/delta-pack";
-import * as deltapackGenerated from "./generated/deltapack/index.js";
+import * as deltapackGenerated from "../generated/examples/index.js";
 import * as protobufGenerated from "./generated/protobuf/index.js";
 import { exampleData, schemas, protos } from "./generated/data.js";
 

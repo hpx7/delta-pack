@@ -301,7 +301,7 @@ class JitCompiler {
         const x = this.nextVar("x");
         const y = this.nextVar("y");
         if (isPrimitiveOrEnum(type.value)) {
-          return `encoder.pushOptionalDiffPrimitive(${a}, ${b}, (${x}) => { ${this.compileEncode(type.value, x, parent)} });`;
+          return `encoder.pushOptionalDiffPrimitive(${a}, ${b}, (${x}, ${y}) => ${this.compileEquals(type.value, x, y, parent)}, (${x}) => { ${this.compileEncode(type.value, x, parent)} });`;
         }
         return `encoder.pushOptionalDiff(${a}, ${b}, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiff(type.value, x, y, parent)} });`;
       }

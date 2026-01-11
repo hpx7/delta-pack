@@ -997,7 +997,7 @@ export const GameState = {
     if (dirty != null && !dirty.has("currentPlayer")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiffPrimitive<string>(a.currentPlayer, b.currentPlayer, (x) => encoder.pushString(x));
+      encoder.pushOptionalDiffPrimitive<string>(a.currentPlayer, b.currentPlayer, (x, y) => x === y, (x) => encoder.pushString(x));
     }
     // Field: round
     if (dirty != null && !dirty.has("round")) {
@@ -1015,7 +1015,7 @@ export const GameState = {
     if (dirty != null && !dirty.has("winningColor")) {
       encoder.pushBoolean(false);
     } else {
-      encoder.pushOptionalDiffPrimitive<Color>(a.winningColor, b.winningColor, (x) => encoder.pushEnum(Color[x], 2));
+      encoder.pushOptionalDiffPrimitive<Color>(a.winningColor, b.winningColor, (x, y) => x === y, (x) => encoder.pushEnum(Color[x], 2));
     }
     // Field: lastAction
     if (dirty != null && !dirty.has("lastAction")) {

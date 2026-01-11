@@ -10,7 +10,32 @@
     "zip": "12345",
     "state": "CA"
   },
-  "children": ["user_67890", "user_54321"],
+  "children": [
+    {
+      "id": "user_67890",
+      "name": "Alice Doe",
+      "age": 8,
+      "weight": 55.0,
+      "married": false,
+      "hairColor": "BROWN",
+      "address": null,
+      "children": [],
+      "metadata": {},
+      "preferredContact": null
+    },
+    {
+      "id": "user_54321",
+      "name": "Bob Doe",
+      "age": 5,
+      "weight": 40.0,
+      "married": false,
+      "hairColor": "BLOND",
+      "address": null,
+      "children": [],
+      "metadata": {},
+      "preferredContact": null
+    }
+  ],
   "metadata": {
     "role": "admin",
     "department": "engineering"

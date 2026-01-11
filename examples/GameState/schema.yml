@@ -45,10 +45,10 @@ EffectType:
 
 # Position in 2D space (0.1 precision = ~10cm accuracy)
 Position:
-  x: float
-  y: float
+  x: float(precision=0.1)
+  y: float(precision=0.1)
 
-# Velocity for movement (0.1 precision)
+# Velocity for movement
 Velocity:
   vx: float
   vy: float

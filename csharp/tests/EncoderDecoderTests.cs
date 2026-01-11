@@ -355,7 +355,7 @@ public class EncoderDecoderTests
     public void OptionalDiffPrimitive_NullToValue_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<string>(null, "hello", encoder.PushString);
+        encoder.PushOptionalDiffPrimitive<string>(null, "hello", (a, b) => a == b, encoder.PushString);
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -366,7 +366,7 @@ public class EncoderDecoderTests
     public void OptionalDiffPrimitive_ValueToNull_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<string>("hello", null, encoder.PushString);
+        encoder.PushOptionalDiffPrimitive<string>("hello", null, (a, b) => a == b, encoder.PushString);
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -377,7 +377,7 @@ public class EncoderDecoderTests
     public void OptionalDiffPrimitive_ValueToValue_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive("old", "new", encoder.PushString);
+        encoder.PushOptionalDiffPrimitive("old", "new", (a, b) => a == b, encoder.PushString);
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -388,7 +388,7 @@ public class EncoderDecoderTests
     public void OptionalDiffPrimitive_Unchanged_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive("same", "same", encoder.PushString);
+        encoder.PushOptionalDiffPrimitive("same", "same", (a, b) => a == b, encoder.PushString);
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -399,7 +399,7 @@ public class EncoderDecoderTests
     public void OptionalDiffPrimitive_NullToNull_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<string>(null, null, encoder.PushString);
+        encoder.PushOptionalDiffPrimitive<string>(null, null, (a, b) => a == b, encoder.PushString);
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);

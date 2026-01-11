@@ -1,16 +1,66 @@
 {
   "id": "user_12345",
-  "name": "John Doe",
+  "name": "John Doe 🎮",
   "age": 31,
   "weight": 175.6,
   "married": true,
   "hairColor": "BROWN",
-  "address": {
-    "street": "123 Main St",
-    "zip": "12345",
-    "state": "CA"
-  },
-  "children": ["user_67890", "user_54321", "user_11223"],
+  "address": null,
+  "children": [
+    {
+      "id": "user_67890",
+      "name": "Alice Doe",
+      "age": 9,
+      "weight": 58.0,
+      "married": false,
+      "hairColor": "BROWN",
+      "address": null,
+      "children": [
+        {
+          "id": "user_99999",
+          "name": "Grandchild Doe",
+          "age": 1,
+          "weight": 20.0,
+          "married": false,
+          "hairColor": "BLACK",
+          "address": null,
+          "children": [],
+          "metadata": {},
+          "preferredContact": null
+        }
+      ],
+      "metadata": {},
+      "preferredContact": {
+        "EmailContact": {
+          "email": "alice@example.com"
+        }
+      }
+    },
+    {
+      "id": "user_54321",
+      "name": "Bob Doe",
+      "age": 6,
+      "weight": 45.0,
+      "married": false,
+      "hairColor": "BLOND",
+      "address": null,
+      "children": [],
+      "metadata": {},
+      "preferredContact": null
+    },
+    {
+      "id": "user_11223",
+      "name": "Charlie Doe",
+      "age": 2,
+      "weight": 25.0,
+      "married": false,
+      "hairColor": "RED",
+      "address": null,
+      "children": [],
+      "metadata": {},
+      "preferredContact": null
+    }
+  ],
   "metadata": {
     "role": "admin",
     "department": "engineering",

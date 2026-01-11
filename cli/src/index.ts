@@ -9,7 +9,7 @@ import { decodeDiff } from "./commands/decodeDiff.js";
 import { ArgError } from "./utils/errors.js";
 
 // Handle EPIPE gracefully (e.g., when piping to a process that exits early)
-process.stdout.on("error", (err) => {
+process.stdout.on("error", (err: NodeJS.ErrnoException) => {
   if (err.code === "EPIPE") {
     process.exit(0);
   }

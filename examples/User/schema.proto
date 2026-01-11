@@ -41,7 +41,7 @@ message User {
   bool married = 5;
   HairColor hairColor = 6;
   optional Address address = 7;
-  repeated string children = 8; // UserId[] type alias
+  repeated User children = 8; // Self-referential User[]
   map<string, string> metadata = 9;
   optional Contact preferredContact = 10;
 }
