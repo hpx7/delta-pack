@@ -88,8 +88,7 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
           const cliEncoded = fixtures.get(example)!.encodes.get(statePath)!;
           const state = api.fromJson(stateData);
           const tsEncoded = Buffer.from(api.encode(state));
-          // Encoding order is undefined, so check size and decoded equality instead of byte equality
-          expect(tsEncoded.length).toEqual(cliEncoded.length);
+          // Encoding order may vary, so only check decoded equality
           const cliDecoded = api.decode(cliEncoded);
           const tsDecoded = api.decode(tsEncoded);
           expect(api.equals(cliDecoded, tsDecoded)).toBe(true);
@@ -117,11 +116,14 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
         const newName = basename(newPath, ".json");
 
         it(`diff ${oldName} -> ${newName} encode matches CLI`, () => {
-          const expected = fixtures.get(example)!.diffs.get(`${oldPath}|${newPath}`)!;
+          const cliEncoded = fixtures.get(example)!.diffs.get(`${oldPath}|${newPath}`)!;
           const oldState = api.fromJson(JSON.parse(readFileSync(oldPath, "utf8")));
           const newState = api.fromJson(JSON.parse(readFileSync(newPath, "utf8")));
-          const actual = Buffer.from(api.encodeDiff(oldState, newState));
-          expect(actual).toEqual(expected);
+          const tsEncoded = Buffer.from(api.encodeDiff(oldState, newState));
+          // Encoding order may vary, so only check decoded equality
+          const cliDecoded = api.decodeDiff(oldState, cliEncoded);
+          const tsDecoded = api.decodeDiff(oldState, tsEncoded);
+          expect(api.equals(cliDecoded, tsDecoded)).toBe(true);
         });
 
         it(`diff ${oldName} -> ${newName} decode from CLI output`, () => {

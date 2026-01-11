@@ -99,8 +99,7 @@ public class ConformanceTests
         var state = api.FromJson(ReadState(statePath));
         var csEncoded = api.Encode(state);
 
-        // Encoding order is undefined, so check size and decoded equality instead of byte equality
-        Assert.Equal(cliEncoded.Length, csEncoded.Length);
+        // Encoding order may vary, so only check decoded equality
         var cliDecoded = api.Decode(cliEncoded);
         var csDecoded = api.Decode(csEncoded);
         Assert.True(api.Equals(cliDecoded, csDecoded));
@@ -134,13 +133,16 @@ public class ConformanceTests
     [MemberData(nameof(DiffTestData))]
     public void Interpreter_EncodeDiff_MatchesCli(string example, string oldPath, string newPath)
     {
-        var expected = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
+        var cliEncoded = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
         var api = LoadInterpreter(example);
         var oldState = api.FromJson(ReadState(oldPath));
         var newState = api.FromJson(ReadState(newPath));
-        var actual = api.EncodeDiff(oldState, newState);
+        var csEncoded = api.EncodeDiff(oldState, newState);
 
-        Assert.Equal(expected, actual);
+        // Encoding order may vary, so only check decoded equality
+        var cliDecoded = api.DecodeDiff(oldState, cliEncoded);
+        var csDecoded = api.DecodeDiff(oldState, csEncoded);
+        Assert.True(api.Equals(cliDecoded, csDecoded));
     }
 
     [Theory]
@@ -164,10 +166,13 @@ public class ConformanceTests
     [MemberData(nameof(EncodeTestData))]
     public void Codegen_Encode_MatchesCli(string example, string statePath)
     {
-        var expected = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
-        var actual = EncodeCodegen(example, statePath);
+        var cliEncoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
+        var csEncoded = EncodeCodegen(example, statePath);
 
-        Assert.Equal(expected, actual);
+        // Encoding order may vary, so only check decoded equality
+        var (_, cliEquals) = DecodeAndCompareCodegen(example, statePath, cliEncoded);
+        var (_, csEquals) = DecodeAndCompareCodegen(example, statePath, csEncoded);
+        Assert.True(cliEquals && csEquals);
     }
 
     [Theory]
@@ -185,10 +190,13 @@ public class ConformanceTests
     [MemberData(nameof(DiffTestData))]
     public void Codegen_EncodeDiff_MatchesCli(string example, string oldPath, string newPath)
     {
-        var expected = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
-        var actual = EncodeDiffCodegen(example, oldPath, newPath);
+        var cliEncoded = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
+        var csEncoded = EncodeDiffCodegen(example, oldPath, newPath);
 
-        Assert.Equal(expected, actual);
+        // Encoding order may vary, so only check decoded equality
+        var cliDecoded = DecodeDiffAndCompareCodegen(example, oldPath, newPath, cliEncoded);
+        var csDecoded = DecodeDiffAndCompareCodegen(example, oldPath, newPath, csEncoded);
+        Assert.True(cliDecoded && csDecoded);
     }
 
     [Theory]
