@@ -13,7 +13,7 @@ const examplesDir = join(__dirname, "../../examples");
 function cli(args: string): Buffer {
   return execSync(`npx delta-pack ${args}`, {
     encoding: "buffer",
-    cwd: join(__dirname, "../.."),
+    cwd: join(__dirname, ".."),
   });
 }
 

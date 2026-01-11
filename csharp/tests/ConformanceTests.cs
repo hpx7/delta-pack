@@ -69,8 +69,7 @@ public class ConformanceTests
         {
             foreach (var statePath in GetStatePaths(example))
             {
-                var stateName = Path.GetFileNameWithoutExtension(statePath);
-                yield return [example, statePath, stateName];
+                yield return [example, statePath];
             }
         }
     }
@@ -82,9 +81,7 @@ public class ConformanceTests
             var states = GetStatePaths(example);
             for (var i = 0; i < states.Length - 1; i++)
             {
-                var oldName = Path.GetFileNameWithoutExtension(states[i]);
-                var newName = Path.GetFileNameWithoutExtension(states[i + 1]);
-                yield return [example, states[i], states[i + 1], oldName, newName];
+                yield return [example, states[i], states[i + 1]];
             }
         }
     }
@@ -95,7 +92,7 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_Encode_MatchesCli(string example, string statePath, string stateName)
+    public void Interpreter_Encode_MatchesCli(string example, string statePath)
     {
         var cliEncoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
         var api = LoadInterpreter(example);
@@ -111,7 +108,7 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_Decode_FromCliOutput(string example, string statePath, string stateName)
+    public void Interpreter_Decode_FromCliOutput(string example, string statePath)
     {
         var encoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
         var api = LoadInterpreter(example);
@@ -123,7 +120,7 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_ToJson_RoundTrip(string example, string statePath, string stateName)
+    public void Interpreter_ToJson_RoundTrip(string example, string statePath)
     {
         var api = LoadInterpreter(example);
         var state = api.FromJson(ReadState(statePath));
@@ -135,7 +132,7 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Interpreter_EncodeDiff_MatchesCli(string example, string oldPath, string newPath, string oldName, string newName)
+    public void Interpreter_EncodeDiff_MatchesCli(string example, string oldPath, string newPath)
     {
         var expected = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
         var api = LoadInterpreter(example);
@@ -148,7 +145,7 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Interpreter_DecodeDiff_FromCliOutput(string example, string oldPath, string newPath, string oldName, string newName)
+    public void Interpreter_DecodeDiff_FromCliOutput(string example, string oldPath, string newPath)
     {
         var diffBytes = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
         var api = LoadInterpreter(example);
@@ -165,7 +162,7 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Codegen_Encode_MatchesCli(string example, string statePath, string stateName)
+    public void Codegen_Encode_MatchesCli(string example, string statePath)
     {
         var expected = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
         var actual = EncodeCodegen(example, statePath);
@@ -175,17 +172,18 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Codegen_Decode_FromCliOutput(string example, string statePath, string stateName)
+    public void Codegen_Decode_FromCliOutput(string example, string statePath)
     {
         var encoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
         var (decoded, equals) = DecodeAndCompareCodegen(example, statePath, encoded);
+        var stateName = Path.GetFileNameWithoutExtension(statePath);
 
         Assert.True(equals, $"Decoded state does not match expected for {example}/{stateName}");
     }
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Codegen_EncodeDiff_MatchesCli(string example, string oldPath, string newPath, string oldName, string newName)
+    public void Codegen_EncodeDiff_MatchesCli(string example, string oldPath, string newPath)
     {
         var expected = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
         var actual = EncodeDiffCodegen(example, oldPath, newPath);
@@ -195,10 +193,12 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Codegen_DecodeDiff_FromCliOutput(string example, string oldPath, string newPath, string oldName, string newName)
+    public void Codegen_DecodeDiff_FromCliOutput(string example, string oldPath, string newPath)
     {
         var diffBytes = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
         var equals = DecodeDiffAndCompareCodegen(example, oldPath, newPath, diffBytes);
+        var oldName = Path.GetFileNameWithoutExtension(oldPath);
+        var newName = Path.GetFileNameWithoutExtension(newPath);
 
         Assert.True(equals, $"Decoded diff does not match expected for {example}/{oldName}->{newName}");
     }
