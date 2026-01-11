@@ -222,7 +222,7 @@ export class Encoder {
     if (!changed) {
       return;
     }
-    const orderedKeys = [...a.keys()];
+    const orderedKeys = [...a.keys()].sort();
     const updates: number[] = [];
     const deletions: number[] = [];
     const additions: [K, T][] = [];

@@ -302,8 +302,8 @@ public class Encoder
         if (!changed)
             return;
 
-        // Keys are already sorted (SortedDictionary)
-        var orderedKeys = a.Keys.ToList();
+        // Sort keys for deterministic cross-language ordering
+        var orderedKeys = a.Keys.OrderBy(k => k).ToList();
         var updates = new List<int>();
         var deletions = new List<int>();
         var additions = new List<(TKey key, TValue val)>();

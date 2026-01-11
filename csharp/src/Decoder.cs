@@ -222,7 +222,8 @@ public class Decoder
             return new Dictionary<TKey, TValue>(obj);
 
         var result = new Dictionary<TKey, TValue>(obj);
-        var orderedKeys = obj.Keys.ToList();
+        // Sort keys for deterministic cross-language ordering
+        var orderedKeys = obj.Keys.OrderBy(k => k).ToList();
 
         if (obj.Count > 0)
         {
