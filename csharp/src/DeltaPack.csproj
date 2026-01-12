@@ -8,7 +8,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>DeltaPack</PackageId>
-    <Version>0.1.7</Version>
+    <Version>0.1.8</Version>
     <Authors>Harsh Pandey</Authors>
     <Description>Binary serialization library optimized for delta encoding of game state. Efficiently encode only what changed between two states.</Description>
     <PackageTags>serialization;binary;delta;encoding;game;networking;unity</PackageTags>
