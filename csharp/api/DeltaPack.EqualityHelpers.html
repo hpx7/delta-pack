@@ -156,7 +156,7 @@ Class EqualityHelpers  <a class="header-action link-secondary" title="View sourc
 
   <h3 id="DeltaPack_EqualityHelpers_EqualsArray__1_System_Collections_Generic_IList___0__System_Collections_Generic_IList___0__System_Func___0___0_System_Boolean__" data-uid="DeltaPack.EqualityHelpers.EqualsArray``1(System.Collections.Generic.IList{``0},System.Collections.Generic.IList{``0},System.Func{``0,``0,System.Boolean})">
   EqualsArray&lt;T&gt;(IList&lt;T&gt;, IList&lt;T&gt;, Func&lt;T, T, bool&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/EqualityHelpers.cs/#L23"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/EqualityHelpers.cs/#L33"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -275,6 +275,51 @@ Class EqualityHelpers  <a class="header-action link-secondary" title="View sourc
 
 
 
+  <a id="DeltaPack_EqualityHelpers_EqualsOptionalValue_" data-uid="DeltaPack.EqualityHelpers.EqualsOptionalValue*"></a>
+
+  <h3 id="DeltaPack_EqualityHelpers_EqualsOptionalValue__1_System_Nullable___0__System_Nullable___0__System_Func___0___0_System_Boolean__" data-uid="DeltaPack.EqualityHelpers.EqualsOptionalValue``1(System.Nullable{``0},System.Nullable{``0},System.Func{``0,``0,System.Boolean})">
+  EqualsOptionalValue&lt;T&gt;(T?, T?, Func&lt;T, T, bool&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/EqualityHelpers.cs/#L23"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public static bool EqualsOptionalValue&lt;T&gt;(T? a, T? b, Func&lt;T, T, bool&gt; equals) where T : struct</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>a</code> T?</dt>
+    <dd></dd>
+    <dt><code>b</code> T?</dt>
+    <dd></dd>
+    <dt><code>equals</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-3">Func</a>&lt;T, T, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
   <a id="DeltaPack_EqualityHelpers_EqualsOptional_" data-uid="DeltaPack.EqualityHelpers.EqualsOptional*"></a>
 
   <h3 id="DeltaPack_EqualityHelpers_EqualsOptional__1___0___0_System_Func___0___0_System_Boolean__" data-uid="DeltaPack.EqualityHelpers.EqualsOptional``1(``0,``0,System.Func{``0,``0,System.Boolean})">
@@ -324,7 +369,7 @@ Class EqualityHelpers  <a class="header-action link-secondary" title="View sourc
 
   <h3 id="DeltaPack_EqualityHelpers_EqualsRecord__2_System_Collections_Generic_IDictionary___0___1__System_Collections_Generic_IDictionary___0___1__System_Func___0___0_System_Boolean__System_Func___1___1_System_Boolean__" data-uid="DeltaPack.EqualityHelpers.EqualsRecord``2(System.Collections.Generic.IDictionary{``0,``1},System.Collections.Generic.IDictionary{``0,``1},System.Func{``0,``0,System.Boolean},System.Func{``1,``1,System.Boolean})">
   EqualsRecord&lt;TKey, TValue&gt;(IDictionary&lt;TKey, TValue&gt;, IDictionary&lt;TKey, TValue&gt;, Func&lt;TKey, TKey, bool&gt;, Func&lt;TValue, TValue, bool&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/EqualityHelpers.cs/#L36"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/EqualityHelpers.cs/#L46"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
