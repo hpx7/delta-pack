@@ -1,5 +1,6 @@
 import { Type } from "@hpx7/delta-pack";
 import { codegenCsharp } from "./csharp.js";
+import { codegenRust } from "./rust.js";
 import { codegenTypescript } from "./typescript.js";
 
 export type CodegenFn = (
@@ -12,6 +13,8 @@ export const languages: Record<string, CodegenFn> = {
   ts: codegenTypescript,
   csharp: codegenCsharp,
   cs: codegenCsharp,
+  rust: codegenRust,
+  rs: codegenRust,
 };
 
-export { codegenTypescript, codegenCsharp };
+export { codegenTypescript, codegenCsharp, codegenRust };

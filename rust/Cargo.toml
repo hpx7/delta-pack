@@ -1,0 +1,18 @@
+[package]
+name = "delta-pack"
+version = "0.1.0"
+edition = "2021"
+description = "Binary serialization with delta compression for real-time state synchronization"
+license = "MIT"
+repository = "https://github.com/hpx7/delta-pack"
+keywords = ["serialization", "binary", "delta", "compression", "networking"]
+categories = ["encoding", "game-development", "network-programming"]
+
+[workspace]
+members = [".", "benchmarks"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]

@@ -1,0 +1,19 @@
+[package]
+name = "delta-pack-benchmarks"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+delta-pack = { path = ".." }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rmp-serde = "1"
+mimalloc = { version = "0.1", optional = true }
+
+[features]
+default = ["mimalloc"]
+
+[[bin]]
+name = "bench"
+path = "src/main.rs"
