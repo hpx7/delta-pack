@@ -33,10 +33,14 @@ jobs:
           cache-dependency-path: typescript/package-lock.json
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-      - name: Build CLI
-        run: cd ../cli && bun install && bun run build
       - name: Install dependencies
         run: npm ci
+      - name: Build TypeScript package
+        run: npm run build
+      - name: Build CLI with local package
+        run: |
+          npm link
+          cd ../cli && npm link @hpx7/delta-pack && bun install && bun run build && npm link
       - name: Generate code
         run: npm run test:gen && npm run bench:build
       - name: Type check
