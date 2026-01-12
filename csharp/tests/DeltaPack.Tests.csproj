@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../generated/examples/Examples.cs" Link="Generated/Examples.cs" />
+    <Compile Include="../generated/examples/*.cs" Link="Generated/%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

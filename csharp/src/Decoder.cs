@@ -10,30 +10,28 @@ public class Decoder
     [ThreadStatic]
     private static List<string>? _sharedDict;
 
-    private readonly List<string> _dict;
-    private readonly RleReader _rle;
     private readonly byte[] _buffer;
     private int _pos;
+    private readonly List<string> _dict;
+    private readonly RleReader _rle;
 
     public Decoder(byte[] buf)
     {
         _buffer = buf;
+        _pos = 0;
         _rle = _sharedRle ??= new RleReader();
         _rle.Reset(buf);
         _dict = _sharedDict ??= new List<string>();
         _dict.Clear();
-        _pos = 0;
     }
 
     // Primitive methods
 
     public string NextString()
     {
-        var lenOrIdx = Varint.ReadVarint(_buffer, ref _pos);
-
+        var lenOrIdx = NextInt();
         if (lenOrIdx == 0)
             return "";
-
         if (lenOrIdx > 0)
         {
             var str = Encoding.UTF8.GetString(_buffer, _pos, (int)lenOrIdx);
@@ -41,18 +39,17 @@ public class Decoder
             _dict.Add(str);
             return str;
         }
-
         return _dict[(int)(-lenOrIdx - 1)];
     }
 
     public long NextInt() =>
         Varint.ReadVarint(_buffer, ref _pos);
 
-    public ulong NextUInt() =>
-        Varint.ReadUVarint(_buffer, ref _pos);
-
     public long NextBoundedInt(long min) =>
         (long)NextUInt() + min;
+
+    public ulong NextUInt() =>
+        Varint.ReadUVarint(_buffer, ref _pos);
 
     public float NextFloat()
     {
@@ -102,7 +99,6 @@ public class Decoder
     {
         if (!_dict.Contains(a))
             _dict.Add(a);
-
         var changed = NextBoolean();
         return changed ? NextString() : a;
     }
@@ -155,7 +151,6 @@ public class Decoder
             var changed = NextBoolean();
             if (!changed)
                 return a;
-
             var present = NextBoolean();
             return present ? decode() : null;
         }
@@ -173,7 +168,6 @@ public class Decoder
             var changed = NextBoolean();
             if (!changed)
                 return a;
-
             var present = NextBoolean();
             return present ? decode() : null;
         }

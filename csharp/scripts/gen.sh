@@ -7,27 +7,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXAMPLES_DIR="$SCRIPT_DIR/../../examples"
 GENERATED_DIR="$SCRIPT_DIR/../generated/examples"
 
+rm -rf "$GENERATED_DIR"
 mkdir -p "$GENERATED_DIR"
 
-# Generate combined file with all examples
-OUTPUT_FILE="$GENERATED_DIR/Examples.cs"
+# Generate one file per example
+for example in Primitives User GameState Test; do
+    schema_yml="$EXAMPLES_DIR/$example/schema.yml"
 
-{
-    echo '// Auto-generated from example schemas - do not edit'
-    echo '#nullable enable'
-    echo 'using System.Linq;'
-    echo ''
-    echo 'namespace Generated.Examples'
-    echo '{'
+    if [ -f "$schema_yml" ]; then
+        echo "Generating $example.cs..."
+        npx --no delta-pack generate "$schema_yml" -l csharp -n Generated.Examples > "$GENERATED_DIR/${example}.cs"
+    fi
+done
 
-    for example in Primitives User GameState Test; do
-        echo "    // === $example ==="
-        # Strip header (lines 1-5) and footer (closing brace)
-        npx --no delta-pack generate "$EXAMPLES_DIR/$example/schema.yml" -l csharp -n Generated.Examples | tail -n +6 | sed '$ d'
-        echo ''
-    done
-
-    echo '}'
-} > "$OUTPUT_FILE"
-
-echo "Generated $OUTPUT_FILE"
+echo "Generated files in $GENERATED_DIR"

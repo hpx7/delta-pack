@@ -16,34 +16,19 @@ public class Encoder
     [ThreadStatic]
     private static List<string>? _sharedDict;
 
-    private readonly List<string> _dict;
-    private readonly RleWriter _rle;
     private byte[] _buffer;
     private int _pos;
+    private readonly RleWriter _rle;
+    private readonly List<string> _dict;
 
     public Encoder()
     {
         _buffer = _sharedBuffer ??= new byte[DefaultBufferSize];
+        _pos = 0;
         _rle = _sharedRle ??= new RleWriter();
         _rle.Reset();
         _dict = _sharedDict ??= new List<string>();
         _dict.Clear();
-        _pos = 0;
-    }
-
-    private void EnsureCapacity(int additionalBytes)
-    {
-        if (_pos + additionalBytes <= _buffer.Length)
-            return;
-
-        var newSize = Math.Max(_buffer.Length * 2, _pos + additionalBytes);
-        var newBuffer = new byte[newSize];
-        Array.Copy(_buffer, newBuffer, _pos);
-        _buffer = newBuffer;
-
-        // Update shared buffer if reasonable size
-        if (newSize <= MaxCachedBufferSize)
-            _sharedBuffer = newBuffer;
     }
 
     // Primitive methods
@@ -55,14 +40,12 @@ public class Encoder
             PushInt(0);
             return;
         }
-
         var idx = _dict.IndexOf(val);
         if (idx >= 0)
         {
             PushInt(-idx - 1);
             return;
         }
-
         _dict.Add(val);
 
         // Fast path: strings ≤21 chars have max 63 UTF-8 bytes, fits in 1-byte zigzag varint
@@ -141,7 +124,6 @@ public class Encoder
         where TKey : notnull
     {
         PushUInt((uint)val.Count);
-        // Keys are already sorted (SortedDictionary)
         foreach (var (key, value) in val)
         {
             innerKeyWrite(key);
@@ -367,5 +349,20 @@ public class Encoder
         var finalPos = _rle.WriteToBuffer(_buffer, _pos);
 
         return _buffer.AsSpan(0, finalPos).ToArray();
+    }
+
+    private void EnsureCapacity(int additionalBytes)
+    {
+        if (_pos + additionalBytes <= _buffer.Length)
+            return;
+
+        var newSize = Math.Max(_buffer.Length * 2, _pos + additionalBytes);
+        var newBuffer = new byte[newSize];
+        Array.Copy(_buffer, newBuffer, _pos);
+        _buffer = newBuffer;
+
+        // Update shared buffer if reasonable size
+        if (newSize <= MaxCachedBufferSize)
+            _sharedBuffer = newBuffer;
     }
 }
