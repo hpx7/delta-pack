@@ -289,24 +289,21 @@ public class Encoder
         if (!changed)
             return;
 
-        // Sort keys for deterministic cross-language ordering
-        var orderedKeys = a.Keys.OrderBy(k => k).ToList();
-        var updates = new List<int>();
-        var deletions = new List<int>();
+        var updates = new List<TKey>();
+        var deletions = new List<TKey>();
         var additions = new List<(TKey key, TValue val)>();
 
         // Check all keys
-        for (var i = 0; i < orderedKeys.Count; i++)
+        foreach (var (aKey, aVal) in a)
         {
-            var aKey = orderedKeys[i];
             if (b.TryGetValue(aKey, out var bVal))
             {
-                if (!valueEquals(a[aKey], bVal))
-                    updates.Add(i);
+                if (!valueEquals(aVal, bVal))
+                    updates.Add(aKey);
             }
             else
             {
-                deletions.Add(i);
+                deletions.Add(aKey);
             }
         }
 
@@ -319,14 +316,13 @@ public class Encoder
         if (a.Count > 0)
         {
             PushUInt((uint)deletions.Count);
-            foreach (var idx in deletions)
-                PushUInt((uint)idx);
+            foreach (var key in deletions)
+                encodeKey(key);
 
             PushUInt((uint)updates.Count);
-            foreach (var idx in updates)
+            foreach (var key in updates)
             {
-                PushUInt((uint)idx);
-                var key = orderedKeys[idx];
+                encodeKey(key);
                 encodeDiff(a[key], b[key]);
             }
         }

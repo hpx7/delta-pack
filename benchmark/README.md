@@ -21,10 +21,10 @@ Lower is better. Multiplier shows size relative to smallest format.
 
 | Format      | State1       | State2       | State3       | State4       | State5       | State6       |
 | ----------- | ------------ | ------------ | ------------ | ------------ | ------------ | ------------ |
-| JSON        | 1641B (8.5x) | 2683B (8.6x) | 3094B (7.8x) | 3273B (7.8x) | 6693B (6.9x) | 6701B (6.9x) |
-| MessagePack | 1253B (6.5x) | 2017B (6.5x) | 2431B (6.1x) | 2580B (6.1x) | 5155B (5.3x) | 5161B (5.3x) |
-| Protobuf    | 338B (1.8x)  | 572B (1.8x)  | 714B (1.8x)  | 761B (1.8x)  | 1732B (1.8x) | 1732B (1.8x) |
-| Delta-Pack  | 192B (1.0x)  | 312B (1.0x)  | 398B (1.0x)  | 421B (1.0x)  | 971B (1.0x)  | 971B (1.0x)  |
+| JSON        | 1641B (8.9x) | 2683B (9.1x) | 3094B (8.3x) | 3273B (8.2x) | 6693B (7.4x) | 6701B (7.4x) |
+| MessagePack | 1253B (6.8x) | 2017B (6.8x) | 2431B (6.5x) | 2580B (6.5x) | 5155B (5.7x) | 5161B (5.7x) |
+| Protobuf    | 338B (1.8x)  | 572B (1.9x)  | 714B (1.9x)  | 761B (1.9x)  | 1732B (1.9x) | 1732B (1.9x) |
+| Delta-Pack  | 184B (1.0x)  | 296B (1.0x)  | 374B (1.0x)  | 397B (1.0x)  | 907B (1.0x)  | 907B (1.0x)  |
 
 ### Primitives
 
@@ -48,10 +48,10 @@ Lower is better. Multiplier shows size relative to smallest format.
 
 | Format      | State1      | State2      |
 | ----------- | ----------- | ----------- |
-| JSON        | 321B (2.5x) | 357B (2.5x) |
-| MessagePack | 267B (2.1x) | 293B (2.0x) |
-| Protobuf    | 151B (1.2x) | 173B (1.2x) |
-| Delta-Pack  | 128B (1.0x) | 144B (1.0x) |
+| JSON        | 617B (3.8x) | 973B (4.1x) |
+| MessagePack | 481B (3.0x) | 751B (3.2x) |
+| Protobuf    | 197B (1.2x) | 293B (1.2x) |
+| Delta-Pack  | 161B (1.0x) | 238B (1.0x) |
 
 ## Delta Encoding Size Comparison (bytes)
 
@@ -63,11 +63,11 @@ This demonstrates bandwidth savings for incremental state updates.
 
 | Transition | JSON  | MessagePack | Protobuf | Delta-Pack Full | Delta-Pack Diff | Savings |
 | ---------- | ----- | ----------- | -------- | --------------- | --------------- | ------- |
-| State1→2   | 2683B | 2017B       | 572B     | 312B            | 142B            | 75%     |
-| State2→3   | 3094B | 2431B       | 714B     | 398B            | 200B            | 72%     |
-| State3→4   | 3273B | 2580B       | 761B     | 421B            | 97B             | 87%     |
-| State4→5   | 6693B | 5155B       | 1732B    | 971B            | 634B            | 63%     |
-| State5→6   | 6701B | 5161B       | 1732B    | 971B            | 75B             | 96%     |
+| State1→2   | 2683B | 2017B       | 572B     | 296B            | 134B            | 77%     |
+| State2→3   | 3094B | 2431B       | 714B     | 374B            | 204B            | 71%     |
+| State3→4   | 3273B | 2580B       | 761B     | 397B            | 114B            | 85%     |
+| State4→5   | 6693B | 5155B       | 1732B    | 907B            | 609B            | 65%     |
+| State5→6   | 6701B | 5161B       | 1732B    | 907B            | 102B            | 94%     |
 
 ### Primitives
 
@@ -79,4 +79,4 @@ This demonstrates bandwidth savings for incremental state updates.
 
 | Transition | JSON | MessagePack | Protobuf | Delta-Pack Full | Delta-Pack Diff | Savings |
 | ---------- | ---- | ----------- | -------- | --------------- | --------------- | ------- |
-| State1→2   | 357B | 293B        | 173B     | 144B            | 50B             | 71%     |
+| State1→2   | 973B | 751B        | 293B     | 238B            | 166B            | 43%     |

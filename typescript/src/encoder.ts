@@ -222,35 +222,32 @@ export class Encoder {
     if (!changed) {
       return;
     }
-    const orderedKeys = [...a.keys()].sort();
-    const updates: number[] = [];
-    const deletions: number[] = [];
+    const updates: K[] = [];
+    const deletions: K[] = [];
     const additions: [K, T][] = [];
     if (dirty != null) {
       // With dirty tracking: only process dirty keys
       dirty.forEach((dirtyKey) => {
         if (a.has(dirtyKey) && b.has(dirtyKey)) {
           // Key exists in both - it's an update
-          const idx = orderedKeys.indexOf(dirtyKey);
-          updates.push(idx);
+          updates.push(dirtyKey);
         } else if (!a.has(dirtyKey) && b.has(dirtyKey)) {
           // Key not in a - it's an addition
           additions.push([dirtyKey, b.get(dirtyKey)!]);
         } else if (a.has(dirtyKey) && !b.has(dirtyKey)) {
           // Key in a but not in b - it's a deletion
-          const idx = orderedKeys.indexOf(dirtyKey);
-          deletions.push(idx);
+          deletions.push(dirtyKey);
         }
       });
     } else {
       // Without dirty tracking: check all keys
-      orderedKeys.forEach((aKey, i) => {
+      a.forEach((aVal, aKey) => {
         if (b.has(aKey)) {
-          if (!equals(a.get(aKey)!, b.get(aKey)!)) {
-            updates.push(i);
+          if (!equals(aVal, b.get(aKey)!)) {
+            updates.push(aKey);
           }
         } else {
-          deletions.push(i);
+          deletions.push(aKey);
         }
       });
       b.forEach((bVal, bKey) => {
@@ -261,13 +258,12 @@ export class Encoder {
     }
     if (a.size > 0) {
       this.writeUVarint(deletions.length);
-      deletions.forEach((idx) => {
-        this.writeUVarint(idx);
+      deletions.forEach((key) => {
+        encodeKey(key);
       });
       this.writeUVarint(updates.length);
-      updates.forEach((idx) => {
-        this.writeUVarint(idx);
-        const key = orderedKeys[idx]!;
+      updates.forEach((key) => {
+        encodeKey(key);
         encodeDiff(a.get(key)!, b.get(key)!);
       });
     }

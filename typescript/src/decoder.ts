@@ -162,16 +162,15 @@ export class Decoder {
       return obj;
     }
     const result: Map<K, T> = new Map(obj);
-    const orderedKeys = [...obj.keys()].sort();
     if (obj.size > 0) {
       const numDeletions = this.readUVarint();
       for (let i = 0; i < numDeletions; i++) {
-        const key = orderedKeys[this.readUVarint()]!;
+        const key = decodeKey();
         result.delete(key);
       }
       const numUpdates = this.readUVarint();
       for (let i = 0; i < numUpdates; i++) {
-        const key = orderedKeys[this.readUVarint()]!;
+        const key = decodeKey();
         result.set(key, decodeDiff(result.get(key)!));
       }
     }
