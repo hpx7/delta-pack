@@ -13,7 +13,10 @@ public class Encoder
     [ThreadStatic]
     private static RleWriter? _sharedRle;
 
-    private readonly List<string> _dict = new();
+    [ThreadStatic]
+    private static List<string>? _sharedDict;
+
+    private readonly List<string> _dict;
     private readonly RleWriter _rle;
     private byte[] _buffer;
     private int _pos;
@@ -23,6 +26,8 @@ public class Encoder
         _buffer = _sharedBuffer ??= new byte[DefaultBufferSize];
         _rle = _sharedRle ??= new RleWriter();
         _rle.Reset();
+        _dict = _sharedDict ??= new List<string>();
+        _dict.Clear();
         _pos = 0;
     }
 

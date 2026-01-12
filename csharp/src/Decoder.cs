@@ -7,7 +7,10 @@ public class Decoder
     [ThreadStatic]
     private static RleReader? _sharedRle;
 
-    private readonly List<string> _dict = new();
+    [ThreadStatic]
+    private static List<string>? _sharedDict;
+
+    private readonly List<string> _dict;
     private readonly RleReader _rle;
     private readonly byte[] _buffer;
     private int _pos;
@@ -17,6 +20,8 @@ public class Decoder
         _buffer = buf;
         _rle = _sharedRle ??= new RleReader();
         _rle.Reset(buf);
+        _dict = _sharedDict ??= new List<string>();
+        _dict.Clear();
         _pos = 0;
     }
 
