@@ -38,7 +38,7 @@ jobs:
       - name: Build TypeScript package
         run: cd ../typescript && npm ci && npm run build && npm link
       - name: Build and install delta-pack CLI
-        run: cd ../cli && npm link @hpx7/delta-pack && bun install && bun run build && npm link
+        run: cd ../cli && bun install && npm link @hpx7/delta-pack && bun run build && npm link
       - name: Install protoc (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get install -y protobuf-compiler

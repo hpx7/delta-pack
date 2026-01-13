@@ -40,7 +40,7 @@ jobs:
       - name: Build CLI with local package
         run: |
           npm link
-          cd ../cli && npm link @hpx7/delta-pack && bun install && bun run build && npm link
+          cd ../cli && bun install && npm link @hpx7/delta-pack && bun run build && npm link
       - name: Generate code
         run: npm run test:gen && npm run bench:build
       - name: Type check
