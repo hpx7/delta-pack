@@ -5,7 +5,7 @@
     "": {
       "name": "@hpx7/delta-pack-cli",
       "dependencies": {
-        "@hpx7/delta-pack": "^0.2.7",
+        "@hpx7/delta-pack": "^0.2.8",
         "yaml": "^2.3.4",
       },
       "devDependencies": {
@@ -15,13 +15,11 @@
     },
   },
   "packages": {
-    "@hpx7/delta-pack": ["@hpx7/delta-pack@0.2.7", "", { "dependencies": { "bin-serde": "^1.7.3", "reflect-metadata": "^0.2.2", "utf8-buffer-size": "^0.0.4", "yaml": "^2.8.1" } }, "sha512-aLzf6atqDhBtDcbDzS9s0rrY/PwdnL6C7B/eBcEQ446k6JbXjLugJ6mStVwMwTkVmGOKHG8xxDyM1GG6heqqtg=="],
+    "@hpx7/delta-pack": ["@hpx7/delta-pack@0.2.8", "", { "dependencies": { "reflect-metadata": "^0.2.2", "yaml": "^2.8.1" } }, "sha512-7fMXgniTgT7WQnO3+7pUsaGZ/26r3JdHoTgKPG4CwJxkWntUasorSlZ8HgA34OtBBPOfPrzALDULoZc/Jysr/g=="],
 
     "@types/bun": ["@types/bun@1.3.4", "", { "dependencies": { "bun-types": "1.3.4" } }, "sha512-EEPTKXHP+zKGPkhRLv+HI0UEX8/o+65hqARxLy8Ov5rIxMBPNTjeZww00CIihrIQGEQBYg+0roO5qOnS/7boGA=="],
 
     "@types/node": ["@types/node@20.19.27", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug=="],
-
-    "bin-serde": ["bin-serde@1.7.3", "", { "dependencies": { "utf8-buffer-size": "^0.0.4" } }, "sha512-/wrNt8zu7SjBk32xUmA08vjVVqtNY5ej5mN4LfTsTeTkMUF5TLiQ7GYieuxa8tolzsEWCw2CAX4EFAoqNn7a1g=="],
 
     "bun-types": ["bun-types@1.3.4", "", { "dependencies": { "@types/node": "*" } }, "sha512-5ua817+BZPZOlNaRgGBpZJOSAQ9RQ17pkwPD0yR7CfJg+r8DgIILByFifDTa+IPDDxzf5VNhtNlcKqFzDgJvlQ=="],
 
@@ -30,8 +28,6 @@
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
-
-    "utf8-buffer-size": ["utf8-buffer-size@0.0.4", "", {}, "sha512-mYYOtZvK3WmxPk9YhQjnkBluLK7y8vkIwgyEU+teoVwrJ+lpR/QapjsNFP30aiAcV4+fd9YvXCR49AxINCwbOg=="],
 
     "yaml": ["yaml@2.8.2", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A=="],
   }
