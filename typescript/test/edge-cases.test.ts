@@ -1088,3 +1088,40 @@ describe("Edge Cases - UTF-8 Encoding without Buffer", () => {
     expect(utf8Read(buf, offset, len)).toBe(str);
   });
 });
+
+describe("Edge Cases - Sparse Array Diff Size", () => {
+  const LargeArray = ObjectType("LargeArray", {
+    items: ArrayType(IntType()),
+  });
+  type LargeArray = Infer<typeof LargeArray>;
+  const api = load(LargeArray);
+
+  it("should produce O(k) size diff for k sparse changes in large array", () => {
+    // 1000-element array with only 2 changes
+    const items1 = Array.from({ length: 1000 }, (_, i) => i);
+    const items2 = [...items1];
+    items2[100] = 999;
+    items2[500] = 888;
+
+    const state1: LargeArray = { items: items1 };
+    const state2: LargeArray = { items: items2 };
+
+    const diff = api.encodeDiff(state1, state2);
+
+    // Sparse format: ~2-3 bytes header + ~4 bytes per change = ~12 bytes
+    // Old dense format would be: ~2 bytes + 1000 bits + 8 bytes = ~133 bytes
+    expect(diff.length).toBeLessThan(30);
+
+    const decoded = api.decodeDiff(state1, diff);
+    expect(api.equals(decoded, state2)).toBe(true);
+  });
+
+  it("should produce minimal diff for unchanged large array", () => {
+    const state: LargeArray = { items: Array.from({ length: 1000 }, (_, i) => i) };
+
+    const diff = api.encodeDiff(state, state);
+
+    // Unchanged should be 1-2 bytes regardless of array size
+    expect(diff.length).toBeLessThan(3);
+  });
+});

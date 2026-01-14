@@ -195,14 +195,28 @@ export class Encoder {
       return;
     }
     this.writeUVarint(b.length);
+
+    // Collect changed indices (sparse encoding)
+    const updates: number[] = [];
     const minLen = Math.min(a.length, b.length);
-    for (let i = 0; i < minLen; i++) {
-      const elementChanged = dirty != null ? dirty.has(i) : !equals(a[i]!, b[i]!);
-      this.pushBoolean(elementChanged);
-      if (elementChanged) {
-        encodeDiff(a[i]!, b[i]!);
+    if (dirty != null) {
+      dirty.forEach((i) => {
+        if (i < minLen) updates.push(i);
+      });
+    } else {
+      for (let i = 0; i < minLen; i++) {
+        if (!equals(a[i]!, b[i]!)) updates.push(i);
       }
     }
+
+    // Write updates (sparse)
+    this.writeUVarint(updates.length);
+    for (const i of updates) {
+      this.writeUVarint(i);
+      encodeDiff(a[i]!, b[i]!);
+    }
+
+    // Write additions
     for (let i = a.length; i < b.length; i++) {
       encode(b[i]!);
     }

@@ -65,9 +65,9 @@ This demonstrates bandwidth savings for incremental state updates.
 | ---------- | ----- | ----------- | -------- | --------------- | --------------- | ------- |
 | State1→2   | 2683B | 2017B       | 572B     | 296B            | 134B            | 77%     |
 | State2→3   | 3094B | 2431B       | 714B     | 374B            | 204B            | 71%     |
-| State3→4   | 3273B | 2580B       | 761B     | 397B            | 114B            | 85%     |
-| State4→5   | 6693B | 5155B       | 1732B    | 907B            | 609B            | 65%     |
-| State5→6   | 6701B | 5161B       | 1732B    | 907B            | 102B            | 94%     |
+| State3→4   | 3273B | 2580B       | 761B     | 397B            | 118B            | 84%     |
+| State4→5   | 6693B | 5155B       | 1732B    | 907B            | 611B            | 65%     |
+| State5→6   | 6701B | 5161B       | 1732B    | 907B            | 104B            | 94%     |
 
 ### Primitives
 
@@ -79,4 +79,4 @@ This demonstrates bandwidth savings for incremental state updates.
 
 | Transition | JSON | MessagePack | Protobuf | Delta-Pack Full | Delta-Pack Diff | Savings |
 | ---------- | ---- | ----------- | -------- | --------------- | --------------- | ------- |
-| State1→2   | 973B | 751B        | 293B     | 238B            | 166B            | 43%     |
+| State1→2   | 973B | 751B        | 293B     | 238B            | 170B            | 42%     |

@@ -194,15 +194,19 @@ public class Decoder
             return arr.ToList();
 
         var newLen = (int)NextUInt();
-        var newArr = new List<T>(newLen);
-        var minLen = Math.Min(arr.Count, newLen);
 
-        for (var i = 0; i < minLen; i++)
+        // Start with copy of old array (truncated to new length)
+        var newArr = arr.Take(Math.Min(arr.Count, newLen)).ToList();
+
+        // Apply updates (sparse)
+        var numUpdates = (int)NextUInt();
+        for (var i = 0; i < numUpdates; i++)
         {
-            var elementChanged = NextBoolean();
-            newArr.Add(elementChanged ? decodeDiff(arr[i]) : arr[i]);
+            var idx = (int)NextUInt();
+            newArr[idx] = decodeDiff(arr[idx]);
         }
 
+        // Read additions
         for (var i = arr.Count; i < newLen; i++)
             newArr.Add(decode());
 

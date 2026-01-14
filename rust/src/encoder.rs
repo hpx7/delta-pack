@@ -214,15 +214,22 @@ impl Encoder {
             return;
         }
         self.push_uint(b.len() as u64);
+
+        // Collect changed indices (sparse encoding)
         let min_len = a.len().min(b.len());
-        for i in 0..min_len {
-            let elem_changed = !equals(&a[i], &b[i]);
-            self.push_boolean(elem_changed);
-            if elem_changed {
-                inner_diff(self, &a[i], &b[i]);
-            }
+        let updates: Vec<usize> = (0..min_len)
+            .filter(|&i| !equals(&a[i], &b[i]))
+            .collect();
+
+        // Write updates (sparse)
+        self.push_uint(updates.len() as u64);
+        for i in updates {
+            self.push_uint(i as u64);
+            inner_diff(self, &a[i], &b[i]);
         }
-        for i in min_len..b.len() {
+
+        // Write additions
+        for i in a.len()..b.len() {
             inner_write(self, &b[i]);
         }
     }

@@ -215,7 +215,7 @@ impl<'a> Decoder<'a> {
         arr
     }
 
-    /// Decode array diff, matching TS/C# format with per-element change bits.
+    /// Decode array diff, using sparse format with index-based updates.
     #[inline]
     pub fn next_array_diff<T, F, FD>(&mut self, a: &[T], mut inner_read: F, mut inner_diff: FD) -> Vec<T>
     where
@@ -226,20 +226,23 @@ impl<'a> Decoder<'a> {
         if !self.next_boolean() {
             return a.to_vec();
         }
-        let len = self.next_uint() as usize;
-        let min_len = a.len().min(len);
-        let mut arr = Vec::with_capacity(len);
-        for i in 0..min_len {
-            let elem_changed = self.next_boolean();
-            if elem_changed {
-                arr.push(inner_diff(self, &a[i]));
-            } else {
-                arr.push(a[i].clone());
-            }
+        let new_len = self.next_uint() as usize;
+
+        // Start with copy of old array (truncated to new length)
+        let mut arr: Vec<T> = a.iter().take(new_len.min(a.len())).cloned().collect();
+
+        // Apply updates (sparse)
+        let num_updates = self.next_uint() as usize;
+        for _ in 0..num_updates {
+            let idx = self.next_uint() as usize;
+            arr[idx] = inner_diff(self, &a[idx]);
         }
-        for _ in min_len..len {
+
+        // Read additions
+        for _ in a.len()..new_len {
             arr.push(inner_read(self));
         }
+
         arr
     }
 

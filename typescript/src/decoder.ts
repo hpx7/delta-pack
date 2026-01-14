@@ -144,15 +144,22 @@ export class Decoder {
       return arr;
     }
     const newLen = this.readUVarint();
-    const newArr: T[] = [];
-    const minLen = Math.min(arr.length, newLen);
-    for (let i = 0; i < minLen; i++) {
-      const changed = this.nextBoolean();
-      newArr.push(changed ? decodeDiff(arr[i]!) : arr[i]!);
+
+    // Start with copy of old array (truncated to new length)
+    const newArr = arr.slice(0, Math.min(arr.length, newLen));
+
+    // Apply updates (sparse)
+    const numUpdates = this.readUVarint();
+    for (let i = 0; i < numUpdates; i++) {
+      const idx = this.readUVarint();
+      newArr[idx] = decodeDiff(arr[idx]!);
     }
+
+    // Read additions
     for (let i = arr.length; i < newLen; i++) {
       newArr.push(decode());
     }
+
     return newArr;
   }
 

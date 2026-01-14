@@ -22,7 +22,7 @@ export function allocFromSlab(size: number): Uint8Array {
 }
 
 function allocUint8Array(size: number): Uint8Array {
-  return typeof Buffer !== "undefined" ? Buffer.allocUnsafe(size) : new Uint8Array(size);
+  return hasBuffer ? Buffer.allocUnsafe(size) : new Uint8Array(size);
 }
 
 // float encoding

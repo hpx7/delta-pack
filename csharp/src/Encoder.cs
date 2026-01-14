@@ -261,16 +261,25 @@ public class Encoder
             return;
 
         PushUInt((uint)b.Count);
-        var minLen = Math.Min(a.Count, b.Count);
 
+        // Collect changed indices (sparse encoding)
+        var updates = new List<int>();
+        var minLen = Math.Min(a.Count, b.Count);
         for (var i = 0; i < minLen; i++)
         {
-            var elementChanged = !equals(a[i], b[i]);
-            PushBoolean(elementChanged);
-            if (elementChanged)
-                encodeDiff(a[i], b[i]);
+            if (!equals(a[i], b[i]))
+                updates.Add(i);
         }
 
+        // Write updates (sparse)
+        PushUInt((uint)updates.Count);
+        foreach (var i in updates)
+        {
+            PushUInt((uint)i);
+            encodeDiff(a[i], b[i]);
+        }
+
+        // Write additions
         for (var i = a.Count; i < b.Count; i++)
             encode(b[i]);
     }
