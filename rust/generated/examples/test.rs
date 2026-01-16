@@ -65,9 +65,7 @@ impl Default for InnerInner {
 
 impl InnerInner {
     pub fn equals(&self, other: &Self) -> bool {
-        self.long == other.long
-            && self.enum_ == other.enum_
-            && self.sint32 == other.sint32
+        self.long == other.long && self.enum_ == other.enum_ && self.sint32 == other.sint32
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -143,9 +141,21 @@ impl InnerInner {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            long: if decoder.next_boolean() { decoder.next_int_diff(obj.long) } else { obj.long.clone() },
-            enum_: if decoder.next_boolean() { Enum::from_u32(decoder.next_enum_diff(obj.enum_.to_u32(), 3)) } else { obj.enum_.clone() },
-            sint32: if decoder.next_boolean() { decoder.next_int_diff(obj.sint32) } else { obj.sint32.clone() },
+            long: if decoder.next_boolean() {
+                decoder.next_int_diff(obj.long)
+            } else {
+                obj.long.clone()
+            },
+            enum_: if decoder.next_boolean() {
+                Enum::from_u32(decoder.next_enum_diff(obj.enum_.to_u32(), 3))
+            } else {
+                obj.enum_.clone()
+            },
+            sint32: if decoder.next_boolean() {
+                decoder.next_int_diff(obj.sint32)
+            } else {
+                obj.sint32.clone()
+            },
         }
     }
 }
@@ -168,8 +178,7 @@ impl Default for Outer {
 
 impl Outer {
     pub fn equals(&self, other: &Self) -> bool {
-        self.bool_ == other.bool_
-            && delta_pack::equals_float(self.double, other.double)
+        self.bool_ == other.bool_ && delta_pack::equals_float(self.double, other.double)
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -204,7 +213,13 @@ impl Outer {
         let changed = !(a.bool_ == b.bool_);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.bool_, &b.bool_, |x, y| x == y, |enc, &item| enc.push_boolean(item), |enc, &a, &b| enc.push_boolean_diff(a, b));
+            encoder.push_array_diff(
+                &a.bool_,
+                &b.bool_,
+                |x, y| x == y,
+                |enc, &item| enc.push_boolean(item),
+                |enc, &a, &b| enc.push_boolean_diff(a, b),
+            );
         }
         let changed = !(delta_pack::equals_float(a.double, b.double));
         encoder.push_boolean(changed);
@@ -238,8 +253,20 @@ impl Outer {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            bool_: if decoder.next_boolean() { decoder.next_array_diff(&obj.bool_, |dec| dec.next_boolean(), |dec, &a| dec.next_boolean_diff(a)) } else { obj.bool_.clone() },
-            double: if decoder.next_boolean() { decoder.next_float_diff(obj.double) } else { obj.double.clone() },
+            bool_: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.bool_,
+                    |dec| dec.next_boolean(),
+                    |dec, &a| dec.next_boolean_diff(a),
+                )
+            } else {
+                obj.bool_.clone()
+            },
+            double: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.double)
+            } else {
+                obj.double.clone()
+            },
         }
     }
 }
@@ -334,7 +361,11 @@ impl Inner {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            int32: if decoder.next_boolean() { decoder.next_int_diff(obj.int32) } else { obj.int32.clone() },
+            int32: if decoder.next_boolean() {
+                decoder.next_int_diff(obj.int32)
+            } else {
+                obj.int32.clone()
+            },
             inner_inner: InnerInner::decode_diff_from(&obj.inner_inner, decoder),
             outer: Outer::decode_diff_from(&obj.outer, decoder),
         }
@@ -444,10 +475,22 @@ impl Test {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            string: if decoder.next_boolean() { decoder.next_string_diff(&obj.string) } else { obj.string.clone() },
-            uint32: if decoder.next_boolean() { decoder.next_int_diff(obj.uint32) } else { obj.uint32.clone() },
+            string: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.string)
+            } else {
+                obj.string.clone()
+            },
+            uint32: if decoder.next_boolean() {
+                decoder.next_int_diff(obj.uint32)
+            } else {
+                obj.uint32.clone()
+            },
             inner: Inner::decode_diff_from(&obj.inner, decoder),
-            float: if decoder.next_boolean() { decoder.next_float_diff(obj.float) } else { obj.float.clone() },
+            float: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.float)
+            } else {
+                obj.float.clone()
+            },
         }
     }
 }

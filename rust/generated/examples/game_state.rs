@@ -253,10 +253,7 @@ pub struct Position {
 
 impl Default for Position {
     fn default() -> Self {
-        Self {
-            x: 0.0,
-            y: 0.0,
-        }
+        Self { x: 0.0, y: 0.0 }
     }
 }
 
@@ -332,8 +329,16 @@ impl Position {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            x: if decoder.next_boolean() { decoder.next_float_quantized_diff(obj.x, 0.1_f32) } else { obj.x.clone() },
-            y: if decoder.next_boolean() { decoder.next_float_quantized_diff(obj.y, 0.1_f32) } else { obj.y.clone() },
+            x: if decoder.next_boolean() {
+                decoder.next_float_quantized_diff(obj.x, 0.1_f32)
+            } else {
+                obj.x.clone()
+            },
+            y: if decoder.next_boolean() {
+                decoder.next_float_quantized_diff(obj.y, 0.1_f32)
+            } else {
+                obj.y.clone()
+            },
         }
     }
 }
@@ -346,17 +351,13 @@ pub struct Velocity {
 
 impl Default for Velocity {
     fn default() -> Self {
-        Self {
-            vx: 0.0,
-            vy: 0.0,
-        }
+        Self { vx: 0.0, vy: 0.0 }
     }
 }
 
 impl Velocity {
     pub fn equals(&self, other: &Self) -> bool {
-        delta_pack::equals_float(self.vx, other.vx)
-            && delta_pack::equals_float(self.vy, other.vy)
+        delta_pack::equals_float(self.vx, other.vx) && delta_pack::equals_float(self.vy, other.vy)
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -425,8 +426,16 @@ impl Velocity {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            vx: if decoder.next_boolean() { decoder.next_float_diff(obj.vx) } else { obj.vx.clone() },
-            vy: if decoder.next_boolean() { decoder.next_float_diff(obj.vy) } else { obj.vy.clone() },
+            vx: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.vx)
+            } else {
+                obj.vx.clone()
+            },
+            vy: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.vy)
+            } else {
+                obj.vy.clone()
+            },
         }
     }
 }
@@ -522,12 +531,22 @@ impl InventoryItem {
         let changed = !(a.durability == b.durability);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.durability, &b.durability, |enc, &item| enc.push_uint(item), |enc, &a, &b| enc.push_uint_diff(a, b));
+            encoder.push_optional_diff(
+                &a.durability,
+                &b.durability,
+                |enc, &item| enc.push_uint(item),
+                |enc, &a, &b| enc.push_uint_diff(a, b),
+            );
         }
         let changed = !(a.enchantment_level == b.enchantment_level);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.enchantment_level, &b.enchantment_level, |enc, &item| enc.push_uint(item), |enc, &a, &b| enc.push_uint_diff(a, b));
+            encoder.push_optional_diff(
+                &a.enchantment_level,
+                &b.enchantment_level,
+                |enc, &item| enc.push_uint(item),
+                |enc, &a, &b| enc.push_uint_diff(a, b),
+            );
         }
     }
 
@@ -560,12 +579,44 @@ impl InventoryItem {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            item_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.item_id) } else { obj.item_id.clone() },
-            name: if decoder.next_boolean() { decoder.next_string_diff(&obj.name) } else { obj.name.clone() },
-            quantity: if decoder.next_boolean() { decoder.next_uint_diff(obj.quantity) } else { obj.quantity.clone() },
-            rarity: if decoder.next_boolean() { ItemRarity::from_u32(decoder.next_enum_diff(obj.rarity.to_u32(), 3)) } else { obj.rarity.clone() },
-            durability: if decoder.next_boolean() { decoder.next_optional_diff(&obj.durability, |dec| dec.next_uint(), |dec, &a| dec.next_uint_diff(a)) } else { obj.durability.clone() },
-            enchantment_level: if decoder.next_boolean() { decoder.next_optional_diff(&obj.enchantment_level, |dec| dec.next_uint(), |dec, &a| dec.next_uint_diff(a)) } else { obj.enchantment_level.clone() },
+            item_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.item_id)
+            } else {
+                obj.item_id.clone()
+            },
+            name: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.name)
+            } else {
+                obj.name.clone()
+            },
+            quantity: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.quantity)
+            } else {
+                obj.quantity.clone()
+            },
+            rarity: if decoder.next_boolean() {
+                ItemRarity::from_u32(decoder.next_enum_diff(obj.rarity.to_u32(), 3))
+            } else {
+                obj.rarity.clone()
+            },
+            durability: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.durability,
+                    |dec| dec.next_uint(),
+                    |dec, &a| dec.next_uint_diff(a),
+                )
+            } else {
+                obj.durability.clone()
+            },
+            enchantment_level: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.enchantment_level,
+                    |dec| dec.next_uint(),
+                    |dec, &a| dec.next_uint_diff(a),
+                )
+            } else {
+                obj.enchantment_level.clone()
+            },
         }
     }
 }
@@ -631,22 +682,42 @@ impl Equipment {
         let changed = !(a.weapon == b.weapon);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.weapon, &b.weapon, |enc, &item| enc.push_enum(item.to_u32(), 3), |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 3));
+            encoder.push_optional_diff(
+                &a.weapon,
+                &b.weapon,
+                |enc, &item| enc.push_enum(item.to_u32(), 3),
+                |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 3),
+            );
         }
         let changed = !(a.armor == b.armor);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.armor, &b.armor, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_optional_diff(
+                &a.armor,
+                &b.armor,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
         let changed = !(a.accessory1 == b.accessory1);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.accessory1, &b.accessory1, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_optional_diff(
+                &a.accessory1,
+                &b.accessory1,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
         let changed = !(a.accessory2 == b.accessory2);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.accessory2, &b.accessory2, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_optional_diff(
+                &a.accessory2,
+                &b.accessory2,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
     }
 
@@ -677,10 +748,42 @@ impl Equipment {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            weapon: if decoder.next_boolean() { decoder.next_optional_diff(&obj.weapon, |dec| WeaponType::from_u32(dec.next_enum(3)), |dec, &a| WeaponType::from_u32(dec.next_enum_diff(a.to_u32(), 3))) } else { obj.weapon.clone() },
-            armor: if decoder.next_boolean() { decoder.next_optional_diff(&obj.armor, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.armor.clone() },
-            accessory1: if decoder.next_boolean() { decoder.next_optional_diff(&obj.accessory1, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.accessory1.clone() },
-            accessory2: if decoder.next_boolean() { decoder.next_optional_diff(&obj.accessory2, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.accessory2.clone() },
+            weapon: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.weapon,
+                    |dec| WeaponType::from_u32(dec.next_enum(3)),
+                    |dec, &a| WeaponType::from_u32(dec.next_enum_diff(a.to_u32(), 3)),
+                )
+            } else {
+                obj.weapon.clone()
+            },
+            armor: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.armor,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.armor.clone()
+            },
+            accessory1: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.accessory1,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.accessory1.clone()
+            },
+            accessory2: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.accessory2,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.accessory2.clone()
+            },
         }
     }
 }
@@ -875,18 +978,66 @@ impl PlayerStats {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            health: if decoder.next_boolean() { decoder.next_uint_diff(obj.health) } else { obj.health.clone() },
-            max_health: if decoder.next_boolean() { decoder.next_uint_diff(obj.max_health) } else { obj.max_health.clone() },
-            mana: if decoder.next_boolean() { decoder.next_uint_diff(obj.mana) } else { obj.mana.clone() },
-            max_mana: if decoder.next_boolean() { decoder.next_uint_diff(obj.max_mana) } else { obj.max_mana.clone() },
-            stamina: if decoder.next_boolean() { decoder.next_uint_diff(obj.stamina) } else { obj.stamina.clone() },
-            max_stamina: if decoder.next_boolean() { decoder.next_uint_diff(obj.max_stamina) } else { obj.max_stamina.clone() },
-            level: if decoder.next_boolean() { decoder.next_uint_diff(obj.level) } else { obj.level.clone() },
-            experience: if decoder.next_boolean() { decoder.next_uint_diff(obj.experience) } else { obj.experience.clone() },
-            strength: if decoder.next_boolean() { decoder.next_uint_diff(obj.strength) } else { obj.strength.clone() },
-            agility: if decoder.next_boolean() { decoder.next_uint_diff(obj.agility) } else { obj.agility.clone() },
-            intelligence: if decoder.next_boolean() { decoder.next_uint_diff(obj.intelligence) } else { obj.intelligence.clone() },
-            defense: if decoder.next_boolean() { decoder.next_uint_diff(obj.defense) } else { obj.defense.clone() },
+            health: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.health)
+            } else {
+                obj.health.clone()
+            },
+            max_health: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.max_health)
+            } else {
+                obj.max_health.clone()
+            },
+            mana: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.mana)
+            } else {
+                obj.mana.clone()
+            },
+            max_mana: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.max_mana)
+            } else {
+                obj.max_mana.clone()
+            },
+            stamina: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.stamina)
+            } else {
+                obj.stamina.clone()
+            },
+            max_stamina: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.max_stamina)
+            } else {
+                obj.max_stamina.clone()
+            },
+            level: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.level)
+            } else {
+                obj.level.clone()
+            },
+            experience: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.experience)
+            } else {
+                obj.experience.clone()
+            },
+            strength: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.strength)
+            } else {
+                obj.strength.clone()
+            },
+            agility: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.agility)
+            } else {
+                obj.agility.clone()
+            },
+            intelligence: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.intelligence)
+            } else {
+                obj.intelligence.clone()
+            },
+            defense: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.defense)
+            } else {
+                obj.defense.clone()
+            },
         }
     }
 }
@@ -1000,10 +1151,26 @@ impl ActiveEffect {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            effect_type: if decoder.next_boolean() { EffectType::from_u32(decoder.next_enum_diff(obj.effect_type.to_u32(), 3)) } else { obj.effect_type.clone() },
-            duration: if decoder.next_boolean() { decoder.next_float_diff(obj.duration) } else { obj.duration.clone() },
-            strength: if decoder.next_boolean() { decoder.next_uint_diff(obj.strength) } else { obj.strength.clone() },
-            stack_count: if decoder.next_boolean() { decoder.next_uint_diff(obj.stack_count) } else { obj.stack_count.clone() },
+            effect_type: if decoder.next_boolean() {
+                EffectType::from_u32(decoder.next_enum_diff(obj.effect_type.to_u32(), 3))
+            } else {
+                obj.effect_type.clone()
+            },
+            duration: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.duration)
+            } else {
+                obj.duration.clone()
+            },
+            strength: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.strength)
+            } else {
+                obj.strength.clone()
+            },
+            stack_count: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.stack_count)
+            } else {
+                obj.stack_count.clone()
+            },
         }
     }
 }
@@ -1108,9 +1275,21 @@ impl AbilityCooldown {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            ability_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.ability_id) } else { obj.ability_id.clone() },
-            ability_type: if decoder.next_boolean() { AbilityType::from_u32(decoder.next_enum_diff(obj.ability_type.to_u32(), 3)) } else { obj.ability_type.clone() },
-            remaining_cooldown: if decoder.next_boolean() { decoder.next_float_diff(obj.remaining_cooldown) } else { obj.remaining_cooldown.clone() },
+            ability_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.ability_id)
+            } else {
+                obj.ability_id.clone()
+            },
+            ability_type: if decoder.next_boolean() {
+                AbilityType::from_u32(decoder.next_enum_diff(obj.ability_type.to_u32(), 3))
+            } else {
+                obj.ability_type.clone()
+            },
+            remaining_cooldown: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.remaining_cooldown)
+            } else {
+                obj.remaining_cooldown.clone()
+            },
         }
     }
 }
@@ -1192,8 +1371,14 @@ impl Player {
             && self.stats.equals(&other.stats)
             && delta_pack::equals_array(&self.inventory, &other.inventory, |x, y| x.equals(y))
             && self.equipment.equals(&other.equipment)
-            && delta_pack::equals_array(&self.active_effects, &other.active_effects, |x, y| x.equals(y))
-            && delta_pack::equals_array(&self.ability_cooldowns, &other.ability_cooldowns, |x, y| x.equals(y))
+            && delta_pack::equals_array(&self.active_effects, &other.active_effects, |x, y| {
+                x.equals(y)
+            })
+            && delta_pack::equals_array(
+                &self.ability_cooldowns,
+                &other.ability_cooldowns,
+                |x, y| x.equals(y),
+            )
             && self.kills == other.kills
             && self.deaths == other.deaths
             && self.assists == other.assists
@@ -1270,7 +1455,12 @@ impl Player {
         let changed = !(a.team == b.team);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.team, &b.team, |enc, &item| enc.push_enum(item.to_u32(), 2), |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 2));
+            encoder.push_optional_diff(
+                &a.team,
+                &b.team,
+                |enc, &item| enc.push_enum(item.to_u32(), 2),
+                |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 2),
+            );
         }
         let changed = !(a.status == b.status);
         encoder.push_boolean(changed);
@@ -1288,18 +1478,40 @@ impl Player {
         let changed = !(delta_pack::equals_array(&a.inventory, &b.inventory, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.inventory, &b.inventory, |x, y| x.equals(y), |enc, item| item.encode_into(enc), |enc, a, b| InventoryItem::encode_diff_fields_into(a, b, enc));
+            encoder.push_array_diff(
+                &a.inventory,
+                &b.inventory,
+                |x, y| x.equals(y),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| InventoryItem::encode_diff_fields_into(a, b, enc),
+            );
         }
         Equipment::encode_diff_into(&a.equipment, &b.equipment, encoder);
-        let changed = !(delta_pack::equals_array(&a.active_effects, &b.active_effects, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_array(&a.active_effects, &b.active_effects, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.active_effects, &b.active_effects, |x, y| x.equals(y), |enc, item| item.encode_into(enc), |enc, a, b| ActiveEffect::encode_diff_fields_into(a, b, enc));
+            encoder.push_array_diff(
+                &a.active_effects,
+                &b.active_effects,
+                |x, y| x.equals(y),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| ActiveEffect::encode_diff_fields_into(a, b, enc),
+            );
         }
-        let changed = !(delta_pack::equals_array(&a.ability_cooldowns, &b.ability_cooldowns, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_array(&a.ability_cooldowns, &b.ability_cooldowns, |x, y| {
+                x.equals(y)
+            }));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.ability_cooldowns, &b.ability_cooldowns, |x, y| x.equals(y), |enc, item| item.encode_into(enc), |enc, a, b| AbilityCooldown::encode_diff_fields_into(a, b, enc));
+            encoder.push_array_diff(
+                &a.ability_cooldowns,
+                &b.ability_cooldowns,
+                |x, y| x.equals(y),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| AbilityCooldown::encode_diff_fields_into(a, b, enc),
+            );
         }
         let changed = !(a.kills == b.kills);
         encoder.push_boolean(changed);
@@ -1337,12 +1549,22 @@ impl Player {
         let changed = !(a.last_damage_time == b.last_damage_time);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.last_damage_time, &b.last_damage_time, |enc, &item| enc.push_float(item), |enc, &a, &b| enc.push_float_diff(a, b));
+            encoder.push_optional_diff(
+                &a.last_damage_time,
+                &b.last_damage_time,
+                |enc, &item| enc.push_float(item),
+                |enc, &a, &b| enc.push_float_diff(a, b),
+            );
         }
         let changed = !(a.respawn_time == b.respawn_time);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.respawn_time, &b.respawn_time, |enc, &item| enc.push_float(item), |enc, &a, &b| enc.push_float_diff(a, b));
+            encoder.push_optional_diff(
+                &a.respawn_time,
+                &b.respawn_time,
+                |enc, &item| enc.push_float(item),
+                |enc, &a, &b| enc.push_float_diff(a, b),
+            );
         }
     }
 
@@ -1392,29 +1614,117 @@ impl Player {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            player_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.player_id) } else { obj.player_id.clone() },
-            username: if decoder.next_boolean() { decoder.next_string_diff(&obj.username) } else { obj.username.clone() },
-            team: if decoder.next_boolean() { decoder.next_optional_diff(&obj.team, |dec| Team::from_u32(dec.next_enum(2)), |dec, &a| Team::from_u32(dec.next_enum_diff(a.to_u32(), 2))) } else { obj.team.clone() },
-            status: if decoder.next_boolean() { PlayerStatus::from_u32(decoder.next_enum_diff(obj.status.to_u32(), 2)) } else { obj.status.clone() },
+            player_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.player_id)
+            } else {
+                obj.player_id.clone()
+            },
+            username: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.username)
+            } else {
+                obj.username.clone()
+            },
+            team: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.team,
+                    |dec| Team::from_u32(dec.next_enum(2)),
+                    |dec, &a| Team::from_u32(dec.next_enum_diff(a.to_u32(), 2)),
+                )
+            } else {
+                obj.team.clone()
+            },
+            status: if decoder.next_boolean() {
+                PlayerStatus::from_u32(decoder.next_enum_diff(obj.status.to_u32(), 2))
+            } else {
+                obj.status.clone()
+            },
             position: Position::decode_diff_from(&obj.position, decoder),
             velocity: Velocity::decode_diff_from(&obj.velocity, decoder),
-            rotation: if decoder.next_boolean() { decoder.next_float_diff(obj.rotation) } else { obj.rotation.clone() },
+            rotation: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.rotation)
+            } else {
+                obj.rotation.clone()
+            },
             stats: PlayerStats::decode_diff_from(&obj.stats, decoder),
-            inventory: if decoder.next_boolean() { decoder.next_array_diff(&obj.inventory, |dec| InventoryItem::decode_from(dec), |dec, a| InventoryItem::decode_diff_fields_from(a, dec)) } else { obj.inventory.clone() },
+            inventory: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.inventory,
+                    |dec| InventoryItem::decode_from(dec),
+                    |dec, a| InventoryItem::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.inventory.clone()
+            },
             equipment: Equipment::decode_diff_from(&obj.equipment, decoder),
-            active_effects: if decoder.next_boolean() { decoder.next_array_diff(&obj.active_effects, |dec| ActiveEffect::decode_from(dec), |dec, a| ActiveEffect::decode_diff_fields_from(a, dec)) } else { obj.active_effects.clone() },
-            ability_cooldowns: if decoder.next_boolean() { decoder.next_array_diff(&obj.ability_cooldowns, |dec| AbilityCooldown::decode_from(dec), |dec, a| AbilityCooldown::decode_diff_fields_from(a, dec)) } else { obj.ability_cooldowns.clone() },
-            kills: if decoder.next_boolean() { decoder.next_uint_diff(obj.kills) } else { obj.kills.clone() },
-            deaths: if decoder.next_boolean() { decoder.next_uint_diff(obj.deaths) } else { obj.deaths.clone() },
-            assists: if decoder.next_boolean() { decoder.next_uint_diff(obj.assists) } else { obj.assists.clone() },
-            gold: if decoder.next_boolean() { decoder.next_uint_diff(obj.gold) } else { obj.gold.clone() },
-            score: if decoder.next_boolean() { decoder.next_int_diff(obj.score) } else { obj.score.clone() },
-            ping: if decoder.next_boolean() { decoder.next_uint_diff(obj.ping) } else { obj.ping.clone() },
+            active_effects: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.active_effects,
+                    |dec| ActiveEffect::decode_from(dec),
+                    |dec, a| ActiveEffect::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.active_effects.clone()
+            },
+            ability_cooldowns: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.ability_cooldowns,
+                    |dec| AbilityCooldown::decode_from(dec),
+                    |dec, a| AbilityCooldown::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.ability_cooldowns.clone()
+            },
+            kills: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.kills)
+            } else {
+                obj.kills.clone()
+            },
+            deaths: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.deaths)
+            } else {
+                obj.deaths.clone()
+            },
+            assists: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.assists)
+            } else {
+                obj.assists.clone()
+            },
+            gold: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.gold)
+            } else {
+                obj.gold.clone()
+            },
+            score: if decoder.next_boolean() {
+                decoder.next_int_diff(obj.score)
+            } else {
+                obj.score.clone()
+            },
+            ping: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.ping)
+            } else {
+                obj.ping.clone()
+            },
             is_jumping: decoder.next_boolean_diff(obj.is_jumping),
             is_crouching: decoder.next_boolean_diff(obj.is_crouching),
             is_aiming: decoder.next_boolean_diff(obj.is_aiming),
-            last_damage_time: if decoder.next_boolean() { decoder.next_optional_diff(&obj.last_damage_time, |dec| dec.next_float(), |dec, &a| dec.next_float_diff(a)) } else { obj.last_damage_time.clone() },
-            respawn_time: if decoder.next_boolean() { decoder.next_optional_diff(&obj.respawn_time, |dec| dec.next_float(), |dec, &a| dec.next_float_diff(a)) } else { obj.respawn_time.clone() },
+            last_damage_time: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.last_damage_time,
+                    |dec| dec.next_float(),
+                    |dec, &a| dec.next_float_diff(a),
+                )
+            } else {
+                obj.last_damage_time.clone()
+            },
+            respawn_time: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.respawn_time,
+                    |dec| dec.next_float(),
+                    |dec, &a| dec.next_float_diff(a),
+                )
+            } else {
+                obj.respawn_time.clone()
+            },
         }
     }
 }
@@ -1542,7 +1852,12 @@ impl Enemy {
         let changed = !(a.target_player_id == b.target_player_id);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.target_player_id, &b.target_player_id, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_optional_diff(
+                &a.target_player_id,
+                &b.target_player_id,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
         let changed = !(delta_pack::equals_float(a.last_attack_time, b.last_attack_time));
         encoder.push_boolean(changed);
@@ -1552,7 +1867,12 @@ impl Enemy {
         let changed = !(a.loot_table_id == b.loot_table_id);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.loot_table_id, &b.loot_table_id, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_optional_diff(
+                &a.loot_table_id,
+                &b.loot_table_id,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
     }
 
@@ -1590,17 +1910,57 @@ impl Enemy {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            enemy_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.enemy_id) } else { obj.enemy_id.clone() },
-            name: if decoder.next_boolean() { decoder.next_string_diff(&obj.name) } else { obj.name.clone() },
+            enemy_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.enemy_id)
+            } else {
+                obj.enemy_id.clone()
+            },
+            name: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.name)
+            } else {
+                obj.name.clone()
+            },
             position: Position::decode_diff_from(&obj.position, decoder),
             velocity: Velocity::decode_diff_from(&obj.velocity, decoder),
-            health: if decoder.next_boolean() { decoder.next_uint_diff(obj.health) } else { obj.health.clone() },
-            max_health: if decoder.next_boolean() { decoder.next_uint_diff(obj.max_health) } else { obj.max_health.clone() },
-            level: if decoder.next_boolean() { decoder.next_uint_diff(obj.level) } else { obj.level.clone() },
+            health: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.health)
+            } else {
+                obj.health.clone()
+            },
+            max_health: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.max_health)
+            } else {
+                obj.max_health.clone()
+            },
+            level: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.level)
+            } else {
+                obj.level.clone()
+            },
             is_aggro: decoder.next_boolean_diff(obj.is_aggro),
-            target_player_id: if decoder.next_boolean() { decoder.next_optional_diff(&obj.target_player_id, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.target_player_id.clone() },
-            last_attack_time: if decoder.next_boolean() { decoder.next_float_diff(obj.last_attack_time) } else { obj.last_attack_time.clone() },
-            loot_table_id: if decoder.next_boolean() { decoder.next_optional_diff(&obj.loot_table_id, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.loot_table_id.clone() },
+            target_player_id: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.target_player_id,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.target_player_id.clone()
+            },
+            last_attack_time: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.last_attack_time)
+            } else {
+                obj.last_attack_time.clone()
+            },
+            loot_table_id: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.loot_table_id,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.loot_table_id.clone()
+            },
         }
     }
 }
@@ -1713,7 +2073,13 @@ impl Projectile {
         let changed = !(a.hit_players == b.hit_players);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.hit_players, &b.hit_players, |x, y| x == y, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_array_diff(
+                &a.hit_players,
+                &b.hit_players,
+                |x, y| x == y,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
     }
 
@@ -1748,14 +2114,42 @@ impl Projectile {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            projectile_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.projectile_id) } else { obj.projectile_id.clone() },
-            owner_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.owner_id) } else { obj.owner_id.clone() },
+            projectile_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.projectile_id)
+            } else {
+                obj.projectile_id.clone()
+            },
+            owner_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.owner_id)
+            } else {
+                obj.owner_id.clone()
+            },
             position: Position::decode_diff_from(&obj.position, decoder),
             velocity: Velocity::decode_diff_from(&obj.velocity, decoder),
-            damage: if decoder.next_boolean() { decoder.next_uint_diff(obj.damage) } else { obj.damage.clone() },
-            penetration: if decoder.next_boolean() { decoder.next_uint_diff(obj.penetration) } else { obj.penetration.clone() },
-            time_to_live: if decoder.next_boolean() { decoder.next_float_diff(obj.time_to_live) } else { obj.time_to_live.clone() },
-            hit_players: if decoder.next_boolean() { decoder.next_array_diff(&obj.hit_players, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.hit_players.clone() },
+            damage: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.damage)
+            } else {
+                obj.damage.clone()
+            },
+            penetration: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.penetration)
+            } else {
+                obj.penetration.clone()
+            },
+            time_to_live: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.time_to_live)
+            } else {
+                obj.time_to_live.clone()
+            },
+            hit_players: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.hit_players,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.hit_players.clone()
+            },
         }
     }
 }
@@ -1861,10 +2255,18 @@ impl DroppedLoot {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            loot_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.loot_id) } else { obj.loot_id.clone() },
+            loot_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.loot_id)
+            } else {
+                obj.loot_id.clone()
+            },
             position: Position::decode_diff_from(&obj.position, decoder),
             item: InventoryItem::decode_diff_from(&obj.item, decoder),
-            despawn_time: if decoder.next_boolean() { decoder.next_float_diff(obj.despawn_time) } else { obj.despawn_time.clone() },
+            despawn_time: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.despawn_time)
+            } else {
+                obj.despawn_time.clone()
+            },
         }
     }
 }
@@ -1958,14 +2360,24 @@ impl WorldObject {
         let changed = !(a.health == b.health);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.health, &b.health, |enc, &item| enc.push_uint(item), |enc, &a, &b| enc.push_uint_diff(a, b));
+            encoder.push_optional_diff(
+                &a.health,
+                &b.health,
+                |enc, &item| enc.push_uint(item),
+                |enc, &a, &b| enc.push_uint_diff(a, b),
+            );
         }
         encoder.push_boolean_diff(a.is_destroyed, b.is_destroyed);
         encoder.push_boolean_diff(a.is_interactable, b.is_interactable);
         let changed = !(a.interacted_by == b.interacted_by);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.interacted_by, &b.interacted_by, |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_optional_diff(
+                &a.interacted_by,
+                &b.interacted_by,
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
     }
 
@@ -1999,13 +2411,37 @@ impl WorldObject {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            object_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.object_id) } else { obj.object_id.clone() },
-            object_type: if decoder.next_boolean() { decoder.next_string_diff(&obj.object_type) } else { obj.object_type.clone() },
+            object_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.object_id)
+            } else {
+                obj.object_id.clone()
+            },
+            object_type: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.object_type)
+            } else {
+                obj.object_type.clone()
+            },
             position: Position::decode_diff_from(&obj.position, decoder),
-            health: if decoder.next_boolean() { decoder.next_optional_diff(&obj.health, |dec| dec.next_uint(), |dec, &a| dec.next_uint_diff(a)) } else { obj.health.clone() },
+            health: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.health,
+                    |dec| dec.next_uint(),
+                    |dec, &a| dec.next_uint_diff(a),
+                )
+            } else {
+                obj.health.clone()
+            },
             is_destroyed: decoder.next_boolean_diff(obj.is_destroyed),
             is_interactable: decoder.next_boolean_diff(obj.is_interactable),
-            interacted_by: if decoder.next_boolean() { decoder.next_optional_diff(&obj.interacted_by, |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.interacted_by.clone() },
+            interacted_by: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.interacted_by,
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.interacted_by.clone()
+            },
         }
     }
 }
@@ -2143,12 +2579,36 @@ impl MatchStats {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            total_kills: if decoder.next_boolean() { decoder.next_uint_diff(obj.total_kills) } else { obj.total_kills.clone() },
-            total_deaths: if decoder.next_boolean() { decoder.next_uint_diff(obj.total_deaths) } else { obj.total_deaths.clone() },
-            total_damage_dealt: if decoder.next_boolean() { decoder.next_uint_diff(obj.total_damage_dealt) } else { obj.total_damage_dealt.clone() },
-            total_healing_done: if decoder.next_boolean() { decoder.next_uint_diff(obj.total_healing_done) } else { obj.total_healing_done.clone() },
-            longest_kill_streak: if decoder.next_boolean() { decoder.next_uint_diff(obj.longest_kill_streak) } else { obj.longest_kill_streak.clone() },
-            match_duration: if decoder.next_boolean() { decoder.next_float_diff(obj.match_duration) } else { obj.match_duration.clone() },
+            total_kills: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.total_kills)
+            } else {
+                obj.total_kills.clone()
+            },
+            total_deaths: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.total_deaths)
+            } else {
+                obj.total_deaths.clone()
+            },
+            total_damage_dealt: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.total_damage_dealt)
+            } else {
+                obj.total_damage_dealt.clone()
+            },
+            total_healing_done: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.total_healing_done)
+            } else {
+                obj.total_healing_done.clone()
+            },
+            longest_kill_streak: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.longest_kill_streak)
+            } else {
+                obj.longest_kill_streak.clone()
+            },
+            match_duration: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.match_duration)
+            } else {
+                obj.match_duration.clone()
+            },
         }
     }
 }
@@ -2261,10 +2721,26 @@ impl TeamScore {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            team: if decoder.next_boolean() { Team::from_u32(decoder.next_enum_diff(obj.team.to_u32(), 2)) } else { obj.team.clone() },
-            score: if decoder.next_boolean() { decoder.next_uint_diff(obj.score) } else { obj.score.clone() },
-            kills: if decoder.next_boolean() { decoder.next_uint_diff(obj.kills) } else { obj.kills.clone() },
-            objectives_captured: if decoder.next_boolean() { decoder.next_uint_diff(obj.objectives_captured) } else { obj.objectives_captured.clone() },
+            team: if decoder.next_boolean() {
+                Team::from_u32(decoder.next_enum_diff(obj.team.to_u32(), 2))
+            } else {
+                obj.team.clone()
+            },
+            score: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.score)
+            } else {
+                obj.score.clone()
+            },
+            kills: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.kills)
+            } else {
+                obj.kills.clone()
+            },
+            objectives_captured: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.objectives_captured)
+            } else {
+                obj.objectives_captured.clone()
+            },
         }
     }
 }
@@ -2398,12 +2874,32 @@ impl GameSettings {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            max_players: if decoder.next_boolean() { decoder.next_uint_diff(obj.max_players) } else { obj.max_players.clone() },
+            max_players: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.max_players)
+            } else {
+                obj.max_players.clone()
+            },
             friendly_fire: decoder.next_boolean_diff(obj.friendly_fire),
-            respawn_delay: if decoder.next_boolean() { decoder.next_float_diff(obj.respawn_delay) } else { obj.respawn_delay.clone() },
-            round_time_limit: if decoder.next_boolean() { decoder.next_uint_diff(obj.round_time_limit) } else { obj.round_time_limit.clone() },
-            starting_gold: if decoder.next_boolean() { decoder.next_uint_diff(obj.starting_gold) } else { obj.starting_gold.clone() },
-            gravity_multiplier: if decoder.next_boolean() { decoder.next_float_diff(obj.gravity_multiplier) } else { obj.gravity_multiplier.clone() },
+            respawn_delay: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.respawn_delay)
+            } else {
+                obj.respawn_delay.clone()
+            },
+            round_time_limit: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.round_time_limit)
+            } else {
+                obj.round_time_limit.clone()
+            },
+            starting_gold: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.starting_gold)
+            } else {
+                obj.starting_gold.clone()
+            },
+            gravity_multiplier: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.gravity_multiplier)
+            } else {
+                obj.gravity_multiplier.clone()
+            },
         }
     }
 }
@@ -2475,8 +2971,12 @@ impl GameState {
             && delta_pack::equals_record(&self.players, &other.players, |x, y| x.equals(y))
             && delta_pack::equals_record(&self.enemies, &other.enemies, |x, y| x.equals(y))
             && delta_pack::equals_record(&self.projectiles, &other.projectiles, |x, y| x.equals(y))
-            && delta_pack::equals_record(&self.dropped_loot, &other.dropped_loot, |x, y| x.equals(y))
-            && delta_pack::equals_record(&self.world_objects, &other.world_objects, |x, y| x.equals(y))
+            && delta_pack::equals_record(&self.dropped_loot, &other.dropped_loot, |x, y| {
+                x.equals(y)
+            })
+            && delta_pack::equals_record(&self.world_objects, &other.world_objects, |x, y| {
+                x.equals(y)
+            })
             && delta_pack::equals_array(&self.team_scores, &other.team_scores, |x, y| x.equals(y))
             && self.match_stats.equals(&other.match_stats)
             && self.settings.equals(&other.settings)
@@ -2499,15 +2999,37 @@ impl GameState {
         encoder.push_uint(self.round);
         encoder.push_string(&self.phase);
         encoder.push_float(self.time_remaining);
-        encoder.push_record(&self.players, |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc));
-        encoder.push_record(&self.enemies, |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc));
-        encoder.push_record(&self.projectiles, |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc));
-        encoder.push_record(&self.dropped_loot, |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc));
-        encoder.push_record(&self.world_objects, |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc));
+        encoder.push_record(
+            &self.players,
+            |enc, item| enc.push_string(item),
+            |enc, item| item.encode_into(enc),
+        );
+        encoder.push_record(
+            &self.enemies,
+            |enc, item| enc.push_string(item),
+            |enc, item| item.encode_into(enc),
+        );
+        encoder.push_record(
+            &self.projectiles,
+            |enc, item| enc.push_string(item),
+            |enc, item| item.encode_into(enc),
+        );
+        encoder.push_record(
+            &self.dropped_loot,
+            |enc, item| enc.push_string(item),
+            |enc, item| item.encode_into(enc),
+        );
+        encoder.push_record(
+            &self.world_objects,
+            |enc, item| enc.push_string(item),
+            |enc, item| item.encode_into(enc),
+        );
         encoder.push_array(&self.team_scores, |enc, item| item.encode_into(enc));
         self.match_stats.encode_into(encoder);
         self.settings.encode_into(encoder);
-        encoder.push_optional(&self.winning_team, |enc, &item| enc.push_enum(item.to_u32(), 2));
+        encoder.push_optional(&self.winning_team, |enc, &item| {
+            enc.push_enum(item.to_u32(), 2)
+        });
         encoder.push_string(&self.map_name);
         encoder.push_float(self.weather_intensity);
     }
@@ -2562,39 +3084,89 @@ impl GameState {
         let changed = !(delta_pack::equals_record(&a.players, &b.players, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_record_diff(&a.players, &b.players, |x, y| x.equals(y), |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc), |enc, a, b| Player::encode_diff_fields_into(a, b, enc));
+            encoder.push_record_diff(
+                &a.players,
+                &b.players,
+                |x, y| x.equals(y),
+                |enc, item| enc.push_string(item),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| Player::encode_diff_fields_into(a, b, enc),
+            );
         }
         let changed = !(delta_pack::equals_record(&a.enemies, &b.enemies, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_record_diff(&a.enemies, &b.enemies, |x, y| x.equals(y), |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc), |enc, a, b| Enemy::encode_diff_fields_into(a, b, enc));
+            encoder.push_record_diff(
+                &a.enemies,
+                &b.enemies,
+                |x, y| x.equals(y),
+                |enc, item| enc.push_string(item),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| Enemy::encode_diff_fields_into(a, b, enc),
+            );
         }
-        let changed = !(delta_pack::equals_record(&a.projectiles, &b.projectiles, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_record(&a.projectiles, &b.projectiles, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_record_diff(&a.projectiles, &b.projectiles, |x, y| x.equals(y), |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc), |enc, a, b| Projectile::encode_diff_fields_into(a, b, enc));
+            encoder.push_record_diff(
+                &a.projectiles,
+                &b.projectiles,
+                |x, y| x.equals(y),
+                |enc, item| enc.push_string(item),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| Projectile::encode_diff_fields_into(a, b, enc),
+            );
         }
-        let changed = !(delta_pack::equals_record(&a.dropped_loot, &b.dropped_loot, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_record(&a.dropped_loot, &b.dropped_loot, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_record_diff(&a.dropped_loot, &b.dropped_loot, |x, y| x.equals(y), |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc), |enc, a, b| DroppedLoot::encode_diff_fields_into(a, b, enc));
+            encoder.push_record_diff(
+                &a.dropped_loot,
+                &b.dropped_loot,
+                |x, y| x.equals(y),
+                |enc, item| enc.push_string(item),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| DroppedLoot::encode_diff_fields_into(a, b, enc),
+            );
         }
-        let changed = !(delta_pack::equals_record(&a.world_objects, &b.world_objects, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_record(&a.world_objects, &b.world_objects, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_record_diff(&a.world_objects, &b.world_objects, |x, y| x.equals(y), |enc, item| enc.push_string(item), |enc, item| item.encode_into(enc), |enc, a, b| WorldObject::encode_diff_fields_into(a, b, enc));
+            encoder.push_record_diff(
+                &a.world_objects,
+                &b.world_objects,
+                |x, y| x.equals(y),
+                |enc, item| enc.push_string(item),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| WorldObject::encode_diff_fields_into(a, b, enc),
+            );
         }
-        let changed = !(delta_pack::equals_array(&a.team_scores, &b.team_scores, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_array(&a.team_scores, &b.team_scores, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.team_scores, &b.team_scores, |x, y| x.equals(y), |enc, item| item.encode_into(enc), |enc, a, b| TeamScore::encode_diff_fields_into(a, b, enc));
+            encoder.push_array_diff(
+                &a.team_scores,
+                &b.team_scores,
+                |x, y| x.equals(y),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| TeamScore::encode_diff_fields_into(a, b, enc),
+            );
         }
         MatchStats::encode_diff_into(&a.match_stats, &b.match_stats, encoder);
         GameSettings::encode_diff_into(&a.settings, &b.settings, encoder);
         let changed = !(a.winning_team == b.winning_team);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.winning_team, &b.winning_team, |enc, &item| enc.push_enum(item.to_u32(), 2), |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 2));
+            encoder.push_optional_diff(
+                &a.winning_team,
+                &b.winning_team,
+                |enc, &item| enc.push_enum(item.to_u32(), 2),
+                |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 2),
+            );
         }
         let changed = !(a.map_name == b.map_name);
         encoder.push_boolean(changed);
@@ -2622,9 +3194,12 @@ impl GameState {
             time_remaining: decoder.next_float(),
             players: decoder.next_record(|dec| dec.next_string(), |dec| Player::decode_from(dec)),
             enemies: decoder.next_record(|dec| dec.next_string(), |dec| Enemy::decode_from(dec)),
-            projectiles: decoder.next_record(|dec| dec.next_string(), |dec| Projectile::decode_from(dec)),
-            dropped_loot: decoder.next_record(|dec| dec.next_string(), |dec| DroppedLoot::decode_from(dec)),
-            world_objects: decoder.next_record(|dec| dec.next_string(), |dec| WorldObject::decode_from(dec)),
+            projectiles: decoder
+                .next_record(|dec| dec.next_string(), |dec| Projectile::decode_from(dec)),
+            dropped_loot: decoder
+                .next_record(|dec| dec.next_string(), |dec| DroppedLoot::decode_from(dec)),
+            world_objects: decoder
+                .next_record(|dec| dec.next_string(), |dec| WorldObject::decode_from(dec)),
             team_scores: decoder.next_array(|dec| TeamScore::decode_from(dec)),
             match_stats: MatchStats::decode_from(decoder),
             settings: GameSettings::decode_from(decoder),
@@ -2648,23 +3223,116 @@ impl GameState {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            game_id: if decoder.next_boolean() { decoder.next_string_diff(&obj.game_id) } else { obj.game_id.clone() },
-            server_time: if decoder.next_boolean() { decoder.next_float_diff(obj.server_time) } else { obj.server_time.clone() },
-            tick_number: if decoder.next_boolean() { decoder.next_uint_diff(obj.tick_number) } else { obj.tick_number.clone() },
-            round: if decoder.next_boolean() { decoder.next_uint_diff(obj.round) } else { obj.round.clone() },
-            phase: if decoder.next_boolean() { decoder.next_string_diff(&obj.phase) } else { obj.phase.clone() },
-            time_remaining: if decoder.next_boolean() { decoder.next_float_diff(obj.time_remaining) } else { obj.time_remaining.clone() },
-            players: if decoder.next_boolean() { decoder.next_record_diff(&obj.players, |dec| dec.next_string(), |dec| Player::decode_from(dec), |dec, a| Player::decode_diff_fields_from(a, dec)) } else { obj.players.clone() },
-            enemies: if decoder.next_boolean() { decoder.next_record_diff(&obj.enemies, |dec| dec.next_string(), |dec| Enemy::decode_from(dec), |dec, a| Enemy::decode_diff_fields_from(a, dec)) } else { obj.enemies.clone() },
-            projectiles: if decoder.next_boolean() { decoder.next_record_diff(&obj.projectiles, |dec| dec.next_string(), |dec| Projectile::decode_from(dec), |dec, a| Projectile::decode_diff_fields_from(a, dec)) } else { obj.projectiles.clone() },
-            dropped_loot: if decoder.next_boolean() { decoder.next_record_diff(&obj.dropped_loot, |dec| dec.next_string(), |dec| DroppedLoot::decode_from(dec), |dec, a| DroppedLoot::decode_diff_fields_from(a, dec)) } else { obj.dropped_loot.clone() },
-            world_objects: if decoder.next_boolean() { decoder.next_record_diff(&obj.world_objects, |dec| dec.next_string(), |dec| WorldObject::decode_from(dec), |dec, a| WorldObject::decode_diff_fields_from(a, dec)) } else { obj.world_objects.clone() },
-            team_scores: if decoder.next_boolean() { decoder.next_array_diff(&obj.team_scores, |dec| TeamScore::decode_from(dec), |dec, a| TeamScore::decode_diff_fields_from(a, dec)) } else { obj.team_scores.clone() },
+            game_id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.game_id)
+            } else {
+                obj.game_id.clone()
+            },
+            server_time: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.server_time)
+            } else {
+                obj.server_time.clone()
+            },
+            tick_number: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.tick_number)
+            } else {
+                obj.tick_number.clone()
+            },
+            round: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.round)
+            } else {
+                obj.round.clone()
+            },
+            phase: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.phase)
+            } else {
+                obj.phase.clone()
+            },
+            time_remaining: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.time_remaining)
+            } else {
+                obj.time_remaining.clone()
+            },
+            players: if decoder.next_boolean() {
+                decoder.next_record_diff(
+                    &obj.players,
+                    |dec| dec.next_string(),
+                    |dec| Player::decode_from(dec),
+                    |dec, a| Player::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.players.clone()
+            },
+            enemies: if decoder.next_boolean() {
+                decoder.next_record_diff(
+                    &obj.enemies,
+                    |dec| dec.next_string(),
+                    |dec| Enemy::decode_from(dec),
+                    |dec, a| Enemy::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.enemies.clone()
+            },
+            projectiles: if decoder.next_boolean() {
+                decoder.next_record_diff(
+                    &obj.projectiles,
+                    |dec| dec.next_string(),
+                    |dec| Projectile::decode_from(dec),
+                    |dec, a| Projectile::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.projectiles.clone()
+            },
+            dropped_loot: if decoder.next_boolean() {
+                decoder.next_record_diff(
+                    &obj.dropped_loot,
+                    |dec| dec.next_string(),
+                    |dec| DroppedLoot::decode_from(dec),
+                    |dec, a| DroppedLoot::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.dropped_loot.clone()
+            },
+            world_objects: if decoder.next_boolean() {
+                decoder.next_record_diff(
+                    &obj.world_objects,
+                    |dec| dec.next_string(),
+                    |dec| WorldObject::decode_from(dec),
+                    |dec, a| WorldObject::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.world_objects.clone()
+            },
+            team_scores: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.team_scores,
+                    |dec| TeamScore::decode_from(dec),
+                    |dec, a| TeamScore::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.team_scores.clone()
+            },
             match_stats: MatchStats::decode_diff_from(&obj.match_stats, decoder),
             settings: GameSettings::decode_diff_from(&obj.settings, decoder),
-            winning_team: if decoder.next_boolean() { decoder.next_optional_diff(&obj.winning_team, |dec| Team::from_u32(dec.next_enum(2)), |dec, &a| Team::from_u32(dec.next_enum_diff(a.to_u32(), 2))) } else { obj.winning_team.clone() },
-            map_name: if decoder.next_boolean() { decoder.next_string_diff(&obj.map_name) } else { obj.map_name.clone() },
-            weather_intensity: if decoder.next_boolean() { decoder.next_float_diff(obj.weather_intensity) } else { obj.weather_intensity.clone() },
+            winning_team: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.winning_team,
+                    |dec| Team::from_u32(dec.next_enum(2)),
+                    |dec, &a| Team::from_u32(dec.next_enum_diff(a.to_u32(), 2)),
+                )
+            } else {
+                obj.winning_team.clone()
+            },
+            map_name: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.map_name)
+            } else {
+                obj.map_name.clone()
+            },
+            weather_intensity: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.weather_intensity)
+            } else {
+                obj.weather_intensity.clone()
+            },
         }
     }
 }

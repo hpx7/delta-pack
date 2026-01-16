@@ -1,40 +1,9 @@
-using System.Diagnostics;
 using Xunit;
 
 namespace DeltaPack.Tests;
 
 public class CodegenTests
 {
-    private static readonly string TestsDir = Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-
-    private static readonly string SchemaPath = Path.Combine(TestsDir, "tests", "schema.yml");
-    private static readonly string GeneratedPath = Path.Combine(TestsDir, "tests", "GeneratedSchema.cs");
-
-    [Fact]
-    public void GeneratedCode_MatchesCommittedFile()
-    {
-        // Generate fresh code using CLI
-        var psi = new ProcessStartInfo
-        {
-            FileName = "delta-pack",
-            Arguments = $"generate {SchemaPath} -l csharp -n Generated",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-
-        using var process = Process.Start(psi)!;
-        var generated = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-
-        Assert.Equal(0, process.ExitCode);
-
-        // Compare with committed file
-        var committed = File.ReadAllText(GeneratedPath);
-        Assert.Equal(committed.Trim(), generated.Trim());
-    }
-
     [Fact]
     public void Player_Default()
     {

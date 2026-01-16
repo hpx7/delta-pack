@@ -34,12 +34,17 @@ impl<'a> Decoder<'a> {
     {
         use std::cell::RefCell;
         thread_local! {
-            static DICT: RefCell<Vec<DictEntry>> = RefCell::new(Vec::new());
+            static DICT: RefCell<Vec<DictEntry>> = const { RefCell::new(Vec::new()) };
         }
         DICT.with(|dict| {
             let mut dict = dict.borrow_mut();
             dict.clear();
-            let mut dec = Decoder { buffer: buf, pos: 0, dict: std::mem::take(&mut *dict), rle: RleReader::new(buf) };
+            let mut dec = Decoder {
+                buffer: buf,
+                pos: 0,
+                dict: std::mem::take(&mut *dict),
+                rle: RleReader::new(buf),
+            };
             let result = f(&mut dec);
             *dict = dec.dict;
             result
@@ -63,14 +68,18 @@ impl<'a> Decoder<'a> {
             self.pos += len;
             self.dict.push(DictEntry::Pos(start, len));
             return unsafe {
-                String::from(std::str::from_utf8_unchecked(&self.buffer[start..start + len]))
+                String::from(std::str::from_utf8_unchecked(
+                    &self.buffer[start..start + len],
+                ))
             };
         }
 
         // Negative = dictionary index
         match &self.dict[(-len_or_idx - 1) as usize] {
             DictEntry::Pos(start, len) => unsafe {
-                String::from(std::str::from_utf8_unchecked(&self.buffer[*start..*start + *len]))
+                String::from(std::str::from_utf8_unchecked(
+                    &self.buffer[*start..*start + *len],
+                ))
             },
             DictEntry::Owned(s) => s.clone(),
         }
@@ -97,9 +106,7 @@ impl<'a> Decoder<'a> {
 
     #[inline]
     pub fn next_float(&mut self) -> f32 {
-        let bytes: [u8; 4] = self.buffer[self.pos..self.pos + 4]
-            .try_into()
-            .unwrap();
+        let bytes: [u8; 4] = self.buffer[self.pos..self.pos + 4].try_into().unwrap();
         self.pos += 4;
         f32::from_le_bytes(bytes)
     }
@@ -191,7 +198,12 @@ impl<'a> Decoder<'a> {
     /// Decode array diff, using sparse format with index-based updates.
     /// Caller handles change bit.
     #[inline]
-    pub fn next_array_diff<T, F, FD>(&mut self, a: &[T], mut inner_read: F, mut inner_diff: FD) -> Vec<T>
+    pub fn next_array_diff<T, F, FD>(
+        &mut self,
+        a: &[T],
+        mut inner_read: F,
+        mut inner_diff: FD,
+    ) -> Vec<T>
     where
         T: Clone,
         F: FnMut(&mut Self) -> T,
@@ -231,7 +243,12 @@ impl<'a> Decoder<'a> {
     /// Optimization: if a was None, we know b must be Some (else unchanged).
     /// So no present bit in None→Some case.
     #[inline]
-    pub fn next_optional_diff<T, F, FD>(&mut self, a: &Option<T>, mut inner_read: F, mut inner_diff: FD) -> Option<T>
+    pub fn next_optional_diff<T, F, FD>(
+        &mut self,
+        a: &Option<T>,
+        mut inner_read: F,
+        mut inner_diff: FD,
+    ) -> Option<T>
     where
         T: Clone,
         F: FnMut(&mut Self) -> T,
@@ -256,7 +273,11 @@ impl<'a> Decoder<'a> {
 
     /// Decode a record (map) by reading length followed by key-value pairs.
     #[inline]
-    pub fn next_record<K, V, FK, FV>(&mut self, mut key_read: FK, mut val_read: FV) -> std::collections::HashMap<K, V>
+    pub fn next_record<K, V, FK, FV>(
+        &mut self,
+        mut key_read: FK,
+        mut val_read: FV,
+    ) -> std::collections::HashMap<K, V>
     where
         K: Eq + std::hash::Hash,
         FK: FnMut(&mut Self) -> K,
@@ -520,11 +541,8 @@ mod tests {
         let buf = encoder.finish();
 
         let mut decoder = Decoder::new(&buf);
-        let result = decoder.next_optional_diff(
-            &None,
-            |dec| dec.next_int(),
-            |dec, _| dec.next_int(),
-        );
+        let result =
+            decoder.next_optional_diff(&None, |dec| dec.next_int(), |dec, _| dec.next_int());
         assert_eq!(result, Some(42));
     }
 
@@ -534,18 +552,12 @@ mod tests {
         let mut map = std::collections::HashMap::new();
         map.insert("a".to_string(), 1i64);
         map.insert("b".to_string(), 2i64);
-        encoder.push_record(
-            &map,
-            |enc, k| enc.push_string(k),
-            |enc, &v| enc.push_int(v),
-        );
+        encoder.push_record(&map, |enc, k| enc.push_string(k), |enc, &v| enc.push_int(v));
         let buf = encoder.finish();
 
         let mut decoder = Decoder::new(&buf);
-        let result: std::collections::HashMap<String, i64> = decoder.next_record(
-            |dec| dec.next_string(),
-            |dec| dec.next_int(),
-        );
+        let result: std::collections::HashMap<String, i64> =
+            decoder.next_record(|dec| dec.next_string(), |dec| dec.next_int());
         assert_eq!(result, map);
     }
 }

@@ -47,5 +47,9 @@ pub mod test;
 pub mod user;
 EOF
 
+# Format generated code
+echo "Formatting generated code..."
+cargo fmt --manifest-path "$SCRIPT_DIR/../Cargo.toml"
+
 echo ""
 echo "Generated Rust code in $GENERATED_DIR"

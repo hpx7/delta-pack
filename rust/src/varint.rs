@@ -1,5 +1,5 @@
-/// Varint encoding/decoding using protobuf-style LEB128 format.
-/// Uses little-endian (lower 7 bits first) with MSB continuation bit.
+//! Varint encoding/decoding using protobuf-style LEB128 format.
+//! Uses little-endian (lower 7 bits first) with MSB continuation bit.
 
 /// Write an unsigned varint to a Vec, appending bytes.
 #[inline]

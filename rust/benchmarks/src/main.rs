@@ -29,7 +29,11 @@ fn main() {
     let mut examples = load_examples(&examples_dir);
 
     if !filter.is_empty() {
-        examples.retain(|e| filter.iter().any(|f| e.name.to_lowercase().contains(&f.to_lowercase())));
+        examples.retain(|e| {
+            filter
+                .iter()
+                .any(|f| e.name.to_lowercase().contains(&f.to_lowercase()))
+        });
         if examples.is_empty() {
             eprintln!("No examples match filter: {}", filter.join(", "));
             eprintln!("Available: Primitives, Test, User, GameState");
@@ -79,21 +83,30 @@ fn run_encode_benchmarks(examples: &[Example]) {
 
         for state in &example.states {
             let json_value = state.json_value.clone();
-            results.get_mut("JSON").unwrap().push(
-                measure_ops_per_second(|| { let _ = serde_json::to_vec(&json_value); })
-            );
+            results
+                .get_mut("JSON")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = serde_json::to_vec(&json_value);
+                }));
         }
         for state in &example.states {
             let json_value = state.json_value.clone();
-            results.get_mut("MessagePack").unwrap().push(
-                measure_ops_per_second(|| { let _ = rmp_serde::to_vec(&json_value); })
-            );
+            results
+                .get_mut("MessagePack")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = rmp_serde::to_vec(&json_value);
+                }));
         }
         for state in &example.states {
             let encode_fn = &state.deltapack_encode;
-            results.get_mut("DeltaPack").unwrap().push(
-                measure_ops_per_second(|| { let _ = encode_fn(); })
-            );
+            results
+                .get_mut("DeltaPack")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = encode_fn();
+                }));
         }
 
         print_table(example.states.len(), &results);
@@ -112,21 +125,30 @@ fn run_decode_benchmarks(examples: &[Example]) {
 
         for state in &example.states {
             let json_encoded = state.json_encoded.clone();
-            results.get_mut("JSON").unwrap().push(
-                measure_ops_per_second(|| { let _: serde_json::Value = serde_json::from_slice(&json_encoded).unwrap(); })
-            );
+            results
+                .get_mut("JSON")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _: serde_json::Value = serde_json::from_slice(&json_encoded).unwrap();
+                }));
         }
         for state in &example.states {
             let msgpack_encoded = state.msgpack_encoded.clone();
-            results.get_mut("MessagePack").unwrap().push(
-                measure_ops_per_second(|| { let _: serde_json::Value = rmp_serde::from_slice(&msgpack_encoded).unwrap(); })
-            );
+            results
+                .get_mut("MessagePack")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _: serde_json::Value = rmp_serde::from_slice(&msgpack_encoded).unwrap();
+                }));
         }
         for state in &example.states {
             let decode_fn = &state.deltapack_decode;
-            results.get_mut("DeltaPack").unwrap().push(
-                measure_ops_per_second(|| { let _ = decode_fn(); })
-            );
+            results
+                .get_mut("DeltaPack")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = decode_fn();
+                }));
         }
 
         print_table(example.states.len(), &results);
@@ -273,10 +295,22 @@ fn load_state_files(examples_dir: &PathBuf, name: &str) -> Vec<String> {
         .collect();
 
     state_files.sort_by(|a, b| {
-        let a_num: u32 = a.file_stem().unwrap().to_str().unwrap()
-            .replace("state", "").parse().unwrap_or(0);
-        let b_num: u32 = b.file_stem().unwrap().to_str().unwrap()
-            .replace("state", "").parse().unwrap_or(0);
+        let a_num: u32 = a
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace("state", "")
+            .parse()
+            .unwrap_or(0);
+        let b_num: u32 = b
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .replace("state", "")
+            .parse()
+            .unwrap_or(0);
         a_num.cmp(&b_num)
     });
 
@@ -290,118 +324,170 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
     use generated::primitives::Primitives;
 
     let jsons = load_state_files(examples_dir, "Primitives");
-    if jsons.is_empty() { return None; }
+    if jsons.is_empty() {
+        return None;
+    }
 
-    let states: Vec<StateData> = jsons.into_iter().map(|json| {
-        let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
-        let typed: Primitives = serde_json::from_str(&json).unwrap();
-        let json_encoded = serde_json::to_vec(&json_value).unwrap();
-        let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
-        let deltapack_encoded = typed.encode();
+    let states: Vec<StateData> = jsons
+        .into_iter()
+        .map(|json| {
+            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+            let typed: Primitives = serde_json::from_str(&json).unwrap();
+            let json_encoded = serde_json::to_vec(&json_value).unwrap();
+            let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
+            let deltapack_encoded = typed.encode();
 
-        // Verify round-trip
-        let decoded = Primitives::decode(&deltapack_encoded);
-        assert!(typed.equals(&decoded), "DeltaPack round-trip failed for Primitives");
+            // Verify round-trip
+            let decoded = Primitives::decode(&deltapack_encoded);
+            assert!(
+                typed.equals(&decoded),
+                "DeltaPack round-trip failed for Primitives"
+            );
 
-        let typed_clone = typed.clone();
-        StateData {
-            json_value,
-            json_encoded,
-            msgpack_encoded,
-            deltapack_encode: Box::new(move || typed_clone.encode()),
-            deltapack_decode: Box::new(move || { Primitives::decode(&deltapack_encoded); }),
-        }
-    }).collect();
+            let typed_clone = typed.clone();
+            StateData {
+                json_value,
+                json_encoded,
+                msgpack_encoded,
+                deltapack_encode: Box::new(move || typed_clone.encode()),
+                deltapack_decode: Box::new(move || {
+                    Primitives::decode(&deltapack_encoded);
+                }),
+            }
+        })
+        .collect();
 
-    Some(Example { name: "Primitives".to_string(), states })
+    Some(Example {
+        name: "Primitives".to_string(),
+        states,
+    })
 }
 
 fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
     use generated::test::Test;
 
     let jsons = load_state_files(examples_dir, "Test");
-    if jsons.is_empty() { return None; }
+    if jsons.is_empty() {
+        return None;
+    }
 
-    let states: Vec<StateData> = jsons.into_iter().map(|json| {
-        let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
-        let typed: Test = serde_json::from_str(&json).unwrap();
-        let json_encoded = serde_json::to_vec(&json_value).unwrap();
-        let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
-        let deltapack_encoded = typed.encode();
+    let states: Vec<StateData> = jsons
+        .into_iter()
+        .map(|json| {
+            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+            let typed: Test = serde_json::from_str(&json).unwrap();
+            let json_encoded = serde_json::to_vec(&json_value).unwrap();
+            let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
+            let deltapack_encoded = typed.encode();
 
-        // Verify round-trip
-        let decoded = Test::decode(&deltapack_encoded);
-        assert!(typed.equals(&decoded), "DeltaPack round-trip failed for Test");
+            // Verify round-trip
+            let decoded = Test::decode(&deltapack_encoded);
+            assert!(
+                typed.equals(&decoded),
+                "DeltaPack round-trip failed for Test"
+            );
 
-        let typed_clone = typed.clone();
-        StateData {
-            json_value,
-            json_encoded,
-            msgpack_encoded,
-            deltapack_encode: Box::new(move || typed_clone.encode()),
-            deltapack_decode: Box::new(move || { Test::decode(&deltapack_encoded); }),
-        }
-    }).collect();
+            let typed_clone = typed.clone();
+            StateData {
+                json_value,
+                json_encoded,
+                msgpack_encoded,
+                deltapack_encode: Box::new(move || typed_clone.encode()),
+                deltapack_decode: Box::new(move || {
+                    Test::decode(&deltapack_encoded);
+                }),
+            }
+        })
+        .collect();
 
-    Some(Example { name: "Test".to_string(), states })
+    Some(Example {
+        name: "Test".to_string(),
+        states,
+    })
 }
 
 fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
     use generated::user::User;
 
     let jsons = load_state_files(examples_dir, "User");
-    if jsons.is_empty() { return None; }
+    if jsons.is_empty() {
+        return None;
+    }
 
-    let states: Vec<StateData> = jsons.into_iter().map(|json| {
-        let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
-        let typed: User = serde_json::from_str(&json).unwrap();
-        let json_encoded = serde_json::to_vec(&json_value).unwrap();
-        let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
-        let deltapack_encoded = typed.encode();
+    let states: Vec<StateData> = jsons
+        .into_iter()
+        .map(|json| {
+            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+            let typed: User = serde_json::from_str(&json).unwrap();
+            let json_encoded = serde_json::to_vec(&json_value).unwrap();
+            let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
+            let deltapack_encoded = typed.encode();
 
-        // Verify round-trip
-        let decoded = User::decode(&deltapack_encoded);
-        assert!(typed.equals(&decoded), "DeltaPack round-trip failed for User");
+            // Verify round-trip
+            let decoded = User::decode(&deltapack_encoded);
+            assert!(
+                typed.equals(&decoded),
+                "DeltaPack round-trip failed for User"
+            );
 
-        let typed_clone = typed.clone();
-        StateData {
-            json_value,
-            json_encoded,
-            msgpack_encoded,
-            deltapack_encode: Box::new(move || typed_clone.encode()),
-            deltapack_decode: Box::new(move || { User::decode(&deltapack_encoded); }),
-        }
-    }).collect();
+            let typed_clone = typed.clone();
+            StateData {
+                json_value,
+                json_encoded,
+                msgpack_encoded,
+                deltapack_encode: Box::new(move || typed_clone.encode()),
+                deltapack_decode: Box::new(move || {
+                    User::decode(&deltapack_encoded);
+                }),
+            }
+        })
+        .collect();
 
-    Some(Example { name: "User".to_string(), states })
+    Some(Example {
+        name: "User".to_string(),
+        states,
+    })
 }
 
 fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
     use generated::game_state::GameState;
 
     let jsons = load_state_files(examples_dir, "GameState");
-    if jsons.is_empty() { return None; }
+    if jsons.is_empty() {
+        return None;
+    }
 
-    let states: Vec<StateData> = jsons.into_iter().map(|json| {
-        let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
-        let typed: GameState = serde_json::from_str(&json).unwrap();
-        let json_encoded = serde_json::to_vec(&json_value).unwrap();
-        let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
-        let deltapack_encoded = typed.encode();
+    let states: Vec<StateData> = jsons
+        .into_iter()
+        .map(|json| {
+            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+            let typed: GameState = serde_json::from_str(&json).unwrap();
+            let json_encoded = serde_json::to_vec(&json_value).unwrap();
+            let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
+            let deltapack_encoded = typed.encode();
 
-        // Verify round-trip
-        let decoded = GameState::decode(&deltapack_encoded);
-        assert!(typed.equals(&decoded), "DeltaPack round-trip failed for GameState");
+            // Verify round-trip
+            let decoded = GameState::decode(&deltapack_encoded);
+            assert!(
+                typed.equals(&decoded),
+                "DeltaPack round-trip failed for GameState"
+            );
 
-        let typed_clone = typed.clone();
-        StateData {
-            json_value,
-            json_encoded,
-            msgpack_encoded,
-            deltapack_encode: Box::new(move || typed_clone.encode()),
-            deltapack_decode: Box::new(move || { GameState::decode(&deltapack_encoded); }),
-        }
-    }).collect();
+            let typed_clone = typed.clone();
+            StateData {
+                json_value,
+                json_encoded,
+                msgpack_encoded,
+                deltapack_encode: Box::new(move || typed_clone.encode()),
+                deltapack_decode: Box::new(move || {
+                    GameState::decode(&deltapack_encoded);
+                }),
+            }
+        })
+        .collect();
 
-    Some(Example { name: "GameState".to_string(), states })
+    Some(Example {
+        name: "GameState".to_string(),
+        states,
+    })
 }

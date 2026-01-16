@@ -35,7 +35,6 @@ where
     F: FnMut(&V, &V) -> bool,
 {
     a.len() == b.len()
-        && a.iter().all(|(k, av)| {
-            b.get(k).map_or(false, |bv| value_equals(av, bv))
-        })
+        && a.iter()
+            .all(|(k, av)| b.get(k).is_some_and(|bv| value_equals(av, bv)))
 }

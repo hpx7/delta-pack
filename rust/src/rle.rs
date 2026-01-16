@@ -1,5 +1,5 @@
-/// Streaming RLE (Run-Length Encoding) for bits.
-/// Encodes sequences of same-valued bits efficiently.
+//! Streaming RLE (Run-Length Encoding) for bits.
+//! Encodes sequences of same-valued bits efficiently.
 
 /// Streaming RLE writer - encodes bits on-the-fly without buffering.
 pub struct RleWriter {
@@ -164,7 +164,7 @@ impl<'a> RleReader<'a> {
             panic!("No bits to read");
         }
 
-        let num_rle_bytes = (num_bits + 7) / 8;
+        let num_rle_bytes = num_bits.div_ceil(8);
         self.byte_pos = self.buf.len() - varint_len - num_rle_bytes as usize;
         self.value = self.read_bit() == 1;
         self.remaining = self.decode_run_length();

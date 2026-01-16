@@ -67,9 +67,7 @@ impl Default for Address {
 
 impl Address {
     pub fn equals(&self, other: &Self) -> bool {
-        self.street == other.street
-            && self.zip == other.zip
-            && self.state == other.state
+        self.street == other.street && self.zip == other.zip && self.state == other.state
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -145,9 +143,21 @@ impl Address {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            street: if decoder.next_boolean() { decoder.next_string_diff(&obj.street) } else { obj.street.clone() },
-            zip: if decoder.next_boolean() { decoder.next_string_diff(&obj.zip) } else { obj.zip.clone() },
-            state: if decoder.next_boolean() { decoder.next_string_diff(&obj.state) } else { obj.state.clone() },
+            street: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.street)
+            } else {
+                obj.street.clone()
+            },
+            zip: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.zip)
+            } else {
+                obj.zip.clone()
+            },
+            state: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.state)
+            } else {
+                obj.state.clone()
+            },
         }
     }
 }
@@ -229,7 +239,11 @@ impl EmailContact {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            email: if decoder.next_boolean() { decoder.next_string_diff(&obj.email) } else { obj.email.clone() },
+            email: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.email)
+            } else {
+                obj.email.clone()
+            },
         }
     }
 }
@@ -251,8 +265,7 @@ impl Default for PhoneContact {
 
 impl PhoneContact {
     pub fn equals(&self, other: &Self) -> bool {
-        self.phone == other.phone
-            && self.extension == other.extension
+        self.phone == other.phone && self.extension == other.extension
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -292,7 +305,12 @@ impl PhoneContact {
         let changed = !(a.extension == b.extension);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.extension, &b.extension, |enc, &item| enc.push_uint(item), |enc, &a, &b| enc.push_uint_diff(a, b));
+            encoder.push_optional_diff(
+                &a.extension,
+                &b.extension,
+                |enc, &item| enc.push_uint(item),
+                |enc, &a, &b| enc.push_uint_diff(a, b),
+            );
         }
     }
 
@@ -321,8 +339,20 @@ impl PhoneContact {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            phone: if decoder.next_boolean() { decoder.next_string_diff(&obj.phone) } else { obj.phone.clone() },
-            extension: if decoder.next_boolean() { decoder.next_optional_diff(&obj.extension, |dec| dec.next_uint(), |dec, &a| dec.next_uint_diff(a)) } else { obj.extension.clone() },
+            phone: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.phone)
+            } else {
+                obj.phone.clone()
+            },
+            extension: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.extension,
+                    |dec| dec.next_uint(),
+                    |dec, &a| dec.next_uint_diff(a),
+                )
+            } else {
+                obj.extension.clone()
+            },
         }
     }
 }
@@ -419,8 +449,12 @@ impl Contact {
         let same_type = decoder.next_boolean();
         if same_type {
             match obj {
-                Contact::EmailContact(v) => Contact::EmailContact(EmailContact::decode_diff_fields_from(v, decoder)),
-                Contact::PhoneContact(v) => Contact::PhoneContact(PhoneContact::decode_diff_fields_from(v, decoder)),
+                Contact::EmailContact(v) => {
+                    Contact::EmailContact(EmailContact::decode_diff_fields_from(v, decoder))
+                }
+                Contact::PhoneContact(v) => {
+                    Contact::PhoneContact(PhoneContact::decode_diff_fields_from(v, decoder))
+                }
             }
         } else {
             let variant = decoder.next_enum(1);
@@ -477,7 +511,11 @@ impl User {
             && delta_pack::equals_optional(&self.address, &other.address, |x, y| x.equals(y))
             && delta_pack::equals_array(&self.children, &other.children, |x, y| x.equals(y))
             && self.metadata == other.metadata
-            && delta_pack::equals_optional(&self.preferred_contact, &other.preferred_contact, |x, y| x.equals(y))
+            && delta_pack::equals_optional(
+                &self.preferred_contact,
+                &other.preferred_contact,
+                |x, y| x.equals(y),
+            )
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -496,7 +534,11 @@ impl User {
         encoder.push_enum(self.hair_color.to_u32(), 3);
         encoder.push_optional(&self.address, |enc, item| item.encode_into(enc));
         encoder.push_array(&self.children, |enc, item| item.encode_into(enc));
-        encoder.push_record(&self.metadata, |enc, item| enc.push_string(item), |enc, item| enc.push_string(item));
+        encoder.push_record(
+            &self.metadata,
+            |enc, item| enc.push_string(item),
+            |enc, item| enc.push_string(item),
+        );
         encoder.push_optional(&self.preferred_contact, |enc, item| item.encode_into(enc));
     }
 
@@ -546,22 +588,48 @@ impl User {
         let changed = !(delta_pack::equals_optional(&a.address, &b.address, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.address, &b.address, |enc, item| item.encode_into(enc), |enc, a, b| Address::encode_diff_fields_into(a, b, enc));
+            encoder.push_optional_diff(
+                &a.address,
+                &b.address,
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| Address::encode_diff_fields_into(a, b, enc),
+            );
         }
         let changed = !(delta_pack::equals_array(&a.children, &b.children, |x, y| x.equals(y)));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_array_diff(&a.children, &b.children, |x, y| x.equals(y), |enc, item| item.encode_into(enc), |enc, a, b| User::encode_diff_fields_into(a, b, enc));
+            encoder.push_array_diff(
+                &a.children,
+                &b.children,
+                |x, y| x.equals(y),
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| User::encode_diff_fields_into(a, b, enc),
+            );
         }
         let changed = !(a.metadata == b.metadata);
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_record_diff(&a.metadata, &b.metadata, |x, y| x == y, |enc, item| enc.push_string(item), |enc, item| enc.push_string(item), |enc, a, b| enc.push_string_diff(a, b));
+            encoder.push_record_diff(
+                &a.metadata,
+                &b.metadata,
+                |x, y| x == y,
+                |enc, item| enc.push_string(item),
+                |enc, item| enc.push_string(item),
+                |enc, a, b| enc.push_string_diff(a, b),
+            );
         }
-        let changed = !(delta_pack::equals_optional(&a.preferred_contact, &b.preferred_contact, |x, y| x.equals(y)));
+        let changed =
+            !(delta_pack::equals_optional(&a.preferred_contact, &b.preferred_contact, |x, y| {
+                x.equals(y)
+            }));
         encoder.push_boolean(changed);
         if changed {
-            encoder.push_optional_diff(&a.preferred_contact, &b.preferred_contact, |enc, item| item.encode_into(enc), |enc, a, b| Contact::encode_diff_into(a, b, enc));
+            encoder.push_optional_diff(
+                &a.preferred_contact,
+                &b.preferred_contact,
+                |enc, item| item.encode_into(enc),
+                |enc, a, b| Contact::encode_diff_into(a, b, enc),
+            );
         }
     }
 
@@ -598,16 +666,69 @@ impl User {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            id: if decoder.next_boolean() { decoder.next_string_diff(&obj.id) } else { obj.id.clone() },
-            name: if decoder.next_boolean() { decoder.next_string_diff(&obj.name) } else { obj.name.clone() },
-            age: if decoder.next_boolean() { decoder.next_uint_diff(obj.age) } else { obj.age.clone() },
-            weight: if decoder.next_boolean() { decoder.next_float_diff(obj.weight) } else { obj.weight.clone() },
+            id: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.id)
+            } else {
+                obj.id.clone()
+            },
+            name: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.name)
+            } else {
+                obj.name.clone()
+            },
+            age: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.age)
+            } else {
+                obj.age.clone()
+            },
+            weight: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.weight)
+            } else {
+                obj.weight.clone()
+            },
             married: decoder.next_boolean_diff(obj.married),
-            hair_color: if decoder.next_boolean() { HairColor::from_u32(decoder.next_enum_diff(obj.hair_color.to_u32(), 3)) } else { obj.hair_color.clone() },
-            address: if decoder.next_boolean() { decoder.next_optional_diff(&obj.address, |dec| Address::decode_from(dec), |dec, a| Address::decode_diff_fields_from(a, dec)) } else { obj.address.clone() },
-            children: if decoder.next_boolean() { decoder.next_array_diff(&obj.children, |dec| Box::new(User::decode_from(dec)), |dec, a| Box::new(User::decode_diff_fields_from(a, dec))) } else { obj.children.clone() },
-            metadata: if decoder.next_boolean() { decoder.next_record_diff(&obj.metadata, |dec| dec.next_string(), |dec| dec.next_string(), |dec, a| dec.next_string_diff(a)) } else { obj.metadata.clone() },
-            preferred_contact: if decoder.next_boolean() { decoder.next_optional_diff(&obj.preferred_contact, |dec| Contact::decode_from(dec), |dec, a| Contact::decode_diff_from(a, dec)) } else { obj.preferred_contact.clone() },
+            hair_color: if decoder.next_boolean() {
+                HairColor::from_u32(decoder.next_enum_diff(obj.hair_color.to_u32(), 3))
+            } else {
+                obj.hair_color.clone()
+            },
+            address: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.address,
+                    |dec| Address::decode_from(dec),
+                    |dec, a| Address::decode_diff_fields_from(a, dec),
+                )
+            } else {
+                obj.address.clone()
+            },
+            children: if decoder.next_boolean() {
+                decoder.next_array_diff(
+                    &obj.children,
+                    |dec| Box::new(User::decode_from(dec)),
+                    |dec, a| Box::new(User::decode_diff_fields_from(a, dec)),
+                )
+            } else {
+                obj.children.clone()
+            },
+            metadata: if decoder.next_boolean() {
+                decoder.next_record_diff(
+                    &obj.metadata,
+                    |dec| dec.next_string(),
+                    |dec| dec.next_string(),
+                    |dec, a| dec.next_string_diff(a),
+                )
+            } else {
+                obj.metadata.clone()
+            },
+            preferred_contact: if decoder.next_boolean() {
+                decoder.next_optional_diff(
+                    &obj.preferred_contact,
+                    |dec| Contact::decode_from(dec),
+                    |dec, a| Contact::decode_diff_from(a, dec),
+                )
+            } else {
+                obj.preferred_contact.clone()
+            },
         }
     }
 }

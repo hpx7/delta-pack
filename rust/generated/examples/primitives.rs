@@ -123,10 +123,26 @@ impl Primitives {
 
     pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            string_field: if decoder.next_boolean() { decoder.next_string_diff(&obj.string_field) } else { obj.string_field.clone() },
-            signed_int_field: if decoder.next_boolean() { decoder.next_int_diff(obj.signed_int_field) } else { obj.signed_int_field.clone() },
-            unsigned_int_field: if decoder.next_boolean() { decoder.next_uint_diff(obj.unsigned_int_field) } else { obj.unsigned_int_field.clone() },
-            float_field: if decoder.next_boolean() { decoder.next_float_diff(obj.float_field) } else { obj.float_field.clone() },
+            string_field: if decoder.next_boolean() {
+                decoder.next_string_diff(&obj.string_field)
+            } else {
+                obj.string_field.clone()
+            },
+            signed_int_field: if decoder.next_boolean() {
+                decoder.next_int_diff(obj.signed_int_field)
+            } else {
+                obj.signed_int_field.clone()
+            },
+            unsigned_int_field: if decoder.next_boolean() {
+                decoder.next_uint_diff(obj.unsigned_int_field)
+            } else {
+                obj.unsigned_int_field.clone()
+            },
+            float_field: if decoder.next_boolean() {
+                decoder.next_float_diff(obj.float_field)
+            } else {
+                obj.float_field.clone()
+            },
             boolean_field: decoder.next_boolean_diff(obj.boolean_field),
         }
     }

@@ -188,9 +188,7 @@ impl Encoder {
 
         // Collect changed indices (sparse encoding)
         let min_len = a.len().min(b.len());
-        let updates: Vec<usize> = (0..min_len)
-            .filter(|&i| !equals(&a[i], &b[i]))
-            .collect();
+        let updates: Vec<usize> = (0..min_len).filter(|&i| !equals(&a[i], &b[i])).collect();
 
         // Write updates (sparse)
         self.push_uint(updates.len() as u64);
@@ -200,8 +198,8 @@ impl Encoder {
         }
 
         // Write additions
-        for i in a.len()..b.len() {
-            inner_write(self, &b[i]);
+        for item in b.iter().skip(a.len()) {
+            inner_write(self, item);
         }
     }
 
@@ -252,8 +250,12 @@ impl Encoder {
 
     /// Encode a record (map) by writing length followed by key-value pairs.
     #[inline]
-    pub fn push_record<K, V, FK, FV>(&mut self, map: &std::collections::HashMap<K, V>, mut key_write: FK, mut val_write: FV)
-    where
+    pub fn push_record<K, V, FK, FV>(
+        &mut self,
+        map: &std::collections::HashMap<K, V>,
+        mut key_write: FK,
+        mut val_write: FV,
+    ) where
         K: std::hash::Hash + Eq,
         FK: FnMut(&mut Self, &K),
         FV: FnMut(&mut Self, &V),

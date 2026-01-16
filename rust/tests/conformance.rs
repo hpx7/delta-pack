@@ -38,7 +38,8 @@ macro_rules! conformance_tests {
             #[test]
             fn encode_matches_golden() {
                 for state in states() {
-                    let golden_bytes = read_golden_bytes($example, &format!("{}.snapshot.bin", state));
+                    let golden_bytes =
+                        read_golden_bytes($example, &format!("{}.snapshot.bin", state));
 
                     let json = read_state($example, state);
                     let obj: $type_name = serde_json::from_str(&json).unwrap();
@@ -59,7 +60,8 @@ macro_rules! conformance_tests {
             #[test]
             fn decode_from_golden() {
                 for state in states() {
-                    let golden_bytes = read_golden_bytes($example, &format!("{}.snapshot.bin", state));
+                    let golden_bytes =
+                        read_golden_bytes($example, &format!("{}.snapshot.bin", state));
 
                     let json = read_state($example, state);
                     let expected: $type_name = serde_json::from_str(&json).unwrap();
@@ -98,7 +100,9 @@ macro_rules! conformance_tests {
                     assert!(
                         golden_decoded.equals(&rust_decoded),
                         "{} {}->{} encode_diff decoded mismatch",
-                        $example, old_state, new_state
+                        $example,
+                        old_state,
+                        new_state
                     );
                 }
             }
@@ -135,7 +139,17 @@ macro_rules! conformance_tests {
 }
 
 // Generate conformance tests for each example
-conformance_tests!(primitives, Primitives, "Primitives", vec!["state1", "state2"]);
+conformance_tests!(
+    primitives,
+    Primitives,
+    "Primitives",
+    vec!["state1", "state2"]
+);
 conformance_tests!(test, Test, "Test", vec!["state1"]);
 conformance_tests!(user, User, "User", vec!["state1", "state2"]);
-conformance_tests!(game_state, GameState, "GameState", vec!["state1", "state2", "state3", "state4", "state5", "state6"]);
+conformance_tests!(
+    game_state,
+    GameState,
+    "GameState",
+    vec!["state1", "state2", "state3", "state4", "state5", "state6"]
+);

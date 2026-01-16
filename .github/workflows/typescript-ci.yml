@@ -47,4 +47,4 @@ jobs:
         run: |
           echo "# TypeScript Benchmarks (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          node benchmark/dist/run-node.js >> $GITHUB_STEP_SUMMARY
+          npm run bench >> $GITHUB_STEP_SUMMARY
