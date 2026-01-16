@@ -191,7 +191,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextArrayDiff__1_System_Collections_Generic_IList___0__System_Func___0__System_Func___0___0__" data-uid="DeltaPack.Decoder.NextArrayDiff``1(System.Collections.Generic.IList{``0},System.Func{``0},System.Func{``0,``0})">
   NextArrayDiff&lt;T&gt;(IList&lt;T&gt;, Func&lt;T&gt;, Func&lt;T, T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L190"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L168"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -308,7 +308,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextBooleanDiff_System_Boolean_" data-uid="DeltaPack.Decoder.NextBooleanDiff(System.Boolean)">
   NextBooleanDiff(bool)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L130"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L119"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -380,7 +380,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextBoundedIntDiff_System_Int64_System_Int64_" data-uid="DeltaPack.Decoder.NextBoundedIntDiff(System.Int64,System.Int64)">
   NextBoundedIntDiff(long, long)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L112"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L110"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -454,7 +454,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextEnumDiff_System_Int32_System_Int32_" data-uid="DeltaPack.Decoder.NextEnumDiff(System.Int32,System.Int32)">
   NextEnumDiff(int, int)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L136"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L125"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -478,6 +478,49 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
     <dd></dd>
   </dl>
 
+
+
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_Decoder_NextFieldDiff_" data-uid="DeltaPack.Decoder.NextFieldDiff*"></a>
+
+  <h3 id="DeltaPack_Decoder_NextFieldDiff__1___0_System_Func___0___0__" data-uid="DeltaPack.Decoder.NextFieldDiff``1(``0,System.Func{``0,``0})">
+  NextFieldDiff&lt;T&gt;(T, Func&lt;T, T&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L130"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public T NextFieldDiff&lt;T&gt;(T a, Func&lt;T, T&gt; decodeDiff)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>a</code> <span class="xref">T</span></dt>
+    <dd></dd>
+    <dt><code>decodeDiff</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;T, T&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><span class="xref">T</span></dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd></dd>
+  </dl>
 
 
 
@@ -523,7 +566,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextFloatDiff_System_Single_" data-uid="DeltaPack.Decoder.NextFloatDiff(System.Single)">
   NextFloatDiff(float)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L118"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L113"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -595,7 +638,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextFloatQuantizedDiff_System_Single_System_Single_" data-uid="DeltaPack.Decoder.NextFloatQuantizedDiff(System.Single,System.Single)">
   NextFloatQuantizedDiff(float, float)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L124"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L116"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -664,7 +707,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextIntDiff_System_Int64_" data-uid="DeltaPack.Decoder.NextIntDiff(System.Int64)">
   NextIntDiff(long)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L106"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L107"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -696,61 +739,18 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
 
 
-  <a id="DeltaPack_Decoder_NextOptionalDiffPrimitive_" data-uid="DeltaPack.Decoder.NextOptionalDiffPrimitive*"></a>
+  <a id="DeltaPack_Decoder_NextOptionalDiff_" data-uid="DeltaPack.Decoder.NextOptionalDiff*"></a>
 
-  <h3 id="DeltaPack_Decoder_NextOptionalDiffPrimitive__1___0_System_Func___0__" data-uid="DeltaPack.Decoder.NextOptionalDiffPrimitive``1(``0,System.Func{``0})">
-  NextOptionalDiffPrimitive&lt;T&gt;(T?, Func&lt;T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L142"><i class="bi bi-code-slash"></i></a>
+  <h3 id="DeltaPack_Decoder_NextOptionalDiff__1_System_Nullable___0__System_Func___0__System_Func___0___0__" data-uid="DeltaPack.Decoder.NextOptionalDiff``1(System.Nullable{``0},System.Func{``0},System.Func{``0,``0})">
+  NextOptionalDiff&lt;T&gt;(T?, Func&lt;T&gt;, Func&lt;T, T&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L153"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
   <div class="markdown level1 conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public T? NextOptionalDiffPrimitive&lt;T&gt;(T? a, Func&lt;T&gt; decode) where T : class</code></pre>
-  </div>
-
-  <h4 class="section">Parameters</h4>
-  <dl class="parameters">
-    <dt><code>a</code> <span class="xref">T</span></dt>
-    <dd></dd>
-    <dt><code>decode</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-1">Func</a>&lt;T&gt;</dt>
-    <dd></dd>
-  </dl>
-
-  <h4 class="section">Returns</h4>
-  <dl class="parameters">
-    <dt><span class="xref">T</span></dt>
-    <dd></dd>
-  </dl>
-
-  <h4 class="section">Type Parameters</h4>
-  <dl class="parameters">
-    <dt><code>T</code></dt>
-    <dd></dd>
-  </dl>
-
-
-
-
-
-
-
-
-
-
-  <a id="DeltaPack_Decoder_NextOptionalDiffValue_" data-uid="DeltaPack.Decoder.NextOptionalDiffValue*"></a>
-
-  <h3 id="DeltaPack_Decoder_NextOptionalDiffValue__1_System_Nullable___0__System_Func___0__" data-uid="DeltaPack.Decoder.NextOptionalDiffValue``1(System.Nullable{``0},System.Func{``0})">
-  NextOptionalDiffValue&lt;T&gt;(T?, Func&lt;T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L159"><i class="bi bi-code-slash"></i></a>
-  </h3>
-
-  <div class="markdown level1 summary"></div>
-  <div class="markdown level1 conceptual"></div>
-
-  <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public T? NextOptionalDiffValue&lt;T&gt;(T? a, Func&lt;T&gt; decode) where T : struct</code></pre>
+    <pre><code class="lang-csharp hljs">public T? NextOptionalDiff&lt;T&gt;(T? a, Func&lt;T&gt; decode, Func&lt;T, T&gt; decodeDiff) where T : struct</code></pre>
   </div>
 
   <h4 class="section">Parameters</h4>
@@ -758,6 +758,8 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
     <dt><code>a</code> T?</dt>
     <dd></dd>
     <dt><code>decode</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-1">Func</a>&lt;T&gt;</dt>
+    <dd></dd>
+    <dt><code>decodeDiff</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;T, T&gt;</dt>
     <dd></dd>
   </dl>
 
@@ -786,7 +788,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextOptionalDiff__1___0_System_Func___0__System_Func___0___0__" data-uid="DeltaPack.Decoder.NextOptionalDiff``1(``0,System.Func{``0},System.Func{``0,``0})">
   NextOptionalDiff&lt;T&gt;(T?, Func&lt;T&gt;, Func&lt;T, T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L176"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L138"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -872,7 +874,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextRecordDiff__2_System_Collections_Generic_IDictionary___0___1__System_Func___0__System_Func___1__System_Func___1___1__" data-uid="DeltaPack.Decoder.NextRecordDiff``2(System.Collections.Generic.IDictionary{``0,``1},System.Func{``0},System.Func{``1},System.Func{``1,``1})">
   NextRecordDiff&lt;TKey, TValue&gt;(IDictionary&lt;TKey, TValue&gt;, Func&lt;TKey&gt;, Func&lt;TValue&gt;, Func&lt;TValue, TValue&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L212"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L191"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -997,7 +999,7 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Decoder_NextStringDiff_System_String_" data-uid="DeltaPack.Decoder.NextStringDiff(System.String)">
   NextStringDiff(string)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L98"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L100"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>

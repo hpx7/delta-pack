@@ -201,6 +201,22 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Decoder.NextEnumDiff
   nameWithType: Decoder.NextEnumDiff
+- uid: DeltaPack.Decoder.NextFieldDiff*
+  name: NextFieldDiff
+  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextFieldDiff_
+  commentId: Overload:DeltaPack.Decoder.NextFieldDiff
+  isSpec: "True"
+  fullName: DeltaPack.Decoder.NextFieldDiff
+  nameWithType: Decoder.NextFieldDiff
+- uid: DeltaPack.Decoder.NextFieldDiff``1(``0,System.Func{``0,``0})
+  name: NextFieldDiff<T>(T, Func<T, T>)
+  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextFieldDiff__1___0_System_Func___0___0__
+  commentId: M:DeltaPack.Decoder.NextFieldDiff``1(``0,System.Func{``0,``0})
+  name.vb: NextFieldDiff(Of T)(T, Func(Of T, T))
+  fullName: DeltaPack.Decoder.NextFieldDiff<T>(T, System.Func<T, T>)
+  fullName.vb: DeltaPack.Decoder.NextFieldDiff(Of T)(T, System.Func(Of T, T))
+  nameWithType: Decoder.NextFieldDiff<T>(T, Func<T, T>)
+  nameWithType.vb: Decoder.NextFieldDiff(Of T)(T, Func(Of T, T))
 - uid: DeltaPack.Decoder.NextFloat
   name: NextFloat()
   href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextFloat
@@ -305,38 +321,15 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Decoder.NextOptionalDiff
   nameWithType: Decoder.NextOptionalDiff
-- uid: DeltaPack.Decoder.NextOptionalDiffPrimitive*
-  name: NextOptionalDiffPrimitive
-  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptionalDiffPrimitive_
-  commentId: Overload:DeltaPack.Decoder.NextOptionalDiffPrimitive
-  isSpec: "True"
-  fullName: DeltaPack.Decoder.NextOptionalDiffPrimitive
-  nameWithType: Decoder.NextOptionalDiffPrimitive
-- uid: DeltaPack.Decoder.NextOptionalDiffPrimitive``1(``0,System.Func{``0})
-  name: NextOptionalDiffPrimitive<T>(T?, Func<T>)
-  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptionalDiffPrimitive__1___0_System_Func___0__
-  commentId: M:DeltaPack.Decoder.NextOptionalDiffPrimitive``1(``0,System.Func{``0})
-  name.vb: NextOptionalDiffPrimitive(Of T)(T, Func(Of T))
-  fullName: DeltaPack.Decoder.NextOptionalDiffPrimitive<T>(T?, System.Func<T>)
-  fullName.vb: DeltaPack.Decoder.NextOptionalDiffPrimitive(Of T)(T, System.Func(Of T))
-  nameWithType: Decoder.NextOptionalDiffPrimitive<T>(T?, Func<T>)
-  nameWithType.vb: Decoder.NextOptionalDiffPrimitive(Of T)(T, Func(Of T))
-- uid: DeltaPack.Decoder.NextOptionalDiffValue*
-  name: NextOptionalDiffValue
-  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptionalDiffValue_
-  commentId: Overload:DeltaPack.Decoder.NextOptionalDiffValue
-  isSpec: "True"
-  fullName: DeltaPack.Decoder.NextOptionalDiffValue
-  nameWithType: Decoder.NextOptionalDiffValue
-- uid: DeltaPack.Decoder.NextOptionalDiffValue``1(System.Nullable{``0},System.Func{``0})
-  name: NextOptionalDiffValue<T>(T?, Func<T>)
-  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptionalDiffValue__1_System_Nullable___0__System_Func___0__
-  commentId: M:DeltaPack.Decoder.NextOptionalDiffValue``1(System.Nullable{``0},System.Func{``0})
-  name.vb: NextOptionalDiffValue(Of T)(T?, Func(Of T))
-  fullName: DeltaPack.Decoder.NextOptionalDiffValue<T>(T?, System.Func<T>)
-  fullName.vb: DeltaPack.Decoder.NextOptionalDiffValue(Of T)(T?, System.Func(Of T))
-  nameWithType: Decoder.NextOptionalDiffValue<T>(T?, Func<T>)
-  nameWithType.vb: Decoder.NextOptionalDiffValue(Of T)(T?, Func(Of T))
+- uid: DeltaPack.Decoder.NextOptionalDiff``1(System.Nullable{``0},System.Func{``0},System.Func{``0,``0})
+  name: NextOptionalDiff<T>(T?, Func<T>, Func<T, T>)
+  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptionalDiff__1_System_Nullable___0__System_Func___0__System_Func___0___0__
+  commentId: M:DeltaPack.Decoder.NextOptionalDiff``1(System.Nullable{``0},System.Func{``0},System.Func{``0,``0})
+  name.vb: NextOptionalDiff(Of T)(T?, Func(Of T), Func(Of T, T))
+  fullName: DeltaPack.Decoder.NextOptionalDiff<T>(T?, System.Func<T>, System.Func<T, T>)
+  fullName.vb: DeltaPack.Decoder.NextOptionalDiff(Of T)(T?, System.Func(Of T), System.Func(Of T, T))
+  nameWithType: Decoder.NextOptionalDiff<T>(T?, Func<T>, Func<T, T>)
+  nameWithType.vb: Decoder.NextOptionalDiff(Of T)(T?, Func(Of T), Func(Of T, T))
 - uid: DeltaPack.Decoder.NextOptionalDiff``1(``0,System.Func{``0},System.Func{``0,``0})
   name: NextOptionalDiff<T>(T?, Func<T>, Func<T, T>)
   href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptionalDiff__1___0_System_Func___0__System_Func___0___0__
@@ -916,6 +909,22 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Encoder.PushEnumDiff
   nameWithType: Encoder.PushEnumDiff
+- uid: DeltaPack.Encoder.PushFieldDiff*
+  name: PushFieldDiff
+  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushFieldDiff_
+  commentId: Overload:DeltaPack.Encoder.PushFieldDiff
+  isSpec: "True"
+  fullName: DeltaPack.Encoder.PushFieldDiff
+  nameWithType: Encoder.PushFieldDiff
+- uid: DeltaPack.Encoder.PushFieldDiff``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action{``0,``0})
+  name: PushFieldDiff<T>(T, T, Func<T, T, bool>, Action<T, T>)
+  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushFieldDiff__1___0___0_System_Func___0___0_System_Boolean__System_Action___0___0__
+  commentId: M:DeltaPack.Encoder.PushFieldDiff``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action{``0,``0})
+  name.vb: PushFieldDiff(Of T)(T, T, Func(Of T, T, Boolean), Action(Of T, T))
+  fullName: DeltaPack.Encoder.PushFieldDiff<T>(T, T, System.Func<T, T, bool>, System.Action<T, T>)
+  fullName.vb: DeltaPack.Encoder.PushFieldDiff(Of T)(T, T, System.Func(Of T, T, Boolean), System.Action(Of T, T))
+  nameWithType: Encoder.PushFieldDiff<T>(T, T, Func<T, T, bool>, Action<T, T>)
+  nameWithType.vb: Encoder.PushFieldDiff(Of T)(T, T, Func(Of T, T, Boolean), Action(Of T, T))
 - uid: DeltaPack.Encoder.PushFloat(System.Single)
   name: PushFloat(float)
   href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushFloat_System_Single_
@@ -1026,38 +1035,15 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Encoder.PushOptionalDiff
   nameWithType: Encoder.PushOptionalDiff
-- uid: DeltaPack.Encoder.PushOptionalDiffPrimitive*
-  name: PushOptionalDiffPrimitive
-  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptionalDiffPrimitive_
-  commentId: Overload:DeltaPack.Encoder.PushOptionalDiffPrimitive
-  isSpec: "True"
-  fullName: DeltaPack.Encoder.PushOptionalDiffPrimitive
-  nameWithType: Encoder.PushOptionalDiffPrimitive
-- uid: DeltaPack.Encoder.PushOptionalDiffPrimitive``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action{``0})
-  name: PushOptionalDiffPrimitive<T>(T?, T?, Func<T, T, bool>, Action<T>)
-  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptionalDiffPrimitive__1___0___0_System_Func___0___0_System_Boolean__System_Action___0__
-  commentId: M:DeltaPack.Encoder.PushOptionalDiffPrimitive``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action{``0})
-  name.vb: PushOptionalDiffPrimitive(Of T)(T, T, Func(Of T, T, Boolean), Action(Of T))
-  fullName: DeltaPack.Encoder.PushOptionalDiffPrimitive<T>(T?, T?, System.Func<T, T, bool>, System.Action<T>)
-  fullName.vb: DeltaPack.Encoder.PushOptionalDiffPrimitive(Of T)(T, T, System.Func(Of T, T, Boolean), System.Action(Of T))
-  nameWithType: Encoder.PushOptionalDiffPrimitive<T>(T?, T?, Func<T, T, bool>, Action<T>)
-  nameWithType.vb: Encoder.PushOptionalDiffPrimitive(Of T)(T, T, Func(Of T, T, Boolean), Action(Of T))
-- uid: DeltaPack.Encoder.PushOptionalDiffValue*
-  name: PushOptionalDiffValue
-  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptionalDiffValue_
-  commentId: Overload:DeltaPack.Encoder.PushOptionalDiffValue
-  isSpec: "True"
-  fullName: DeltaPack.Encoder.PushOptionalDiffValue
-  nameWithType: Encoder.PushOptionalDiffValue
-- uid: DeltaPack.Encoder.PushOptionalDiffValue``1(System.Nullable{``0},System.Nullable{``0},System.Func{``0,``0,System.Boolean},System.Action{``0})
-  name: PushOptionalDiffValue<T>(T?, T?, Func<T, T, bool>, Action<T>)
-  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptionalDiffValue__1_System_Nullable___0__System_Nullable___0__System_Func___0___0_System_Boolean__System_Action___0__
-  commentId: M:DeltaPack.Encoder.PushOptionalDiffValue``1(System.Nullable{``0},System.Nullable{``0},System.Func{``0,``0,System.Boolean},System.Action{``0})
-  name.vb: PushOptionalDiffValue(Of T)(T?, T?, Func(Of T, T, Boolean), Action(Of T))
-  fullName: DeltaPack.Encoder.PushOptionalDiffValue<T>(T?, T?, System.Func<T, T, bool>, System.Action<T>)
-  fullName.vb: DeltaPack.Encoder.PushOptionalDiffValue(Of T)(T?, T?, System.Func(Of T, T, Boolean), System.Action(Of T))
-  nameWithType: Encoder.PushOptionalDiffValue<T>(T?, T?, Func<T, T, bool>, Action<T>)
-  nameWithType.vb: Encoder.PushOptionalDiffValue(Of T)(T?, T?, Func(Of T, T, Boolean), Action(Of T))
+- uid: DeltaPack.Encoder.PushOptionalDiff``1(System.Nullable{``0},System.Nullable{``0},System.Action{``0},System.Action{``0,``0})
+  name: PushOptionalDiff<T>(T?, T?, Action<T>, Action<T, T>)
+  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptionalDiff__1_System_Nullable___0__System_Nullable___0__System_Action___0__System_Action___0___0__
+  commentId: M:DeltaPack.Encoder.PushOptionalDiff``1(System.Nullable{``0},System.Nullable{``0},System.Action{``0},System.Action{``0,``0})
+  name.vb: PushOptionalDiff(Of T)(T?, T?, Action(Of T), Action(Of T, T))
+  fullName: DeltaPack.Encoder.PushOptionalDiff<T>(T?, T?, System.Action<T>, System.Action<T, T>)
+  fullName.vb: DeltaPack.Encoder.PushOptionalDiff(Of T)(T?, T?, System.Action(Of T), System.Action(Of T, T))
+  nameWithType: Encoder.PushOptionalDiff<T>(T?, T?, Action<T>, Action<T, T>)
+  nameWithType.vb: Encoder.PushOptionalDiff(Of T)(T?, T?, Action(Of T), Action(Of T, T))
 - uid: DeltaPack.Encoder.PushOptionalDiff``1(``0,``0,System.Action{``0},System.Action{``0,``0})
   name: PushOptionalDiff<T>(T?, T?, Action<T>, Action<T, T>)
   href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptionalDiff__1___0___0_System_Action___0__System_Action___0___0__
