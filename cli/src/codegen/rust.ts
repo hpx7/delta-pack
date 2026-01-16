@@ -205,7 +205,19 @@ function renderObject(
   });
 
   const encodeDiffLines = p((info) => {
-    return `        ${renderEncodeDiff(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`)};`;
+    if (hasOwnChangeBit(info.type)) {
+      // Type handles its own change bit
+      return `        ${renderEncodeDiff(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`)};`;
+    } else {
+      // Wrap with change bit
+      const eq = renderEquals(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`);
+      const enc = renderEncodeDiff(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`);
+      return `        let changed = !(${eq});
+        encoder.push_boolean(changed);
+        if changed {
+            ${enc};
+        }`;
+    }
   });
 
   const decodeLines = p((info) => {
@@ -214,7 +226,14 @@ function renderObject(
 
   const decodeDiffLines = p((info) => {
     const field = `obj.${info.rustName}`;
-    return `            ${info.rustName}: ${renderDecodeDiff(ctx, info.type, field)},`;
+    if (hasOwnChangeBit(info.type)) {
+      // Type handles its own change bit
+      return `            ${info.rustName}: ${renderDecodeDiff(ctx, info.type, field)},`;
+    } else {
+      // Wrap with change bit
+      const dec = renderDecodeDiff(ctx, info.type, field);
+      return `            ${info.rustName}: if decoder.next_boolean() { ${dec} } else { obj.${info.rustName}.clone() },`;
+    }
   });
 
   return `#[derive(Clone, Debug, Serialize, Deserialize)]
@@ -259,6 +278,10 @@ ${encodeLines}
         if !changed {
             return;
         }
+        Self::encode_diff_fields_into(a, b, encoder);
+    }
+
+    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
 ${encodeDiffLines}
     }
 
@@ -281,6 +304,10 @@ ${decodeLines}
         if !changed {
             return obj.clone();
         }
+        Self::decode_diff_fields_from(obj, decoder)
+    }
+
+    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
 ${decodeDiffLines}
         }
@@ -331,7 +358,7 @@ function renderUnion(
       (opt, i) =>
         `            ${name}::${opt.name}(b_val) => {
                 if let ${name}::${opt.name}(a_val) = a {
-                    ${opt.name}::encode_diff_into(a_val, b_val, encoder);
+                    ${opt.name}::encode_diff_fields_into(a_val, b_val, encoder);
                 } else {
                     encoder.push_enum(${i}, ${numBits});
                     b_val.encode_into(encoder);
@@ -350,7 +377,7 @@ function renderUnion(
   const decodeDiffSameCases = options
     .map(
       (opt) =>
-        `                ${name}::${opt.name}(v) => ${name}::${opt.name}(${opt.name}::decode_diff_from(v, decoder)),`,
+        `                ${name}::${opt.name}(v) => ${name}::${opt.name}(${opt.name}::decode_diff_fields_from(v, decoder)),`,
     )
     .join("\n");
 
@@ -442,6 +469,16 @@ ${decodeDiffNewCases}
 }
 
 // ============ Type Helpers ============
+
+// Types that handle their own change bit in diff encoding
+function hasOwnChangeBit(type: Type): boolean {
+  if (type.type === "boolean" || type.type === "object") return true;
+  if (type.type === "reference") {
+    return type.ref.type === "object" || type.ref.type === "union";
+  }
+  if (type.type === "self-reference") return true;
+  return false;
+}
 
 // Check if a type needs dereferencing when accessed through a reference
 // Only numeric/bool primitives need this - strings are Clone, enums have auto-deref on methods
@@ -743,9 +780,13 @@ function renderEncodeDiffCallback(ctx: GeneratorContext, type: Type): string {
       if (type.ref.type === "enum") {
         return `|enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), ${type.ref.numBits})`;
       }
-      return `|enc, a, b| ${type.ref.name!}::encode_diff_into(a, b, enc)`;
+      // Objects use field-only methods; unions use regular diff (includes same_type bit)
+      if (type.ref.type === "union") {
+        return `|enc, a, b| ${type.ref.name!}::encode_diff_into(a, b, enc)`;
+      }
+      return `|enc, a, b| ${type.ref.name!}::encode_diff_fields_into(a, b, enc)`;
     case "self-reference":
-      return `|enc, a, b| ${ctx.currentTypeName}::encode_diff_into(a, b, enc)`;
+      return `|enc, a, b| ${ctx.currentTypeName}::encode_diff_fields_into(a, b, enc)`;
     default:
       throw new Error(`Unexpected type in renderEncodeDiffCallback: ${type.type}`);
   }
@@ -776,9 +817,13 @@ function renderDecodeDiffCallback(ctx: GeneratorContext, type: Type): string {
       if (type.ref.type === "enum") {
         return `|dec, &a| ${type.ref.name!}::from_u32(dec.next_enum_diff(a.to_u32(), ${type.ref.numBits}))`;
       }
-      return `|dec, a| ${type.ref.name!}::decode_diff_from(a, dec)`;
+      // Objects use field-only methods; unions use regular diff (includes same_type bit)
+      if (type.ref.type === "union") {
+        return `|dec, a| ${type.ref.name!}::decode_diff_from(a, dec)`;
+      }
+      return `|dec, a| ${type.ref.name!}::decode_diff_fields_from(a, dec)`;
     case "self-reference":
-      return `|dec, a| Box::new(${ctx.currentTypeName}::decode_diff_from(a, dec))`;
+      return `|dec, a| Box::new(${ctx.currentTypeName}::decode_diff_fields_from(a, dec))`;
     default:
       throw new Error(`Unexpected type in renderDecodeDiffCallback: ${type.type}`);
   }
@@ -881,48 +926,19 @@ function renderEncodeDiff(
       const innerEncode = renderEncodeCallback(ctx, type.value);
       const innerEquals = renderEqualsCallback(ctx, type.value);
       const innerDiff = renderEncodeDiffCallback(ctx, type.value);
-      return `encoder.push_array_diff(
-            &${a},
-            &${b},
-            ${innerEquals},
-            ${innerEncode},
-            ${innerDiff},
-        )`;
+      return `encoder.push_array_diff(&${a}, &${b}, ${innerEquals}, ${innerEncode}, ${innerDiff})`;
     }
     case "optional": {
-      if (isPrimitiveOrEnum(type.value)) {
-        const innerEquals = renderEqualsCallback(ctx, type.value);
-        const innerEncode = renderEncodeCallback(ctx, type.value);
-        return `encoder.push_optional_diff_primitive(
-            &${a},
-            &${b},
-            ${innerEquals},
-            ${innerEncode},
-        )`;
-      } else {
-        const innerEncode = renderEncodeCallback(ctx, type.value);
-        const innerDiff = renderEncodeDiffCallback(ctx, type.value);
-        return `encoder.push_optional_diff(
-            &${a},
-            &${b},
-            ${innerEncode},
-            ${innerDiff},
-        )`;
-      }
+      const innerEncode = renderEncodeCallback(ctx, type.value);
+      const innerDiff = renderEncodeDiffCallback(ctx, type.value);
+      return `encoder.push_optional_diff(&${a}, &${b}, ${innerEncode}, ${innerDiff})`;
     }
     case "record": {
       const keyEncode = renderEncodeCallback(ctx, type.key);
       const valEncode = renderEncodeCallback(ctx, type.value);
       const valEquals = renderEqualsCallback(ctx, type.value);
       const valDiff = renderEncodeDiffCallback(ctx, type.value);
-      return `encoder.push_record_diff(
-            &${a},
-            &${b},
-            ${valEquals},
-            ${keyEncode},
-            ${valEncode},
-            ${valDiff},
-        )`;
+      return `encoder.push_record_diff(&${a}, &${b}, ${valEquals}, ${keyEncode}, ${valEncode}, ${valDiff})`;
     }
     case "reference":
       // For enum references, use push_enum_diff
@@ -963,36 +979,18 @@ function renderDecodeDiff(
     case "array": {
       const innerDecode = renderDecodeCallback(ctx, type.value);
       const innerDiff = renderDecodeDiffCallback(ctx, type.value);
-      return `decoder.next_array_diff(
-                &${key},
-                ${innerDecode},
-                ${innerDiff},
-            )`;
+      return `decoder.next_array_diff(&${key}, ${innerDecode}, ${innerDiff})`;
     }
     case "optional": {
-      if (isPrimitiveOrEnum(type.value)) {
-        const innerDecode = renderDecodeCallback(ctx, type.value);
-        return `decoder.next_optional_diff_primitive(&${key}, ${innerDecode})`;
-      } else {
-        const innerDecode = renderDecodeCallback(ctx, type.value);
-        const innerDiff = renderDecodeDiffCallback(ctx, type.value);
-        return `decoder.next_optional_diff(
-                &${key},
-                ${innerDecode},
-                ${innerDiff},
-            )`;
-      }
+      const innerDecode = renderDecodeCallback(ctx, type.value);
+      const innerDiff = renderDecodeDiffCallback(ctx, type.value);
+      return `decoder.next_optional_diff(&${key}, ${innerDecode}, ${innerDiff})`;
     }
     case "record": {
       const keyDecode = renderDecodeCallback(ctx, type.key);
       const valDecode = renderDecodeCallback(ctx, type.value);
       const valDiff = renderDecodeDiffCallback(ctx, type.value);
-      return `decoder.next_record_diff(
-                &${key},
-                ${keyDecode},
-                ${valDecode},
-                ${valDiff},
-            )`;
+      return `decoder.next_record_diff(&${key}, ${keyDecode}, ${valDecode}, ${valDiff})`;
     }
     case "reference":
       // For enum references, use next_enum_diff

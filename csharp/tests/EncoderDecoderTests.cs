@@ -352,59 +352,52 @@ public class EncoderDecoderTests
     }
 
     [Fact]
-    public void OptionalDiffPrimitive_NullToValue_RoundTrips()
+    public void OptionalDiff_NullToValue_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<string>(null, "hello", (a, b) => a == b, encoder.PushString);
+        encoder.PushOptionalDiff<string>(null, "hello", encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
-        Assert.Equal("hello", decoder.NextOptionalDiffPrimitive<string>(null, decoder.NextString));
+        Assert.Equal("hello", decoder.NextOptionalDiff<string>(null, decoder.NextString, a => decoder.NextStringDiff(a)));
     }
 
     [Fact]
-    public void OptionalDiffPrimitive_ValueToNull_RoundTrips()
+    public void OptionalDiff_ValueToNull_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<string>("hello", null, (a, b) => a == b, encoder.PushString);
+        encoder.PushOptionalDiff<string>("hello", null, encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
-        Assert.Null(decoder.NextOptionalDiffPrimitive("hello", decoder.NextString));
+        Assert.Null(decoder.NextOptionalDiff("hello", decoder.NextString, a => decoder.NextStringDiff(a)));
     }
 
     [Fact]
-    public void OptionalDiffPrimitive_ValueToValue_RoundTrips()
+    public void OptionalDiff_ValueToValue_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive("old", "new", (a, b) => a == b, encoder.PushString);
+        encoder.PushOptionalDiff("old", "new", encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
-        Assert.Equal("new", decoder.NextOptionalDiffPrimitive("old", decoder.NextString));
+        Assert.Equal("new", decoder.NextOptionalDiff("old", decoder.NextString, a => decoder.NextStringDiff(a)));
     }
 
     [Fact]
-    public void OptionalDiffPrimitive_Unchanged_RoundTrips()
+    public void OptionalDiff_Unchanged_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive("same", "same", (a, b) => a == b, encoder.PushString);
+        encoder.PushOptionalDiff("same", "same", encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
-        Assert.Equal("same", decoder.NextOptionalDiffPrimitive("same", decoder.NextString));
+        Assert.Equal("same", decoder.NextOptionalDiff("same", decoder.NextString, a => decoder.NextStringDiff(a)));
     }
 
-    [Fact]
-    public void OptionalDiffPrimitive_NullToNull_RoundTrips()
-    {
-        var encoder = new Encoder();
-        encoder.PushOptionalDiffPrimitive<string>(null, null, (a, b) => a == b, encoder.PushString);
-        var buffer = encoder.ToBuffer();
-
-        var decoder = new Decoder(buffer);
-        Assert.Null(decoder.NextOptionalDiffPrimitive<string>(null, decoder.NextString));
-    }
+    // Note: OptionalDiff_NullToNull test removed - this is not a valid use case.
+    // The optimization assumes when a==null, b must be non-null (else unchanged).
+    // Callers should check for changes before calling OptionalDiff.
 
     [Fact]
     public void OptionalDiff_NullToValue_RoundTrips()

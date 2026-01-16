@@ -1125,3 +1125,170 @@ describe("Edge Cases - Sparse Array Diff Size", () => {
     expect(diff.length).toBeLessThan(3);
   });
 });
+
+describe("Edge Cases - Nested Containers", () => {
+  describe("Array of Records", () => {
+    const ArrayOfRecords = ObjectType("ArrayOfRecords", {
+      items: ArrayType(RecordType(StringType(), IntType())),
+    });
+    type ArrayOfRecords = Infer<typeof ArrayOfRecords>;
+    const api = load(ArrayOfRecords);
+
+    it("should encode and decode array of records", () => {
+      const obj: ArrayOfRecords = {
+        items: [
+          new Map([
+            ["a", 1],
+            ["b", 2],
+          ]),
+          new Map([["x", 10]]),
+        ],
+      };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(api.equals(decoded, obj)).toBe(true);
+    });
+
+    it("should encode diff when record element is updated", () => {
+      const state1: ArrayOfRecords = {
+        items: [
+          new Map([
+            ["a", 1],
+            ["b", 2],
+          ]),
+          new Map([["x", 10]]),
+        ],
+      };
+      const state2: ArrayOfRecords = {
+        items: [
+          new Map([
+            ["a", 1],
+            ["b", 3],
+          ]), // b changed from 2 to 3
+          new Map([
+            ["x", 10],
+            ["y", 20],
+          ]), // y added
+        ],
+      };
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+      expect(api.equals(decoded, state2)).toBe(true);
+    });
+  });
+
+  describe("Record of Records", () => {
+    const RecordOfRecords = ObjectType("RecordOfRecords", {
+      data: RecordType(StringType(), RecordType(StringType(), IntType())),
+    });
+    type RecordOfRecords = Infer<typeof RecordOfRecords>;
+    const api = load(RecordOfRecords);
+
+    it("should encode and decode record of records", () => {
+      const obj: RecordOfRecords = {
+        data: new Map([
+          ["first", new Map([["a", 1]])],
+          [
+            "second",
+            new Map([
+              ["b", 2],
+              ["c", 3],
+            ]),
+          ],
+        ]),
+      };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(api.equals(decoded, obj)).toBe(true);
+    });
+
+    it("should encode diff when inner record is updated", () => {
+      const state1: RecordOfRecords = {
+        data: new Map([
+          ["first", new Map([["a", 1]])],
+          ["second", new Map([["b", 2]])],
+        ]),
+      };
+      const state2: RecordOfRecords = {
+        data: new Map([
+          ["first", new Map([["a", 1]])],
+          ["second", new Map([["b", 3]])], // b changed from 2 to 3
+        ]),
+      };
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+      expect(api.equals(decoded, state2)).toBe(true);
+    });
+  });
+
+  describe("Array of Arrays", () => {
+    const ArrayOfArrays = ObjectType("ArrayOfArrays", {
+      matrix: ArrayType(ArrayType(IntType())),
+    });
+    type ArrayOfArrays = Infer<typeof ArrayOfArrays>;
+    const api = load(ArrayOfArrays);
+
+    it("should encode and decode array of arrays", () => {
+      const obj: ArrayOfArrays = {
+        matrix: [[1, 2, 3], [4, 5], [6]],
+      };
+      const encoded = api.encode(obj);
+      const decoded = api.decode(encoded);
+      expect(api.equals(decoded, obj)).toBe(true);
+    });
+
+    it("should encode diff when inner array is updated", () => {
+      const state1: ArrayOfArrays = {
+        matrix: [
+          [1, 2, 3],
+          [4, 5],
+        ],
+      };
+      const state2: ArrayOfArrays = {
+        matrix: [
+          [1, 2, 99],
+          [4, 5, 6],
+        ], // element changed and element added
+      };
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+      expect(api.equals(decoded, state2)).toBe(true);
+    });
+  });
+
+  describe("Boolean Array Element Updates", () => {
+    const BoolArray = ObjectType("BoolArray", {
+      flags: ArrayType(BooleanType()),
+    });
+    type BoolArray = Infer<typeof BoolArray>;
+    const api = load(BoolArray);
+
+    it("should encode diff when boolean elements are flipped", () => {
+      const state1: BoolArray = {
+        flags: [true, false, false, true, false],
+      };
+      const state2: BoolArray = {
+        flags: [true, true, false, false, false], // indices 1 and 3 flipped
+      };
+      const diff = api.encodeDiff(state1, state2);
+      const decoded = api.decodeDiff(state1, diff);
+      expect(api.equals(decoded, state2)).toBe(true);
+    });
+
+    it("should produce minimal diff for boolean flips (no value encoding needed)", () => {
+      const state1: BoolArray = {
+        flags: [true, false, true, false, true, false, true, false],
+      };
+      const state2: BoolArray = {
+        flags: [false, true, false, true, false, true, false, true], // all flipped
+      };
+      const diff = api.encodeDiff(state1, state2);
+      // Boolean optimization: only indices are encoded, not values
+      // For 8 flips, should be much smaller than encoding 8 boolean values
+      expect(diff.length).toBeLessThan(20);
+
+      const decoded = api.decodeDiff(state1, diff);
+      expect(api.equals(decoded, state2)).toBe(true);
+    });
+  });
+});

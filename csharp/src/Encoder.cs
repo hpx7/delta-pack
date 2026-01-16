@@ -133,117 +133,75 @@ public class Encoder
 
     // Diff methods
 
+    // Value-only diff methods (caller handles change bit for object fields)
+
     public void PushStringDiff(string a, string b)
     {
         if (!_dict.Contains(a))
             _dict.Add(a);
-
-        PushBoolean(a != b);
-        if (a != b)
-            PushString(b);
+        PushString(b);
     }
 
-    public void PushIntDiff(long a, long b)
-    {
-        PushBoolean(a != b);
-        if (a != b)
-            PushInt(b);
-    }
+    public void PushIntDiff(long a, long b) =>
+        PushInt(b);
 
-    public void PushBoundedIntDiff(long a, long b, long min)
-    {
-        var aOffset = a - min;
-        var bOffset = b - min;
-        PushBoolean(aOffset != bOffset);
-        if (aOffset != bOffset)
-            PushUInt((ulong)bOffset);
-    }
+    public void PushBoundedIntDiff(long a, long b, long min) =>
+        PushBoundedInt(b, min);
 
-    public void PushFloatDiff(float a, float b)
-    {
-        var changed = !EqualityHelpers.EqualsFloat(a, b);
-        PushBoolean(changed);
-        if (changed)
-            PushFloat(b);
-    }
+    public void PushFloatDiff(float a, float b) =>
+        PushFloat(b);
 
-    public void PushFloatQuantizedDiff(float a, float b, float precision)
-    {
-        var aQuantized = (long)Math.Round(a / precision);
-        var bQuantized = (long)Math.Round(b / precision);
-        PushIntDiff(aQuantized, bQuantized);
-    }
+    public void PushFloatQuantizedDiff(float a, float b, float precision) =>
+        PushFloatQuantized(b, precision);
 
     public void PushBooleanDiff(bool a, bool b) =>
         PushBoolean(a != b);
 
-    public void PushEnumDiff(int a, int b, int numBits)
+    public void PushEnumDiff(int a, int b, int numBits) =>
+        PushEnum(b, numBits);
+
+    // Field diff helpers (wrap value-only diff with change bit)
+
+    public void PushFieldDiff<T>(T a, T b, Func<T, T, bool> equals, Action<T, T> encodeDiff)
     {
-        PushBoolean(a != b);
-        if (a != b)
-            PushEnum(b, numBits);
+        var changed = !equals(a, b);
+        PushBoolean(changed);
+        if (changed)
+            encodeDiff(a, b);
     }
 
-    public void PushOptionalDiffPrimitive<T>(T? a, T? b, Func<T, T, bool> equals, Action<T> encode) where T : class
-    {
-        if (a is null)
-        {
-            PushBoolean(b is not null);
-            if (b is not null)
-                encode(b); // null → value
-            // else null → null
-        }
-        else
-        {
-            var changed = b is null || !equals(a, b);
-            PushBoolean(changed);
-            if (changed)
-            {
-                PushBoolean(b is not null);
-                if (b is not null)
-                    encode(b); // value → value
-                // else value → null
-            }
-        }
-    }
-
-    public void PushOptionalDiffValue<T>(T? a, T? b, Func<T, T, bool> equals, Action<T> encode) where T : struct
-    {
-        if (a is null)
-        {
-            PushBoolean(b is not null);
-            if (b is not null)
-                encode(b.Value); // null → value
-            // else null → null
-        }
-        else
-        {
-            var changed = b is null || !equals(a.Value, b.Value);
-            PushBoolean(changed);
-            if (changed)
-            {
-                PushBoolean(b is not null);
-                if (b is not null)
-                    encode(b.Value); // value → value
-                // else value → null
-            }
-        }
-    }
+    // Optional diff
 
     public void PushOptionalDiff<T>(T? a, T? b, Action<T> encode, Action<T, T> encodeDiff) where T : class
     {
+        // Optimization: if a was null, we know b must be non-null (else changed would be false)
+        // So skip the present bit in null→value case
         if (a is null)
         {
-            PushBoolean(b is not null);
-            if (b is not null)
-                encode(b); // null → value
-            // else null → null
+            encode(b!); // null → value (b guaranteed non-null by caller)
         }
         else
         {
             PushBoolean(b is not null);
             if (b is not null)
                 encodeDiff(a, b); // value → value
+            // else value → null
+        }
+    }
+
+    public void PushOptionalDiff<T>(T? a, T? b, Action<T> encode, Action<T, T> encodeDiff) where T : struct
+    {
+        // Optimization: if a was null, we know b must be non-null (else changed would be false)
+        // So skip the present bit in null→value case
+        if (a is null)
+        {
+            encode(b!.Value); // null → value (b guaranteed non-null by caller)
+        }
+        else
+        {
+            PushBoolean(b is not null);
+            if (b.HasValue)
+                encodeDiff(a.Value, b.Value); // value → value
             // else value → null
         }
     }
@@ -255,11 +213,7 @@ public class Encoder
         Action<T> encode,
         Action<T, T> encodeDiff)
     {
-        var changed = !EqualityHelpers.EqualsArray(a, b, equals);
-        PushBoolean(changed);
-        if (!changed)
-            return;
-
+        // Caller handles change bit via PushFieldDiff
         PushUInt((uint)b.Count);
 
         // Collect changed indices (sparse encoding)
@@ -293,11 +247,7 @@ public class Encoder
         Action<TValue, TValue> encodeDiff)
         where TKey : notnull
     {
-        var changed = !EqualityHelpers.EqualsRecord(a, b, (x, y) => x.Equals(y), valueEquals);
-        PushBoolean(changed);
-        if (!changed)
-            return;
-
+        // Caller handles change bit via PushFieldDiff
         var updates = new List<TKey>();
         var deletions = new List<TKey>();
         var additions = new List<(TKey key, TValue val)>();

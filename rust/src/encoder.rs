@@ -1,4 +1,3 @@
-use crate::helpers::{equals_array, equals_float, equals_float_quantized, equals_record};
 use crate::rle::RleWriter;
 use crate::varint::{write_uvarint_vec, write_varint_vec};
 
@@ -108,76 +107,52 @@ impl Encoder {
         self.rle.push_bits(val, num_bits);
     }
 
-    // Diff methods
+    // Diff methods (value-only - caller handles change bit for object fields)
 
     #[inline]
     pub fn push_string_diff(&mut self, a: &str, b: &str) {
-        // Ensure 'a' is in dictionary for future reference
+        // Ensure 'a' is in dictionary for decoder sync
         let hash_a = hash_str(a);
         if !self.dict.contains(&hash_a) {
             self.dict.push(hash_a);
         }
-        self.push_boolean(a != b);
-        if a != b {
-            self.push_string(b);
-        }
+        self.push_string(b);
     }
 
     #[inline]
-    pub fn push_int_diff(&mut self, a: i64, b: i64) {
-        self.push_boolean(a != b);
-        if a != b {
-            self.push_int(b);
-        }
+    pub fn push_int_diff(&mut self, _a: i64, b: i64) {
+        self.push_int(b);
     }
 
     #[inline]
-    pub fn push_uint_diff(&mut self, a: u64, b: u64) {
-        self.push_boolean(a != b);
-        if a != b {
-            self.push_uint(b);
-        }
+    pub fn push_uint_diff(&mut self, _a: u64, b: u64) {
+        self.push_uint(b);
     }
 
     #[inline]
-    pub fn push_bounded_int_diff(&mut self, a: i64, b: i64, min: i64) {
-        let a_offset = a - min;
-        let b_offset = b - min;
-        self.push_boolean(a_offset != b_offset);
-        if a_offset != b_offset {
-            self.push_uint(b_offset as u64);
-        }
+    pub fn push_bounded_int_diff(&mut self, _a: i64, b: i64, min: i64) {
+        self.push_bounded_int(b, min);
     }
 
     #[inline]
-    pub fn push_float_diff(&mut self, a: f32, b: f32) {
-        let changed = !equals_float(a, b);
-        self.push_boolean(changed);
-        if changed {
-            self.push_float(b);
-        }
+    pub fn push_float_diff(&mut self, _a: f32, b: f32) {
+        self.push_float(b);
     }
 
     #[inline]
-    pub fn push_float_quantized_diff(&mut self, a: f32, b: f32, precision: f32) {
-        let changed = !equals_float_quantized(a, b, precision);
-        self.push_boolean(changed);
-        if changed {
-            self.push_float_quantized(b, precision);
-        }
+    pub fn push_float_quantized_diff(&mut self, _a: f32, b: f32, precision: f32) {
+        self.push_float_quantized(b, precision);
     }
 
     #[inline]
     pub fn push_boolean_diff(&mut self, a: bool, b: bool) {
+        // Boolean diff is special - change bit IS the diff
         self.push_boolean(a != b);
     }
 
     #[inline]
-    pub fn push_enum_diff(&mut self, a: u32, b: u32, num_bits: u8) {
-        self.push_boolean(a != b);
-        if a != b {
-            self.push_enum(b, num_bits);
-        }
+    pub fn push_enum_diff(&mut self, _a: u32, b: u32, num_bits: u8) {
+        self.push_enum(b, num_bits);
     }
 
     // Array helpers
@@ -195,6 +170,7 @@ impl Encoder {
     }
 
     /// Encode array diff by comparing lengths and elements.
+    /// Caller handles change bit.
     #[inline]
     pub fn push_array_diff<T, FW, FD, E>(
         &mut self,
@@ -208,11 +184,6 @@ impl Encoder {
         FD: FnMut(&mut Self, &T, &T),
         E: FnMut(&T, &T) -> bool,
     {
-        let changed = !equals_array(a, b, &mut equals);
-        self.push_boolean(changed);
-        if !changed {
-            return;
-        }
         self.push_uint(b.len() as u64);
 
         // Collect changed indices (sparse encoding)
@@ -248,7 +219,9 @@ impl Encoder {
         }
     }
 
-    /// Encode optional diff for non-primitives, matching TS/C# format.
+    /// Encode optional diff, matching TS/C# format.
+    /// Optimization: if a was None, we know b must be Some (else unchanged).
+    /// So skip the present bit in None→Some case.
     #[inline]
     pub fn push_optional_diff<T, FW, FD>(
         &mut self,
@@ -260,45 +233,17 @@ impl Encoder {
         FW: FnMut(&mut Self, &T),
         FD: FnMut(&mut Self, &T, &T),
     {
-        self.push_boolean(b.is_some());
-        match (a, b) {
-            (_, None) => {} // Nothing more to write
-            (None, Some(bv)) => inner_write(self, bv),
-            (Some(av), Some(bv)) => inner_diff(self, av, bv),
-        }
-    }
-
-    /// Encode optional diff for primitives/enums, matching TS/C# format.
-    #[inline]
-    pub fn push_optional_diff_primitive<T, E, W>(
-        &mut self,
-        a: &Option<T>,
-        b: &Option<T>,
-        mut equals: E,
-        mut inner_write: W,
-    ) where
-        E: FnMut(&T, &T) -> bool,
-        W: FnMut(&mut Self, &T),
-    {
         match a {
             None => {
-                self.push_boolean(b.is_some());
-                if let Some(bv) = b {
-                    inner_write(self, bv);
-                }
+                // None → Some (b guaranteed Some by caller)
+                inner_write(self, b.as_ref().unwrap());
             }
             Some(av) => {
-                let changed = match b {
-                    Some(bv) => !equals(av, bv),
-                    None => true,
-                };
-                self.push_boolean(changed);
-                if changed {
-                    self.push_boolean(b.is_some());
-                    if let Some(bv) = b {
-                        inner_write(self, bv);
-                    }
+                self.push_boolean(b.is_some());
+                if let Some(bv) = b {
+                    inner_diff(self, av, bv); // Some → Some
                 }
+                // else Some → None
             }
         }
     }
@@ -321,6 +266,7 @@ impl Encoder {
     }
 
     /// Encode record diff, matching TS/C# format.
+    /// Caller handles change bit.
     #[inline]
     pub fn push_record_diff<K, V, FK, FV, FVD, E>(
         &mut self,
@@ -337,12 +283,6 @@ impl Encoder {
         FVD: FnMut(&mut Self, &V, &V),
         E: FnMut(&V, &V) -> bool,
     {
-        let changed = !equals_record(a, b, &mut equals);
-        self.push_boolean(changed);
-        if !changed {
-            return;
-        }
-
         let mut deletions = Vec::new();
         let mut updates = Vec::new();
         let mut additions = Vec::new();

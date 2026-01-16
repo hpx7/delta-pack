@@ -1,4 +1,4 @@
-import { NamedType, Type, isPrimitiveOrEnum } from "./schema.js";
+import { NamedType, ObjectType, Type } from "./schema.js";
 import { Encoder } from "./encoder.js";
 import { Decoder } from "./decoder.js";
 import * as helpers from "./helpers.js";
@@ -14,6 +14,8 @@ type Ctx = {
   equals: (a: unknown, b: unknown) => boolean;
   encodeDiff: (a: unknown, b: unknown, encoder: EncoderInstance) => void;
   decodeDiff: (a: unknown, decoder: DecoderInstance) => unknown;
+  encodeDiffValue: (a: unknown, b: unknown, encoder: EncoderInstance) => void;
+  decodeDiffValue: (a: unknown, decoder: DecoderInstance) => unknown;
 };
 
 export function compileEncodeDecode(rootType: NamedType): {
@@ -56,6 +58,22 @@ export function compileEncodeDecode(rootType: NamedType): {
     `return ${compiler.compileDecodeDiffExpr(rootType, "a", rootType)};`
   ) as (a: unknown, decoder: DecoderInstance, ctx: Ctx) => unknown;
 
+  // Fields-only versions for array/optional/record element updates (skip outer changed bit)
+  const encodeDiffValueFn = new Function(
+    "a",
+    "b",
+    "encoder",
+    "ctx",
+    compiler.compileEncodeDiffValueForRoot(rootType)
+  ) as (a: unknown, b: unknown, encoder: EncoderInstance, ctx: Ctx) => void;
+
+  const decodeDiffValueFn = new Function(
+    "a",
+    "decoder",
+    "ctx",
+    `return ${compiler.compileDecodeDiffExprValueForRoot(rootType)};`
+  ) as (a: unknown, decoder: DecoderInstance, ctx: Ctx) => unknown;
+
   const ctx: Ctx = {
     enums: compiler.getEnumValues(),
     helpers,
@@ -64,6 +82,8 @@ export function compileEncodeDecode(rootType: NamedType): {
     equals: (a, b) => equalsFn(a, b, ctx),
     encodeDiff: (a, b, encoder) => encodeDiffFn(a, b, encoder, ctx),
     decodeDiff: (a, decoder) => decodeDiffFn(a, decoder, ctx),
+    encodeDiffValue: (a, b, encoder) => encodeDiffValueFn(a, b, encoder, ctx),
+    decodeDiffValue: (a, decoder) => decodeDiffValueFn(a, decoder, ctx),
   };
 
   return {
@@ -86,6 +106,11 @@ export function compileEncodeDecode(rootType: NamedType): {
       return ctx.decodeDiff(a, decoder);
     },
   };
+}
+
+// Types that handle their own change detection (don't need wrapper to add change bit)
+function hasOwnChangeBit(type: Type): boolean {
+  return type.type === "boolean" || type.type === "object" || type.type === "self-reference";
 }
 
 class JitCompiler {
@@ -245,36 +270,87 @@ class JitCompiler {
     }
   }
 
+  // Field diff using pushFieldDiff - handles change bit
+  private compileEncodeDiffField(
+    type: Type,
+    a: string,
+    b: string,
+    dirty: string,
+    key: string,
+    parent: NamedType
+  ): string {
+    if (type.type === "reference") {
+      return this.compileEncodeDiffField(type.ref, a, b, dirty, key, type.ref);
+    }
+    const maybeDirty = `${dirty}?.has(${key}) ?? true`;
+    // Types with own change bit use pushFieldDiffValue
+    if (hasOwnChangeBit(type)) {
+      return `encoder.pushFieldDiffValue(${maybeDirty}, () => { ${this.compileEncodeDiff(type, a, b, parent)} });`;
+    }
+    // Use pushFieldDiff for primitives, enums, optionals, unions
+    const x = this.nextVar("x");
+    const y = this.nextVar("y");
+    const eqExpr = this.compileEquals(type, x, y, parent);
+    const diffExpr = this.compileEncodeDiff(type, x, y, parent);
+    return `encoder.pushFieldDiff(${a}, ${b}, ${maybeDirty}, (${x}, ${y}) => ${eqExpr}, (${x}, ${y}) => { ${diffExpr} })`;
+  }
+
+  // Value-only diff - skips outer changed bit (used for array/optional/record element updates)
+  private compileEncodeDiffValue(type: Type, a: string, b: string, parent: NamedType): string {
+    if (type.type === "reference") {
+      return this.compileEncodeDiffValue(type.ref, a, b, type.ref);
+    }
+    if (type.type === "self-reference") {
+      return `ctx.encodeDiffValue(${a}, ${b}, encoder)`;
+    }
+    // Objects: inline field diffs, skipping the outer changed bit
+    if (type.type === "object") {
+      const propDiffs = Object.entries(type.properties)
+        .map(([key, propType]) =>
+          this.compileEncodeDiffField(propType, `${a}.${key}`, `${b}.${key}`, `${b}._dirty`, `"${key}"`, parent)
+        )
+        .join("\n");
+      return propDiffs || "";
+    }
+    // Boolean: no encoding needed - being in update list implies changed, decoder flips old value
+    if (type.type === "boolean") {
+      return "";
+    }
+    // Everything else (primitives, arrays, records, etc.) use regular diff
+    return this.compileEncodeDiff(type, a, b, parent);
+  }
+
+  // Compile fields-only encode for root type (for ctx.encodeDiffValue)
+  compileEncodeDiffValueForRoot(rootType: NamedType): string {
+    return this.compileEncodeDiffValue(rootType, "a", "b", rootType);
+  }
+
+  // Value-only diff - no change bit (used for array/map updates)
   compileEncodeDiff(type: Type, a: string, b: string, parent: NamedType): string {
     switch (type.type) {
       case "string":
-        return `encoder.pushStringDiff(${a}, ${b});`;
+        return `encoder.pushStringDiff(${a}, ${b})`;
       case "int":
         if (type.min != null && type.min >= 0) {
-          return `encoder.pushBoundedIntDiff(${a}, ${b}, ${type.min});`;
+          return `encoder.pushBoundedIntDiff(${a}, ${b}, ${type.min})`;
         }
-        return `encoder.pushIntDiff(${a}, ${b});`;
+        return `encoder.pushIntDiff(${a}, ${b})`;
       case "float":
         if (type.precision) {
-          return `encoder.pushFloatQuantizedDiff(${a}, ${b}, ${type.precision});`;
+          return `encoder.pushFloatQuantizedDiff(${a}, ${b}, ${type.precision})`;
         }
-        return `encoder.pushFloatDiff(${a}, ${b});`;
+        return `encoder.pushFloatDiff(${a}, ${b})`;
       case "boolean":
-        return `encoder.pushBooleanDiff(${a}, ${b});`;
+        return `encoder.pushBooleanDiff(${a}, ${b})`;
       case "enum": {
         const enumRef = this.getEnumRef(type.options);
-        return `encoder.pushEnumDiff(${enumRef}.indexOf(${a}), ${enumRef}.indexOf(${b}), ${type.numBits});`;
+        return `encoder.pushEnumDiff(${enumRef}.indexOf(${a}), ${enumRef}.indexOf(${b}), ${type.numBits})`;
       }
-      case "reference":
-        return this.compileEncodeDiff(type.ref, a, b, type.ref);
-      case "self-reference":
-        return `ctx.encodeDiff(${a}, ${b}, encoder);`;
       case "object": {
         const eqExpr = this.compileEquals(type, a, b, parent);
         const propDiffs = Object.entries(type.properties)
-          .map(
-            ([key, propType]) =>
-              `if (dirty != null && !dirty.has("${key}")) { encoder.pushBoolean(false); } else { ${this.compileEncodeDiff(propType, `${a}.${key}`, `${b}.${key}`, parent)} }`
+          .map(([key, propType]) =>
+            this.compileEncodeDiffField(propType, `${a}.${key}`, `${b}.${key}`, "dirty", `"${key}"`, parent)
           )
           .join("\n");
         return `{ const dirty = ${b}._dirty; const changed = dirty == null ? !(${eqExpr}) : dirty.size > 0; encoder.pushBoolean(changed); if (changed) { ${propDiffs} } }`;
@@ -282,34 +358,81 @@ class JitCompiler {
       case "array": {
         const x = this.nextVar("x");
         const y = this.nextVar("y");
-        return `encoder.pushArrayDiff(${a}, ${b}, (${x}, ${y}) => ${this.compileEquals(type.value, x, y, parent)}, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiff(type.value, x, y, parent)} });`;
+        return `encoder.pushArrayDiff(${a}, ${b}, (${x}, ${y}) => ${this.compileEquals(type.value, x, y, parent)}, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiffValue(type.value, x, y, parent)} })`;
       }
       case "record": {
         const x = this.nextVar("x");
         const y = this.nextVar("y");
-        return `encoder.pushRecordDiff(${a}, ${b}, (${x}, ${y}) => ${this.compileEquals(type.value, x, y, parent)}, (${x}) => { ${this.compileEncode(type.key, x, parent)} }, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiff(type.value, x, y, parent)} });`;
+        return `encoder.pushRecordDiff(${a}, ${b}, (${x}, ${y}) => ${this.compileEquals(type.value, x, y, parent)}, (${x}) => { ${this.compileEncode(type.key, x, parent)} }, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiffValue(type.value, x, y, parent)} })`;
       }
       case "union": {
         return type.options
-          .map(
-            (variant, i) =>
-              `if (${b}._type === "${variant.name}") { if (${a}._type === "${variant.name}") { encoder.pushBoolean(true); ${this.compileEncodeDiff(variant, a, b, variant)} } else { encoder.pushBoolean(false); encoder.pushEnum(${i}, ${type.numBits}); ${this.compileEncode(variant, b, variant)} } }`
-          )
+          .map((variant, i) => {
+            // Inline field diffs for same-type case, skipping the variant's changed bit
+            const obj = variant as ObjectType;
+            const fieldDiffs = Object.entries(obj.properties)
+              .map(([key, propType]) =>
+                this.compileEncodeDiffField(propType, `${a}.${key}`, `${b}.${key}`, `${b}._dirty`, `"${key}"`, obj)
+              )
+              .join("\n");
+            return `if (${b}._type === "${variant.name}") { if (${a}._type === "${variant.name}") { encoder.pushBoolean(true); ${fieldDiffs} } else { encoder.pushBoolean(false); encoder.pushEnum(${i}, ${type.numBits}); ${this.compileEncode(variant, b, variant)} } }`;
+          })
           .join(" else ");
       }
       case "optional": {
         const x = this.nextVar("x");
         const y = this.nextVar("y");
-        if (isPrimitiveOrEnum(type.value)) {
-          return `encoder.pushOptionalDiffPrimitive(${a}, ${b}, (${x}, ${y}) => ${this.compileEquals(type.value, x, y, parent)}, (${x}) => { ${this.compileEncode(type.value, x, parent)} });`;
-        }
-        return `encoder.pushOptionalDiff(${a}, ${b}, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiff(type.value, x, y, parent)} });`;
+        return `encoder.pushOptionalDiff(${a}, ${b}, (${x}) => { ${this.compileEncode(type.value, x, parent)} }, (${x}, ${y}) => { ${this.compileEncodeDiffValue(type.value, x, y, parent)} })`;
       }
       default:
         throw new Error(`Unknown type: ${(type as Type).type}`);
     }
   }
 
+  // Field diff using nextFieldDiff - reads change bit and returns old or new value
+  private compileDecodeDiffExprField(type: Type, a: string, parent: NamedType): string {
+    if (type.type === "reference") {
+      return this.compileDecodeDiffExprField(type.ref, a, type.ref);
+    }
+    // Types with own change bit use their own decode logic
+    if (hasOwnChangeBit(type)) {
+      return this.compileDecodeDiffExpr(type, a, parent);
+    }
+    // Use nextFieldDiff for primitives, enums, optionals
+    const x = this.nextVar("x");
+    const diffExpr = this.compileDecodeDiffExpr(type, x, parent);
+    return `decoder.nextFieldDiff(${a}, (${x}) => ${diffExpr})`;
+  }
+
+  // Value-only diff - skips outer changed bit (used for array/optional/record element updates)
+  private compileDecodeDiffExprValue(type: Type, a: string, parent: NamedType): string {
+    if (type.type === "reference") {
+      return this.compileDecodeDiffExprValue(type.ref, a, type.ref);
+    }
+    if (type.type === "self-reference") {
+      return `ctx.decodeDiffValue(${a}, decoder)`;
+    }
+    // Objects: inline field decoding, skipping the outer changed bit
+    if (type.type === "object") {
+      const fields = Object.entries(type.properties)
+        .map(([key, propType]) => `${key}: ${this.compileDecodeDiffExprField(propType, `${a}.${key}`, parent)}`)
+        .join(", ");
+      return `({ ${fields} })`;
+    }
+    // Boolean: just flip the old value - being in update list implies changed
+    if (type.type === "boolean") {
+      return `!${a}`;
+    }
+    // Everything else (primitives, arrays, records, etc.) use regular diff
+    return this.compileDecodeDiffExpr(type, a, parent);
+  }
+
+  // Compile fields-only decode for root type (for ctx.decodeDiffValue)
+  compileDecodeDiffExprValueForRoot(rootType: NamedType): string {
+    return this.compileDecodeDiffExprValue(rootType, "a", rootType);
+  }
+
+  // Value-only diff - no change bit (used for array/map updates)
   compileDecodeDiffExpr(type: Type, a: string, parent: NamedType): string {
     switch (type.type) {
       case "string":
@@ -330,30 +453,30 @@ class JitCompiler {
         const enumRef = this.getEnumRef(type.options);
         return `${enumRef}[decoder.nextEnumDiff(${enumRef}.indexOf(${a}), ${type.numBits})]`;
       }
-      case "reference":
-        return this.compileDecodeDiffExpr(type.ref, a, type.ref);
-      case "self-reference":
-        return `ctx.decodeDiff(${a}, decoder)`;
       case "object": {
         const fields = Object.entries(type.properties)
-          .map(([key, propType]) => `${key}: ${this.compileDecodeDiffExpr(propType, `${a}.${key}`, parent)}`)
+          .map(([key, propType]) => `${key}: ${this.compileDecodeDiffExprField(propType, `${a}.${key}`, parent)}`)
           .join(", ");
         return `(decoder.nextBoolean() ? ({ ${fields} }) : ${a})`;
       }
       case "array": {
         const x = this.nextVar("x");
-        return `decoder.nextArrayDiff(${a}, () => ${this.compileDecodeExpr(type.value, parent)}, (${x}) => ${this.compileDecodeDiffExpr(type.value, x, parent)})`;
+        return `decoder.nextArrayDiff(${a}, () => ${this.compileDecodeExpr(type.value, parent)}, (${x}) => ${this.compileDecodeDiffExprValue(type.value, x, parent)})`;
       }
       case "record": {
         const x = this.nextVar("x");
-        return `decoder.nextRecordDiff(${a}, () => ${this.compileDecodeExpr(type.key, parent)}, () => ${this.compileDecodeExpr(type.value, parent)}, (${x}) => ${this.compileDecodeDiffExpr(type.value, x, parent)})`;
+        return `decoder.nextRecordDiff(${a}, () => ${this.compileDecodeExpr(type.key, parent)}, () => ${this.compileDecodeExpr(type.value, parent)}, (${x}) => ${this.compileDecodeDiffExprValue(type.value, x, parent)})`;
       }
       case "union": {
         const sameTypeCases = type.options
-          .map(
-            (variant) =>
-              `${a}._type === "${variant.name}" ? { _type: "${variant.name}", ...${this.compileDecodeDiffExpr(variant, a, variant)} }`
-          )
+          .map((variant) => {
+            // Inline field decoding for same-type case, skipping the variant's changed bit
+            const obj = variant as ObjectType;
+            const fields = Object.entries(obj.properties)
+              .map(([key, propType]) => `${key}: ${this.compileDecodeDiffExprField(propType, `${a}.${key}`, obj)}`)
+              .join(", ");
+            return `${a}._type === "${variant.name}" ? { _type: "${variant.name}", ${fields} }`;
+          })
           .join(" : ");
         const newTypeCases = type.options
           .map(
@@ -363,11 +486,8 @@ class JitCompiler {
         return `(decoder.nextBoolean() ? (${sameTypeCases} : null) : ((t) => ${newTypeCases} : null)(decoder.nextEnum(${type.numBits})))`;
       }
       case "optional": {
-        if (isPrimitiveOrEnum(type.value)) {
-          return `decoder.nextOptionalDiffPrimitive(${a}, () => ${this.compileDecodeExpr(type.value, parent)})`;
-        }
         const x = this.nextVar("x");
-        return `decoder.nextOptionalDiff(${a}, () => ${this.compileDecodeExpr(type.value, parent)}, (${x}) => ${this.compileDecodeDiffExpr(type.value, x, parent)})`;
+        return `decoder.nextOptionalDiff(${a}, () => ${this.compileDecodeExpr(type.value, parent)}, (${x}) => ${this.compileDecodeDiffExprValue(type.value, x, parent)})`;
       }
       default:
         throw new Error(`Unknown type: ${(type as Type).type}`);

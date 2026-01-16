@@ -119,11 +119,11 @@ impl<'a> Decoder<'a> {
         self.rle.next_bits(num_bits)
     }
 
-    // Diff methods
+    // Diff methods (value-only - caller handles change bit for object fields)
 
     #[inline]
     pub fn next_string_diff(&mut self, a: &str) -> String {
-        // Only add to dictionary if not already present (matches TS/C# behavior)
+        // Only add to dictionary if not already present (for decoder sync)
         let already_in_dict = self.dict.iter().any(|entry| match entry {
             DictEntry::Pos(start, len) => unsafe {
                 std::str::from_utf8_unchecked(&self.buffer[*start..*start + *len]) == a
@@ -133,70 +133,43 @@ impl<'a> Decoder<'a> {
         if !already_in_dict {
             self.dict.push(DictEntry::Owned(a.to_string()));
         }
-        if self.next_boolean() {
-            self.next_string()
-        } else {
-            a.to_string()
-        }
+        self.next_string()
     }
 
     #[inline]
-    pub fn next_int_diff(&mut self, a: i64) -> i64 {
-        if self.next_boolean() {
-            self.next_int()
-        } else {
-            a
-        }
+    pub fn next_int_diff(&mut self, _a: i64) -> i64 {
+        self.next_int()
     }
 
     #[inline]
-    pub fn next_uint_diff(&mut self, a: u64) -> u64 {
-        if self.next_boolean() {
-            self.next_uint()
-        } else {
-            a
-        }
+    pub fn next_uint_diff(&mut self, _a: u64) -> u64 {
+        self.next_uint()
     }
 
     #[inline]
-    pub fn next_bounded_int_diff(&mut self, a: i64, min: i64) -> i64 {
-        if self.next_boolean() {
-            self.next_bounded_int(min)
-        } else {
-            a
-        }
+    pub fn next_bounded_int_diff(&mut self, _a: i64, min: i64) -> i64 {
+        self.next_bounded_int(min)
     }
 
     #[inline]
-    pub fn next_float_diff(&mut self, a: f32) -> f32 {
-        if self.next_boolean() {
-            self.next_float()
-        } else {
-            a
-        }
+    pub fn next_float_diff(&mut self, _a: f32) -> f32 {
+        self.next_float()
     }
 
     #[inline]
-    pub fn next_float_quantized_diff(&mut self, a: f32, precision: f32) -> f32 {
-        if self.next_boolean() {
-            self.next_float_quantized(precision)
-        } else {
-            a
-        }
+    pub fn next_float_quantized_diff(&mut self, _a: f32, precision: f32) -> f32 {
+        self.next_float_quantized(precision)
     }
 
     #[inline]
     pub fn next_boolean_diff(&mut self, a: bool) -> bool {
+        // Boolean diff is special - change bit IS the diff
         a ^ self.next_boolean()
     }
 
     #[inline]
-    pub fn next_enum_diff(&mut self, a: u32, num_bits: u8) -> u32 {
-        if self.next_boolean() {
-            self.next_enum(num_bits)
-        } else {
-            a
-        }
+    pub fn next_enum_diff(&mut self, _a: u32, num_bits: u8) -> u32 {
+        self.next_enum(num_bits)
     }
 
     // Array helpers
@@ -216,6 +189,7 @@ impl<'a> Decoder<'a> {
     }
 
     /// Decode array diff, using sparse format with index-based updates.
+    /// Caller handles change bit.
     #[inline]
     pub fn next_array_diff<T, F, FD>(&mut self, a: &[T], mut inner_read: F, mut inner_diff: FD) -> Vec<T>
     where
@@ -223,9 +197,6 @@ impl<'a> Decoder<'a> {
         F: FnMut(&mut Self) -> T,
         FD: FnMut(&mut Self, &T) -> T,
     {
-        if !self.next_boolean() {
-            return a.to_vec();
-        }
         let new_len = self.next_uint() as usize;
 
         // Start with copy of old array (truncated to new length)
@@ -256,7 +227,9 @@ impl<'a> Decoder<'a> {
         self.next_boolean().then(|| inner_read(self))
     }
 
-    /// Decode optional diff for non-primitives, matching TS/C# format.
+    /// Decode optional diff, matching TS/C# format.
+    /// Optimization: if a was None, we know b must be Some (else unchanged).
+    /// So no present bit in None→Some case.
     #[inline]
     pub fn next_optional_diff<T, F, FD>(&mut self, a: &Option<T>, mut inner_read: F, mut inner_diff: FD) -> Option<T>
     where
@@ -264,31 +237,17 @@ impl<'a> Decoder<'a> {
         F: FnMut(&mut Self) -> T,
         FD: FnMut(&mut Self, &T) -> T,
     {
-        if !self.next_boolean() {
-            return None;
-        }
-        Some(match a {
-            None => inner_read(self),
-            Some(av) => inner_diff(self, av),
-        })
-    }
-
-    /// Decode optional diff for primitives/enums, matching TS/C# format.
-    #[inline]
-    pub fn next_optional_diff_primitive<T, R>(&mut self, a: &Option<T>, mut inner_read: R) -> Option<T>
-    where
-        T: Clone,
-        R: FnMut(&mut Self) -> T,
-    {
         match a {
             None => {
-                if self.next_boolean() { Some(inner_read(self)) } else { None }
+                // None → Some (guaranteed Some by caller)
+                Some(inner_read(self))
             }
-            Some(_) => {
-                if !self.next_boolean() {
-                    return a.clone();
+            Some(av) => {
+                if self.next_boolean() {
+                    Some(inner_diff(self, av)) // Some → Some
+                } else {
+                    None // Some → None
                 }
-                if self.next_boolean() { Some(inner_read(self)) } else { None }
             }
         }
     }
@@ -314,7 +273,8 @@ impl<'a> Decoder<'a> {
     }
 
     /// Decode record diff, matching TS/C# format.
-    /// Format: changed bit, then if a.len > 0: deletions, updates; then additions
+    /// Caller handles change bit.
+    /// Format: if a.len > 0: deletions, updates; then additions
     #[inline]
     pub fn next_record_diff<K, V, FK, FV, FVD>(
         &mut self,
@@ -330,10 +290,6 @@ impl<'a> Decoder<'a> {
         FV: FnMut(&mut Self) -> V,
         FVD: FnMut(&mut Self, &V) -> V,
     {
-        if !self.next_boolean() {
-            return a.clone();
-        }
-
         let mut result = a.clone();
 
         // Read deletions and updates (only if a was non-empty)

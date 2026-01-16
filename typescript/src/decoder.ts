@@ -39,8 +39,8 @@ export class Decoder {
     return this.readUVarint() + min;
   }
 
-  nextBoundedIntDiff(a: number, min: number) {
-    return this.nextUIntDiff(a - min) + min;
+  nextBoundedIntDiff(_a: number, min: number) {
+    return this.readUVarint() + min;
   }
 
   nextFloat() {
@@ -85,53 +85,41 @@ export class Decoder {
     if (!this.dict.includes(a)) {
       this.dict.push(a);
     }
-    const changed = this.nextBoolean();
-    return changed ? this.nextString() : a;
+    return this.nextString();
   }
 
-  nextIntDiff(a: number) {
-    const changed = this.nextBoolean();
-    return changed ? this.nextInt() : a;
+  nextIntDiff(_a: number) {
+    return this.nextInt();
   }
 
-  nextFloatDiff(a: number) {
-    const changed = this.nextBoolean();
-    return changed ? this.nextFloat() : a;
+  nextFloatDiff(_a: number) {
+    return this.nextFloat();
   }
 
-  nextFloatQuantizedDiff(a: number, precision: number) {
-    const changed = this.nextBoolean();
-    return changed ? this.nextFloatQuantized(precision) : a;
+  nextFloatQuantizedDiff(_a: number, precision: number) {
+    return this.nextFloatQuantized(precision);
   }
 
+  // Boolean diff is special - the change bit IS the diff
   nextBooleanDiff(a: boolean) {
     const changed = this.nextBoolean();
     return changed ? !a : a;
   }
 
-  nextEnumDiff(a: number, numBits: number): number {
-    const changed = this.nextBoolean();
-    return changed ? this.nextEnum(numBits) : a;
+  nextEnumDiff(_a: number, numBits: number): number {
+    return this.nextEnum(numBits);
   }
 
-  nextOptionalDiffPrimitive<T>(obj: T | undefined, decode: () => T): T | undefined {
-    if (obj == null) {
-      const present = this.nextBoolean();
-      return present ? decode() : undefined;
-    } else {
-      const changed = this.nextBoolean();
-      if (!changed) {
-        return obj;
-      }
-      const present = this.nextBoolean();
-      return present ? decode() : undefined;
-    }
+  // Generic field diff - reads change bit and returns old or new value
+  nextFieldDiff<T>(a: T, decodeDiff: (a: T) => T): T {
+    return this.nextBoolean() ? decodeDiff(a) : a;
   }
 
   nextOptionalDiff<T>(obj: T | undefined, decode: () => T, decodeDiff: (a: T) => T): T | undefined {
+    // Optimization: if obj was null, we know new value must be non-null (else changed would be false)
+    // So skip reading the present bit in null→value case
     if (obj == null) {
-      const present = this.nextBoolean();
-      return present ? decode() : undefined;
+      return decode();
     } else {
       const present = this.nextBoolean();
       return present ? decodeDiff(obj) : undefined;
@@ -139,10 +127,6 @@ export class Decoder {
   }
 
   nextArrayDiff<T>(arr: T[], decode: () => T, decodeDiff: (a: T) => T): T[] {
-    const changed = this.nextBoolean();
-    if (!changed) {
-      return arr;
-    }
     const newLen = this.readUVarint();
 
     // Start with copy of old array (truncated to new length)
@@ -164,10 +148,6 @@ export class Decoder {
   }
 
   nextRecordDiff<K, T>(obj: Map<K, T>, decodeKey: () => K, decodeVal: () => T, decodeDiff: (a: T) => T): Map<K, T> {
-    const changed = this.nextBoolean();
-    if (!changed) {
-      return obj;
-    }
     const result: Map<K, T> = new Map(obj);
     if (obj.size > 0) {
       const numDeletions = this.readUVarint();
@@ -188,11 +168,6 @@ export class Decoder {
       result.set(key, val);
     }
     return result;
-  }
-
-  private nextUIntDiff(a: number) {
-    const changed = this.nextBoolean();
-    return changed ? this.readUVarint() : a;
   }
 
   private readVarint() {

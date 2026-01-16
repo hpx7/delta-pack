@@ -440,7 +440,52 @@ public static class Interpreter
                 return;
 
             foreach (var (key, propType) in ot.Properties)
-                EncodeDiff(GetProp(a, key), GetProp(b, key), propType, encoder);
+                EncodeDiffField(GetProp(a, key), GetProp(b, key), propType, encoder);
+        }
+
+        private void EncodeDiffField(object? a, object? b, SchemaType type, Encoder encoder)
+        {
+            // Types that handle their own change bit
+            if (type is BooleanType or ObjectType)
+            {
+                EncodeDiff(a, b, type, encoder);
+                return;
+            }
+            if (type is ReferenceType rt)
+            {
+                EncodeDiffField(a, b, ResolveRef(rt.Reference), encoder);
+                return;
+            }
+
+            // Wrap with change bit for primitives, enums, arrays, records, optionals, unions
+            encoder.PushFieldDiff(a, b, (x, y) => Equals(x, y, type), (x, y) => EncodeDiff(x, y, type, encoder));
+        }
+
+        // Value-only diff encoding (for array/record element updates - skips object/boolean outer change bit)
+        private void EncodeDiffValue(object? a, object? b, SchemaType type, Encoder encoder)
+        {
+            if (type is ReferenceType rt)
+            {
+                EncodeDiffValue(a, b, ResolveRef(rt.Reference), encoder);
+                return;
+            }
+
+            // Objects: inline field diffs, skipping outer change bit
+            if (type is ObjectType ot)
+            {
+                foreach (var (key, propType) in ot.Properties)
+                    EncodeDiffField(GetProp(a, key), GetProp(b, key), propType, encoder);
+                return;
+            }
+
+            // Boolean: no encoding needed - being in update list implies changed, decoder flips old value
+            if (type is BooleanType)
+            {
+                return;
+            }
+
+            // Everything else uses regular diff
+            EncodeDiff(a, b, type, encoder);
         }
 
         private void EncodeDiffArray(object? a, object? b, ArrayType at, Encoder encoder)
@@ -452,7 +497,7 @@ public static class Interpreter
                 arrA, arrB,
                 (x, y) => Equals(x, y, at.Value),
                 x => Encode(x, at.Value, encoder),
-                (x, y) => EncodeDiff(x, y, at.Value, encoder));
+                (x, y) => EncodeDiffValue(x, y, at.Value, encoder));
         }
 
         private void EncodeDiffRecord(object? a, object? b, RecordType rt, Encoder encoder) =>
@@ -462,7 +507,7 @@ public static class Interpreter
                 (x, y) => Equals(x, y, rt.Value),
                 key => Encode(key, rt.Key, encoder),
                 val => Encode(val, rt.Value, encoder),
-                (x, y) => EncodeDiff(x, y, rt.Value, encoder));
+                (x, y) => EncodeDiffValue(x, y, rt.Value, encoder));
 
         private void EncodeDiffUnion(object? a, object? b, UnionType ut, Encoder encoder)
         {
@@ -478,19 +523,16 @@ public static class Interpreter
             }
             else
             {
-                // Same type - encode diff
+                // Same type - encode value-only diff (skip object change bit)
                 encoder.PushBoolean(true);
-                EncodeDiff(unionA.Val, unionB.Val, ResolveRef(unionA.Type), encoder);
+                EncodeDiffValue(unionA.Val, unionB.Val, ResolveRef(unionA.Type), encoder);
             }
         }
 
         private void EncodeDiffOptional(object? a, object? b, OptionalType opt, Encoder encoder)
         {
             var valueType = opt.Value;
-            if (Schema.IsPrimitiveType(valueType, _schema))
-                encoder.PushOptionalDiffPrimitive<object>(a, b, (x, y) => Equals(x, y, valueType), x => Encode(x, valueType, encoder));
-            else
-                encoder.PushOptionalDiff<object>(a, b, x => Encode(x, valueType, encoder), (x, y) => EncodeDiff(x, y, valueType, encoder));
+            encoder.PushOptionalDiff<object>(a, b, x => Encode(x, valueType, encoder), (x, y) => EncodeDiffValue(x, y, valueType, encoder));
         }
 
         // === DecodeDiff ===
@@ -536,22 +578,65 @@ public static class Interpreter
 
             var result = new Dictionary<string, object?>();
             foreach (var (key, propType) in ot.Properties)
-                result[key] = DecodeDiff(GetProp(a, key), propType, decoder);
+                result[key] = DecodeDiffField(GetProp(a, key), propType, decoder);
             return result;
+        }
+
+        private object? DecodeDiffField(object? a, SchemaType type, Decoder decoder)
+        {
+            // Types that handle their own change bit
+            if (type is BooleanType or ObjectType)
+            {
+                return DecodeDiff(a, type, decoder);
+            }
+            if (type is ReferenceType rt)
+            {
+                return DecodeDiffField(a, ResolveRef(rt.Reference), decoder);
+            }
+
+            // Read change bit for primitives, enums, arrays, records, optionals, unions
+            return decoder.NextFieldDiff(a, x => DecodeDiff(x, type, decoder));
+        }
+
+        // Value-only diff decoding (for array/record element updates - skips object/boolean outer change bit)
+        private object? DecodeDiffValue(object? a, SchemaType type, Decoder decoder)
+        {
+            if (type is ReferenceType rt)
+            {
+                return DecodeDiffValue(a, ResolveRef(rt.Reference), decoder);
+            }
+
+            // Objects: inline field decoding, skipping outer change bit
+            if (type is ObjectType ot)
+            {
+                var result = new Dictionary<string, object?>();
+                foreach (var (key, propType) in ot.Properties)
+                    result[key] = DecodeDiffField(GetProp(a, key), propType, decoder);
+                return result;
+            }
+
+            // Boolean: flip the old value - being in update list implies changed
+            if (type is BooleanType)
+            {
+                return !(bool)a!;
+            }
+
+            // Everything else uses regular diff
+            return DecodeDiff(a, type, decoder);
         }
 
         private List<object?> DecodeDiffArray(object? a, ArrayType at, Decoder decoder) =>
             decoder.NextArrayDiff(
                 (IList<object?>)a!,
                 () => Decode(at.Value, decoder),
-                item => DecodeDiff(item, at.Value, decoder));
+                item => DecodeDiffValue(item, at.Value, decoder));
 
         private Dictionary<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder) =>
             decoder.NextRecordDiff(
                 (IDictionary<object, object?>)a!,
                 () => Decode(rt.Key, decoder)!,
                 () => Decode(rt.Value, decoder),
-                val => DecodeDiff(val, rt.Value, decoder));
+                val => DecodeDiffValue(val, rt.Value, decoder));
 
         private UnionValue DecodeDiffUnion(object? a, UnionType ut, Decoder decoder)
         {
@@ -569,19 +654,17 @@ public static class Interpreter
             }
             else
             {
-                // Same type - decode diff
+                // Same type - decode value-only diff (skip object change bit)
                 return new UnionValue(
                     unionA.Type,
-                    DecodeDiff(unionA.Val, ResolveRef(unionA.Type), decoder));
+                    DecodeDiffValue(unionA.Val, ResolveRef(unionA.Type), decoder));
             }
         }
 
         private object? DecodeDiffOptional(object? a, OptionalType opt, Decoder decoder)
         {
             var valueType = opt.Value;
-            if (Schema.IsPrimitiveType(valueType, _schema))
-                return decoder.NextOptionalDiffPrimitive<object>(a!, () => Decode(valueType, decoder)!);
-            return decoder.NextOptionalDiff<object>(a!, () => Decode(valueType, decoder)!, x => DecodeDiff(x, valueType, decoder)!);
+            return decoder.NextOptionalDiff<object>(a!, () => Decode(valueType, decoder)!, x => DecodeDiffValue(x, valueType, decoder)!);
         }
 
         // === FromJson ===

@@ -95,37 +95,26 @@ public class Decoder
 
     // Diff methods
 
+    // Value-only diff methods (caller handles change bit for object fields)
+
     public string NextStringDiff(string a)
     {
         if (!_dict.Contains(a))
             _dict.Add(a);
-        var changed = NextBoolean();
-        return changed ? NextString() : a;
+        return NextString();
     }
 
-    public long NextIntDiff(long a)
-    {
-        var changed = NextBoolean();
-        return changed ? NextInt() : a;
-    }
+    public long NextIntDiff(long a) =>
+        NextInt();
 
-    public long NextBoundedIntDiff(long a, long min)
-    {
-        var changed = NextBoolean();
-        return changed ? NextBoundedInt(min) : a;
-    }
+    public long NextBoundedIntDiff(long a, long min) =>
+        NextBoundedInt(min);
 
-    public float NextFloatDiff(float a)
-    {
-        var changed = NextBoolean();
-        return changed ? NextFloat() : a;
-    }
+    public float NextFloatDiff(float a) =>
+        NextFloat();
 
-    public float NextFloatQuantizedDiff(float a, float precision)
-    {
-        var changed = NextBoolean();
-        return changed ? NextFloatQuantized(precision) : a;
-    }
+    public float NextFloatQuantizedDiff(float a, float precision) =>
+        NextFloatQuantized(precision);
 
     public bool NextBooleanDiff(bool a)
     {
@@ -133,52 +122,26 @@ public class Decoder
         return changed ? !a : a;
     }
 
-    public int NextEnumDiff(int a, int numBits)
+    public int NextEnumDiff(int a, int numBits) =>
+        NextEnum(numBits);
+
+    // Field diff helper (read change bit, decode if changed)
+
+    public T NextFieldDiff<T>(T a, Func<T, T> decodeDiff)
     {
         var changed = NextBoolean();
-        return changed ? NextEnum(numBits) : a;
+        return changed ? decodeDiff(a) : a;
     }
 
-    public T? NextOptionalDiffPrimitive<T>(T? a, Func<T> decode) where T : class
-    {
-        if (a is null)
-        {
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-        else
-        {
-            var changed = NextBoolean();
-            if (!changed)
-                return a;
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-    }
-
-    public T? NextOptionalDiffValue<T>(T? a, Func<T> decode) where T : struct
-    {
-        if (a is null)
-        {
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-        else
-        {
-            var changed = NextBoolean();
-            if (!changed)
-                return a;
-            var present = NextBoolean();
-            return present ? decode() : null;
-        }
-    }
+    // Optional diff
 
     public T? NextOptionalDiff<T>(T? a, Func<T> decode, Func<T, T> decodeDiff) where T : class
     {
+        // Optimization: if a was null, we know b must be non-null (else changed would be false)
+        // So no present bit in null→value case
         if (a is null)
         {
-            var present = NextBoolean();
-            return present ? decode() : null;
+            return decode(); // null → value (guaranteed non-null by caller)
         }
         else
         {
@@ -187,12 +150,24 @@ public class Decoder
         }
     }
 
+    public T? NextOptionalDiff<T>(T? a, Func<T> decode, Func<T, T> decodeDiff) where T : struct
+    {
+        // Optimization: if a was null, we know b must be non-null (else changed would be false)
+        // So no present bit in null→value case
+        if (a is null)
+        {
+            return decode(); // null → value (guaranteed non-null by caller)
+        }
+        else
+        {
+            var present = NextBoolean();
+            return present ? decodeDiff(a.Value) : null;
+        }
+    }
+
     public List<T> NextArrayDiff<T>(IList<T> arr, Func<T> decode, Func<T, T> decodeDiff)
     {
-        var changed = NextBoolean();
-        if (!changed)
-            return arr.ToList();
-
+        // Caller handles change bit via NextFieldDiff
         var newLen = (int)NextUInt();
 
         // Start with copy of old array (truncated to new length)
@@ -220,10 +195,7 @@ public class Decoder
         Func<TValue, TValue> decodeDiff)
         where TKey : notnull
     {
-        var changed = NextBoolean();
-        if (!changed)
-            return new Dictionary<TKey, TValue>(obj);
-
+        // Caller handles change bit via NextFieldDiff
         var result = new Dictionary<TKey, TValue>(obj);
 
         if (obj.Count > 0)

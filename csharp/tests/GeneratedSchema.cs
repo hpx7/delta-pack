@@ -93,11 +93,32 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushStringDiff(a.Id, b.Id);
-            encoder.PushStringDiff(a.Name, b.Name);
-            encoder.PushIntDiff(a.Score, b.Score);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(Player a, Player b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.Id == b.Id);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushStringDiff(a.Id, b.Id);
+            }
+            {
+                var changed = !(a.Name == b.Name);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushStringDiff(a.Name, b.Name);
+            }
+            {
+                var changed = !(a.Score == b.Score);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushIntDiff(a.Score, b.Score);
+            }
             encoder.PushBooleanDiff(a.IsActive, b.IsActive);
-            encoder.PushOptionalDiff<Player>(a.Partner, b.Partner, x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder));
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsOptional(a.Partner, b.Partner, (x, y) => Player.Equals(x, y)));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushOptionalDiff<Player>(a.Partner, b.Partner, x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiffFields_(x, y, encoder));
+            }
         }
 
         public static Player Decode(byte[] buf)
@@ -128,13 +149,18 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static Player DecodeDiffFields_(Player obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                Id = decoder.NextStringDiff(obj.Id),
-                Name = decoder.NextStringDiff(obj.Name),
-                Score = decoder.NextIntDiff(obj.Score),
+                Id = decoder.NextFieldDiff(obj.Id, x => decoder.NextStringDiff(x)),
+                Name = decoder.NextFieldDiff(obj.Name, x => decoder.NextStringDiff(x)),
+                Score = decoder.NextFieldDiff(obj.Score, x => decoder.NextIntDiff(x)),
                 IsActive = decoder.NextBooleanDiff(obj.IsActive),
-                Partner = decoder.NextOptionalDiff<Player>(obj.Partner, () => Player.Decode_(decoder), x => Player.DecodeDiff_(x, decoder)),
+                Partner = decoder.NextFieldDiff(obj.Partner, x => decoder.NextOptionalDiff<Player>(x, () => Player.Decode_(decoder), x => Player.DecodeDiffFields_(x, decoder))),
             };
         }
     }
@@ -203,8 +229,21 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushFloatQuantizedDiff(a.X, b.X, 0.1f);
-            encoder.PushFloatQuantizedDiff(a.Y, b.Y, 0.1f);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(Position a, Position b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsFloatQuantized(a.X, b.X, 0.1f));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushFloatQuantizedDiff(a.X, b.X, 0.1f);
+            }
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsFloatQuantized(a.Y, b.Y, 0.1f));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushFloatQuantizedDiff(a.Y, b.Y, 0.1f);
+            }
         }
 
         public static Position Decode(byte[] buf)
@@ -232,10 +271,15 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static Position DecodeDiffFields_(Position obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                X = decoder.NextFloatQuantizedDiff(obj.X, 0.1f),
-                Y = decoder.NextFloatQuantizedDiff(obj.Y, 0.1f),
+                X = decoder.NextFieldDiff(obj.X, x => decoder.NextFloatQuantizedDiff(x, 0.1f)),
+                Y = decoder.NextFieldDiff(obj.Y, x => decoder.NextFloatQuantizedDiff(x, 0.1f)),
             };
         }
     }
@@ -304,8 +348,21 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushFloatDiff(a.Vx, b.Vx);
-            encoder.PushFloatDiff(a.Vy, b.Vy);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(Velocity a, Velocity b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsFloat(a.Vx, b.Vx));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushFloatDiff(a.Vx, b.Vx);
+            }
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsFloat(a.Vy, b.Vy));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushFloatDiff(a.Vy, b.Vy);
+            }
         }
 
         public static Velocity Decode(byte[] buf)
@@ -333,10 +390,15 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static Velocity DecodeDiffFields_(Velocity obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                Vx = decoder.NextFloatDiff(obj.Vx),
-                Vy = decoder.NextFloatDiff(obj.Vy),
+                Vx = decoder.NextFieldDiff(obj.Vx, x => decoder.NextFloatDiff(x)),
+                Vy = decoder.NextFieldDiff(obj.Vy, x => decoder.NextFloatDiff(x)),
             };
         }
     }
@@ -405,7 +467,16 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushStringDiff(a.Id, b.Id);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(Entity a, Entity b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.Id == b.Id);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushStringDiff(a.Id, b.Id);
+            }
             Position.EncodeDiff_(a.Position, b.Position, encoder);
         }
 
@@ -434,9 +505,14 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static Entity DecodeDiffFields_(Entity obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                Id = decoder.NextStringDiff(obj.Id),
+                Id = decoder.NextFieldDiff(obj.Id, x => decoder.NextStringDiff(x)),
                 Position = Position.DecodeDiff_(obj.Position, decoder),
             };
         }
@@ -508,8 +584,21 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushIntDiff(a.X, b.X);
-            encoder.PushIntDiff(a.Y, b.Y);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(MoveAction a, MoveAction b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.X == b.X);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushIntDiff(a.X, b.X);
+            }
+            {
+                var changed = !(a.Y == b.Y);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushIntDiff(a.Y, b.Y);
+            }
         }
 
         public static new MoveAction Decode(byte[] buf)
@@ -537,10 +626,15 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static MoveAction DecodeDiffFields_(MoveAction obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                X = decoder.NextIntDiff(obj.X),
-                Y = decoder.NextIntDiff(obj.Y),
+                X = decoder.NextFieldDiff(obj.X, x => decoder.NextIntDiff(x)),
+                Y = decoder.NextFieldDiff(obj.Y, x => decoder.NextIntDiff(x)),
             };
         }
     }
@@ -611,8 +705,21 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushStringDiff(a.TargetId, b.TargetId);
-            encoder.PushBoundedIntDiff(a.Damage, b.Damage, 0);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(AttackAction a, AttackAction b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.TargetId == b.TargetId);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushStringDiff(a.TargetId, b.TargetId);
+            }
+            {
+                var changed = !(a.Damage == b.Damage);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushBoundedIntDiff(a.Damage, b.Damage, 0);
+            }
         }
 
         public static new AttackAction Decode(byte[] buf)
@@ -640,10 +747,15 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static AttackAction DecodeDiffFields_(AttackAction obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                TargetId = decoder.NextStringDiff(obj.TargetId),
-                Damage = decoder.NextBoundedIntDiff(obj.Damage, 0),
+                TargetId = decoder.NextFieldDiff(obj.TargetId, x => decoder.NextStringDiff(x)),
+                Damage = decoder.NextFieldDiff(obj.Damage, x => decoder.NextBoundedIntDiff(x, 0)),
             };
         }
     }
@@ -708,7 +820,16 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushStringDiff(a.ItemId, b.ItemId);
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(UseItemAction a, UseItemAction b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.ItemId == b.ItemId);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushStringDiff(a.ItemId, b.ItemId);
+            }
         }
 
         public static new UseItemAction Decode(byte[] buf)
@@ -735,9 +856,14 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static UseItemAction DecodeDiffFields_(UseItemAction obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                ItemId = decoder.NextStringDiff(obj.ItemId),
+                ItemId = decoder.NextFieldDiff(obj.ItemId, x => decoder.NextStringDiff(x)),
             };
         }
     }
@@ -835,7 +961,7 @@ namespace Generated
             {
                 if (a is MoveAction moveActionA)
                 {
-                    MoveAction.EncodeDiff_(moveActionA, moveActionB, encoder);
+                    MoveAction.EncodeDiffFields_(moveActionA, moveActionB, encoder);
                 }
                 else
                 {
@@ -847,7 +973,7 @@ namespace Generated
             {
                 if (a is AttackAction attackActionA)
                 {
-                    AttackAction.EncodeDiff_(attackActionA, attackActionB, encoder);
+                    AttackAction.EncodeDiffFields_(attackActionA, attackActionB, encoder);
                 }
                 else
                 {
@@ -859,7 +985,7 @@ namespace Generated
             {
                 if (a is UseItemAction useItemActionA)
                 {
-                    UseItemAction.EncodeDiff_(useItemActionA, useItemActionB, encoder);
+                    UseItemAction.EncodeDiffFields_(useItemActionA, useItemActionB, encoder);
                 }
                 else
                 {
@@ -895,9 +1021,9 @@ namespace Generated
             var isSameType = decoder.NextBoolean();
             if (isSameType)
             {
-                if (obj is MoveAction moveAction) return MoveAction.DecodeDiff_(moveAction, decoder);
-                else if (obj is AttackAction attackAction) return AttackAction.DecodeDiff_(attackAction, decoder);
-                else if (obj is UseItemAction useItemAction) return UseItemAction.DecodeDiff_(useItemAction, decoder);
+                if (obj is MoveAction moveAction) return MoveAction.DecodeDiffFields_(moveAction, decoder);
+                else if (obj is AttackAction attackAction) return AttackAction.DecodeDiffFields_(attackAction, decoder);
+                else if (obj is UseItemAction useItemAction) return UseItemAction.DecodeDiffFields_(useItemAction, decoder);
                 throw new System.InvalidOperationException("Invalid GameAction diff");
             }
             else
@@ -1000,12 +1126,41 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushArrayDiff<Player>(a.Players, b.Players, (x, y) => Player.Equals(x, y), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder));
-            encoder.PushOptionalDiffPrimitive<string>(a.CurrentPlayer, b.CurrentPlayer, (x, y) => x == y, x => encoder.PushString(x));
-            encoder.PushBoundedIntDiff(a.Round, b.Round, 0);
-            encoder.PushRecordDiff<string, string>(a.Metadata, b.Metadata, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y));
-            encoder.PushOptionalDiffValue<Color>(a.WinningColor, b.WinningColor, (x, y) => x == y, x => encoder.PushEnum((int)x, 2));
-            encoder.PushOptionalDiff<GameAction>(a.LastAction, b.LastAction, x => GameAction.Encode_(x, encoder), (x, y) => GameAction.EncodeDiff_(x, y, encoder));
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(GameState a, GameState b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.Players.Count == b.Players.Count && a.Players.Zip(b.Players).All(pair => Player.Equals(pair.First, pair.Second)));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushArrayDiff<Player>(a.Players, b.Players, (x, y) => Player.Equals(x, y), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiffFields_(x, y, encoder));
+            }
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsOptional(a.CurrentPlayer, b.CurrentPlayer, (x, y) => x == y));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushOptionalDiff<string>(a.CurrentPlayer, b.CurrentPlayer, x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y));
+            }
+            {
+                var changed = !(a.Round == b.Round);
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushBoundedIntDiff(a.Round, b.Round, 0);
+            }
+            {
+                var changed = !(a.Metadata.Count == b.Metadata.Count && a.Metadata.All(kvp => b.Metadata.TryGetValue(kvp.Key, out var v) && kvp.Value == v));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushRecordDiff<string, string>(a.Metadata, b.Metadata, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y));
+            }
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsOptionalValue(a.WinningColor, b.WinningColor, (x, y) => x == y));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushOptionalDiff<Color>(a.WinningColor, b.WinningColor, x => encoder.PushEnum((int)x, 2), (x, y) => encoder.PushEnumDiff((int)x, (int)y, 2));
+            }
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsOptional(a.LastAction, b.LastAction, (x, y) => GameAction.Equals(x, y)));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushOptionalDiff<GameAction>(a.LastAction, b.LastAction, x => GameAction.Encode_(x, encoder), (x, y) => GameAction.EncodeDiff_(x, y, encoder));
+            }
         }
 
         public static GameState Decode(byte[] buf)
@@ -1037,14 +1192,19 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static GameState DecodeDiffFields_(GameState obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                Players = decoder.NextArrayDiff<Player>(obj.Players, () => Player.Decode_(decoder), x => Player.DecodeDiff_(x, decoder)),
-                CurrentPlayer = decoder.NextOptionalDiffPrimitive<string>(obj.CurrentPlayer, () => decoder.NextString()),
-                Round = decoder.NextBoundedIntDiff(obj.Round, 0),
-                Metadata = decoder.NextRecordDiff<string, string>(obj.Metadata, () => decoder.NextString(), () => decoder.NextString(), x => decoder.NextStringDiff(x)),
-                WinningColor = decoder.NextOptionalDiffValue<Color>(obj.WinningColor, () => (Color)decoder.NextEnum(2)),
-                LastAction = decoder.NextOptionalDiff<GameAction>(obj.LastAction, () => GameAction.Decode_(decoder), x => GameAction.DecodeDiff_(x, decoder)),
+                Players = decoder.NextFieldDiff(obj.Players, x => decoder.NextArrayDiff<Player>(x, () => Player.Decode_(decoder), x => Player.DecodeDiffFields_(x, decoder))),
+                CurrentPlayer = decoder.NextFieldDiff(obj.CurrentPlayer, x => decoder.NextOptionalDiff<string>(x, () => decoder.NextString(), x => decoder.NextStringDiff(x))),
+                Round = decoder.NextFieldDiff(obj.Round, x => decoder.NextBoundedIntDiff(x, 0)),
+                Metadata = decoder.NextFieldDiff(obj.Metadata, x => decoder.NextRecordDiff<string, string>(x, () => decoder.NextString(), () => decoder.NextString(), x => decoder.NextStringDiff(x))),
+                WinningColor = decoder.NextFieldDiff(obj.WinningColor, x => decoder.NextOptionalDiff<Color>(x, () => (Color)decoder.NextEnum(2), x => (Color)decoder.NextEnumDiff((int)x, 2))),
+                LastAction = decoder.NextFieldDiff(obj.LastAction, x => decoder.NextOptionalDiff<GameAction>(x, () => GameAction.Decode_(decoder), x => GameAction.DecodeDiff_(x, decoder))),
             };
         }
     }
@@ -1107,7 +1267,16 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushOptionalDiff<System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, long>>>(a.Items, b.Items, x => encoder.PushArray(x, x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x))), (x, y) => encoder.PushArrayDiff<System.Collections.Generic.Dictionary<string, long>>(x, y, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x)), (x, y) => encoder.PushRecordDiff<string, long>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushInt(x), (x, y) => encoder.PushIntDiff(x, y))));
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(Inventory a, Inventory b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(DeltaPack.EqualityHelpers.EqualsOptional(a.Items, b.Items, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => pair.First.Count == pair.Second.Count && pair.First.All(kvp => pair.Second.TryGetValue(kvp.Key, out var v) && kvp.Value == v))));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushOptionalDiff<System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, long>>>(a.Items, b.Items, x => encoder.PushArray(x, x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x))), (x, y) => encoder.PushArrayDiff<System.Collections.Generic.Dictionary<string, long>>(x, y, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x)), (x, y) => encoder.PushRecordDiff<string, long>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushInt(x), (x, y) => encoder.PushIntDiff(x, y))));
+            }
         }
 
         public static Inventory Decode(byte[] buf)
@@ -1134,9 +1303,14 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static Inventory DecodeDiffFields_(Inventory obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                Items = decoder.NextOptionalDiff<System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, long>>>(obj.Items, () => decoder.NextArray(() => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt())), x => decoder.NextArrayDiff<System.Collections.Generic.Dictionary<string, long>>(x, () => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt()), x => decoder.NextRecordDiff<string, long>(x, () => decoder.NextString(), () => decoder.NextInt(), x => decoder.NextIntDiff(x)))),
+                Items = decoder.NextFieldDiff(obj.Items, x => decoder.NextOptionalDiff<System.Collections.Generic.List<System.Collections.Generic.Dictionary<string, long>>>(x, () => decoder.NextArray(() => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt())), x => decoder.NextArrayDiff<System.Collections.Generic.Dictionary<string, long>>(x, () => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt()), x => decoder.NextRecordDiff<string, long>(x, () => decoder.NextString(), () => decoder.NextInt(), x => decoder.NextIntDiff(x))))),
             };
         }
     }
@@ -1199,7 +1373,16 @@ namespace Generated
             var changed = !Equals(a, b);
             encoder.PushBoolean(changed);
             if (!changed) return;
-            encoder.PushRecordDiff<string, Player>(a.Players, b.Players, (x, y) => Player.Equals(x, y), x => encoder.PushString(x), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder));
+            EncodeDiffFields_(a, b, encoder);
+        }
+
+        internal static void EncodeDiffFields_(PlayerRegistry a, PlayerRegistry b, DeltaPack.Encoder encoder)
+        {
+            {
+                var changed = !(a.Players.Count == b.Players.Count && a.Players.All(kvp => b.Players.TryGetValue(kvp.Key, out var v) && Player.Equals(kvp.Value, v)));
+                encoder.PushBoolean(changed);
+                if (changed) encoder.PushRecordDiff<string, Player>(a.Players, b.Players, (x, y) => Player.Equals(x, y), x => encoder.PushString(x), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiffFields_(x, y, encoder));
+            }
         }
 
         public static PlayerRegistry Decode(byte[] buf)
@@ -1226,9 +1409,14 @@ namespace Generated
         {
             var changed = decoder.NextBoolean();
             if (!changed) return obj;
+            return DecodeDiffFields_(obj, decoder);
+        }
+
+        internal static PlayerRegistry DecodeDiffFields_(PlayerRegistry obj, DeltaPack.Decoder decoder)
+        {
             return new()
             {
-                Players = decoder.NextRecordDiff<string, Player>(obj.Players, () => decoder.NextString(), () => Player.Decode_(decoder), x => Player.DecodeDiff_(x, decoder)),
+                Players = decoder.NextFieldDiff(obj.Players, x => decoder.NextRecordDiff<string, Player>(x, () => decoder.NextString(), () => Player.Decode_(decoder), x => Player.DecodeDiffFields_(x, decoder))),
             };
         }
     }

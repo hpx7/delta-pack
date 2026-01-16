@@ -1,4 +1,3 @@
-import { equalsFloat, equalsArray, equalsRecord } from "./helpers.js";
 import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
 
 export class Encoder {
@@ -94,90 +93,64 @@ export class Encoder {
     if (!this.dict.includes(a)) {
       this.dict.push(a);
     }
-    this.pushBoolean(a !== b);
-    if (a !== b) {
-      this.pushString(b);
-    }
+    this.pushString(b);
   }
 
-  pushIntDiff(a: number, b: number) {
-    this.pushBoolean(a !== b);
-    if (a !== b) {
-      this.pushInt(b);
-    }
+  pushIntDiff(_a: number, b: number) {
+    this.pushInt(b);
   }
 
-  pushBoundedIntDiff(a: number, b: number, min: number) {
-    this.pushBoolean(a !== b);
-    if (a !== b) {
-      this.writeUVarint(b - min);
-    }
-  }
-  pushFloatDiff(a: number, b: number) {
-    const changed = !equalsFloat(a, b);
-    this.pushBoolean(changed);
-    if (changed) {
-      this.pushFloat(b);
-    }
+  pushBoundedIntDiff(_a: number, b: number, min: number) {
+    this.writeUVarint(b - min);
   }
 
-  pushFloatQuantizedDiff(a: number, b: number, precision: number) {
-    this.pushIntDiff(Math.round(a / precision), Math.round(b / precision));
+  pushFloatDiff(_a: number, b: number) {
+    this.pushFloat(b);
   }
 
+  pushFloatQuantizedDiff(_a: number, b: number, precision: number) {
+    this.pushFloatQuantized(b, precision);
+  }
+
+  // Boolean diff is special - the change bit IS the diff
   pushBooleanDiff(a: boolean, b: boolean) {
     this.pushBoolean(a !== b);
   }
 
-  pushEnumDiff(a: number, b: number, numBits: number) {
-    this.pushBoolean(a !== b);
-    if (a !== b) {
-      this.pushEnum(b, numBits);
-    }
+  pushEnumDiff(_a: number, b: number, numBits: number) {
+    this.pushEnum(b, numBits);
   }
 
-  pushOptionalDiffPrimitive<T>(
-    a: T | undefined,
-    b: T | undefined,
-    equals: (a: T, b: T) => boolean,
-    encode: (x: T) => void
-  ) {
-    if (a == null) {
-      this.pushBoolean(b != null);
-      if (b != null) {
-        // null → value
-        encode(b);
-      }
-      // else null → null
-    } else {
-      const changed = b == null || !equals(a, b);
-      this.pushBoolean(changed);
-      if (changed) {
-        this.pushBoolean(b != null);
-        if (b != null) {
-          // value → value
-          encode(b);
-        }
-        // else value → null
-      }
+  // Generic field diff - handles change bit for object fields
+  pushFieldDiff<T>(a: T, b: T, maybeDirty: boolean, equals: (a: T, b: T) => boolean, encodeDiff: (a: T, b: T) => void) {
+    if (!maybeDirty) {
+      this.pushBoolean(false);
+      return;
     }
+    const changed = !equals(a, b);
+    this.pushBoolean(changed);
+    if (changed) encodeDiff(a, b);
+  }
+
+  // Field diff for types that include their own change bit (boolean, object)
+  pushFieldDiffValue(maybeDirty: boolean, encodeDiff: () => void) {
+    if (!maybeDirty) {
+      this.pushBoolean(false);
+      return;
+    }
+    encodeDiff();
   }
 
   pushOptionalDiff<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void, encodeDiff: (a: T, b: T) => void) {
+    // Optimization: if a was null, we know b must be non-null (else changed would be false)
+    // So skip the present bit in null→value case
     if (a == null) {
-      this.pushBoolean(b != null);
-      if (b != null) {
-        // null → value
-        encode(b);
-      }
-      // else null → null
+      encode(b!);
     } else {
       this.pushBoolean(b != null);
       if (b != null) {
-        // value → value
         encodeDiff(a, b);
       }
-      // else value → null
     }
   }
 
@@ -189,11 +162,6 @@ export class Encoder {
     encodeDiff: (a: T, b: T) => void
   ) {
     const dirty = b._dirty;
-    const changed = dirty != null ? dirty.size > 0 || a.length !== b.length : !equalsArray(a, b, equals);
-    this.pushBoolean(changed);
-    if (!changed) {
-      return;
-    }
     this.writeUVarint(b.length);
 
     // Collect changed indices (sparse encoding)
@@ -231,11 +199,6 @@ export class Encoder {
     encodeDiff: (a: T, b: T) => void
   ) {
     const dirty = b._dirty;
-    const changed = dirty != null ? dirty.size > 0 : !equalsRecord(a, b, (x, y) => x === y, equals);
-    this.pushBoolean(changed);
-    if (!changed) {
-      return;
-    }
     const updates: K[] = [];
     const deletions: K[] = [];
     const additions: [K, T][] = [];
