@@ -1,20 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "fs";
-import { join } from "path";
-import { codegenTypescript } from "@hpx7/delta-pack-cli/codegen";
-import { schema } from "./schema.js";
 import * as apis from "./generated-schema.js";
 
 describe("Delta Pack Codegen", () => {
-  describe("Code Generation", () => {
-    it("should generate code matching generated-schema.ts", () => {
-      const generatedCode = codegenTypescript(schema);
-      const expectedCode = readFileSync(join(__dirname, "generated-schema.ts"), "utf-8");
-
-      expect(generatedCode.trim()).toBe(expectedCode.trim());
-    });
-  });
-
   describe("Default Values", () => {
     it("should create default player", () => {
       const defaultPlayer = apis.Player.default();

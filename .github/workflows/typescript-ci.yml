@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - "typescript/**"
+      - "examples/**"
       - ".github/workflows/typescript-ci.yml"
   pull_request:
     branches: [main]
     paths:
       - "typescript/**"
+      - "examples/**"
       - ".github/workflows/typescript-ci.yml"
 
 jobs:
@@ -31,18 +33,10 @@ jobs:
           node-version: "24"
           cache: "npm"
           cache-dependency-path: typescript/package-lock.json
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: npm ci
       - name: Build TypeScript package
         run: npm run build
-      - name: Build CLI with local package
-        run: |
-          npm link
-          cd ../cli && bun install && npm link @hpx7/delta-pack && bun run build && npm link
-      - name: Generate code
-        run: npm run test:gen && npm run bench:build
       - name: Type check
         run: npm run typecheck
       - name: Format check

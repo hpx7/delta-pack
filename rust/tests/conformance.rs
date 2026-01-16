@@ -1,12 +1,11 @@
 //! Conformance tests that verify Rust implementation produces identical binary output
-//! to the CLI (source of truth).
+//! to golden bytes (source of truth).
 
 #[path = "../generated/examples/mod.rs"]
 mod conformance_generated;
 
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 
 fn examples_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -15,42 +14,14 @@ fn examples_dir() -> PathBuf {
         .join("examples")
 }
 
-fn run_cli(args: &[&str]) -> Vec<u8> {
-    let output = Command::new("delta-pack")
-        .args(args)
-        .current_dir(examples_dir())
-        .output()
-        .expect("Failed to execute delta-pack CLI");
-
-    if !output.status.success() {
-        panic!(
-            "CLI failed with exit code {:?}: {}",
-            output.status.code(),
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    output.stdout
-}
-
-fn schema_path(example: &str) -> String {
-    examples_dir()
-        .join(example)
-        .join("schema.yml")
-        .to_string_lossy()
-        .to_string()
-}
-
-fn state_path(example: &str, state: &str) -> String {
-    examples_dir()
-        .join(example)
-        .join(format!("{}.json", state))
-        .to_string_lossy()
-        .to_string()
+fn read_golden_bytes(example: &str, filename: &str) -> Vec<u8> {
+    let path = examples_dir().join(example).join(filename);
+    fs::read(&path).unwrap_or_else(|e| panic!("Failed to read golden bytes {:?}: {}", path, e))
 }
 
 fn read_state(example: &str, state: &str) -> String {
-    fs::read_to_string(state_path(example, state)).expect("Failed to read state file")
+    let path = examples_dir().join(example).join(format!("{}.json", state));
+    fs::read_to_string(&path).unwrap_or_else(|e| panic!("Failed to read state {:?}: {}", path, e))
 }
 
 /// Macro to generate conformance tests for an example schema
@@ -65,26 +36,19 @@ macro_rules! conformance_tests {
             }
 
             #[test]
-            fn encode_matches_cli() {
+            fn encode_matches_golden() {
                 for state in states() {
-                    let cli_encoded = run_cli(&[
-                        "encode",
-                        &schema_path($example),
-                        "-t",
-                        $example,
-                        "-i",
-                        &state_path($example, state),
-                    ]);
+                    let golden_bytes = read_golden_bytes($example, &format!("{}.snapshot.bin", state));
 
                     let json = read_state($example, state);
                     let obj: $type_name = serde_json::from_str(&json).unwrap();
                     let rust_encoded = obj.encode();
 
                     // Encoding order is undefined (HashMap), so only check decoded equality
-                    let cli_decoded = $type_name::decode(&cli_encoded);
+                    let golden_decoded = $type_name::decode(&golden_bytes);
                     let rust_decoded = $type_name::decode(&rust_encoded);
                     assert!(
-                        cli_decoded.equals(&rust_decoded),
+                        golden_decoded.equals(&rust_decoded),
                         "{} {} decoded mismatch",
                         $example,
                         state
@@ -93,20 +57,13 @@ macro_rules! conformance_tests {
             }
 
             #[test]
-            fn decode_from_cli() {
+            fn decode_from_golden() {
                 for state in states() {
-                    let encoded = run_cli(&[
-                        "encode",
-                        &schema_path($example),
-                        "-t",
-                        $example,
-                        "-i",
-                        &state_path($example, state),
-                    ]);
+                    let golden_bytes = read_golden_bytes($example, &format!("{}.snapshot.bin", state));
 
                     let json = read_state($example, state);
                     let expected: $type_name = serde_json::from_str(&json).unwrap();
-                    let decoded = $type_name::decode(&encoded);
+                    let decoded = $type_name::decode(&golden_bytes);
 
                     assert!(
                         expected.equals(&decoded),
@@ -118,22 +75,16 @@ macro_rules! conformance_tests {
             }
 
             #[test]
-            fn encode_diff_matches_cli() {
+            fn encode_diff_matches_golden() {
                 let state_list = states();
                 for i in 0..state_list.len().saturating_sub(1) {
                     let old_state = state_list[i];
                     let new_state = state_list[i + 1];
 
-                    let cli_encoded = run_cli(&[
-                        "encode-diff",
-                        &schema_path($example),
-                        "-t",
+                    let golden_diff = read_golden_bytes(
                         $example,
-                        "--old",
-                        &state_path($example, old_state),
-                        "--new",
-                        &state_path($example, new_state),
-                    ]);
+                        &format!("{}_{}.diff.bin", old_state, new_state),
+                    );
 
                     let old_json = read_state($example, old_state);
                     let new_json = read_state($example, new_state);
@@ -142,10 +93,10 @@ macro_rules! conformance_tests {
                     let rust_encoded = $type_name::encode_diff(&old_obj, &new_obj);
 
                     // Encoding order is undefined (HashMap), so only check decoded equality
-                    let cli_decoded = $type_name::decode_diff(&old_obj, &cli_encoded);
+                    let golden_decoded = $type_name::decode_diff(&old_obj, &golden_diff);
                     let rust_decoded = $type_name::decode_diff(&old_obj, &rust_encoded);
                     assert!(
-                        cli_decoded.equals(&rust_decoded),
+                        golden_decoded.equals(&rust_decoded),
                         "{} {}->{} encode_diff decoded mismatch",
                         $example, old_state, new_state
                     );
@@ -153,28 +104,22 @@ macro_rules! conformance_tests {
             }
 
             #[test]
-            fn decode_diff_from_cli() {
+            fn decode_diff_from_golden() {
                 let state_list = states();
                 for i in 0..state_list.len().saturating_sub(1) {
                     let old_state = state_list[i];
                     let new_state = state_list[i + 1];
 
-                    let diff_bytes = run_cli(&[
-                        "encode-diff",
-                        &schema_path($example),
-                        "-t",
+                    let golden_diff = read_golden_bytes(
                         $example,
-                        "--old",
-                        &state_path($example, old_state),
-                        "--new",
-                        &state_path($example, new_state),
-                    ]);
+                        &format!("{}_{}.diff.bin", old_state, new_state),
+                    );
 
                     let old_json = read_state($example, old_state);
                     let new_json = read_state($example, new_state);
                     let old_obj: $type_name = serde_json::from_str(&old_json).unwrap();
                     let expected: $type_name = serde_json::from_str(&new_json).unwrap();
-                    let decoded = $type_name::decode_diff(&old_obj, &diff_bytes);
+                    let decoded = $type_name::decode_diff(&old_obj, &golden_diff);
 
                     assert!(
                         expected.equals(&decoded),

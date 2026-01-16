@@ -1,5 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { execSync } from "child_process";
+import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
@@ -10,57 +9,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const examplesDir = join(__dirname, "../../examples");
 
-function cli(args: string): Buffer {
-  return execSync(`npx delta-pack ${args}`, {
-    encoding: "buffer",
-    cwd: join(__dirname, ".."),
-  });
+function readGoldenBytes(example: string, filename: string): Buffer {
+  return readFileSync(join(examplesDir, example, filename));
 }
 
 function getStates(example: string): string[] {
   const dir = join(examplesDir, example);
   return readdirSync(dir)
     .filter((f) => f.startsWith("state") && f.endsWith(".json"))
-    .sort()
-    .map((f) => join(dir, f));
+    .sort();
 }
 
 const EXAMPLES = ["Primitives", "User", "GameState", "Test"] as const;
-
-// Pre-computed fixtures from CLI
-interface Fixtures {
-  encodes: Map<string, Buffer>; // statePath -> encoded bytes
-  diffs: Map<string, Buffer>; // "oldPath|newPath" -> diff bytes
-}
-
-const fixtures = new Map<string, Fixtures>();
-
-// Generate all fixtures upfront in a single beforeAll
-beforeAll(() => {
-  for (const example of EXAMPLES) {
-    const schemaPath = join(examplesDir, `${example}/schema.yml`);
-    const states = getStates(example);
-    const encodes = new Map<string, Buffer>();
-    const diffs = new Map<string, Buffer>();
-
-    // Generate encode fixtures
-    for (const statePath of states) {
-      encodes.set(statePath, cli(`encode ${schemaPath} -t ${example} -i ${statePath}`));
-    }
-
-    // Generate diff fixtures
-    for (let i = 0; i < states.length - 1; i++) {
-      const oldPath = states[i];
-      const newPath = states[i + 1];
-      diffs.set(
-        `${oldPath}|${newPath}`,
-        cli(`encode-diff ${schemaPath} -t ${example} --old ${oldPath} --new ${newPath}`)
-      );
-    }
-
-    fixtures.set(example, { encodes, diffs });
-  }
-});
 
 // Get API for a given example and mode
 function getApi(example: (typeof EXAMPLES)[number], mode: "interpreter" | "codegen"): DeltaPackApi<any> {
@@ -80,24 +40,25 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
       const api = getApi(example, mode);
       const states = getStates(example);
 
-      for (const statePath of states) {
-        const stateName = basename(statePath, ".json");
+      for (const stateFile of states) {
+        const stateName = basename(stateFile, ".json");
+        const statePath = join(examplesDir, example, stateFile);
         const stateData = JSON.parse(readFileSync(statePath, "utf8"));
 
-        it(`${stateName} encode matches CLI`, () => {
-          const cliEncoded = fixtures.get(example)!.encodes.get(statePath)!;
+        it(`${stateName} encode matches golden`, () => {
+          const goldenBytes = readGoldenBytes(example, `${stateName}.snapshot.bin`);
           const state = api.fromJson(stateData);
           const tsEncoded = Buffer.from(api.encode(state));
           // Encoding order may vary, so only check decoded equality
-          const cliDecoded = api.decode(cliEncoded);
+          const goldenDecoded = api.decode(goldenBytes);
           const tsDecoded = api.decode(tsEncoded);
-          expect(api.equals(cliDecoded, tsDecoded)).toBe(true);
+          expect(api.equals(goldenDecoded, tsDecoded)).toBe(true);
         });
 
-        it(`${stateName} decode from CLI output`, () => {
-          const encoded = fixtures.get(example)!.encodes.get(statePath)!;
+        it(`${stateName} decode from golden`, () => {
+          const goldenBytes = readGoldenBytes(example, `${stateName}.snapshot.bin`);
           const state = api.fromJson(stateData);
-          const decoded = api.decode(encoded);
+          const decoded = api.decode(goldenBytes);
           expect(api.equals(decoded, state)).toBe(true);
         });
 
@@ -110,27 +71,29 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
       }
 
       for (let i = 0; i < states.length - 1; i++) {
-        const oldPath = states[i]!;
-        const newPath = states[i + 1]!;
-        const oldName = basename(oldPath, ".json");
-        const newName = basename(newPath, ".json");
+        const oldFile = states[i]!;
+        const newFile = states[i + 1]!;
+        const oldName = basename(oldFile, ".json");
+        const newName = basename(newFile, ".json");
+        const oldPath = join(examplesDir, example, oldFile);
+        const newPath = join(examplesDir, example, newFile);
 
-        it(`diff ${oldName} -> ${newName} encode matches CLI`, () => {
-          const cliEncoded = fixtures.get(example)!.diffs.get(`${oldPath}|${newPath}`)!;
+        it(`diff ${oldName} -> ${newName} encode matches golden`, () => {
+          const goldenDiff = readGoldenBytes(example, `${oldName}_${newName}.diff.bin`);
           const oldState = api.fromJson(JSON.parse(readFileSync(oldPath, "utf8")));
           const newState = api.fromJson(JSON.parse(readFileSync(newPath, "utf8")));
           const tsEncoded = Buffer.from(api.encodeDiff(oldState, newState));
           // Encoding order may vary, so only check decoded equality
-          const cliDecoded = api.decodeDiff(oldState, cliEncoded);
+          const goldenDecoded = api.decodeDiff(oldState, goldenDiff);
           const tsDecoded = api.decodeDiff(oldState, tsEncoded);
-          expect(api.equals(cliDecoded, tsDecoded)).toBe(true);
+          expect(api.equals(goldenDecoded, tsDecoded)).toBe(true);
         });
 
-        it(`diff ${oldName} -> ${newName} decode from CLI output`, () => {
-          const diffBytes = fixtures.get(example)!.diffs.get(`${oldPath}|${newPath}`)!;
+        it(`diff ${oldName} -> ${newName} decode from golden`, () => {
+          const goldenDiff = readGoldenBytes(example, `${oldName}_${newName}.diff.bin`);
           const oldState = api.fromJson(JSON.parse(readFileSync(oldPath, "utf8")));
           const newState = api.fromJson(JSON.parse(readFileSync(newPath, "utf8")));
-          const decoded = api.decodeDiff(oldState, diffBytes);
+          const decoded = api.decodeDiff(oldState, goldenDiff);
           expect(api.equals(decoded, newState)).toBe(true);
         });
       }
@@ -138,10 +101,10 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
   }
 }
 
-describe("CLI Conformance - Interpreter", () => {
+describe("Golden Conformance - Interpreter", () => {
   runConformanceTests("interpreter");
 });
 
-describe("CLI Conformance - Codegen", () => {
+describe("Golden Conformance - Codegen", () => {
   runConformanceTests("codegen");
 });

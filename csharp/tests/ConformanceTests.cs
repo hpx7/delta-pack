@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Xunit;
 
@@ -6,7 +5,7 @@ namespace DeltaPack.Tests;
 
 /// <summary>
 /// Conformance tests that verify C# implementation produces identical binary output
-/// to the CLI (source of truth). Tests both interpreter and codegen modes.
+/// to golden bytes (source of truth). Tests both interpreter and codegen modes.
 /// </summary>
 public class ConformanceTests
 {
@@ -15,45 +14,23 @@ public class ConformanceTests
 
     private static readonly string[] Examples = ["Primitives", "User", "GameState", "Test"];
 
-    private static byte[] RunCli(string args)
-    {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "delta-pack",
-            Arguments = args,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = ExamplesDir
-        };
-
-        using var process = Process.Start(startInfo)!;
-        using var ms = new MemoryStream();
-        process.StandardOutput.BaseStream.CopyTo(ms);
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
-        {
-            var error = process.StandardError.ReadToEnd();
-            throw new Exception($"CLI failed with exit code {process.ExitCode}: {error}");
-        }
-
-        return ms.ToArray();
-    }
+    private static byte[] ReadGoldenBytes(string example, string filename) =>
+        File.ReadAllBytes(Path.Combine(ExamplesDir, example, filename));
 
     private static string SchemaPath(string example) =>
         Path.Combine(ExamplesDir, example, "schema.yml");
 
-    private static string[] GetStatePaths(string example)
+    private static string[] GetStateNames(string example)
     {
         var dir = Path.Combine(ExamplesDir, example);
         return Directory.GetFiles(dir, "state*.json")
+            .Select(Path.GetFileNameWithoutExtension)
             .OrderBy(f => f)
-            .ToArray();
+            .ToArray()!;
     }
 
-    private static JsonElement ReadState(string statePath) =>
-        JsonDocument.Parse(File.ReadAllText(statePath)).RootElement;
+    private static JsonElement ReadState(string example, string stateName) =>
+        JsonDocument.Parse(File.ReadAllText(Path.Combine(ExamplesDir, example, $"{stateName}.json"))).RootElement;
 
     private static IDeltaPackApi<Dictionary<string, object?>> LoadInterpreter(string example)
     {
@@ -67,9 +44,9 @@ public class ConformanceTests
     {
         foreach (var example in Examples)
         {
-            foreach (var statePath in GetStatePaths(example))
+            foreach (var stateName in GetStateNames(example))
             {
-                yield return [example, statePath];
+                yield return [example, stateName];
             }
         }
     }
@@ -78,7 +55,7 @@ public class ConformanceTests
     {
         foreach (var example in Examples)
         {
-            var states = GetStatePaths(example);
+            var states = GetStateNames(example);
             for (var i = 0; i < states.Length - 1; i++)
             {
                 yield return [example, states[i], states[i + 1]];
@@ -92,37 +69,37 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_Encode_MatchesCli(string example, string statePath)
+    public void Interpreter_Encode_MatchesGolden(string example, string stateName)
     {
-        var cliEncoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
+        var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
         var api = LoadInterpreter(example);
-        var state = api.FromJson(ReadState(statePath));
+        var state = api.FromJson(ReadState(example, stateName));
         var csEncoded = api.Encode(state);
 
         // Encoding order may vary, so only check decoded equality
-        var cliDecoded = api.Decode(cliEncoded);
+        var goldenDecoded = api.Decode(goldenBytes);
         var csDecoded = api.Decode(csEncoded);
-        Assert.True(api.Equals(cliDecoded, csDecoded));
+        Assert.True(api.Equals(goldenDecoded, csDecoded));
     }
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_Decode_FromCliOutput(string example, string statePath)
+    public void Interpreter_Decode_FromGolden(string example, string stateName)
     {
-        var encoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
+        var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
         var api = LoadInterpreter(example);
-        var expected = api.FromJson(ReadState(statePath));
-        var decoded = api.Decode(encoded);
+        var expected = api.FromJson(ReadState(example, stateName));
+        var decoded = api.Decode(goldenBytes);
 
         Assert.True(api.Equals(expected, decoded));
     }
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_ToJson_RoundTrip(string example, string statePath)
+    public void Interpreter_ToJson_RoundTrip(string example, string stateName)
     {
         var api = LoadInterpreter(example);
-        var state = api.FromJson(ReadState(statePath));
+        var state = api.FromJson(ReadState(example, stateName));
         var json = api.ToJson(state);
         var reparsed = api.FromJson(json);
 
@@ -131,29 +108,29 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Interpreter_EncodeDiff_MatchesCli(string example, string oldPath, string newPath)
+    public void Interpreter_EncodeDiff_MatchesGolden(string example, string oldName, string newName)
     {
-        var cliEncoded = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
+        var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
         var api = LoadInterpreter(example);
-        var oldState = api.FromJson(ReadState(oldPath));
-        var newState = api.FromJson(ReadState(newPath));
+        var oldState = api.FromJson(ReadState(example, oldName));
+        var newState = api.FromJson(ReadState(example, newName));
         var csEncoded = api.EncodeDiff(oldState, newState);
 
         // Encoding order may vary, so only check decoded equality
-        var cliDecoded = api.DecodeDiff(oldState, cliEncoded);
+        var goldenDecoded = api.DecodeDiff(oldState, goldenDiff);
         var csDecoded = api.DecodeDiff(oldState, csEncoded);
-        Assert.True(api.Equals(cliDecoded, csDecoded));
+        Assert.True(api.Equals(goldenDecoded, csDecoded));
     }
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Interpreter_DecodeDiff_FromCliOutput(string example, string oldPath, string newPath)
+    public void Interpreter_DecodeDiff_FromGolden(string example, string oldName, string newName)
     {
-        var diffBytes = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
+        var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
         var api = LoadInterpreter(example);
-        var oldState = api.FromJson(ReadState(oldPath));
-        var newState = api.FromJson(ReadState(newPath));
-        var decoded = api.DecodeDiff(oldState, diffBytes);
+        var oldState = api.FromJson(ReadState(example, oldName));
+        var newState = api.FromJson(ReadState(example, newName));
+        var decoded = api.DecodeDiff(oldState, goldenDiff);
 
         Assert.True(api.Equals(newState, decoded));
     }
@@ -164,49 +141,46 @@ public class ConformanceTests
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Codegen_Encode_MatchesCli(string example, string statePath)
+    public void Codegen_Encode_MatchesGolden(string example, string stateName)
     {
-        var cliEncoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
-        var csEncoded = EncodeCodegen(example, statePath);
+        var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
+        var csEncoded = EncodeCodegen(example, stateName);
 
         // Encoding order may vary, so only check decoded equality
-        var (_, cliEquals) = DecodeAndCompareCodegen(example, statePath, cliEncoded);
-        var (_, csEquals) = DecodeAndCompareCodegen(example, statePath, csEncoded);
-        Assert.True(cliEquals && csEquals);
+        var (_, goldenEquals) = DecodeAndCompareCodegen(example, stateName, goldenBytes);
+        var (_, csEquals) = DecodeAndCompareCodegen(example, stateName, csEncoded);
+        Assert.True(goldenEquals && csEquals);
     }
 
     [Theory]
     [MemberData(nameof(EncodeTestData))]
-    public void Codegen_Decode_FromCliOutput(string example, string statePath)
+    public void Codegen_Decode_FromGolden(string example, string stateName)
     {
-        var encoded = RunCli($"encode {SchemaPath(example)} -t {example} -i {statePath}");
-        var (decoded, equals) = DecodeAndCompareCodegen(example, statePath, encoded);
-        var stateName = Path.GetFileNameWithoutExtension(statePath);
+        var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
+        var (decoded, equals) = DecodeAndCompareCodegen(example, stateName, goldenBytes);
 
         Assert.True(equals, $"Decoded state does not match expected for {example}/{stateName}");
     }
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Codegen_EncodeDiff_MatchesCli(string example, string oldPath, string newPath)
+    public void Codegen_EncodeDiff_MatchesGolden(string example, string oldName, string newName)
     {
-        var cliEncoded = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
-        var csEncoded = EncodeDiffCodegen(example, oldPath, newPath);
+        var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
+        var csEncoded = EncodeDiffCodegen(example, oldName, newName);
 
         // Encoding order may vary, so only check decoded equality
-        var cliDecoded = DecodeDiffAndCompareCodegen(example, oldPath, newPath, cliEncoded);
-        var csDecoded = DecodeDiffAndCompareCodegen(example, oldPath, newPath, csEncoded);
-        Assert.True(cliDecoded && csDecoded);
+        var goldenDecoded = DecodeDiffAndCompareCodegen(example, oldName, newName, goldenDiff);
+        var csDecoded = DecodeDiffAndCompareCodegen(example, oldName, newName, csEncoded);
+        Assert.True(goldenDecoded && csDecoded);
     }
 
     [Theory]
     [MemberData(nameof(DiffTestData))]
-    public void Codegen_DecodeDiff_FromCliOutput(string example, string oldPath, string newPath)
+    public void Codegen_DecodeDiff_FromGolden(string example, string oldName, string newName)
     {
-        var diffBytes = RunCli($"encode-diff {SchemaPath(example)} -t {example} --old {oldPath} --new {newPath}");
-        var equals = DecodeDiffAndCompareCodegen(example, oldPath, newPath, diffBytes);
-        var oldName = Path.GetFileNameWithoutExtension(oldPath);
-        var newName = Path.GetFileNameWithoutExtension(newPath);
+        var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
+        var equals = DecodeDiffAndCompareCodegen(example, oldName, newName, goldenDiff);
 
         Assert.True(equals, $"Decoded diff does not match expected for {example}/{oldName}->{newName}");
     }
@@ -215,9 +189,9 @@ public class ConformanceTests
 
     #region Codegen Helpers
 
-    private static byte[] EncodeCodegen(string example, string statePath)
+    private static byte[] EncodeCodegen(string example, string stateName)
     {
-        var json = ReadState(statePath);
+        var json = ReadState(example, stateName);
         return example switch
         {
             "Primitives" => Generated.Examples.Primitives.Encode(Generated.Examples.Primitives.FromJson(json)),
@@ -228,9 +202,9 @@ public class ConformanceTests
         };
     }
 
-    private static (object decoded, bool equals) DecodeAndCompareCodegen(string example, string statePath, byte[] encoded)
+    private static (object decoded, bool equals) DecodeAndCompareCodegen(string example, string stateName, byte[] encoded)
     {
-        var json = ReadState(statePath);
+        var json = ReadState(example, stateName);
         return example switch
         {
             "Primitives" => DecodeAndCompare(
@@ -256,10 +230,10 @@ public class ConformanceTests
     private static (object, bool) DecodeAndCompare<T>(T expected, T decoded, Func<T, T, bool> equals)
         => (decoded!, equals(expected, decoded));
 
-    private static byte[] EncodeDiffCodegen(string example, string oldPath, string newPath)
+    private static byte[] EncodeDiffCodegen(string example, string oldName, string newName)
     {
-        var oldJson = ReadState(oldPath);
-        var newJson = ReadState(newPath);
+        var oldJson = ReadState(example, oldName);
+        var newJson = ReadState(example, newName);
         return example switch
         {
             "Primitives" => Generated.Examples.Primitives.EncodeDiff(
@@ -278,10 +252,10 @@ public class ConformanceTests
         };
     }
 
-    private static bool DecodeDiffAndCompareCodegen(string example, string oldPath, string newPath, byte[] diffBytes)
+    private static bool DecodeDiffAndCompareCodegen(string example, string oldName, string newName, byte[] diffBytes)
     {
-        var oldJson = ReadState(oldPath);
-        var newJson = ReadState(newPath);
+        var oldJson = ReadState(example, oldName);
+        var newJson = ReadState(example, newName);
         return example switch
         {
             "Primitives" => Generated.Examples.Primitives.Equals(

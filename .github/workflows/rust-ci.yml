@@ -1,0 +1,46 @@
+name: Rust - CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "rust/**"
+      - "examples/**"
+      - ".github/workflows/rust-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "rust/**"
+      - "examples/**"
+      - ".github/workflows/rust-ci.yml"
+
+jobs:
+  test:
+    name: Test rust (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+      - name: Build
+        run: cargo build
+      - name: Run tests
+        run: cargo test
+      - name: Run benchmarks
+        run: |
+          echo "# Rust Benchmarks (${{ matrix.os }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cargo run --release --manifest-path benchmarks/Cargo.toml >> $GITHUB_STEP_SUMMARY
