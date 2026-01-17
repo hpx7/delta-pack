@@ -73,35 +73,15 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(InnerInner a, InnerInner b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(InnerInner a, InnerInner b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(InnerInner a, InnerInner b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Long == b.Long);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushIntDiff(a.Long, b.Long);
-            }
-            {
-                var changed = !(a.Enum == b.Enum);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushEnumDiff((int)a.Enum, (int)b.Enum, 3);
-            }
-            {
-                var changed = !(a.Sint32 == b.Sint32);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushIntDiff(a.Sint32, b.Sint32);
-            }
+            encoder.PushFieldDiff<long>(a.Long, b.Long, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
+            encoder.PushFieldDiff<Enum>(a.Enum, b.Enum, (x, y) => x == y, (x, y) => encoder.PushEnumDiff((int)x, (int)y, 3));
+            encoder.PushFieldDiff<long>(a.Sint32, b.Sint32, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
         }
 
         public static InnerInner Decode(byte[] buf)
@@ -123,17 +103,10 @@ namespace Generated.Examples
         public static InnerInner DecodeDiff(InnerInner obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static InnerInner DecodeDiff_(InnerInner obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static InnerInner DecodeDiffFields_(InnerInner obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -199,30 +172,14 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(Outer a, Outer b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(Outer a, Outer b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(Outer a, Outer b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Bool.Count == b.Bool.Count && a.Bool.Zip(b.Bool).All(pair => pair.First == pair.Second));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushArrayDiff<bool>(a.Bool, b.Bool, (x, y) => x == y, x => encoder.PushBoolean(x), (x, y) => { });
-            }
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsFloat(a.Double, b.Double));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushFloatDiff(a.Double, b.Double);
-            }
+            encoder.PushFieldDiff<System.Collections.Generic.List<bool>>(a.Bool, b.Bool, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => pair.First == pair.Second), (x, y) => encoder.PushArrayDiff<bool>(x, y, (x, y) => x == y, x => encoder.PushBoolean(x), (x, y) => { }));
+            encoder.PushFieldDiff<float>(a.Double, b.Double, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
         }
 
         public static Outer Decode(byte[] buf)
@@ -243,17 +200,10 @@ namespace Generated.Examples
         public static Outer DecodeDiff(Outer obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static Outer DecodeDiff_(Outer obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static Outer DecodeDiffFields_(Outer obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -324,27 +274,15 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(Inner a, Inner b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(Inner a, Inner b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(Inner a, Inner b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Int32 == b.Int32);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushIntDiff(a.Int32, b.Int32);
-            }
-            InnerInner.EncodeDiff_(a.InnerInner, b.InnerInner, encoder);
-            Outer.EncodeDiff_(a.Outer, b.Outer, encoder);
+            encoder.PushFieldDiff<long>(a.Int32, b.Int32, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
+            encoder.PushFieldDiff<InnerInner>(a.InnerInner, b.InnerInner, (x, y) => Generated.Examples.InnerInner.Equals(x, y), (x, y) => Generated.Examples.InnerInner.EncodeDiff_(x, y, encoder));
+            encoder.PushFieldDiff<Outer>(a.Outer, b.Outer, (x, y) => Generated.Examples.Outer.Equals(x, y), (x, y) => Generated.Examples.Outer.EncodeDiff_(x, y, encoder));
         }
 
         public static Inner Decode(byte[] buf)
@@ -366,23 +304,16 @@ namespace Generated.Examples
         public static Inner DecodeDiff(Inner obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static Inner DecodeDiff_(Inner obj, DeltaPack.Decoder decoder)
         {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static Inner DecodeDiffFields_(Inner obj, DeltaPack.Decoder decoder)
-        {
             return new()
             {
                 Int32 = decoder.NextFieldDiff(obj.Int32, x => decoder.NextIntDiff(x)),
-                InnerInner = InnerInner.DecodeDiff_(obj.InnerInner, decoder),
-                Outer = Outer.DecodeDiff_(obj.Outer, decoder),
+                InnerInner = decoder.NextFieldDiff(obj.InnerInner, x => Generated.Examples.InnerInner.DecodeDiff_(x, decoder)),
+                Outer = decoder.NextFieldDiff(obj.Outer, x => Generated.Examples.Outer.DecodeDiff_(x, decoder)),
             };
         }
     }
@@ -454,36 +385,16 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(Test a, Test b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(Test a, Test b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(Test a, Test b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.String == b.String);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.String, b.String);
-            }
-            {
-                var changed = !(a.Uint32 == b.Uint32);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushIntDiff(a.Uint32, b.Uint32);
-            }
-            Inner.EncodeDiff_(a.Inner, b.Inner, encoder);
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsFloat(a.Float, b.Float));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushFloatDiff(a.Float, b.Float);
-            }
+            encoder.PushFieldDiff<string>(a.String, b.String, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<long>(a.Uint32, b.Uint32, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
+            encoder.PushFieldDiff<Inner>(a.Inner, b.Inner, (x, y) => Generated.Examples.Inner.Equals(x, y), (x, y) => Generated.Examples.Inner.EncodeDiff_(x, y, encoder));
+            encoder.PushFieldDiff<float>(a.Float, b.Float, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
         }
 
         public static Test Decode(byte[] buf)
@@ -506,23 +417,16 @@ namespace Generated.Examples
         public static Test DecodeDiff(Test obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static Test DecodeDiff_(Test obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static Test DecodeDiffFields_(Test obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
                 String = decoder.NextFieldDiff(obj.String, x => decoder.NextStringDiff(x)),
                 Uint32 = decoder.NextFieldDiff(obj.Uint32, x => decoder.NextIntDiff(x)),
-                Inner = Inner.DecodeDiff_(obj.Inner, decoder),
+                Inner = decoder.NextFieldDiff(obj.Inner, x => Generated.Examples.Inner.DecodeDiff_(x, decoder)),
                 Float = decoder.NextFieldDiff(obj.Float, x => decoder.NextFloatDiff(x)),
             };
         }

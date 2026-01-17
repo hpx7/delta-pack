@@ -60,7 +60,7 @@ function toCamelCase(str: string): string {
 
 // Types that handle their own change detection (don't need wrapper to add change bit)
 function hasOwnChangeBit(type: Type): boolean {
-  return type.type === "boolean" || type.type === "object";
+  return type.type === "boolean";
 }
 
 // Used by renderClone to determine shallow vs deep copy
@@ -261,19 +261,11 @@ ${encodeBody}
         public static byte[] EncodeDiff(${name} a, ${name} b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(${name} a, ${name} b, DeltaPack.Encoder encoder)
-        {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(${name} a, ${name} b, DeltaPack.Encoder encoder)
         {
 ${encodeDiffBody}
         }
@@ -295,17 +287,10 @@ ${decodeBody}
         public static ${name} DecodeDiff(${name} obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static ${name} DecodeDiff_(${name} obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static ${name} DecodeDiffFields_(${name} obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -362,7 +347,7 @@ function renderUnion(
             {
                 if (a is ${opt.name} ${v}A)
                 {
-                    ${opt.name}.EncodeDiffFields_(${v}A, ${v}B, encoder);
+                    ${opt.name}.EncodeDiff_(${v}A, ${v}B, encoder);
                 }
                 else
                 {
@@ -378,7 +363,7 @@ function renderUnion(
   );
   const decodeDiffSameCases = ifElseChain(options, (opt, _, p) => {
     const v = toCamelCase(opt.name!);
-    return `                ${p}if (obj is ${opt.name} ${v}) return ${opt.name}.DecodeDiffFields_(${v}, decoder);`;
+    return `                ${p}if (obj is ${opt.name} ${v}) return ${opt.name}.DecodeDiff_(${v}, decoder);`;
   });
   const decodeDiffNewCases = ifElseChain(
     options,
@@ -521,6 +506,8 @@ function renderType(ctx: GeneratorContext, type: Type, name: string): string {
       return `${renderType(ctx, type.value, name)}?`;
     case "record":
       return `System.Collections.Generic.Dictionary<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}>`;
+    case "object":
+      return type.name!;
     case "reference":
       return type.ref.name!;
     case "self-reference":
@@ -811,14 +798,11 @@ function renderEncodeDiffField(
   if (hasOwnChangeBit(type)) {
     return `${renderEncodeDiff(ctx, type, name, a, b)};`;
   }
-  // Wrap with change bit for primitives, enums, optionals
-  const eq = renderEquals(ctx, type, name, a, b);
-  const enc = renderEncodeDiffValue(ctx, type, name, a, b);
-  return `{
-                var changed = !(${eq});
-                encoder.PushBoolean(changed);
-                if (changed) ${enc};
-            }`;
+  // Use PushFieldDiff for primitives, enums, optionals
+  const t = renderType(ctx, type, name);
+  const eq = renderEquals(ctx, type, name, "x", "y", true);
+  const enc = renderEncodeDiffValue(ctx, type, name, "x", "y", true);
+  return `encoder.PushFieldDiff<${t}>(${a}, ${b}, (x, y) => ${eq}, (x, y) => ${enc});`;
 }
 
 // Value-only diff - no change bit (used for array/record updates)
@@ -883,12 +867,12 @@ function renderEncodeDiffValue(
   }
   if (type.type === "self-reference") {
     // Skip outer change bit - call EncodeDiffFields directly
-    return `${ctx.currentTypeName}.EncodeDiffFields_(${a}, ${b}, encoder)`;
+    return `${ctx.currentTypeName}.EncodeDiff_(${a}, ${b}, encoder)`;
   }
   // Objects skip the redundant changed bit
   if (type.type === "object") {
     const n = inLambda ? qualifyType(ctx, name) : name;
-    return `${n}.EncodeDiffFields_(${a}, ${b}, encoder)`;
+    return `${n}.EncodeDiff_(${a}, ${b}, encoder)`;
   }
   // Boolean: no encoding needed - being in update list implies changed
   if (type.type === "boolean") {
@@ -977,12 +961,12 @@ function renderDecodeDiffValue(
   }
   if (type.type === "self-reference") {
     // Skip outer change bit - call DecodeDiffFields directly
-    return `${ctx.currentTypeName}.DecodeDiffFields_(${key}, decoder)`;
+    return `${ctx.currentTypeName}.DecodeDiff_(${key}, decoder)`;
   }
   // Objects skip the redundant changed bit
   if (type.type === "object") {
     const n = inLambda ? qualifyType(ctx, name) : name;
-    return `${n}.DecodeDiffFields_(${key}, decoder)`;
+    return `${n}.DecodeDiff_(${key}, decoder)`;
   }
   // Boolean: just flip the value - being in update list implies changed
   if (type.type === "boolean") {

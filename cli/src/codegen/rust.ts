@@ -209,14 +209,10 @@ function renderObject(
       // Type handles its own change bit
       return `        ${renderEncodeDiff(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`)};`;
     } else {
-      // Wrap with change bit
-      const eq = renderEquals(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`);
-      const enc = renderEncodeDiff(ctx, info.type, `a.${info.rustName}`, `b.${info.rustName}`);
-      return `        let changed = !(${eq});
-        encoder.push_boolean(changed);
-        if changed {
-            ${enc};
-        }`;
+      // Use push_field_diff helper
+      const eq = renderEquals(ctx, info.type, "x", "y", true);
+      const diffCb = renderEncodeDiffCallback(ctx, info.type);
+      return `        encoder.push_field_diff(&a.${info.rustName}, &b.${info.rustName}, |x, y| ${eq}, ${diffCb});`;
     }
   });
 
@@ -230,9 +226,9 @@ function renderObject(
       // Type handles its own change bit
       return `            ${info.rustName}: ${renderDecodeDiff(ctx, info.type, field)},`;
     } else {
-      // Wrap with change bit
-      const dec = renderDecodeDiff(ctx, info.type, field);
-      return `            ${info.rustName}: if decoder.next_boolean() { ${dec} } else { obj.${info.rustName}.clone() },`;
+      // Use next_field_diff helper
+      const diffCb = renderDecodeDiffCallback(ctx, info.type);
+      return `            ${info.rustName}: decoder.next_field_diff(&${field}, ${diffCb}),`;
     }
   });
 
@@ -267,21 +263,14 @@ ${encodeLines}
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(a, b, |x, y| x.equals(y), |enc| {
+                Self::encode_diff_into(a, b, enc);
+            });
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
 ${encodeDiffLines}
     }
 
@@ -296,18 +285,12 @@ ${decodeLines}
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
 ${decodeDiffLines}
         }
@@ -358,7 +341,7 @@ function renderUnion(
       (opt, i) =>
         `            ${name}::${opt.name}(b_val) => {
                 if let ${name}::${opt.name}(a_val) = a {
-                    ${opt.name}::encode_diff_fields_into(a_val, b_val, encoder);
+                    ${opt.name}::encode_diff_into(a_val, b_val, encoder);
                 } else {
                     encoder.push_enum(${i}, ${numBits});
                     b_val.encode_into(encoder);
@@ -377,7 +360,7 @@ function renderUnion(
   const decodeDiffSameCases = options
     .map(
       (opt) =>
-        `                ${name}::${opt.name}(v) => ${name}::${opt.name}(${opt.name}::decode_diff_fields_from(v, decoder)),`,
+        `                ${name}::${opt.name}(v) => ${name}::${opt.name}(${opt.name}::decode_diff_from(v, decoder)),`,
     )
     .join("\n");
 
@@ -472,11 +455,10 @@ ${decodeDiffNewCases}
 
 // Types that handle their own change bit in diff encoding
 function hasOwnChangeBit(type: Type): boolean {
-  if (type.type === "boolean" || type.type === "object") return true;
+  if (type.type === "boolean") return true;
   if (type.type === "reference") {
-    return type.ref.type === "object" || type.ref.type === "union";
+    return type.ref.type === "union";
   }
-  if (type.type === "self-reference") return true;
   return false;
 }
 
@@ -510,6 +492,8 @@ function renderType(ctx: GeneratorContext, type: Type): string {
       return `Option<${renderType(ctx, type.value)}>`;
     case "record":
       return `HashMap<${renderType(ctx, type.key)}, ${renderType(ctx, type.value)}>`;
+    case "object":
+      return type.name!;
     case "reference":
       return type.ref.name!;
     case "self-reference":
@@ -590,10 +574,14 @@ function renderEquals(
     case "boolean":
     case "enum":
       return `${a} == ${b}`;
-    case "float":
+    case "float": {
+      // In closures, a and b are references that need dereferencing for float comparison
+      const aExpr = inClosure ? `*${a}` : a;
+      const bExpr = inClosure ? `*${b}` : b;
       return type.precision
-        ? `delta_pack::equals_float_quantized(${a}, ${b}, ${type.precision}_f32)`
-        : `delta_pack::equals_float(${a}, ${b})`;
+        ? `delta_pack::equals_float_quantized(${aExpr}, ${bExpr}, ${type.precision}_f32)`
+        : `delta_pack::equals_float(${aExpr}, ${bExpr})`;
+    }
     case "array":
       return isPrimitiveOrEnum(type.value)
         ? `${a} == ${b}`
@@ -776,6 +764,26 @@ function renderEncodeDiffCallback(ctx: GeneratorContext, type: Type): string {
       return `|enc, &a, &b| enc.push_boolean_diff(a, b)`;
     case "enum":
       return `|enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), ${type.numBits})`;
+    case "array": {
+      const innerEncode = renderEncodeCallback(ctx, type.value);
+      const innerEquals = renderEqualsCallback(ctx, type.value);
+      const innerDiff = renderEncodeDiffCallback(ctx, type.value);
+      return `|enc, a, b| enc.push_array_diff(a, b, ${innerEquals}, ${innerEncode}, ${innerDiff})`;
+    }
+    case "optional": {
+      const innerEncode = renderEncodeCallback(ctx, type.value);
+      const innerDiff = renderEncodeDiffCallback(ctx, type.value);
+      return `|enc, a, b| enc.push_optional_diff(a, b, ${innerEncode}, ${innerDiff})`;
+    }
+    case "record": {
+      const keyEncode = renderEncodeCallback(ctx, type.key);
+      const valEncode = renderEncodeCallback(ctx, type.value);
+      const valEquals = renderEqualsCallback(ctx, type.value);
+      const valDiff = renderEncodeDiffCallback(ctx, type.value);
+      return `|enc, a, b| enc.push_record_diff(a, b, ${valEquals}, ${keyEncode}, ${valEncode}, ${valDiff})`;
+    }
+    case "object":
+      return `|enc, a, b| ${type.name!}::encode_diff_into(a, b, enc)`;
     case "reference":
       if (type.ref.type === "enum") {
         return `|enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), ${type.ref.numBits})`;
@@ -784,9 +792,9 @@ function renderEncodeDiffCallback(ctx: GeneratorContext, type: Type): string {
       if (type.ref.type === "union") {
         return `|enc, a, b| ${type.ref.name!}::encode_diff_into(a, b, enc)`;
       }
-      return `|enc, a, b| ${type.ref.name!}::encode_diff_fields_into(a, b, enc)`;
+      return `|enc, a, b| ${type.ref.name!}::encode_diff_into(a, b, enc)`;
     case "self-reference":
-      return `|enc, a, b| ${ctx.currentTypeName}::encode_diff_fields_into(a, b, enc)`;
+      return `|enc, a, b| ${ctx.currentTypeName}::encode_diff_into(a, b, enc)`;
     default:
       throw new Error(`Unexpected type in renderEncodeDiffCallback: ${type.type}`);
   }
@@ -813,6 +821,24 @@ function renderDecodeDiffCallback(ctx: GeneratorContext, type: Type): string {
       return `|dec, &a| dec.next_boolean_diff(a)`;
     case "enum":
       return `|dec, &a| ${type.name!}::from_u32(dec.next_enum_diff(a.to_u32(), ${type.numBits}))`;
+    case "array": {
+      const innerDecode = renderDecodeCallback(ctx, type.value);
+      const innerDiff = renderDecodeDiffCallback(ctx, type.value);
+      return `|dec, a| dec.next_array_diff(a, ${innerDecode}, ${innerDiff})`;
+    }
+    case "optional": {
+      const innerDecode = renderDecodeCallback(ctx, type.value);
+      const innerDiff = renderDecodeDiffCallback(ctx, type.value);
+      return `|dec, a| dec.next_optional_diff(a, ${innerDecode}, ${innerDiff})`;
+    }
+    case "record": {
+      const keyDecode = renderDecodeCallback(ctx, type.key);
+      const valDecode = renderDecodeCallback(ctx, type.value);
+      const valDiff = renderDecodeDiffCallback(ctx, type.value);
+      return `|dec, a| dec.next_record_diff(a, ${keyDecode}, ${valDecode}, ${valDiff})`;
+    }
+    case "object":
+      return `|dec, a| ${type.name!}::decode_diff_from(a, dec)`;
     case "reference":
       if (type.ref.type === "enum") {
         return `|dec, &a| ${type.ref.name!}::from_u32(dec.next_enum_diff(a.to_u32(), ${type.ref.numBits}))`;
@@ -821,15 +847,15 @@ function renderDecodeDiffCallback(ctx: GeneratorContext, type: Type): string {
       if (type.ref.type === "union") {
         return `|dec, a| ${type.ref.name!}::decode_diff_from(a, dec)`;
       }
-      return `|dec, a| ${type.ref.name!}::decode_diff_fields_from(a, dec)`;
+      return `|dec, a| ${type.ref.name!}::decode_diff_from(a, dec)`;
     case "self-reference":
-      return `|dec, a| Box::new(${ctx.currentTypeName}::decode_diff_fields_from(a, dec))`;
+      return `|dec, a| Box::new(${ctx.currentTypeName}::decode_diff_from(a, dec))`;
     default:
       throw new Error(`Unexpected type in renderDecodeDiffCallback: ${type.type}`);
   }
 }
 
-// Generate an equals closure for use with push_array_diff
+// Generate an equals closure for use with push_array_diff and push_field_diff
 function renderEqualsCallback(ctx: GeneratorContext, type: Type): string {
   switch (type.type) {
     case "string":
@@ -841,6 +867,20 @@ function renderEqualsCallback(ctx: GeneratorContext, type: Type): string {
       return type.precision
         ? `|&x, &y| delta_pack::equals_float_quantized(x, y, ${type.precision}_f32)`
         : `|&x, &y| delta_pack::equals_float(x, y)`;
+    case "array":
+      return isPrimitiveOrEnum(type.value)
+        ? `|x, y| x == y`
+        : `|x, y| delta_pack::equals_array(x, y, ${renderEqualsCallback(ctx, type.value)})`;
+    case "optional":
+      return isPrimitiveOrEnum(type.value)
+        ? `|x, y| x == y`
+        : `|x, y| delta_pack::equals_optional(x, y, ${renderEqualsCallback(ctx, type.value)})`;
+    case "record":
+      return isPrimitiveOrEnum(type.value)
+        ? `|x, y| x == y`
+        : `|x, y| delta_pack::equals_record(x, y, ${renderEqualsCallback(ctx, type.value)})`;
+    case "object":
+      return `|x, y| x.equals(y)`;
     case "reference":
       if (type.ref.type === "enum") {
         return `|x, y| x == y`;

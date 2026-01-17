@@ -34,5 +34,12 @@ for example in Primitives User GameState Test; do
     fi
 done
 
+# Generate test schema
+TEST_SCHEMA="$SCRIPT_DIR/../tests/schema.yml"
+if [ -f "$TEST_SCHEMA" ]; then
+    echo "Generating tests/GeneratedSchema.cs..."
+    delta-pack generate "$TEST_SCHEMA" -l csharp -n Generated > "$SCRIPT_DIR/../tests/GeneratedSchema.cs"
+fi
+
 echo ""
 echo "Generated C# code in $GENERATED_DIR"

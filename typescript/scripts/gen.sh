@@ -47,5 +47,12 @@ for example_name in $EXAMPLES; do
     echo "export { $example_name } from \"./${example_name}.js\";" >> "$INDEX_FILE"
 done
 
+# Generate test schema
+TEST_SCHEMA="$ROOT_DIR/test/schema.yml"
+if [ -f "$TEST_SCHEMA" ]; then
+    echo "Generating test/generated-schema.ts..."
+    delta-pack generate "$TEST_SCHEMA" -l typescript > "$ROOT_DIR/test/generated-schema.ts"
+fi
+
 echo ""
 echo "Generated TypeScript code in $GENERATED_DIR"

@@ -135,51 +135,43 @@ export const Player = {
     encoder.pushOptional(obj.partner, (x) => Player._encode(x, encoder));
   },
   encodeDiff(a: Player, b: Player): Uint8Array {
-    const encoder = _.Encoder.create();
-    Player._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Player.equals, () => Player._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Player, b: Player, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Player.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Player._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Player, b: Player, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Player, b: Player, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.id,
-      b.id,
-      dirty?.has("id") ?? true,
+      a,
+      b,
+      "id",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.name,
-      b.name,
-      dirty?.has("name") ?? true,
+      a,
+      b,
+      "name",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.score,
-      b.score,
-      dirty?.has("score") ?? true,
+      a,
+      b,
+      "score",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
     encoder.pushFieldDiffValue(
-      dirty?.has("isActive") ?? true,
-      () => encoder.pushBooleanDiff(a.isActive, b.isActive),
+      b,
+      "isActive",
+      () => encoder.pushBooleanDiff(a["isActive"], b["isActive"]),
     );
     encoder.pushFieldDiff(
-      a.partner,
-      b.partner,
-      dirty?.has("partner") ?? true,
+      a,
+      b,
+      "partner",
       (x, y) => _.equalsOptional(x, y, (x, y) => Player.equals(x, y)),
-      (x, y) => encoder.pushOptionalDiff<Player>(x, y, (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiffFields(x, y, encoder)),
+      (x, y) => encoder.pushOptionalDiff<Player>(x, y, (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder)),
     );
   },
   decode(input: Uint8Array): Player {
@@ -195,18 +187,28 @@ export const Player = {
     };
   },
   decodeDiff(obj: Player, input: Uint8Array): Player {
-    return Player._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Player._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Player, decoder: _.Decoder): Player {
-    return decoder.nextBoolean() ? Player._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Player, decoder: _.Decoder): Player {
+  _decodeDiff(obj: Player, decoder: _.DiffDecoder): Player {
     return {
-      id: decoder.nextFieldDiff(obj.id, (x) => decoder.nextStringDiff(x)),
-      name: decoder.nextFieldDiff(obj.name, (x) => decoder.nextStringDiff(x)),
-      score: decoder.nextFieldDiff(obj.score, (x) => decoder.nextIntDiff(x)),
+      id: decoder.nextFieldDiff(
+        obj.id,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      name: decoder.nextFieldDiff(
+        obj.name,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      score: decoder.nextFieldDiff(
+        obj.score,
+        (x) => decoder.nextIntDiff(x),
+      ),
       isActive: decoder.nextBooleanDiff(obj.isActive),
-      partner: decoder.nextFieldDiff(obj.partner, (x) => decoder.nextOptionalDiff<Player>(x, () => Player._decode(decoder), (x) => Player._decodeDiffFields(x, decoder))),
+      partner: decoder.nextFieldDiff(
+        obj.partner,
+        (x) => decoder.nextOptionalDiff<Player>(x, () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
+      ),
     };
   },
 };
@@ -256,31 +258,22 @@ export const Position = {
     encoder.pushFloatQuantized(obj.y, 0.1);
   },
   encodeDiff(a: Position, b: Position): Uint8Array {
-    const encoder = _.Encoder.create();
-    Position._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Position.equals, () => Position._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Position, b: Position, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Position.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Position._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Position, b: Position, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Position, b: Position, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.x,
-      b.x,
-      dirty?.has("x") ?? true,
+      a,
+      b,
+      "x",
       (x, y) => _.equalsFloatQuantized(x, y, 0.1),
       (x, y) => encoder.pushFloatQuantizedDiff(x, y, 0.1),
     );
     encoder.pushFieldDiff(
-      a.y,
-      b.y,
-      dirty?.has("y") ?? true,
+      a,
+      b,
+      "y",
       (x, y) => _.equalsFloatQuantized(x, y, 0.1),
       (x, y) => encoder.pushFloatQuantizedDiff(x, y, 0.1),
     );
@@ -295,15 +288,19 @@ export const Position = {
     };
   },
   decodeDiff(obj: Position, input: Uint8Array): Position {
-    return Position._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Position._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Position, decoder: _.Decoder): Position {
-    return decoder.nextBoolean() ? Position._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Position, decoder: _.Decoder): Position {
+  _decodeDiff(obj: Position, decoder: _.DiffDecoder): Position {
     return {
-      x: decoder.nextFieldDiff(obj.x, (x) => decoder.nextFloatQuantizedDiff(x, 0.1)),
-      y: decoder.nextFieldDiff(obj.y, (x) => decoder.nextFloatQuantizedDiff(x, 0.1)),
+      x: decoder.nextFieldDiff(
+        obj.x,
+        (x) => decoder.nextFloatQuantizedDiff(x, 0.1),
+      ),
+      y: decoder.nextFieldDiff(
+        obj.y,
+        (x) => decoder.nextFloatQuantizedDiff(x, 0.1),
+      ),
     };
   },
 };
@@ -353,31 +350,22 @@ export const Velocity = {
     encoder.pushFloat(obj.vy);
   },
   encodeDiff(a: Velocity, b: Velocity): Uint8Array {
-    const encoder = _.Encoder.create();
-    Velocity._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Velocity.equals, () => Velocity._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Velocity, b: Velocity, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Velocity.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Velocity._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Velocity, b: Velocity, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Velocity, b: Velocity, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.vx,
-      b.vx,
-      dirty?.has("vx") ?? true,
+      a,
+      b,
+      "vx",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.vy,
-      b.vy,
-      dirty?.has("vy") ?? true,
+      a,
+      b,
+      "vy",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
@@ -392,15 +380,19 @@ export const Velocity = {
     };
   },
   decodeDiff(obj: Velocity, input: Uint8Array): Velocity {
-    return Velocity._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Velocity._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Velocity, decoder: _.Decoder): Velocity {
-    return decoder.nextBoolean() ? Velocity._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Velocity, decoder: _.Decoder): Velocity {
+  _decodeDiff(obj: Velocity, decoder: _.DiffDecoder): Velocity {
     return {
-      vx: decoder.nextFieldDiff(obj.vx, (x) => decoder.nextFloatDiff(x)),
-      vy: decoder.nextFieldDiff(obj.vy, (x) => decoder.nextFloatDiff(x)),
+      vx: decoder.nextFieldDiff(
+        obj.vx,
+        (x) => decoder.nextFloatDiff(x),
+      ),
+      vy: decoder.nextFieldDiff(
+        obj.vy,
+        (x) => decoder.nextFloatDiff(x),
+      ),
     };
   },
 };
@@ -450,30 +442,24 @@ export const Entity = {
     Position._encode(obj.position, encoder);
   },
   encodeDiff(a: Entity, b: Entity): Uint8Array {
-    const encoder = _.Encoder.create();
-    Entity._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Entity.equals, () => Entity._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Entity, b: Entity, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Entity.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Entity._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Entity, b: Entity, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Entity, b: Entity, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.id,
-      b.id,
-      dirty?.has("id") ?? true,
+      a,
+      b,
+      "id",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
-    encoder.pushFieldDiffValue(
-      dirty?.has("position") ?? true,
-      () => Position._encodeDiff(a.position, b.position, encoder),
+    encoder.pushFieldDiff(
+      a,
+      b,
+      "position",
+      (x, y) => Position.equals(x, y),
+      (x, y) => Position._encodeDiff(x, y, encoder),
     );
   },
   decode(input: Uint8Array): Entity {
@@ -486,15 +472,19 @@ export const Entity = {
     };
   },
   decodeDiff(obj: Entity, input: Uint8Array): Entity {
-    return Entity._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Entity._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Entity, decoder: _.Decoder): Entity {
-    return decoder.nextBoolean() ? Entity._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Entity, decoder: _.Decoder): Entity {
+  _decodeDiff(obj: Entity, decoder: _.DiffDecoder): Entity {
     return {
-      id: decoder.nextFieldDiff(obj.id, (x) => decoder.nextStringDiff(x)),
-      position: Position._decodeDiff(obj.position, decoder),
+      id: decoder.nextFieldDiff(
+        obj.id,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      position: decoder.nextFieldDiff(
+        obj.position,
+        (x) => Position._decodeDiff(x, decoder),
+      ),
     };
   },
 };
@@ -544,31 +534,22 @@ export const MoveAction = {
     encoder.pushInt(obj.y);
   },
   encodeDiff(a: MoveAction, b: MoveAction): Uint8Array {
-    const encoder = _.Encoder.create();
-    MoveAction._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, MoveAction.equals, () => MoveAction._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: MoveAction, b: MoveAction, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !MoveAction.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      MoveAction._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: MoveAction, b: MoveAction, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: MoveAction, b: MoveAction, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.x,
-      b.x,
-      dirty?.has("x") ?? true,
+      a,
+      b,
+      "x",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.y,
-      b.y,
-      dirty?.has("y") ?? true,
+      a,
+      b,
+      "y",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
@@ -583,15 +564,19 @@ export const MoveAction = {
     };
   },
   decodeDiff(obj: MoveAction, input: Uint8Array): MoveAction {
-    return MoveAction._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => MoveAction._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: MoveAction, decoder: _.Decoder): MoveAction {
-    return decoder.nextBoolean() ? MoveAction._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: MoveAction, decoder: _.Decoder): MoveAction {
+  _decodeDiff(obj: MoveAction, decoder: _.DiffDecoder): MoveAction {
     return {
-      x: decoder.nextFieldDiff(obj.x, (x) => decoder.nextIntDiff(x)),
-      y: decoder.nextFieldDiff(obj.y, (x) => decoder.nextIntDiff(x)),
+      x: decoder.nextFieldDiff(
+        obj.x,
+        (x) => decoder.nextIntDiff(x),
+      ),
+      y: decoder.nextFieldDiff(
+        obj.y,
+        (x) => decoder.nextIntDiff(x),
+      ),
     };
   },
 };
@@ -641,31 +626,22 @@ export const AttackAction = {
     encoder.pushBoundedInt(obj.damage, 0);
   },
   encodeDiff(a: AttackAction, b: AttackAction): Uint8Array {
-    const encoder = _.Encoder.create();
-    AttackAction._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, AttackAction.equals, () => AttackAction._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: AttackAction, b: AttackAction, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !AttackAction.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      AttackAction._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: AttackAction, b: AttackAction, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: AttackAction, b: AttackAction, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.targetId,
-      b.targetId,
-      dirty?.has("targetId") ?? true,
+      a,
+      b,
+      "targetId",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.damage,
-      b.damage,
-      dirty?.has("damage") ?? true,
+      a,
+      b,
+      "damage",
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
@@ -680,15 +656,19 @@ export const AttackAction = {
     };
   },
   decodeDiff(obj: AttackAction, input: Uint8Array): AttackAction {
-    return AttackAction._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => AttackAction._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: AttackAction, decoder: _.Decoder): AttackAction {
-    return decoder.nextBoolean() ? AttackAction._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: AttackAction, decoder: _.Decoder): AttackAction {
+  _decodeDiff(obj: AttackAction, decoder: _.DiffDecoder): AttackAction {
     return {
-      targetId: decoder.nextFieldDiff(obj.targetId, (x) => decoder.nextStringDiff(x)),
-      damage: decoder.nextFieldDiff(obj.damage, (x) => decoder.nextBoundedIntDiff(x, 0)),
+      targetId: decoder.nextFieldDiff(
+        obj.targetId,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      damage: decoder.nextFieldDiff(
+        obj.damage,
+        (x) => decoder.nextBoundedIntDiff(x, 0),
+      ),
     };
   },
 };
@@ -732,24 +712,15 @@ export const UseItemAction = {
     encoder.pushString(obj.itemId);
   },
   encodeDiff(a: UseItemAction, b: UseItemAction): Uint8Array {
-    const encoder = _.Encoder.create();
-    UseItemAction._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, UseItemAction.equals, () => UseItemAction._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: UseItemAction, b: UseItemAction, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !UseItemAction.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      UseItemAction._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: UseItemAction, b: UseItemAction, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: UseItemAction, b: UseItemAction, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.itemId,
-      b.itemId,
-      dirty?.has("itemId") ?? true,
+      a,
+      b,
+      "itemId",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
@@ -763,14 +734,15 @@ export const UseItemAction = {
     };
   },
   decodeDiff(obj: UseItemAction, input: Uint8Array): UseItemAction {
-    return UseItemAction._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => UseItemAction._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: UseItemAction, decoder: _.Decoder): UseItemAction {
-    return decoder.nextBoolean() ? UseItemAction._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: UseItemAction, decoder: _.Decoder): UseItemAction {
+  _decodeDiff(obj: UseItemAction, decoder: _.DiffDecoder): UseItemAction {
     return {
-      itemId: decoder.nextFieldDiff(obj.itemId, (x) => decoder.nextStringDiff(x)),
+      itemId: decoder.nextFieldDiff(
+        obj.itemId,
+        (x) => decoder.nextStringDiff(x),
+      ),
     };
   },
 };
@@ -846,15 +818,15 @@ export const GameAction = {
     }
   },
   encodeDiff(a: GameAction, b: GameAction): Uint8Array {
-    const encoder = _.Encoder.create();
+    const encoder = _.DiffEncoder.create();
     GameAction._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
-  _encodeDiff(a: GameAction, b: GameAction, encoder: _.Encoder): void {
+  _encodeDiff(a: GameAction, b: GameAction, encoder: _.DiffEncoder): void {
     encoder.pushBoolean(a._type === b._type);
     if (b._type === "MoveAction") {
       if (a._type === "MoveAction") {
-        MoveAction._encodeDiffFields(a, b, encoder);
+        MoveAction._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(0, 2);
         MoveAction._encode(b, encoder);
@@ -862,7 +834,7 @@ export const GameAction = {
     }
     else if (b._type === "AttackAction") {
       if (a._type === "AttackAction") {
-        AttackAction._encodeDiffFields(a, b, encoder);
+        AttackAction._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(1, 2);
         AttackAction._encode(b, encoder);
@@ -870,7 +842,7 @@ export const GameAction = {
     }
     else if (b._type === "UseItemAction") {
       if (a._type === "UseItemAction") {
-        UseItemAction._encodeDiffFields(a, b, encoder);
+        UseItemAction._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(2, 2);
         UseItemAction._encode(b, encoder);
@@ -894,19 +866,19 @@ export const GameAction = {
     throw new Error("Invalid union");
   },
   decodeDiff(obj: GameAction, input: Uint8Array): GameAction {
-    return GameAction._decodeDiff(obj, _.Decoder.create(input));
+    return GameAction._decodeDiff(obj, _.DiffDecoder.create(input));
   },
-  _decodeDiff(obj: GameAction, decoder: _.Decoder): GameAction {
+  _decodeDiff(obj: GameAction, decoder: _.DiffDecoder): GameAction {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
       if (obj._type === "MoveAction") {
-        return { _type: "MoveAction", ...MoveAction._decodeDiffFields(obj, decoder) };
+        return { _type: "MoveAction", ...MoveAction._decodeDiff(obj, decoder) };
       }
       else if (obj._type === "AttackAction") {
-        return { _type: "AttackAction", ...AttackAction._decodeDiffFields(obj, decoder) };
+        return { _type: "AttackAction", ...AttackAction._decodeDiff(obj, decoder) };
       }
       else if (obj._type === "UseItemAction") {
-        return { _type: "UseItemAction", ...UseItemAction._decodeDiffFields(obj, decoder) };
+        return { _type: "UseItemAction", ...UseItemAction._decodeDiff(obj, decoder) };
       }
       throw new Error("Invalid union diff");
     } else {
@@ -1000,59 +972,50 @@ export const GameState = {
     encoder.pushOptional(obj.lastAction, (x) => GameAction._encode(x, encoder));
   },
   encodeDiff(a: GameState, b: GameState): Uint8Array {
-    const encoder = _.Encoder.create();
-    GameState._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, GameState.equals, () => GameState._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: GameState, b: GameState, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !GameState.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      GameState._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: GameState, b: GameState, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: GameState, b: GameState, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.players,
-      b.players,
-      dirty?.has("players") ?? true,
+      a,
+      b,
+      "players",
       (x, y) => _.equalsArray(x, y, (x, y) => Player.equals(x, y)),
-      (x, y) => encoder.pushArrayDiff<Player>(x, y, (x, y) => Player.equals(x, y), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiffFields(x, y, encoder)),
+      (x, y) => encoder.pushArrayDiff<Player>(x, y, (x, y) => Player.equals(x, y), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder)),
     );
     encoder.pushFieldDiff(
-      a.currentPlayer,
-      b.currentPlayer,
-      dirty?.has("currentPlayer") ?? true,
+      a,
+      b,
+      "currentPlayer",
       (x, y) => _.equalsOptional(x, y, (x, y) => x === y),
       (x, y) => encoder.pushOptionalDiff<string>(x, y, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)),
     );
     encoder.pushFieldDiff(
-      a.round,
-      b.round,
-      dirty?.has("round") ?? true,
+      a,
+      b,
+      "round",
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
     encoder.pushFieldDiff(
-      a.metadata,
-      b.metadata,
-      dirty?.has("metadata") ?? true,
+      a,
+      b,
+      "metadata",
       (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
       (x, y) => encoder.pushRecordDiff<string, string>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)),
     );
     encoder.pushFieldDiff(
-      a.winningColor,
-      b.winningColor,
-      dirty?.has("winningColor") ?? true,
+      a,
+      b,
+      "winningColor",
       (x, y) => _.equalsOptional(x, y, (x, y) => x === y),
       (x, y) => encoder.pushOptionalDiff<Color>(x, y, (x) => encoder.pushEnum(Color[x], 2), (x, y) => encoder.pushEnumDiff(Color[x], Color[y], 2)),
     );
     encoder.pushFieldDiff(
-      a.lastAction,
-      b.lastAction,
-      dirty?.has("lastAction") ?? true,
+      a,
+      b,
+      "lastAction",
       (x, y) => _.equalsOptional(x, y, (x, y) => GameAction.equals(x, y)),
       (x, y) => encoder.pushOptionalDiff<GameAction>(x, y, (x) => GameAction._encode(x, encoder), (x, y) => GameAction._encodeDiff(x, y, encoder)),
     );
@@ -1071,19 +1034,35 @@ export const GameState = {
     };
   },
   decodeDiff(obj: GameState, input: Uint8Array): GameState {
-    return GameState._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => GameState._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: GameState, decoder: _.Decoder): GameState {
-    return decoder.nextBoolean() ? GameState._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: GameState, decoder: _.Decoder): GameState {
+  _decodeDiff(obj: GameState, decoder: _.DiffDecoder): GameState {
     return {
-      players: decoder.nextFieldDiff(obj.players, (x) => decoder.nextArrayDiff<Player>(x, () => Player._decode(decoder), (x) => Player._decodeDiffFields(x, decoder))),
-      currentPlayer: decoder.nextFieldDiff(obj.currentPlayer, (x) => decoder.nextOptionalDiff<string>(x, () => decoder.nextString(), (x) => decoder.nextStringDiff(x))),
-      round: decoder.nextFieldDiff(obj.round, (x) => decoder.nextBoundedIntDiff(x, 0)),
-      metadata: decoder.nextFieldDiff(obj.metadata, (x) => decoder.nextRecordDiff<string, string>(x, () => decoder.nextString(), () => decoder.nextString(), (x) => decoder.nextStringDiff(x))),
-      winningColor: decoder.nextFieldDiff(obj.winningColor, (x) => decoder.nextOptionalDiff<Color>(x, () => (Color as any)[decoder.nextEnum(2)], (x) => (Color as any)[decoder.nextEnumDiff((Color as any)[x], 2)])),
-      lastAction: decoder.nextFieldDiff(obj.lastAction, (x) => decoder.nextOptionalDiff<GameAction>(x, () => GameAction._decode(decoder), (x) => GameAction._decodeDiff(x, decoder))),
+      players: decoder.nextFieldDiff(
+        obj.players,
+        (x) => decoder.nextArrayDiff<Player>(x, () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
+      ),
+      currentPlayer: decoder.nextFieldDiff(
+        obj.currentPlayer,
+        (x) => decoder.nextOptionalDiff<string>(x, () => decoder.nextString(), (x) => decoder.nextStringDiff(x)),
+      ),
+      round: decoder.nextFieldDiff(
+        obj.round,
+        (x) => decoder.nextBoundedIntDiff(x, 0),
+      ),
+      metadata: decoder.nextFieldDiff(
+        obj.metadata,
+        (x) => decoder.nextRecordDiff<string, string>(x, () => decoder.nextString(), () => decoder.nextString(), (x) => decoder.nextStringDiff(x)),
+      ),
+      winningColor: decoder.nextFieldDiff(
+        obj.winningColor,
+        (x) => decoder.nextOptionalDiff<Color>(x, () => (Color as any)[decoder.nextEnum(2)], (x) => (Color as any)[decoder.nextEnumDiff((Color as any)[x], 2)]),
+      ),
+      lastAction: decoder.nextFieldDiff(
+        obj.lastAction,
+        (x) => decoder.nextOptionalDiff<GameAction>(x, () => GameAction._decode(decoder), (x) => GameAction._decodeDiff(x, decoder)),
+      ),
     };
   },
 };
@@ -1129,24 +1108,15 @@ export const Inventory = {
     encoder.pushOptional(obj.items, (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))));
   },
   encodeDiff(a: Inventory, b: Inventory): Uint8Array {
-    const encoder = _.Encoder.create();
-    Inventory._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Inventory.equals, () => Inventory._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Inventory, b: Inventory, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Inventory.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Inventory._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Inventory, b: Inventory, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Inventory, b: Inventory, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.items,
-      b.items,
-      dirty?.has("items") ?? true,
+      a,
+      b,
+      "items",
       (x, y) => _.equalsOptional(x, y, (x, y) => _.equalsArray(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y))),
       (x, y) => encoder.pushOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(x, y, (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))), (x, y) => encoder.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y), (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x)), (x, y) => encoder.pushRecordDiff<string, number>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushInt(x), (x, y) => encoder.pushIntDiff(x, y)))),
     );
@@ -1160,14 +1130,15 @@ export const Inventory = {
     };
   },
   decodeDiff(obj: Inventory, input: Uint8Array): Inventory {
-    return Inventory._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Inventory._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Inventory, decoder: _.Decoder): Inventory {
-    return decoder.nextBoolean() ? Inventory._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Inventory, decoder: _.Decoder): Inventory {
+  _decodeDiff(obj: Inventory, decoder: _.DiffDecoder): Inventory {
     return {
-      items: decoder.nextFieldDiff(obj.items, (x) => decoder.nextOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(x, () => decoder.nextArray(() => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt())), (x) => decoder.nextArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, () => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt()), (x) => decoder.nextRecordDiff<string, number>(x, () => decoder.nextString(), () => decoder.nextInt(), (x) => decoder.nextIntDiff(x))))),
+      items: decoder.nextFieldDiff(
+        obj.items,
+        (x) => decoder.nextOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(x, () => decoder.nextArray(() => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt())), (x) => decoder.nextArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, () => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt()), (x) => decoder.nextRecordDiff<string, number>(x, () => decoder.nextString(), () => decoder.nextInt(), (x) => decoder.nextIntDiff(x)))),
+      ),
     };
   },
 };
@@ -1211,26 +1182,17 @@ export const PlayerRegistry = {
     encoder.pushRecord(obj.players, (x) => encoder.pushString(x), (x) => Player._encode(x, encoder));
   },
   encodeDiff(a: PlayerRegistry, b: PlayerRegistry): Uint8Array {
-    const encoder = _.Encoder.create();
-    PlayerRegistry._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, PlayerRegistry.equals, () => PlayerRegistry._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: PlayerRegistry, b: PlayerRegistry, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !PlayerRegistry.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      PlayerRegistry._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: PlayerRegistry, b: PlayerRegistry, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: PlayerRegistry, b: PlayerRegistry, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.players,
-      b.players,
-      dirty?.has("players") ?? true,
+      a,
+      b,
+      "players",
       (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => Player.equals(x, y)),
-      (x, y) => encoder.pushRecordDiff<string, Player>(x, y, (x, y) => Player.equals(x, y), (x) => encoder.pushString(x), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiffFields(x, y, encoder)),
+      (x, y) => encoder.pushRecordDiff<string, Player>(x, y, (x, y) => Player.equals(x, y), (x) => encoder.pushString(x), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder)),
     );
   },
   decode(input: Uint8Array): PlayerRegistry {
@@ -1242,14 +1204,15 @@ export const PlayerRegistry = {
     };
   },
   decodeDiff(obj: PlayerRegistry, input: Uint8Array): PlayerRegistry {
-    return PlayerRegistry._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => PlayerRegistry._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: PlayerRegistry, decoder: _.Decoder): PlayerRegistry {
-    return decoder.nextBoolean() ? PlayerRegistry._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: PlayerRegistry, decoder: _.Decoder): PlayerRegistry {
+  _decodeDiff(obj: PlayerRegistry, decoder: _.DiffDecoder): PlayerRegistry {
     return {
-      players: decoder.nextFieldDiff(obj.players, (x) => decoder.nextRecordDiff<string, Player>(x, () => decoder.nextString(), () => Player._decode(decoder), (x) => Player._decodeDiffFields(x, decoder))),
+      players: decoder.nextFieldDiff(
+        obj.players,
+        (x) => decoder.nextRecordDiff<string, Player>(x, () => decoder.nextString(), () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
+      ),
     };
   },
 };

@@ -155,6 +155,36 @@ impl Encoder {
         self.push_enum(b, num_bits);
     }
 
+    // Object diff helper (wrap object encoding with change bit)
+
+    #[inline]
+    pub fn push_object_diff<T, E, F>(&mut self, a: &T, b: &T, equals: E, encode_diff: F)
+    where
+        E: FnOnce(&T, &T) -> bool,
+        F: FnOnce(&mut Self),
+    {
+        let changed = !equals(a, b);
+        self.push_boolean(changed);
+        if changed {
+            encode_diff(self);
+        }
+    }
+
+    // Field diff helper (wrap value-only diff with change bit)
+
+    #[inline]
+    pub fn push_field_diff<T, E, F>(&mut self, a: &T, b: &T, equals: E, encode_diff: F)
+    where
+        E: FnOnce(&T, &T) -> bool,
+        F: FnOnce(&mut Self, &T, &T),
+    {
+        let changed = !equals(a, b);
+        self.push_boolean(changed);
+        if changed {
+            encode_diff(self, a, b);
+        }
+    }
+
     // Array helpers
 
     /// Encode an array by writing length followed by each element.

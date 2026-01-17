@@ -83,36 +83,37 @@ impl InnerInner {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.long == b.long);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_int_diff(a.long, b.long);
-        }
-        let changed = !(a.enum_ == b.enum_);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_enum_diff(a.enum_.to_u32(), b.enum_.to_u32(), 3);
-        }
-        let changed = !(a.sint32 == b.sint32);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_int_diff(a.sint32, b.sint32);
-        }
+        encoder.push_field_diff(
+            &a.long,
+            &b.long,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_int_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.enum_,
+            &b.enum_,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 3),
+        );
+        encoder.push_field_diff(
+            &a.sint32,
+            &b.sint32,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_int_diff(a, b),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -128,34 +129,18 @@ impl InnerInner {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            long: if decoder.next_boolean() {
-                decoder.next_int_diff(obj.long)
-            } else {
-                obj.long.clone()
-            },
-            enum_: if decoder.next_boolean() {
-                Enum::from_u32(decoder.next_enum_diff(obj.enum_.to_u32(), 3))
-            } else {
-                obj.enum_.clone()
-            },
-            sint32: if decoder.next_boolean() {
-                decoder.next_int_diff(obj.sint32)
-            } else {
-                obj.sint32.clone()
-            },
+            long: decoder.next_field_diff(&obj.long, |dec, &a| dec.next_int_diff(a)),
+            enum_: decoder.next_field_diff(&obj.enum_, |dec, &a| {
+                Enum::from_u32(dec.next_enum_diff(a.to_u32(), 3))
+            }),
+            sint32: decoder.next_field_diff(&obj.sint32, |dec, &a| dec.next_int_diff(a)),
         }
     }
 }
@@ -195,37 +180,39 @@ impl Outer {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.bool_ == b.bool_);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_array_diff(
-                &a.bool_,
-                &b.bool_,
-                |x, y| x == y,
-                |enc, &item| enc.push_boolean(item),
-                |enc, &a, &b| enc.push_boolean_diff(a, b),
-            );
-        }
-        let changed = !(delta_pack::equals_float(a.double, b.double));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_float_diff(a.double, b.double);
-        }
+        encoder.push_field_diff(
+            &a.bool_,
+            &b.bool_,
+            |x, y| x == y,
+            |enc, a, b| {
+                enc.push_array_diff(
+                    a,
+                    b,
+                    |x, y| x == y,
+                    |enc, &item| enc.push_boolean(item),
+                    |enc, &a, &b| enc.push_boolean_diff(a, b),
+                )
+            },
+        );
+        encoder.push_field_diff(
+            &a.double,
+            &b.double,
+            |x, y| delta_pack::equals_float(*x, *y),
+            |enc, &a, &b| enc.push_float_diff(a, b),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -240,33 +227,21 @@ impl Outer {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            bool_: if decoder.next_boolean() {
-                decoder.next_array_diff(
-                    &obj.bool_,
+            bool_: decoder.next_field_diff(&obj.bool_, |dec, a| {
+                dec.next_array_diff(
+                    a,
                     |dec| dec.next_boolean(),
                     |dec, &a| dec.next_boolean_diff(a),
                 )
-            } else {
-                obj.bool_.clone()
-            },
-            double: if decoder.next_boolean() {
-                decoder.next_float_diff(obj.double)
-            } else {
-                obj.double.clone()
-            },
+            }),
+            double: decoder.next_field_diff(&obj.double, |dec, &a| dec.next_float_diff(a)),
         }
     }
 }
@@ -311,28 +286,37 @@ impl Inner {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.int32 == b.int32);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_int_diff(a.int32, b.int32);
-        }
-        InnerInner::encode_diff_into(&a.inner_inner, &b.inner_inner, encoder);
-        Outer::encode_diff_into(&a.outer, &b.outer, encoder);
+        encoder.push_field_diff(
+            &a.int32,
+            &b.int32,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_int_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.inner_inner,
+            &b.inner_inner,
+            |x, y| x.equals(y),
+            |enc, a, b| InnerInner::encode_diff_into(a, b, enc),
+        );
+        encoder.push_field_diff(
+            &a.outer,
+            &b.outer,
+            |x, y| x.equals(y),
+            |enc, a, b| Outer::encode_diff_into(a, b, enc),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -348,26 +332,18 @@ impl Inner {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            int32: if decoder.next_boolean() {
-                decoder.next_int_diff(obj.int32)
-            } else {
-                obj.int32.clone()
-            },
-            inner_inner: InnerInner::decode_diff_from(&obj.inner_inner, decoder),
-            outer: Outer::decode_diff_from(&obj.outer, decoder),
+            int32: decoder.next_field_diff(&obj.int32, |dec, &a| dec.next_int_diff(a)),
+            inner_inner: decoder.next_field_diff(&obj.inner_inner, |dec, a| {
+                InnerInner::decode_diff_from(a, dec)
+            }),
+            outer: decoder.next_field_diff(&obj.outer, |dec, a| Outer::decode_diff_from(a, dec)),
         }
     }
 }
@@ -415,37 +391,43 @@ impl Test {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.string == b.string);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.string, &b.string);
-        }
-        let changed = !(a.uint32 == b.uint32);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_int_diff(a.uint32, b.uint32);
-        }
-        Inner::encode_diff_into(&a.inner, &b.inner, encoder);
-        let changed = !(delta_pack::equals_float(a.float, b.float));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_float_diff(a.float, b.float);
-        }
+        encoder.push_field_diff(
+            &a.string,
+            &b.string,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.uint32,
+            &b.uint32,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_int_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.inner,
+            &b.inner,
+            |x, y| x.equals(y),
+            |enc, a, b| Inner::encode_diff_into(a, b, enc),
+        );
+        encoder.push_field_diff(
+            &a.float,
+            &b.float,
+            |x, y| delta_pack::equals_float(*x, *y),
+            |enc, &a, &b| enc.push_float_diff(a, b),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -462,35 +444,17 @@ impl Test {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            string: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.string)
-            } else {
-                obj.string.clone()
-            },
-            uint32: if decoder.next_boolean() {
-                decoder.next_int_diff(obj.uint32)
-            } else {
-                obj.uint32.clone()
-            },
-            inner: Inner::decode_diff_from(&obj.inner, decoder),
-            float: if decoder.next_boolean() {
-                decoder.next_float_diff(obj.float)
-            } else {
-                obj.float.clone()
-            },
+            string: decoder.next_field_diff(&obj.string, |dec, a| dec.next_string_diff(a)),
+            uint32: decoder.next_field_diff(&obj.uint32, |dec, &a| dec.next_int_diff(a)),
+            inner: decoder.next_field_diff(&obj.inner, |dec, a| Inner::decode_diff_from(a, dec)),
+            float: decoder.next_field_diff(&obj.float, |dec, &a| dec.next_float_diff(a)),
         }
     }
 }

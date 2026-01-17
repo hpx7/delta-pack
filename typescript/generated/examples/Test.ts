@@ -91,38 +91,29 @@ export const InnerInner = {
     encoder.pushInt(obj.sint32);
   },
   encodeDiff(a: InnerInner, b: InnerInner): Uint8Array {
-    const encoder = _.Encoder.create();
-    InnerInner._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, InnerInner.equals, () => InnerInner._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: InnerInner, b: InnerInner, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !InnerInner.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      InnerInner._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: InnerInner, b: InnerInner, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: InnerInner, b: InnerInner, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.long,
-      b.long,
-      dirty?.has("long") ?? true,
+      a,
+      b,
+      "long",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.enum,
-      b.enum,
-      dirty?.has("enum") ?? true,
+      a,
+      b,
+      "enum",
       (x, y) => x === y,
       (x, y) => encoder.pushEnumDiff(Enum[x], Enum[y], 3),
     );
     encoder.pushFieldDiff(
-      a.sint32,
-      b.sint32,
-      dirty?.has("sint32") ?? true,
+      a,
+      b,
+      "sint32",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
@@ -138,16 +129,23 @@ export const InnerInner = {
     };
   },
   decodeDiff(obj: InnerInner, input: Uint8Array): InnerInner {
-    return InnerInner._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => InnerInner._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: InnerInner, decoder: _.Decoder): InnerInner {
-    return decoder.nextBoolean() ? InnerInner._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: InnerInner, decoder: _.Decoder): InnerInner {
+  _decodeDiff(obj: InnerInner, decoder: _.DiffDecoder): InnerInner {
     return {
-      long: decoder.nextFieldDiff(obj.long, (x) => decoder.nextIntDiff(x)),
-      enum: decoder.nextFieldDiff(obj.enum, (x) => (Enum as any)[decoder.nextEnumDiff((Enum as any)[x], 3)]),
-      sint32: decoder.nextFieldDiff(obj.sint32, (x) => decoder.nextIntDiff(x)),
+      long: decoder.nextFieldDiff(
+        obj.long,
+        (x) => decoder.nextIntDiff(x),
+      ),
+      enum: decoder.nextFieldDiff(
+        obj.enum,
+        (x) => (Enum as any)[decoder.nextEnumDiff((Enum as any)[x], 3)],
+      ),
+      sint32: decoder.nextFieldDiff(
+        obj.sint32,
+        (x) => decoder.nextIntDiff(x),
+      ),
     };
   },
 };
@@ -197,31 +195,22 @@ export const Outer = {
     encoder.pushFloat(obj.double);
   },
   encodeDiff(a: Outer, b: Outer): Uint8Array {
-    const encoder = _.Encoder.create();
-    Outer._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Outer.equals, () => Outer._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Outer, b: Outer, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Outer.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Outer._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Outer, b: Outer, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Outer, b: Outer, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.bool,
-      b.bool,
-      dirty?.has("bool") ?? true,
+      a,
+      b,
+      "bool",
       (x, y) => _.equalsArray(x, y, (x, y) => x === y),
       (x, y) => encoder.pushArrayDiff<boolean>(x, y, (x, y) => x === y, (x) => encoder.pushBoolean(x), (_x, _y) => undefined),
     );
     encoder.pushFieldDiff(
-      a.double,
-      b.double,
-      dirty?.has("double") ?? true,
+      a,
+      b,
+      "double",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
@@ -236,15 +225,19 @@ export const Outer = {
     };
   },
   decodeDiff(obj: Outer, input: Uint8Array): Outer {
-    return Outer._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Outer._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Outer, decoder: _.Decoder): Outer {
-    return decoder.nextBoolean() ? Outer._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Outer, decoder: _.Decoder): Outer {
+  _decodeDiff(obj: Outer, decoder: _.DiffDecoder): Outer {
     return {
-      bool: decoder.nextFieldDiff(obj.bool, (x) => decoder.nextArrayDiff<boolean>(x, () => decoder.nextBoolean(), (x) => !x)),
-      double: decoder.nextFieldDiff(obj.double, (x) => decoder.nextFloatDiff(x)),
+      bool: decoder.nextFieldDiff(
+        obj.bool,
+        (x) => decoder.nextArrayDiff<boolean>(x, () => decoder.nextBoolean(), (x) => !x),
+      ),
+      double: decoder.nextFieldDiff(
+        obj.double,
+        (x) => decoder.nextFloatDiff(x),
+      ),
     };
   },
 };
@@ -300,34 +293,31 @@ export const Inner = {
     Outer._encode(obj.outer, encoder);
   },
   encodeDiff(a: Inner, b: Inner): Uint8Array {
-    const encoder = _.Encoder.create();
-    Inner._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Inner.equals, () => Inner._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Inner, b: Inner, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Inner.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Inner._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Inner, b: Inner, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Inner, b: Inner, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.int32,
-      b.int32,
-      dirty?.has("int32") ?? true,
+      a,
+      b,
+      "int32",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
-    encoder.pushFieldDiffValue(
-      dirty?.has("innerInner") ?? true,
-      () => InnerInner._encodeDiff(a.innerInner, b.innerInner, encoder),
+    encoder.pushFieldDiff(
+      a,
+      b,
+      "innerInner",
+      (x, y) => InnerInner.equals(x, y),
+      (x, y) => InnerInner._encodeDiff(x, y, encoder),
     );
-    encoder.pushFieldDiffValue(
-      dirty?.has("outer") ?? true,
-      () => Outer._encodeDiff(a.outer, b.outer, encoder),
+    encoder.pushFieldDiff(
+      a,
+      b,
+      "outer",
+      (x, y) => Outer.equals(x, y),
+      (x, y) => Outer._encodeDiff(x, y, encoder),
     );
   },
   decode(input: Uint8Array): Inner {
@@ -341,16 +331,23 @@ export const Inner = {
     };
   },
   decodeDiff(obj: Inner, input: Uint8Array): Inner {
-    return Inner._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Inner._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Inner, decoder: _.Decoder): Inner {
-    return decoder.nextBoolean() ? Inner._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Inner, decoder: _.Decoder): Inner {
+  _decodeDiff(obj: Inner, decoder: _.DiffDecoder): Inner {
     return {
-      int32: decoder.nextFieldDiff(obj.int32, (x) => decoder.nextIntDiff(x)),
-      innerInner: InnerInner._decodeDiff(obj.innerInner, decoder),
-      outer: Outer._decodeDiff(obj.outer, decoder),
+      int32: decoder.nextFieldDiff(
+        obj.int32,
+        (x) => decoder.nextIntDiff(x),
+      ),
+      innerInner: decoder.nextFieldDiff(
+        obj.innerInner,
+        (x) => InnerInner._decodeDiff(x, decoder),
+      ),
+      outer: decoder.nextFieldDiff(
+        obj.outer,
+        (x) => Outer._decodeDiff(x, decoder),
+      ),
     };
   },
 };
@@ -412,42 +409,36 @@ export const Test = {
     encoder.pushFloat(obj.float);
   },
   encodeDiff(a: Test, b: Test): Uint8Array {
-    const encoder = _.Encoder.create();
-    Test._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Test.equals, () => Test._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Test, b: Test, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Test.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Test._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Test, b: Test, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Test, b: Test, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.string,
-      b.string,
-      dirty?.has("string") ?? true,
+      a,
+      b,
+      "string",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.uint32,
-      b.uint32,
-      dirty?.has("uint32") ?? true,
+      a,
+      b,
+      "uint32",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
-    encoder.pushFieldDiffValue(
-      dirty?.has("inner") ?? true,
-      () => Inner._encodeDiff(a.inner, b.inner, encoder),
+    encoder.pushFieldDiff(
+      a,
+      b,
+      "inner",
+      (x, y) => Inner.equals(x, y),
+      (x, y) => Inner._encodeDiff(x, y, encoder),
     );
     encoder.pushFieldDiff(
-      a.float,
-      b.float,
-      dirty?.has("float") ?? true,
+      a,
+      b,
+      "float",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
@@ -464,17 +455,27 @@ export const Test = {
     };
   },
   decodeDiff(obj: Test, input: Uint8Array): Test {
-    return Test._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Test._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Test, decoder: _.Decoder): Test {
-    return decoder.nextBoolean() ? Test._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Test, decoder: _.Decoder): Test {
+  _decodeDiff(obj: Test, decoder: _.DiffDecoder): Test {
     return {
-      string: decoder.nextFieldDiff(obj.string, (x) => decoder.nextStringDiff(x)),
-      uint32: decoder.nextFieldDiff(obj.uint32, (x) => decoder.nextIntDiff(x)),
-      inner: Inner._decodeDiff(obj.inner, decoder),
-      float: decoder.nextFieldDiff(obj.float, (x) => decoder.nextFloatDiff(x)),
+      string: decoder.nextFieldDiff(
+        obj.string,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      uint32: decoder.nextFieldDiff(
+        obj.uint32,
+        (x) => decoder.nextIntDiff(x),
+      ),
+      inner: decoder.nextFieldDiff(
+        obj.inner,
+        (x) => Inner._decodeDiff(x, decoder),
+      ),
+      float: decoder.nextFieldDiff(
+        obj.float,
+        (x) => decoder.nextFloatDiff(x),
+      ),
     };
   },
 };

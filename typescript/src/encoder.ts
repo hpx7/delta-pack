@@ -1,12 +1,12 @@
 import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
 
 export class Encoder {
-  private static _instance: Encoder | null = null;
+  protected static _instance: Encoder | null = null;
 
-  private bytes = allocFromSlab(256);
-  private pos!: number;
-  private dict!: string[];
-  private rle = new RleWriter();
+  protected bytes = allocFromSlab(256);
+  protected pos = 0;
+  protected dict: string[] = [];
+  protected rle = new RleWriter();
 
   static create(): Encoder {
     const enc = Encoder._instance ?? new Encoder();
@@ -16,7 +16,8 @@ export class Encoder {
     enc.rle.reset();
     return enc;
   }
-  private constructor() {}
+
+  protected constructor() {}
 
   pushString(val: string) {
     if (val === "") {
@@ -28,7 +29,6 @@ export class Encoder {
       this.writeVarint(-idx - 1);
       return;
     }
-
     this.dict.push(val);
 
     // Fast path: strings ≤21 chars have max 63 UTF-8 bytes, fits in 1-byte zigzag varint
@@ -89,6 +89,94 @@ export class Encoder {
     }
   }
 
+  toBuffer() {
+    const rleBytes = this.rle.toBytes();
+    this.ensureSize(rleBytes.length);
+    for (let i = 0; i < rleBytes.length; i++) {
+      this.bytes[this.pos++] = rleBytes[i]!;
+    }
+    Encoder._instance = this;
+    return copyBuffer(this.bytes.subarray(0, this.pos));
+  }
+
+  protected writeVarint(val: number) {
+    const zigzagEncoded = val >= 0 ? val * 2 : val * -2 - 1;
+    this.writeUVarint(zigzagEncoded);
+  }
+
+  protected writeUVarint(val: number) {
+    if (val <= 0xfffffff) {
+      this.ensureSize(4);
+      while (val >= 0x80) {
+        this.bytes[this.pos++] = (val & 0x7f) | 0x80;
+        val >>>= 7;
+      }
+    } else {
+      this.ensureSize(8);
+      while (val >= 0x80) {
+        this.bytes[this.pos++] = (val & 0x7f) | 0x80;
+        val = Math.floor(val / 128);
+      }
+    }
+    this.bytes[this.pos++] = val;
+  }
+
+  protected writeFloat(val: number) {
+    this.ensureSize(4);
+    floatWrite(val, this.bytes, this.pos);
+    this.pos += 4;
+  }
+
+  protected writeStringUtf8(val: string, len: number) {
+    this.ensureSize(len);
+    utf8Write(val, this.bytes, this.pos, len);
+    this.pos += len;
+  }
+
+  protected writeStringFastPath(val: string) {
+    this.ensureSize(1 + val.length * 3); // max utf8 size
+    const lengthPos = this.pos++;
+    const written = utf8Encode(val, this.bytes, this.pos);
+    this.bytes[lengthPos] = written * 2; // Zigzag encode: positive n → n*2
+    this.pos += written;
+  }
+
+  protected ensureSize(size: number) {
+    if (this.bytes.length >= this.pos + size) {
+      return;
+    }
+    let newSize = this.bytes.length * 2;
+    while (newSize < this.pos + size) {
+      newSize *= 2;
+    }
+    const newBytes = allocFromSlab(newSize);
+    newBytes.set(this.bytes);
+    this.bytes = newBytes;
+  }
+}
+
+export class DiffEncoder extends Encoder {
+  protected static override _instance: DiffEncoder | null = null;
+
+  static override create(): DiffEncoder {
+    const enc = DiffEncoder._instance ?? new DiffEncoder();
+    DiffEncoder._instance = null;
+    enc.pos = 0;
+    enc.dict = [];
+    enc.rle.reset();
+    return enc;
+  }
+
+  override toBuffer() {
+    const rleBytes = this.rle.toBytes();
+    this.ensureSize(rleBytes.length);
+    for (let i = 0; i < rleBytes.length; i++) {
+      this.bytes[this.pos++] = rleBytes[i]!;
+    }
+    DiffEncoder._instance = this;
+    return copyBuffer(this.bytes.subarray(0, this.pos));
+  }
+
   pushStringDiff(a: string, b: string) {
     if (!this.dict.includes(a)) {
       this.dict.push(a);
@@ -101,7 +189,7 @@ export class Encoder {
   }
 
   pushBoundedIntDiff(_a: number, b: number, min: number) {
-    this.writeUVarint(b - min);
+    this.pushBoundedInt(b, min);
   }
 
   pushFloatDiff(_a: number, b: number) {
@@ -121,20 +209,40 @@ export class Encoder {
     this.pushEnum(b, numBits);
   }
 
+  // Object diff - handles dirty tracking and change bit
+  pushObjectDiff<T>(a: T, b: T & { _dirty?: Set<string> }, equals: (a: T, b: T) => boolean, encodeDiff: () => void) {
+    const dirty = b._dirty;
+    const changed = dirty == null ? !equals(a, b) : dirty.size > 0;
+    this.pushBoolean(changed);
+    if (changed) encodeDiff();
+  }
+
   // Generic field diff - handles change bit for object fields
-  pushFieldDiff<T>(a: T, b: T, maybeDirty: boolean, equals: (a: T, b: T) => boolean, encodeDiff: (a: T, b: T) => void) {
-    if (!maybeDirty) {
+  pushFieldDiff<O extends { _dirty?: Set<string> }, K extends string & keyof O>(
+    a: O,
+    b: O,
+    key: K,
+    equals: (a: O[K], b: O[K]) => boolean,
+    encodeDiff: (a: O[K], b: O[K]) => void
+  ) {
+    if (b._dirty?.has(key) === false) {
       this.pushBoolean(false);
       return;
     }
-    const changed = !equals(a, b);
+    const aVal = a[key],
+      bVal = b[key];
+    const changed = !equals(aVal, bVal);
     this.pushBoolean(changed);
-    if (changed) encodeDiff(a, b);
+    if (changed) encodeDiff(aVal, bVal);
   }
 
   // Field diff for types that include their own change bit (boolean, object)
-  pushFieldDiffValue(maybeDirty: boolean, encodeDiff: () => void) {
-    if (!maybeDirty) {
+  pushFieldDiffValue<O extends { _dirty?: Set<string> }, K extends string & keyof O>(
+    b: O,
+    key: K,
+    encodeDiff: () => void
+  ) {
+    if (b._dirty?.has(key) === false) {
       this.pushBoolean(false);
       return;
     }
@@ -249,70 +357,5 @@ export class Encoder {
       encodeKey(key);
       encodeVal(val);
     });
-  }
-
-  toBuffer() {
-    const rleBytes = this.rle.toBytes();
-    this.ensureSize(rleBytes.length);
-    for (let i = 0; i < rleBytes.length; i++) {
-      this.bytes[this.pos++] = rleBytes[i]!;
-    }
-    Encoder._instance = this;
-    return copyBuffer(this.bytes.subarray(0, this.pos));
-  }
-
-  private writeVarint(val: number) {
-    const encoded = val >= 0 ? val * 2 : val * -2 - 1;
-    this.writeUVarint(encoded);
-  }
-
-  private writeUVarint(val: number) {
-    if (val <= 0xfffffff) {
-      this.ensureSize(4);
-      while (val >= 0x80) {
-        this.bytes[this.pos++] = (val & 0x7f) | 0x80;
-        val >>>= 7;
-      }
-    } else {
-      this.ensureSize(8);
-      while (val >= 0x80) {
-        this.bytes[this.pos++] = (val & 0x7f) | 0x80;
-        val = Math.floor(val / 128);
-      }
-    }
-    this.bytes[this.pos++] = val;
-  }
-
-  private writeFloat(val: number) {
-    this.ensureSize(4);
-    floatWrite(val, this.bytes, this.pos);
-    this.pos += 4;
-  }
-
-  private writeStringUtf8(val: string, len: number) {
-    this.ensureSize(len);
-    utf8Write(val, this.bytes, this.pos, len);
-    this.pos += len;
-  }
-
-  private writeStringFastPath(val: string) {
-    this.ensureSize(1 + val.length * 3); // max utf8 size
-    const lengthPos = this.pos++;
-    const written = utf8Encode(val, this.bytes, this.pos);
-    this.bytes[lengthPos] = written * 2; // Zigzag encode: positive n → n*2
-    this.pos += written;
-  }
-
-  private ensureSize(size: number) {
-    if (this.bytes.length >= this.pos + size) {
-      return;
-    }
-    let newSize = this.bytes.length * 2;
-    while (newSize < this.pos + size) {
-      newSize *= 2;
-    }
-    const newBytes = allocFromSlab(newSize);
-    newBytes.set(this.bytes);
-    this.bytes = newBytes;
   }
 }

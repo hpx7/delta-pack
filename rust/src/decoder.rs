@@ -179,6 +179,36 @@ impl<'a> Decoder<'a> {
         self.next_enum(num_bits)
     }
 
+    // Object diff helper (read change bit, decode if changed)
+
+    #[inline]
+    pub fn next_object_diff<T, F>(&mut self, a: &T, decode_diff: F) -> T
+    where
+        T: Clone,
+        F: FnOnce(&mut Self) -> T,
+    {
+        if self.next_boolean() {
+            decode_diff(self)
+        } else {
+            a.clone()
+        }
+    }
+
+    // Field diff helper (read change bit, decode if changed)
+
+    #[inline]
+    pub fn next_field_diff<T, F>(&mut self, a: &T, decode_diff: F) -> T
+    where
+        T: Clone,
+        F: FnOnce(&mut Self, &T) -> T,
+    {
+        if self.next_boolean() {
+            decode_diff(self, a)
+        } else {
+            a.clone()
+        }
+    }
+
     // Array helpers
 
     /// Decode an array by reading length followed by each element.

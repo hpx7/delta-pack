@@ -74,35 +74,15 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(Address a, Address b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(Address a, Address b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(Address a, Address b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Street == b.Street);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.Street, b.Street);
-            }
-            {
-                var changed = !(a.Zip == b.Zip);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.Zip, b.Zip);
-            }
-            {
-                var changed = !(a.State == b.State);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.State, b.State);
-            }
+            encoder.PushFieldDiff<string>(a.Street, b.Street, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<string>(a.Zip, b.Zip, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<string>(a.State, b.State, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
         }
 
         public static Address Decode(byte[] buf)
@@ -124,17 +104,10 @@ namespace Generated.Examples
         public static Address DecodeDiff(Address obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static Address DecodeDiff_(Address obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static Address DecodeDiffFields_(Address obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -196,25 +169,13 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(EmailContact a, EmailContact b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(EmailContact a, EmailContact b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(EmailContact a, EmailContact b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Email == b.Email);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.Email, b.Email);
-            }
+            encoder.PushFieldDiff<string>(a.Email, b.Email, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
         }
 
         public static new EmailContact Decode(byte[] buf)
@@ -234,17 +195,10 @@ namespace Generated.Examples
         public static EmailContact DecodeDiff(EmailContact obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static EmailContact DecodeDiff_(EmailContact obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static EmailContact DecodeDiffFields_(EmailContact obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -311,30 +265,14 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(PhoneContact a, PhoneContact b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(PhoneContact a, PhoneContact b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(PhoneContact a, PhoneContact b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Phone == b.Phone);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.Phone, b.Phone);
-            }
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsOptionalValue(a.Extension, b.Extension, (x, y) => x == y));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushOptionalDiff<long>(a.Extension, b.Extension, x => encoder.PushBoundedInt(x, 0), (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
-            }
+            encoder.PushFieldDiff<string>(a.Phone, b.Phone, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<long?>(a.Extension, b.Extension, (x, y) => DeltaPack.EqualityHelpers.EqualsOptionalValue(x, y, (x, y) => x == y), (x, y) => encoder.PushOptionalDiff<long>(x, y, x => encoder.PushBoundedInt(x, 0), (x, y) => encoder.PushBoundedIntDiff(x, y, 0)));
         }
 
         public static new PhoneContact Decode(byte[] buf)
@@ -355,17 +293,10 @@ namespace Generated.Examples
         public static PhoneContact DecodeDiff(PhoneContact obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static PhoneContact DecodeDiff_(PhoneContact obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static PhoneContact DecodeDiffFields_(PhoneContact obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -458,7 +389,7 @@ namespace Generated.Examples
             {
                 if (a is EmailContact emailContactA)
                 {
-                    EmailContact.EncodeDiffFields_(emailContactA, emailContactB, encoder);
+                    EmailContact.EncodeDiff_(emailContactA, emailContactB, encoder);
                 }
                 else
                 {
@@ -470,7 +401,7 @@ namespace Generated.Examples
             {
                 if (a is PhoneContact phoneContactA)
                 {
-                    PhoneContact.EncodeDiffFields_(phoneContactA, phoneContactB, encoder);
+                    PhoneContact.EncodeDiff_(phoneContactA, phoneContactB, encoder);
                 }
                 else
                 {
@@ -505,8 +436,8 @@ namespace Generated.Examples
             var isSameType = decoder.NextBoolean();
             if (isSameType)
             {
-                if (obj is EmailContact emailContact) return EmailContact.DecodeDiffFields_(emailContact, decoder);
-                else if (obj is PhoneContact phoneContact) return PhoneContact.DecodeDiffFields_(phoneContact, decoder);
+                if (obj is EmailContact emailContact) return EmailContact.DecodeDiff_(emailContact, decoder);
+                else if (obj is PhoneContact phoneContact) return PhoneContact.DecodeDiff_(phoneContact, decoder);
                 throw new System.InvalidOperationException("Invalid Contact diff");
             }
             else
@@ -622,66 +553,22 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(User a, User b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(User a, User b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(User a, User b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.Id == b.Id);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.Id, b.Id);
-            }
-            {
-                var changed = !(a.Name == b.Name);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.Name, b.Name);
-            }
-            {
-                var changed = !(a.Age == b.Age);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushBoundedIntDiff(a.Age, b.Age, 0);
-            }
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsFloat(a.Weight, b.Weight));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushFloatDiff(a.Weight, b.Weight);
-            }
+            encoder.PushFieldDiff<string>(a.Id, b.Id, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<string>(a.Name, b.Name, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<long>(a.Age, b.Age, (x, y) => x == y, (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
+            encoder.PushFieldDiff<float>(a.Weight, b.Weight, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
             encoder.PushBooleanDiff(a.Married, b.Married);
-            {
-                var changed = !(a.HairColor == b.HairColor);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushEnumDiff((int)a.HairColor, (int)b.HairColor, 3);
-            }
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsOptional(a.Address, b.Address, (x, y) => Generated.Examples.Address.Equals(x, y)));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushOptionalDiff<Address>(a.Address, b.Address, x => Generated.Examples.Address.Encode_(x, encoder), (x, y) => Generated.Examples.Address.EncodeDiffFields_(x, y, encoder));
-            }
-            {
-                var changed = !(a.Children.Count == b.Children.Count && a.Children.Zip(b.Children).All(pair => User.Equals(pair.First, pair.Second)));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushArrayDiff<User>(a.Children, b.Children, (x, y) => User.Equals(x, y), x => User.Encode_(x, encoder), (x, y) => User.EncodeDiffFields_(x, y, encoder));
-            }
-            {
-                var changed = !(a.Metadata.Count == b.Metadata.Count && a.Metadata.All(kvp => b.Metadata.TryGetValue(kvp.Key, out var v) && kvp.Value == v));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushRecordDiff<string, string>(a.Metadata, b.Metadata, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y));
-            }
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsOptional(a.PreferredContact, b.PreferredContact, (x, y) => Contact.Equals(x, y)));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushOptionalDiff<Contact>(a.PreferredContact, b.PreferredContact, x => Contact.Encode_(x, encoder), (x, y) => Contact.EncodeDiff_(x, y, encoder));
-            }
+            encoder.PushFieldDiff<HairColor>(a.HairColor, b.HairColor, (x, y) => x == y, (x, y) => encoder.PushEnumDiff((int)x, (int)y, 3));
+            encoder.PushFieldDiff<Address?>(a.Address, b.Address, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => Generated.Examples.Address.Equals(x, y)), (x, y) => encoder.PushOptionalDiff<Address>(x, y, x => Generated.Examples.Address.Encode_(x, encoder), (x, y) => Generated.Examples.Address.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<System.Collections.Generic.List<User>>(a.Children, b.Children, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => User.Equals(pair.First, pair.Second)), (x, y) => encoder.PushArrayDiff<User>(x, y, (x, y) => User.Equals(x, y), x => User.Encode_(x, encoder), (x, y) => User.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<System.Collections.Generic.Dictionary<string, string>>(a.Metadata, b.Metadata, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), (x, y) => encoder.PushRecordDiff<string, string>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y)));
+            encoder.PushFieldDiff<Contact?>(a.PreferredContact, b.PreferredContact, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => Contact.Equals(x, y)), (x, y) => encoder.PushOptionalDiff<Contact>(x, y, x => Contact.Encode_(x, encoder), (x, y) => Contact.EncodeDiff_(x, y, encoder)));
         }
 
         public static User Decode(byte[] buf)
@@ -710,17 +597,10 @@ namespace Generated.Examples
         public static User DecodeDiff(User obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static User DecodeDiff_(User obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static User DecodeDiffFields_(User obj, DeltaPack.Decoder decoder)
         {
             return new()
             {
@@ -730,8 +610,8 @@ namespace Generated.Examples
                 Weight = decoder.NextFieldDiff(obj.Weight, x => decoder.NextFloatDiff(x)),
                 Married = decoder.NextBooleanDiff(obj.Married),
                 HairColor = decoder.NextFieldDiff(obj.HairColor, x => (HairColor)decoder.NextEnumDiff((int)x, 3)),
-                Address = decoder.NextFieldDiff(obj.Address, x => decoder.NextOptionalDiff<Address>(x, () => Generated.Examples.Address.Decode_(decoder), x => Generated.Examples.Address.DecodeDiffFields_(x, decoder))),
-                Children = decoder.NextFieldDiff(obj.Children, x => decoder.NextArrayDiff<User>(x, () => User.Decode_(decoder), x => User.DecodeDiffFields_(x, decoder))),
+                Address = decoder.NextFieldDiff(obj.Address, x => decoder.NextOptionalDiff<Address>(x, () => Generated.Examples.Address.Decode_(decoder), x => Generated.Examples.Address.DecodeDiff_(x, decoder))),
+                Children = decoder.NextFieldDiff(obj.Children, x => decoder.NextArrayDiff<User>(x, () => User.Decode_(decoder), x => User.DecodeDiff_(x, decoder))),
                 Metadata = decoder.NextFieldDiff(obj.Metadata, x => decoder.NextRecordDiff<string, string>(x, () => decoder.NextString(), () => decoder.NextString(), x => decoder.NextStringDiff(x))),
                 PreferredContact = decoder.NextFieldDiff(obj.PreferredContact, x => decoder.NextOptionalDiff<Contact>(x, () => Contact.Decode_(decoder), x => Contact.DecodeDiff_(x, decoder))),
             };

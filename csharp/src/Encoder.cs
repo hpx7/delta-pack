@@ -160,6 +160,16 @@ public class Encoder
     public void PushEnumDiff(int a, int b, int numBits) =>
         PushEnum(b, numBits);
 
+    // Object diff helper (wrap object encoding with change bit)
+
+    public void PushObjectDiff<T>(T a, T b, Func<T, T, bool> equals, Action encodeDiff)
+    {
+        var changed = !equals(a, b);
+        PushBoolean(changed);
+        if (changed)
+            encodeDiff();
+    }
+
     // Field diff helpers (wrap value-only diff with change bit)
 
     public void PushFieldDiff<T>(T a, T b, Func<T, T, bool> equals, Action<T, T> encodeDiff)

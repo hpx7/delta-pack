@@ -99,38 +99,29 @@ export const Address = {
     encoder.pushString(obj.state);
   },
   encodeDiff(a: Address, b: Address): Uint8Array {
-    const encoder = _.Encoder.create();
-    Address._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Address.equals, () => Address._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Address, b: Address, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Address.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Address._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Address, b: Address, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Address, b: Address, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.street,
-      b.street,
-      dirty?.has("street") ?? true,
+      a,
+      b,
+      "street",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.zip,
-      b.zip,
-      dirty?.has("zip") ?? true,
+      a,
+      b,
+      "zip",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.state,
-      b.state,
-      dirty?.has("state") ?? true,
+      a,
+      b,
+      "state",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
@@ -146,16 +137,23 @@ export const Address = {
     };
   },
   decodeDiff(obj: Address, input: Uint8Array): Address {
-    return Address._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Address._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Address, decoder: _.Decoder): Address {
-    return decoder.nextBoolean() ? Address._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Address, decoder: _.Decoder): Address {
+  _decodeDiff(obj: Address, decoder: _.DiffDecoder): Address {
     return {
-      street: decoder.nextFieldDiff(obj.street, (x) => decoder.nextStringDiff(x)),
-      zip: decoder.nextFieldDiff(obj.zip, (x) => decoder.nextStringDiff(x)),
-      state: decoder.nextFieldDiff(obj.state, (x) => decoder.nextStringDiff(x)),
+      street: decoder.nextFieldDiff(
+        obj.street,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      zip: decoder.nextFieldDiff(
+        obj.zip,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      state: decoder.nextFieldDiff(
+        obj.state,
+        (x) => decoder.nextStringDiff(x),
+      ),
     };
   },
 };
@@ -199,24 +197,15 @@ export const EmailContact = {
     encoder.pushString(obj.email);
   },
   encodeDiff(a: EmailContact, b: EmailContact): Uint8Array {
-    const encoder = _.Encoder.create();
-    EmailContact._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, EmailContact.equals, () => EmailContact._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: EmailContact, b: EmailContact, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !EmailContact.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      EmailContact._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: EmailContact, b: EmailContact, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: EmailContact, b: EmailContact, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.email,
-      b.email,
-      dirty?.has("email") ?? true,
+      a,
+      b,
+      "email",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
@@ -230,14 +219,15 @@ export const EmailContact = {
     };
   },
   decodeDiff(obj: EmailContact, input: Uint8Array): EmailContact {
-    return EmailContact._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => EmailContact._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: EmailContact, decoder: _.Decoder): EmailContact {
-    return decoder.nextBoolean() ? EmailContact._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: EmailContact, decoder: _.Decoder): EmailContact {
+  _decodeDiff(obj: EmailContact, decoder: _.DiffDecoder): EmailContact {
     return {
-      email: decoder.nextFieldDiff(obj.email, (x) => decoder.nextStringDiff(x)),
+      email: decoder.nextFieldDiff(
+        obj.email,
+        (x) => decoder.nextStringDiff(x),
+      ),
     };
   },
 };
@@ -289,31 +279,22 @@ export const PhoneContact = {
     encoder.pushOptional(obj.extension, (x) => encoder.pushBoundedInt(x, 0));
   },
   encodeDiff(a: PhoneContact, b: PhoneContact): Uint8Array {
-    const encoder = _.Encoder.create();
-    PhoneContact._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, PhoneContact.equals, () => PhoneContact._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: PhoneContact, b: PhoneContact, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !PhoneContact.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      PhoneContact._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: PhoneContact, b: PhoneContact, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: PhoneContact, b: PhoneContact, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.phone,
-      b.phone,
-      dirty?.has("phone") ?? true,
+      a,
+      b,
+      "phone",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.extension,
-      b.extension,
-      dirty?.has("extension") ?? true,
+      a,
+      b,
+      "extension",
       (x, y) => _.equalsOptional(x, y, (x, y) => x === y),
       (x, y) => encoder.pushOptionalDiff<number>(x, y, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0)),
     );
@@ -328,15 +309,19 @@ export const PhoneContact = {
     };
   },
   decodeDiff(obj: PhoneContact, input: Uint8Array): PhoneContact {
-    return PhoneContact._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => PhoneContact._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: PhoneContact, decoder: _.Decoder): PhoneContact {
-    return decoder.nextBoolean() ? PhoneContact._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: PhoneContact, decoder: _.Decoder): PhoneContact {
+  _decodeDiff(obj: PhoneContact, decoder: _.DiffDecoder): PhoneContact {
     return {
-      phone: decoder.nextFieldDiff(obj.phone, (x) => decoder.nextStringDiff(x)),
-      extension: decoder.nextFieldDiff(obj.extension, (x) => decoder.nextOptionalDiff<number>(x, () => decoder.nextBoundedInt(0), (x) => decoder.nextBoundedIntDiff(x, 0))),
+      phone: decoder.nextFieldDiff(
+        obj.phone,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      extension: decoder.nextFieldDiff(
+        obj.extension,
+        (x) => decoder.nextOptionalDiff<number>(x, () => decoder.nextBoundedInt(0), (x) => decoder.nextBoundedIntDiff(x, 0)),
+      ),
     };
   },
 };
@@ -398,15 +383,15 @@ export const Contact = {
     }
   },
   encodeDiff(a: Contact, b: Contact): Uint8Array {
-    const encoder = _.Encoder.create();
+    const encoder = _.DiffEncoder.create();
     Contact._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Contact, b: Contact, encoder: _.Encoder): void {
+  _encodeDiff(a: Contact, b: Contact, encoder: _.DiffEncoder): void {
     encoder.pushBoolean(a._type === b._type);
     if (b._type === "EmailContact") {
       if (a._type === "EmailContact") {
-        EmailContact._encodeDiffFields(a, b, encoder);
+        EmailContact._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(0, 1);
         EmailContact._encode(b, encoder);
@@ -414,7 +399,7 @@ export const Contact = {
     }
     else if (b._type === "PhoneContact") {
       if (a._type === "PhoneContact") {
-        PhoneContact._encodeDiffFields(a, b, encoder);
+        PhoneContact._encodeDiff(a, b, encoder);
       } else {
         encoder.pushEnum(1, 1);
         PhoneContact._encode(b, encoder);
@@ -435,16 +420,16 @@ export const Contact = {
     throw new Error("Invalid union");
   },
   decodeDiff(obj: Contact, input: Uint8Array): Contact {
-    return Contact._decodeDiff(obj, _.Decoder.create(input));
+    return Contact._decodeDiff(obj, _.DiffDecoder.create(input));
   },
-  _decodeDiff(obj: Contact, decoder: _.Decoder): Contact {
+  _decodeDiff(obj: Contact, decoder: _.DiffDecoder): Contact {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
       if (obj._type === "EmailContact") {
-        return { _type: "EmailContact", ...EmailContact._decodeDiffFields(obj, decoder) };
+        return { _type: "EmailContact", ...EmailContact._decodeDiff(obj, decoder) };
       }
       else if (obj._type === "PhoneContact") {
-        return { _type: "PhoneContact", ...PhoneContact._decodeDiffFields(obj, decoder) };
+        return { _type: "PhoneContact", ...PhoneContact._decodeDiff(obj, decoder) };
       }
       throw new Error("Invalid union diff");
     } else {
@@ -557,84 +542,76 @@ export const User = {
     encoder.pushOptional(obj.preferredContact, (x) => Contact._encode(x, encoder));
   },
   encodeDiff(a: User, b: User): Uint8Array {
-    const encoder = _.Encoder.create();
-    User._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, User.equals, () => User._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: User, b: User, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !User.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      User._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: User, b: User, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: User, b: User, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.id,
-      b.id,
-      dirty?.has("id") ?? true,
+      a,
+      b,
+      "id",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.name,
-      b.name,
-      dirty?.has("name") ?? true,
+      a,
+      b,
+      "name",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.age,
-      b.age,
-      dirty?.has("age") ?? true,
+      a,
+      b,
+      "age",
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
     encoder.pushFieldDiff(
-      a.weight,
-      b.weight,
-      dirty?.has("weight") ?? true,
+      a,
+      b,
+      "weight",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
     encoder.pushFieldDiffValue(
-      dirty?.has("married") ?? true,
-      () => encoder.pushBooleanDiff(a.married, b.married),
+      b,
+      "married",
+      () => encoder.pushBooleanDiff(a["married"], b["married"]),
     );
     encoder.pushFieldDiff(
-      a.hairColor,
-      b.hairColor,
-      dirty?.has("hairColor") ?? true,
+      a,
+      b,
+      "hairColor",
       (x, y) => x === y,
       (x, y) => encoder.pushEnumDiff(HairColor[x], HairColor[y], 3),
     );
     encoder.pushFieldDiff(
-      a.address,
-      b.address,
-      dirty?.has("address") ?? true,
+      a,
+      b,
+      "address",
       (x, y) => _.equalsOptional(x, y, (x, y) => Address.equals(x, y)),
-      (x, y) => encoder.pushOptionalDiff<Address>(x, y, (x) => Address._encode(x, encoder), (x, y) => Address._encodeDiffFields(x, y, encoder)),
+      (x, y) => encoder.pushOptionalDiff<Address>(x, y, (x) => Address._encode(x, encoder), (x, y) => Address._encodeDiff(x, y, encoder)),
     );
     encoder.pushFieldDiff(
-      a.children,
-      b.children,
-      dirty?.has("children") ?? true,
+      a,
+      b,
+      "children",
       (x, y) => _.equalsArray(x, y, (x, y) => User.equals(x, y)),
-      (x, y) => encoder.pushArrayDiff<User>(x, y, (x, y) => User.equals(x, y), (x) => User._encode(x, encoder), (x, y) => User._encodeDiffFields(x, y, encoder)),
+      (x, y) => encoder.pushArrayDiff<User>(x, y, (x, y) => User.equals(x, y), (x) => User._encode(x, encoder), (x, y) => User._encodeDiff(x, y, encoder)),
     );
     encoder.pushFieldDiff(
-      a.metadata,
-      b.metadata,
-      dirty?.has("metadata") ?? true,
+      a,
+      b,
+      "metadata",
       (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
       (x, y) => encoder.pushRecordDiff<string, string>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)),
     );
     encoder.pushFieldDiff(
-      a.preferredContact,
-      b.preferredContact,
-      dirty?.has("preferredContact") ?? true,
+      a,
+      b,
+      "preferredContact",
       (x, y) => _.equalsOptional(x, y, (x, y) => Contact.equals(x, y)),
       (x, y) => encoder.pushOptionalDiff<Contact>(x, y, (x) => Contact._encode(x, encoder), (x, y) => Contact._encodeDiff(x, y, encoder)),
     );
@@ -657,23 +634,48 @@ export const User = {
     };
   },
   decodeDiff(obj: User, input: Uint8Array): User {
-    return User._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => User._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: User, decoder: _.Decoder): User {
-    return decoder.nextBoolean() ? User._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: User, decoder: _.Decoder): User {
+  _decodeDiff(obj: User, decoder: _.DiffDecoder): User {
     return {
-      id: decoder.nextFieldDiff(obj.id, (x) => decoder.nextStringDiff(x)),
-      name: decoder.nextFieldDiff(obj.name, (x) => decoder.nextStringDiff(x)),
-      age: decoder.nextFieldDiff(obj.age, (x) => decoder.nextBoundedIntDiff(x, 0)),
-      weight: decoder.nextFieldDiff(obj.weight, (x) => decoder.nextFloatDiff(x)),
+      id: decoder.nextFieldDiff(
+        obj.id,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      name: decoder.nextFieldDiff(
+        obj.name,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      age: decoder.nextFieldDiff(
+        obj.age,
+        (x) => decoder.nextBoundedIntDiff(x, 0),
+      ),
+      weight: decoder.nextFieldDiff(
+        obj.weight,
+        (x) => decoder.nextFloatDiff(x),
+      ),
       married: decoder.nextBooleanDiff(obj.married),
-      hairColor: decoder.nextFieldDiff(obj.hairColor, (x) => (HairColor as any)[decoder.nextEnumDiff((HairColor as any)[x], 3)]),
-      address: decoder.nextFieldDiff(obj.address, (x) => decoder.nextOptionalDiff<Address>(x, () => Address._decode(decoder), (x) => Address._decodeDiffFields(x, decoder))),
-      children: decoder.nextFieldDiff(obj.children, (x) => decoder.nextArrayDiff<User>(x, () => User._decode(decoder), (x) => User._decodeDiffFields(x, decoder))),
-      metadata: decoder.nextFieldDiff(obj.metadata, (x) => decoder.nextRecordDiff<string, string>(x, () => decoder.nextString(), () => decoder.nextString(), (x) => decoder.nextStringDiff(x))),
-      preferredContact: decoder.nextFieldDiff(obj.preferredContact, (x) => decoder.nextOptionalDiff<Contact>(x, () => Contact._decode(decoder), (x) => Contact._decodeDiff(x, decoder))),
+      hairColor: decoder.nextFieldDiff(
+        obj.hairColor,
+        (x) => (HairColor as any)[decoder.nextEnumDiff((HairColor as any)[x], 3)],
+      ),
+      address: decoder.nextFieldDiff(
+        obj.address,
+        (x) => decoder.nextOptionalDiff<Address>(x, () => Address._decode(decoder), (x) => Address._decodeDiff(x, decoder)),
+      ),
+      children: decoder.nextFieldDiff(
+        obj.children,
+        (x) => decoder.nextArrayDiff<User>(x, () => User._decode(decoder), (x) => User._decodeDiff(x, decoder)),
+      ),
+      metadata: decoder.nextFieldDiff(
+        obj.metadata,
+        (x) => decoder.nextRecordDiff<string, string>(x, () => decoder.nextString(), () => decoder.nextString(), (x) => decoder.nextStringDiff(x)),
+      ),
+      preferredContact: decoder.nextFieldDiff(
+        obj.preferredContact,
+        (x) => decoder.nextOptionalDiff<Contact>(x, () => Contact._decode(decoder), (x) => Contact._decodeDiff(x, decoder)),
+      ),
     };
   },
 };

@@ -1,4 +1,4 @@
 // Minimal runtime for generated code
-export { Encoder } from "./encoder.js";
-export { Decoder } from "./decoder.js";
+export { Encoder, DiffEncoder } from "./encoder.js";
+export { Decoder, DiffDecoder } from "./decoder.js";
 export * from "./helpers.js";

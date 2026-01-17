@@ -434,13 +434,11 @@ public static class Interpreter
 
         private void EncodeDiffObject(object? a, object? b, ObjectType ot, Encoder encoder)
         {
-            var changed = !Equals(a, b, ot);
-            encoder.PushBoolean(changed);
-            if (!changed)
-                return;
-
-            foreach (var (key, propType) in ot.Properties)
-                EncodeDiffField(GetProp(a, key), GetProp(b, key), propType, encoder);
+            encoder.PushObjectDiff(a, b, (x, y) => Equals(x, y, ot), () =>
+            {
+                foreach (var (key, propType) in ot.Properties)
+                    EncodeDiffField(GetProp(a, key), GetProp(b, key), propType, encoder);
+            });
         }
 
         private void EncodeDiffField(object? a, object? b, SchemaType type, Encoder encoder)
@@ -569,17 +567,13 @@ public static class Interpreter
 
         private Dictionary<string, object?> DecodeDiffObject(object? a, ObjectType ot, Decoder decoder)
         {
-            var changed = decoder.NextBoolean();
-            if (!changed)
+            return decoder.NextObjectDiff((Dictionary<string, object?>)a!, () =>
             {
-                // Return a clone of a
-                return CloneObject(a, ot);
-            }
-
-            var result = new Dictionary<string, object?>();
-            foreach (var (key, propType) in ot.Properties)
-                result[key] = DecodeDiffField(GetProp(a, key), propType, decoder);
-            return result;
+                var result = new Dictionary<string, object?>();
+                foreach (var (key, propType) in ot.Properties)
+                    result[key] = DecodeDiffField(GetProp(a, key), propType, decoder);
+                return result;
+            });
         }
 
         private object? DecodeDiffField(object? a, SchemaType type, Decoder decoder)

@@ -85,36 +85,37 @@ impl Address {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.street == b.street);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.street, &b.street);
-        }
-        let changed = !(a.zip == b.zip);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.zip, &b.zip);
-        }
-        let changed = !(a.state == b.state);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.state, &b.state);
-        }
+        encoder.push_field_diff(
+            &a.street,
+            &b.street,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.zip,
+            &b.zip,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.state,
+            &b.state,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -130,34 +131,16 @@ impl Address {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            street: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.street)
-            } else {
-                obj.street.clone()
-            },
-            zip: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.zip)
-            } else {
-                obj.zip.clone()
-            },
-            state: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.state)
-            } else {
-                obj.state.clone()
-            },
+            street: decoder.next_field_diff(&obj.street, |dec, a| dec.next_string_diff(a)),
+            zip: decoder.next_field_diff(&obj.zip, |dec, a| dec.next_string_diff(a)),
+            state: decoder.next_field_diff(&obj.state, |dec, a| dec.next_string_diff(a)),
         }
     }
 }
@@ -193,26 +176,25 @@ impl EmailContact {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.email == b.email);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.email, &b.email);
-        }
+        encoder.push_field_diff(
+            &a.email,
+            &b.email,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -226,24 +208,14 @@ impl EmailContact {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            email: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.email)
-            } else {
-                obj.email.clone()
-            },
+            email: decoder.next_field_diff(&obj.email, |dec, a| dec.next_string_diff(a)),
         }
     }
 }
@@ -282,36 +254,38 @@ impl PhoneContact {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.phone == b.phone);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.phone, &b.phone);
-        }
-        let changed = !(a.extension == b.extension);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_optional_diff(
-                &a.extension,
-                &b.extension,
-                |enc, &item| enc.push_uint(item),
-                |enc, &a, &b| enc.push_uint_diff(a, b),
-            );
-        }
+        encoder.push_field_diff(
+            &a.phone,
+            &b.phone,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.extension,
+            &b.extension,
+            |x, y| x == y,
+            |enc, a, b| {
+                enc.push_optional_diff(
+                    a,
+                    b,
+                    |enc, &item| enc.push_uint(item),
+                    |enc, &a, &b| enc.push_uint_diff(a, b),
+                )
+            },
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -326,33 +300,17 @@ impl PhoneContact {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            phone: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.phone)
-            } else {
-                obj.phone.clone()
-            },
-            extension: if decoder.next_boolean() {
-                decoder.next_optional_diff(
-                    &obj.extension,
-                    |dec| dec.next_uint(),
-                    |dec, &a| dec.next_uint_diff(a),
-                )
-            } else {
-                obj.extension.clone()
-            },
+            phone: decoder.next_field_diff(&obj.phone, |dec, a| dec.next_string_diff(a)),
+            extension: decoder.next_field_diff(&obj.extension, |dec, a| {
+                dec.next_optional_diff(a, |dec| dec.next_uint(), |dec, &a| dec.next_uint_diff(a))
+            }),
         }
     }
 }
@@ -411,7 +369,7 @@ impl Contact {
         match b {
             Contact::EmailContact(b_val) => {
                 if let Contact::EmailContact(a_val) = a {
-                    EmailContact::encode_diff_fields_into(a_val, b_val, encoder);
+                    EmailContact::encode_diff_into(a_val, b_val, encoder);
                 } else {
                     encoder.push_enum(0, 1);
                     b_val.encode_into(encoder);
@@ -419,7 +377,7 @@ impl Contact {
             }
             Contact::PhoneContact(b_val) => {
                 if let Contact::PhoneContact(a_val) = a {
-                    PhoneContact::encode_diff_fields_into(a_val, b_val, encoder);
+                    PhoneContact::encode_diff_into(a_val, b_val, encoder);
                 } else {
                     encoder.push_enum(1, 1);
                     b_val.encode_into(encoder);
@@ -450,10 +408,10 @@ impl Contact {
         if same_type {
             match obj {
                 Contact::EmailContact(v) => {
-                    Contact::EmailContact(EmailContact::decode_diff_fields_from(v, decoder))
+                    Contact::EmailContact(EmailContact::decode_diff_from(v, decoder))
                 }
                 Contact::PhoneContact(v) => {
-                    Contact::PhoneContact(PhoneContact::decode_diff_fields_from(v, decoder))
+                    Contact::PhoneContact(PhoneContact::decode_diff_from(v, decoder))
                 }
             }
         } else {
@@ -544,93 +502,105 @@ impl User {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.id == b.id);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.id, &b.id);
-        }
-        let changed = !(a.name == b.name);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.name, &b.name);
-        }
-        let changed = !(a.age == b.age);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_uint_diff(a.age, b.age);
-        }
-        let changed = !(delta_pack::equals_float(a.weight, b.weight));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_float_diff(a.weight, b.weight);
-        }
+        encoder.push_field_diff(
+            &a.id,
+            &b.id,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.name,
+            &b.name,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.age,
+            &b.age,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_uint_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.weight,
+            &b.weight,
+            |x, y| delta_pack::equals_float(*x, *y),
+            |enc, &a, &b| enc.push_float_diff(a, b),
+        );
         encoder.push_boolean_diff(a.married, b.married);
-        let changed = !(a.hair_color == b.hair_color);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_enum_diff(a.hair_color.to_u32(), b.hair_color.to_u32(), 3);
-        }
-        let changed = !(delta_pack::equals_optional(&a.address, &b.address, |x, y| x.equals(y)));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_optional_diff(
-                &a.address,
-                &b.address,
-                |enc, item| item.encode_into(enc),
-                |enc, a, b| Address::encode_diff_fields_into(a, b, enc),
-            );
-        }
-        let changed = !(delta_pack::equals_array(&a.children, &b.children, |x, y| x.equals(y)));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_array_diff(
-                &a.children,
-                &b.children,
-                |x, y| x.equals(y),
-                |enc, item| item.encode_into(enc),
-                |enc, a, b| User::encode_diff_fields_into(a, b, enc),
-            );
-        }
-        let changed = !(a.metadata == b.metadata);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_record_diff(
-                &a.metadata,
-                &b.metadata,
-                |x, y| x == y,
-                |enc, item| enc.push_string(item),
-                |enc, item| enc.push_string(item),
-                |enc, a, b| enc.push_string_diff(a, b),
-            );
-        }
-        let changed =
-            !(delta_pack::equals_optional(&a.preferred_contact, &b.preferred_contact, |x, y| {
-                x.equals(y)
-            }));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_optional_diff(
-                &a.preferred_contact,
-                &b.preferred_contact,
-                |enc, item| item.encode_into(enc),
-                |enc, a, b| Contact::encode_diff_into(a, b, enc),
-            );
-        }
+        encoder.push_field_diff(
+            &a.hair_color,
+            &b.hair_color,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_enum_diff(a.to_u32(), b.to_u32(), 3),
+        );
+        encoder.push_field_diff(
+            &a.address,
+            &b.address,
+            |x, y| delta_pack::equals_optional(&x, &y, |x, y| x.equals(y)),
+            |enc, a, b| {
+                enc.push_optional_diff(
+                    a,
+                    b,
+                    |enc, item| item.encode_into(enc),
+                    |enc, a, b| Address::encode_diff_into(a, b, enc),
+                )
+            },
+        );
+        encoder.push_field_diff(
+            &a.children,
+            &b.children,
+            |x, y| delta_pack::equals_array(&x, &y, |x, y| x.equals(y)),
+            |enc, a, b| {
+                enc.push_array_diff(
+                    a,
+                    b,
+                    |x, y| x.equals(y),
+                    |enc, item| item.encode_into(enc),
+                    |enc, a, b| User::encode_diff_into(a, b, enc),
+                )
+            },
+        );
+        encoder.push_field_diff(
+            &a.metadata,
+            &b.metadata,
+            |x, y| x == y,
+            |enc, a, b| {
+                enc.push_record_diff(
+                    a,
+                    b,
+                    |x, y| x == y,
+                    |enc, item| enc.push_string(item),
+                    |enc, item| enc.push_string(item),
+                    |enc, a, b| enc.push_string_diff(a, b),
+                )
+            },
+        );
+        encoder.push_field_diff(
+            &a.preferred_contact,
+            &b.preferred_contact,
+            |x, y| delta_pack::equals_optional(&x, &y, |x, y| x.equals(y)),
+            |enc, a, b| {
+                enc.push_optional_diff(
+                    a,
+                    b,
+                    |enc, item| item.encode_into(enc),
+                    |enc, a, b| Contact::encode_diff_into(a, b, enc),
+                )
+            },
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -653,82 +623,50 @@ impl User {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            id: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.id)
-            } else {
-                obj.id.clone()
-            },
-            name: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.name)
-            } else {
-                obj.name.clone()
-            },
-            age: if decoder.next_boolean() {
-                decoder.next_uint_diff(obj.age)
-            } else {
-                obj.age.clone()
-            },
-            weight: if decoder.next_boolean() {
-                decoder.next_float_diff(obj.weight)
-            } else {
-                obj.weight.clone()
-            },
+            id: decoder.next_field_diff(&obj.id, |dec, a| dec.next_string_diff(a)),
+            name: decoder.next_field_diff(&obj.name, |dec, a| dec.next_string_diff(a)),
+            age: decoder.next_field_diff(&obj.age, |dec, &a| dec.next_uint_diff(a)),
+            weight: decoder.next_field_diff(&obj.weight, |dec, &a| dec.next_float_diff(a)),
             married: decoder.next_boolean_diff(obj.married),
-            hair_color: if decoder.next_boolean() {
-                HairColor::from_u32(decoder.next_enum_diff(obj.hair_color.to_u32(), 3))
-            } else {
-                obj.hair_color.clone()
-            },
-            address: if decoder.next_boolean() {
-                decoder.next_optional_diff(
-                    &obj.address,
+            hair_color: decoder.next_field_diff(&obj.hair_color, |dec, &a| {
+                HairColor::from_u32(dec.next_enum_diff(a.to_u32(), 3))
+            }),
+            address: decoder.next_field_diff(&obj.address, |dec, a| {
+                dec.next_optional_diff(
+                    a,
                     |dec| Address::decode_from(dec),
-                    |dec, a| Address::decode_diff_fields_from(a, dec),
+                    |dec, a| Address::decode_diff_from(a, dec),
                 )
-            } else {
-                obj.address.clone()
-            },
-            children: if decoder.next_boolean() {
-                decoder.next_array_diff(
-                    &obj.children,
+            }),
+            children: decoder.next_field_diff(&obj.children, |dec, a| {
+                dec.next_array_diff(
+                    a,
                     |dec| Box::new(User::decode_from(dec)),
-                    |dec, a| Box::new(User::decode_diff_fields_from(a, dec)),
+                    |dec, a| Box::new(User::decode_diff_from(a, dec)),
                 )
-            } else {
-                obj.children.clone()
-            },
-            metadata: if decoder.next_boolean() {
-                decoder.next_record_diff(
-                    &obj.metadata,
+            }),
+            metadata: decoder.next_field_diff(&obj.metadata, |dec, a| {
+                dec.next_record_diff(
+                    a,
                     |dec| dec.next_string(),
                     |dec| dec.next_string(),
                     |dec, a| dec.next_string_diff(a),
                 )
-            } else {
-                obj.metadata.clone()
-            },
-            preferred_contact: if decoder.next_boolean() {
-                decoder.next_optional_diff(
-                    &obj.preferred_contact,
+            }),
+            preferred_contact: decoder.next_field_diff(&obj.preferred_contact, |dec, a| {
+                dec.next_optional_diff(
+                    a,
                     |dec| Contact::decode_from(dec),
                     |dec, a| Contact::decode_diff_from(a, dec),
                 )
-            } else {
-                obj.preferred_contact.clone()
-            },
+            }),
         }
     }
 }

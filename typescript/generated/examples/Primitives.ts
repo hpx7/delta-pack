@@ -72,51 +72,43 @@ export const Primitives = {
     encoder.pushBoolean(obj.booleanField);
   },
   encodeDiff(a: Primitives, b: Primitives): Uint8Array {
-    const encoder = _.Encoder.create();
-    Primitives._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, Primitives.equals, () => Primitives._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: Primitives, b: Primitives, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !Primitives.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      Primitives._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: Primitives, b: Primitives, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: Primitives, b: Primitives, encoder: _.DiffEncoder): void {
     encoder.pushFieldDiff(
-      a.stringField,
-      b.stringField,
-      dirty?.has("stringField") ?? true,
+      a,
+      b,
+      "stringField",
       (x, y) => x === y,
       (x, y) => encoder.pushStringDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.signedIntField,
-      b.signedIntField,
-      dirty?.has("signedIntField") ?? true,
+      a,
+      b,
+      "signedIntField",
       (x, y) => x === y,
       (x, y) => encoder.pushIntDiff(x, y),
     );
     encoder.pushFieldDiff(
-      a.unsignedIntField,
-      b.unsignedIntField,
-      dirty?.has("unsignedIntField") ?? true,
+      a,
+      b,
+      "unsignedIntField",
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
     encoder.pushFieldDiff(
-      a.floatField,
-      b.floatField,
-      dirty?.has("floatField") ?? true,
+      a,
+      b,
+      "floatField",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
     encoder.pushFieldDiffValue(
-      dirty?.has("booleanField") ?? true,
-      () => encoder.pushBooleanDiff(a.booleanField, b.booleanField),
+      b,
+      "booleanField",
+      () => encoder.pushBooleanDiff(a["booleanField"], b["booleanField"]),
     );
   },
   decode(input: Uint8Array): Primitives {
@@ -132,17 +124,27 @@ export const Primitives = {
     };
   },
   decodeDiff(obj: Primitives, input: Uint8Array): Primitives {
-    return Primitives._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => Primitives._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: Primitives, decoder: _.Decoder): Primitives {
-    return decoder.nextBoolean() ? Primitives._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: Primitives, decoder: _.Decoder): Primitives {
+  _decodeDiff(obj: Primitives, decoder: _.DiffDecoder): Primitives {
     return {
-      stringField: decoder.nextFieldDiff(obj.stringField, (x) => decoder.nextStringDiff(x)),
-      signedIntField: decoder.nextFieldDiff(obj.signedIntField, (x) => decoder.nextIntDiff(x)),
-      unsignedIntField: decoder.nextFieldDiff(obj.unsignedIntField, (x) => decoder.nextBoundedIntDiff(x, 0)),
-      floatField: decoder.nextFieldDiff(obj.floatField, (x) => decoder.nextFloatDiff(x)),
+      stringField: decoder.nextFieldDiff(
+        obj.stringField,
+        (x) => decoder.nextStringDiff(x),
+      ),
+      signedIntField: decoder.nextFieldDiff(
+        obj.signedIntField,
+        (x) => decoder.nextIntDiff(x),
+      ),
+      unsignedIntField: decoder.nextFieldDiff(
+        obj.unsignedIntField,
+        (x) => decoder.nextBoundedIntDiff(x, 0),
+      ),
+      floatField: decoder.nextFieldDiff(
+        obj.floatField,
+        (x) => decoder.nextFloatDiff(x),
+      ),
       booleanField: decoder.nextBooleanDiff(obj.booleanField),
     };
   },

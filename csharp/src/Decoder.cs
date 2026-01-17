@@ -125,6 +125,14 @@ public class Decoder
     public int NextEnumDiff(int a, int numBits) =>
         NextEnum(numBits);
 
+    // Object diff helper (read change bit, decode if changed)
+
+    public T NextObjectDiff<T>(T a, Func<T> decodeDiff)
+    {
+        var changed = NextBoolean();
+        return changed ? decodeDiff() : a;
+    }
+
     // Field diff helper (read change bit, decode if changed)
 
     public T NextFieldDiff<T>(T a, Func<T, T> decodeDiff)

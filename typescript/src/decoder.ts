@@ -1,12 +1,12 @@
 import { floatRead, utf8Read, RleReader } from "./serde";
 
 export class Decoder {
-  private static _instance: Decoder | null = null;
+  protected static _instance: Decoder | null = null;
 
-  private bytes!: Uint8Array;
-  private pos!: number;
-  private dict!: string[];
-  private rle = new RleReader();
+  protected bytes!: Uint8Array;
+  protected pos = 0;
+  protected dict: string[] = [];
+  protected rle = new RleReader();
 
   static create(buf: Uint8Array): Decoder {
     const dec = (Decoder._instance ??= new Decoder());
@@ -16,7 +16,8 @@ export class Decoder {
     dec.rle.reset(buf);
     return dec;
   }
-  private constructor() {}
+
+  protected constructor() {}
 
   nextString() {
     const lenOrIdx = this.readVarint();
@@ -36,10 +37,6 @@ export class Decoder {
   }
 
   nextBoundedInt(min: number) {
-    return this.readUVarint() + min;
-  }
-
-  nextBoundedIntDiff(_a: number, min: number) {
     return this.readUVarint() + min;
   }
 
@@ -81,6 +78,49 @@ export class Decoder {
     return obj;
   }
 
+  protected readVarint() {
+    const val = this.readUVarint();
+    return val % 2 === 0 ? val / 2 : -(val + 1) / 2;
+  }
+
+  protected readUVarint() {
+    let result = 0;
+    let multiplier = 1;
+    while (true) {
+      const byte = this.bytes[this.pos++]!;
+      result += (byte & 0x7f) * multiplier;
+      if (byte < 0x80) {
+        return result;
+      }
+      multiplier *= 128;
+    }
+  }
+
+  protected readFloat() {
+    const val = floatRead(this.bytes, this.pos);
+    this.pos += 4;
+    return val;
+  }
+
+  protected readStringUtf8(len: number): string {
+    const start = this.pos;
+    this.pos += len;
+    return utf8Read(this.bytes, start, len);
+  }
+}
+
+export class DiffDecoder extends Decoder {
+  protected static override _instance: DiffDecoder | null = null;
+
+  static override create(buf: Uint8Array): DiffDecoder {
+    const dec = (DiffDecoder._instance ??= new DiffDecoder());
+    dec.bytes = buf;
+    dec.pos = 0;
+    dec.dict = [];
+    dec.rle.reset(buf);
+    return dec;
+  }
+
   nextStringDiff(a: string) {
     if (!this.dict.includes(a)) {
       this.dict.push(a);
@@ -90,6 +130,10 @@ export class Decoder {
 
   nextIntDiff(_a: number) {
     return this.nextInt();
+  }
+
+  nextBoundedIntDiff(_a: number, min: number) {
+    return this.nextBoundedInt(min);
   }
 
   nextFloatDiff(_a: number) {
@@ -108,6 +152,11 @@ export class Decoder {
 
   nextEnumDiff(_a: number, numBits: number): number {
     return this.nextEnum(numBits);
+  }
+
+  // Object diff - reads change bit and returns old or decoded object
+  nextObjectDiff<T>(a: T, decodeDiff: () => T): T {
+    return this.nextBoolean() ? decodeDiff() : a;
   }
 
   // Generic field diff - reads change bit and returns old or new value
@@ -168,35 +217,5 @@ export class Decoder {
       result.set(key, val);
     }
     return result;
-  }
-
-  private readVarint() {
-    const val = this.readUVarint();
-    return val % 2 === 0 ? val / 2 : -(val + 1) / 2;
-  }
-
-  private readUVarint() {
-    let result = 0;
-    let multiplier = 1;
-    while (true) {
-      const byte = this.bytes[this.pos++]!;
-      result += (byte & 0x7f) * multiplier;
-      if (byte < 0x80) {
-        return result;
-      }
-      multiplier *= 128;
-    }
-  }
-
-  private readFloat() {
-    const val = floatRead(this.bytes, this.pos);
-    this.pos += 4;
-    return val;
-  }
-
-  private readStringUtf8(len: number): string {
-    const start = this.pos;
-    this.pos += len;
-    return utf8Read(this.bytes, start, len);
   }
 }

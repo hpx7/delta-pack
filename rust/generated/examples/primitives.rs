@@ -57,41 +57,43 @@ impl Primitives {
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
         Encoder::encode(|encoder| {
-            Self::encode_diff_into(a, b, encoder);
+            encoder.push_object_diff(
+                a,
+                b,
+                |x, y| x.equals(y),
+                |enc| {
+                    Self::encode_diff_into(a, b, enc);
+                },
+            );
             encoder.finish()
         })
     }
 
     pub fn encode_diff_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !a.equals(b);
-        encoder.push_boolean(changed);
-        if !changed {
-            return;
-        }
-        Self::encode_diff_fields_into(a, b, encoder);
-    }
-
-    pub fn encode_diff_fields_into(a: &Self, b: &Self, encoder: &mut Encoder) {
-        let changed = !(a.string_field == b.string_field);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_string_diff(&a.string_field, &b.string_field);
-        }
-        let changed = !(a.signed_int_field == b.signed_int_field);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_int_diff(a.signed_int_field, b.signed_int_field);
-        }
-        let changed = !(a.unsigned_int_field == b.unsigned_int_field);
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_uint_diff(a.unsigned_int_field, b.unsigned_int_field);
-        }
-        let changed = !(delta_pack::equals_float(a.float_field, b.float_field));
-        encoder.push_boolean(changed);
-        if changed {
-            encoder.push_float_diff(a.float_field, b.float_field);
-        }
+        encoder.push_field_diff(
+            &a.string_field,
+            &b.string_field,
+            |x, y| x == y,
+            |enc, a, b| enc.push_string_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.signed_int_field,
+            &b.signed_int_field,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_int_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.unsigned_int_field,
+            &b.unsigned_int_field,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_uint_diff(a, b),
+        );
+        encoder.push_field_diff(
+            &a.float_field,
+            &b.float_field,
+            |x, y| delta_pack::equals_float(*x, *y),
+            |enc, &a, &b| enc.push_float_diff(a, b),
+        );
         encoder.push_boolean_diff(a.boolean_field, b.boolean_field);
     }
 
@@ -110,39 +112,21 @@ impl Primitives {
     }
 
     pub fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
-        Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+        Decoder::decode(diff, |decoder| {
+            decoder.next_object_diff(obj, |dec| Self::decode_diff_from(obj, dec))
+        })
     }
 
     pub fn decode_diff_from(obj: &Self, decoder: &mut Decoder) -> Self {
-        let changed = decoder.next_boolean();
-        if !changed {
-            return obj.clone();
-        }
-        Self::decode_diff_fields_from(obj, decoder)
-    }
-
-    pub fn decode_diff_fields_from(obj: &Self, decoder: &mut Decoder) -> Self {
         Self {
-            string_field: if decoder.next_boolean() {
-                decoder.next_string_diff(&obj.string_field)
-            } else {
-                obj.string_field.clone()
-            },
-            signed_int_field: if decoder.next_boolean() {
-                decoder.next_int_diff(obj.signed_int_field)
-            } else {
-                obj.signed_int_field.clone()
-            },
-            unsigned_int_field: if decoder.next_boolean() {
-                decoder.next_uint_diff(obj.unsigned_int_field)
-            } else {
-                obj.unsigned_int_field.clone()
-            },
-            float_field: if decoder.next_boolean() {
-                decoder.next_float_diff(obj.float_field)
-            } else {
-                obj.float_field.clone()
-            },
+            string_field: decoder
+                .next_field_diff(&obj.string_field, |dec, a| dec.next_string_diff(a)),
+            signed_int_field: decoder
+                .next_field_diff(&obj.signed_int_field, |dec, &a| dec.next_int_diff(a)),
+            unsigned_int_field: decoder
+                .next_field_diff(&obj.unsigned_int_field, |dec, &a| dec.next_uint_diff(a)),
+            float_field: decoder
+                .next_field_diff(&obj.float_field, |dec, &a| dec.next_float_diff(a)),
             boolean_field: decoder.next_boolean_diff(obj.boolean_field),
         }
     }

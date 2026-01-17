@@ -76,40 +76,16 @@ namespace Generated.Examples
         public static byte[] EncodeDiff(Primitives a, Primitives b)
         {
             var encoder = new DeltaPack.Encoder();
-            EncodeDiff_(a, b, encoder);
+            encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));
             return encoder.ToBuffer();
         }
 
         internal static void EncodeDiff_(Primitives a, Primitives b, DeltaPack.Encoder encoder)
         {
-            var changed = !Equals(a, b);
-            encoder.PushBoolean(changed);
-            if (!changed) return;
-            EncodeDiffFields_(a, b, encoder);
-        }
-
-        internal static void EncodeDiffFields_(Primitives a, Primitives b, DeltaPack.Encoder encoder)
-        {
-            {
-                var changed = !(a.StringField == b.StringField);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushStringDiff(a.StringField, b.StringField);
-            }
-            {
-                var changed = !(a.SignedIntField == b.SignedIntField);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushIntDiff(a.SignedIntField, b.SignedIntField);
-            }
-            {
-                var changed = !(a.UnsignedIntField == b.UnsignedIntField);
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushBoundedIntDiff(a.UnsignedIntField, b.UnsignedIntField, 0);
-            }
-            {
-                var changed = !(DeltaPack.EqualityHelpers.EqualsFloat(a.FloatField, b.FloatField));
-                encoder.PushBoolean(changed);
-                if (changed) encoder.PushFloatDiff(a.FloatField, b.FloatField);
-            }
+            encoder.PushFieldDiff<string>(a.StringField, b.StringField, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
+            encoder.PushFieldDiff<long>(a.SignedIntField, b.SignedIntField, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
+            encoder.PushFieldDiff<long>(a.UnsignedIntField, b.UnsignedIntField, (x, y) => x == y, (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
+            encoder.PushFieldDiff<float>(a.FloatField, b.FloatField, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
             encoder.PushBooleanDiff(a.BooleanField, b.BooleanField);
         }
 
@@ -134,17 +110,10 @@ namespace Generated.Examples
         public static Primitives DecodeDiff(Primitives obj, byte[] diff)
         {
             var decoder = new DeltaPack.Decoder(diff);
-            return DecodeDiff_(obj, decoder);
+            return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));
         }
 
         internal static Primitives DecodeDiff_(Primitives obj, DeltaPack.Decoder decoder)
-        {
-            var changed = decoder.NextBoolean();
-            if (!changed) return obj;
-            return DecodeDiffFields_(obj, decoder);
-        }
-
-        internal static Primitives DecodeDiffFields_(Primitives obj, DeltaPack.Decoder decoder)
         {
             return new()
             {

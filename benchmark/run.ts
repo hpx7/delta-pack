@@ -57,7 +57,10 @@ function deepEquals(a: unknown, b: unknown, tolerance = 0.1): boolean {
 }
 
 function main() {
-  const examples = fs.readdirSync(examplesDir);
+  const examples = fs
+    .readdirSync(examplesDir, { withFileTypes: true })
+    .filter((f) => f.isDirectory())
+    .map((f) => f.name);
 
   // Section 1: Full Encoding Size Comparison
   console.log("## Full Encoding Size Comparison (bytes)\n");

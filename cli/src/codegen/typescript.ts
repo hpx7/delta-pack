@@ -20,7 +20,7 @@ function createContext(schema: Record<string, Type>): GeneratorContext {
 
 // Types that handle their own change detection (don't need wrapper to add change bit)
 function hasOwnChangeBit(type: Type): boolean {
-  return type.type === "boolean" || type.type === "object";
+  return type.type === "boolean";
 }
 
 function ifElseChain<T>(
@@ -121,7 +121,7 @@ function renderObjectApi(
   const encodeBody = p((n, t) => `    ${renderEncode(ctx, t, n, `obj.${n}`)};`);
   const encodeDiffBody = p(
     (n, t) =>
-      `    ${renderEncodeDiffField(ctx, t, n, `a.${n}`, `b.${n}`, "dirty", `"${n}"`)}`,
+      `    ${renderEncodeDiffField(ctx, t, n, "a", "b", `"${n}"`)}`,
   );
   const decodeBody = p((n, t) => `      ${n}: ${renderDecode(ctx, t, n)},`);
   const decodeDiffBody = p(
@@ -168,20 +168,11 @@ ${cloneBody}
 ${encodeBody}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
-    const encoder = _.Encoder.create();
-    ${name}._encodeDiff(a, b, encoder);
+    const encoder = _.DiffEncoder.create();
+    encoder.pushObjectDiff(a, b, ${name}.equals, () => ${name}._encodeDiff(a, b, encoder));
     return encoder.toBuffer();
   },
-  _encodeDiff(a: ${name}, b: ${name}, encoder: _.Encoder): void {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !${name}.equals(a, b) : dirty.size > 0;
-    encoder.pushBoolean(changed);
-    if (changed) {
-      ${name}._encodeDiffFields(a, b, encoder);
-    }
-  },
-  _encodeDiffFields(a: ${name}, b: ${name}, encoder: _.Encoder): void {
-    const dirty = b._dirty;
+  _encodeDiff(a: ${name}, b: ${name}, encoder: _.DiffEncoder): void {
 ${encodeDiffBody}
   },
   decode(input: Uint8Array): ${name} {
@@ -193,12 +184,10 @@ ${decodeBody}
     };
   },
   decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
-    return ${name}._decodeDiff(obj, _.Decoder.create(input));
+    const decoder = _.DiffDecoder.create(input);
+    return decoder.nextObjectDiff(obj, () => ${name}._decodeDiff(obj, decoder));
   },
-  _decodeDiff(obj: ${name}, decoder: _.Decoder): ${name} {
-    return decoder.nextBoolean() ? ${name}._decodeDiffFields(obj, decoder) : obj;
-  },
-  _decodeDiffFields(obj: ${name}, decoder: _.Decoder): ${name} {
+  _decodeDiff(obj: ${name}, decoder: _.DiffDecoder): ${name} {
     return {
 ${decodeDiffBody}
     };
@@ -247,7 +236,7 @@ function renderUnionApi(
   const encodeDiffCases = ifElseChain(
     options,
     (opt, i, p) =>
-      `    ${p}if (b._type === "${opt.name}") {\n      if (a._type === "${opt.name}") {\n        ${opt.name}._encodeDiffFields(a, b, encoder);\n      } else {\n        encoder.pushEnum(${i}, ${numBits});\n        ${renderEncode(ctx, opt, opt.name!, "b")};\n      }\n    }`,
+      `    ${p}if (b._type === "${opt.name}") {\n      if (a._type === "${opt.name}") {\n        ${opt.name}._encodeDiff(a, b, encoder);\n      } else {\n        encoder.pushEnum(${i}, ${numBits});\n        ${renderEncode(ctx, opt, opt.name!, "b")};\n      }\n    }`,
   );
 
   const decodeCases = ifElseChain(
@@ -259,7 +248,7 @@ function renderUnionApi(
   const decodeDiffSame = ifElseChain(
     options,
     (opt, _, p) =>
-      `      ${p}if (obj._type === "${opt.name}") {\n        return { _type: "${opt.name}", ...${opt.name}._decodeDiffFields(obj, decoder) };\n      }`,
+      `      ${p}if (obj._type === "${opt.name}") {\n        return { _type: "${opt.name}", ...${opt.name}._decodeDiff(obj, decoder) };\n      }`,
   );
 
   const decodeDiffNew = ifElseChain(
@@ -303,11 +292,11 @@ ${equalsCases}
 ${encodeCases}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
-    const encoder = _.Encoder.create();
+    const encoder = _.DiffEncoder.create();
     ${name}._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
-  _encodeDiff(a: ${name}, b: ${name}, encoder: _.Encoder): void {
+  _encodeDiff(a: ${name}, b: ${name}, encoder: _.DiffEncoder): void {
     encoder.pushBoolean(a._type === b._type);
 ${encodeDiffCases}
   },
@@ -320,9 +309,9 @@ ${decodeCases}
     throw new Error("Invalid union");
   },
   decodeDiff(obj: ${name}, input: Uint8Array): ${name} {
-    return ${name}._decodeDiff(obj, _.Decoder.create(input));
+    return ${name}._decodeDiff(obj, _.DiffDecoder.create(input));
   },
-  _decodeDiff(obj: ${name}, decoder: _.Decoder): ${name} {
+  _decodeDiff(obj: ${name}, decoder: _.DiffDecoder): ${name} {
     const isSameType = decoder.nextBoolean();
     if (isSameType) {
 ${decodeDiffSame}
@@ -599,7 +588,6 @@ function renderEncodeDiffField(
   name: string,
   a: string,
   b: string,
-  dirty: string,
   key: string,
 ): string {
   if (type.type === "reference") {
@@ -609,16 +597,15 @@ function renderEncodeDiffField(
       type.ref.name!,
       a,
       b,
-      dirty,
       key,
     );
   }
-  const maybeDirty = `${dirty}?.has(${key}) ?? true`;
   // Types with own change bit use pushFieldDiffValue
   if (hasOwnChangeBit(type)) {
     return `encoder.pushFieldDiffValue(
-      ${maybeDirty},
-      () => ${renderEncodeDiff(ctx, type, name, a, b)},
+      ${b},
+      ${key},
+      () => ${renderEncodeDiff(ctx, type, name, `${a}[${key}]`, `${b}[${key}]`)},
     );`;
   }
   // Use pushFieldDiff for primitives, enums, optionals
@@ -627,7 +614,7 @@ function renderEncodeDiffField(
   return `encoder.pushFieldDiff(
       ${a},
       ${b},
-      ${maybeDirty},
+      ${key},
       (x, y) => ${eqExpr},
       (x, y) => ${diffExpr},
     );`;
@@ -672,7 +659,15 @@ function renderEncodeDiff(
       const diffParams = type.value.type === "boolean" ? "_x, _y" : "x, y";
       return `encoder.pushRecordDiff<${kt}, ${vt}>(${a}, ${b}, (x, y) => ${renderEquals(ctx, type.value, name, "x", "y")}, (x) => ${renderEncode(ctx, type.key, name, "x")}, (x) => ${renderEncode(ctx, type.value, name, "x")}, (${diffParams}) => ${renderEncodeDiffValue(ctx, type.value, name, "x", "y")})`;
     }
+    case "object":
+      // Objects use _encodeDiff (no change bit, handled by caller)
+      return `${name}._encodeDiff(${a}, ${b}, encoder)`;
+    case "reference":
+      return renderEncodeDiff(ctx, type.ref, type.ref.name!, a, b);
+    case "self-reference":
+      return `${ctx.currentTypeName}._encodeDiff(${a}, ${b}, encoder)`;
     default:
+      // Unions still use _encodeDiff
       return `${name}._encodeDiff(${a}, ${b}, encoder)`;
   }
 }
@@ -689,11 +684,11 @@ function renderEncodeDiffValue(
     return renderEncodeDiffValue(ctx, type.ref, type.ref.name!, a, b);
   }
   if (type.type === "self-reference") {
-    return `${ctx.currentTypeName}._encodeDiffFields(${a}, ${b}, encoder)`;
+    return `${ctx.currentTypeName}._encodeDiff(${a}, ${b}, encoder)`;
   }
-  // Objects use _encodeDiffFields to skip the redundant changed bit
+  // Objects use _encodeDiff to skip the redundant changed bit
   if (type.type === "object") {
-    return `${name}._encodeDiffFields(${a}, ${b}, encoder)`;
+    return `${name}._encodeDiff(${a}, ${b}, encoder)`;
   }
   // Boolean: no encoding needed - being in update list implies changed, decoder flips old value
   if (type.type === "boolean") {
@@ -719,7 +714,10 @@ function renderDecodeDiffField(
   }
   // Use nextFieldDiff for primitives, enums, optionals
   const diffExpr = renderDecodeDiff(ctx, type, name, "x");
-  return `decoder.nextFieldDiff(${key}, (x) => ${diffExpr})`;
+  return `decoder.nextFieldDiff(
+        ${key},
+        (x) => ${diffExpr},
+      )`;
 }
 
 // Value-only diff - no change bit (used for array/map updates)
@@ -757,7 +755,15 @@ function renderDecodeDiff(
       const vt = renderType(ctx, type.value, name);
       return `decoder.nextRecordDiff<${kt}, ${vt}>(${key}, () => ${renderDecode(ctx, type.key, name)}, () => ${renderDecode(ctx, type.value, name)}, (x) => ${renderDecodeDiffValue(ctx, type.value, name, "x")})`;
     }
+    case "object":
+      // Objects use _decodeDiff (no change bit, handled by caller)
+      return `${name}._decodeDiff(${key}, decoder)`;
+    case "reference":
+      return renderDecodeDiff(ctx, type.ref, type.ref.name!, key);
+    case "self-reference":
+      return `${ctx.currentTypeName}._decodeDiff(${key}, decoder)`;
     default:
+      // Unions still use _decodeDiff
       return `${name}._decodeDiff(${key}, decoder)`;
   }
 }
@@ -773,11 +779,11 @@ function renderDecodeDiffValue(
     return renderDecodeDiffValue(ctx, type.ref, type.ref.name!, key);
   }
   if (type.type === "self-reference") {
-    return `${ctx.currentTypeName}._decodeDiffFields(${key}, decoder)`;
+    return `${ctx.currentTypeName}._decodeDiff(${key}, decoder)`;
   }
-  // Objects use _decodeDiffFields to skip the redundant changed bit
+  // Objects use _decodeDiff to skip the redundant changed bit
   if (type.type === "object") {
-    return `${name}._decodeDiffFields(${key}, decoder)`;
+    return `${name}._decodeDiff(${key}, decoder)`;
   }
   // Boolean: just flip the old value - being in update list implies changed
   if (type.type === "boolean") {
