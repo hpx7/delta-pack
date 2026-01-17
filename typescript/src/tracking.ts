@@ -148,31 +148,76 @@ function trackObject<T extends Record<string, unknown>>(obj: T, propagateToParen
 
 function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { _dirty: Set<number> } {
   const dirty = new Set<number>();
+  const trackedItems: T[] = [];
 
-  // Create array of tracked items - proxy this directly so native methods work
-  const trackedItems: T[] = arr.map((item, i) =>
-    trackWithParent(item, () => {
-      dirty.add(i);
+  const markDirtyForItem = (trackedValue: T) => {
+    let marked = false;
+    for (let i = 0; i < trackedItems.length; i++) {
+      if (trackedItems[i] === trackedValue) {
+        dirty.add(i);
+        marked = true;
+      }
+    }
+    if (marked) {
       propagateToParent();
-    })
-  );
+    }
+  };
+
+  const trackItem = (item: T): T => {
+    let trackedValue: T;
+    const markDirty = () => markDirtyForItem(trackedValue);
+    trackedValue = trackWithParent(item, markDirty) as T;
+    return trackedValue;
+  };
+
+  for (const item of arr) {
+    trackedItems.push(trackItem(item));
+  }
+
+  const markRangeDirty = (start: number, end: number) => {
+    if (start >= end) {
+      return;
+    }
+    for (let i = start; i < end; i++) {
+      dirty.add(i);
+    }
+    propagateToParent();
+  };
+
+  const markAllDirty = () => {
+    markRangeDirty(0, trackedItems.length);
+  };
+
+  const normalizeIndex = (index: number, length: number) => {
+    if (index < 0) {
+      return Math.max(length + index, 0);
+    }
+    return Math.min(index, length);
+  };
 
   const proxy = new Proxy(trackedItems, {
     set(target, prop, value) {
       if (prop === "_dirty" || typeof prop === "symbol") {
         return true;
       }
+      if (prop === "length") {
+        const oldLength = target.length;
+        (target as unknown as { length: number }).length = value as number;
+        const newLength = target.length;
+        if (newLength !== oldLength) {
+          const start = Math.min(oldLength, newLength);
+          const end = Math.max(oldLength, newLength);
+          markRangeDirty(start, end);
+        }
+        return true;
+      }
       const index = Number(prop);
       if (!isNaN(index)) {
         dirty.add(index);
         propagateToParent();
-        target[index] = trackWithParent(value, () => {
-          dirty.add(index);
-          propagateToParent();
-        });
+        target[index] = trackItem(value as T);
         return true;
       }
-      // Handle length and other properties
       (target as unknown as Record<string, unknown>)[prop] = value;
       return true;
     },
@@ -180,20 +225,18 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
       if (prop === "_dirty") {
         return dirty;
       }
-      // For mutating methods, wrap to mark dirty
       if (prop === "push") {
         return (...items: T[]) => {
           const startIndex = target.length;
-          const trackedItems = items.map((item, i) => {
+          const trackedNewItems = items.map((item, i) => {
             const idx = startIndex + i;
             dirty.add(idx);
-            return trackWithParent(item, () => {
-              dirty.add(idx);
-              propagateToParent();
-            });
+            return trackItem(item);
           });
-          propagateToParent();
-          return target.push(...trackedItems);
+          if (trackedNewItems.length > 0) {
+            propagateToParent();
+          }
+          return target.push(...trackedNewItems);
         };
       }
       if (prop === "pop") {
@@ -208,27 +251,20 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
       if (prop === "shift") {
         return () => {
           if (target.length > 0) {
-            // All indices shift, mark all as dirty
-            for (let i = 0; i < target.length; i++) {
-              dirty.add(i);
-            }
-            propagateToParent();
+            markAllDirty();
           }
           return target.shift();
         };
       }
       if (prop === "unshift") {
         return (...items: T[]) => {
-          // All indices shift, mark all as dirty
+          if (items.length === 0) {
+            return target.unshift();
+          }
           for (let i = 0; i < target.length + items.length; i++) {
             dirty.add(i);
           }
-          const trackedNewItems = items.map((item, i) =>
-            trackWithParent(item, () => {
-              dirty.add(i);
-              propagateToParent();
-            })
-          );
+          const trackedNewItems = items.map((item) => trackItem(item));
           propagateToParent();
           return target.unshift(...trackedNewItems);
         };
@@ -238,22 +274,66 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
           const len = target.length;
           const actualStart = start < 0 ? Math.max(len + start, 0) : Math.min(start, len);
           const actualDeleteCount = deleteCount == null ? len - actualStart : Math.min(deleteCount, len - actualStart);
-          // Mark affected indices as dirty
-          for (let i = actualStart; i < len; i++) {
-            dirty.add(i);
+          const shouldMark = actualDeleteCount > 0 || items.length > 0;
+          const didMarkRange = shouldMark && len > 0 && actualStart < len;
+          if (didMarkRange) {
+            markRangeDirty(actualStart, len);
           }
-          propagateToParent();
-          const trackedNewItems = items.map((item, i) => {
-            const idx = actualStart + i;
-            return trackWithParent(item, () => {
-              dirty.add(idx);
+          if (items.length > 0) {
+            for (let i = 0; i < items.length; i++) {
+              dirty.add(actualStart + i);
+            }
+            if (!didMarkRange) {
               propagateToParent();
-            });
-          });
+            }
+          }
+          const trackedNewItems = items.map((item) => trackItem(item));
           return target.splice(actualStart, actualDeleteCount, ...trackedNewItems);
         };
       }
-      // All other methods work naturally on trackedItems
+      if (prop === "sort") {
+        return (compareFn?: (a: T, b: T) => number) => {
+          target.sort(compareFn);
+          markAllDirty();
+          return proxy;
+        };
+      }
+      if (prop === "reverse") {
+        return () => {
+          target.reverse();
+          markAllDirty();
+          return proxy;
+        };
+      }
+      if (prop === "fill") {
+        return (value: T, start?: number, end?: number) => {
+          const len = target.length;
+          const actualStart = start == null ? 0 : normalizeIndex(Number(start), len);
+          const actualEnd = end == null ? len : normalizeIndex(Number(end), len);
+          for (let i = actualStart; i < actualEnd; i++) {
+            target[i] = trackItem(value);
+          }
+          markRangeDirty(actualStart, actualEnd);
+          return proxy;
+        };
+      }
+      if (prop === "copyWithin") {
+        return (targetIndex: number, start: number, end?: number) => {
+          const len = target.length;
+          const to = normalizeIndex(Number(targetIndex), len);
+          const from = normalizeIndex(Number(start), len);
+          const final = end == null ? len : normalizeIndex(Number(end), len);
+          const count = Math.min(final - from, len - to);
+          if (count > 0) {
+            const copied = target.slice(from, from + count);
+            for (let i = 0; i < count; i++) {
+              target[to + i] = copied[i]!;
+            }
+            markRangeDirty(to, to + count);
+          }
+          return proxy;
+        };
+      }
       return getFallback(target, prop);
     },
   }) as T[] & { _dirty: Set<number> };

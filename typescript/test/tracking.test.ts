@@ -26,6 +26,15 @@ describe("Dirty Tracking", () => {
       expect(obj._dirty!.size).toBe(0);
     });
 
+    it("should ignore _dirty on input objects", () => {
+      const obj = track({ x: 0, _dirty: new Set(["x"]) } as any);
+      expect(obj._dirty!.size).toBe(0);
+
+      obj.x = 1;
+
+      expect(obj._dirty!.has("x")).toBe(true);
+    });
+
     it("should preserve original values", () => {
       const obj = track({ x: 0, y: 0 });
 
@@ -255,6 +264,22 @@ describe("Dirty Tracking", () => {
       expect(state._dirty!.has("items")).toBe(true);
     });
 
+    it("should track reindexed items after shift", () => {
+      const state = track({
+        items: [{ v: 1 }, { v: 2 }],
+      });
+
+      const moved = state.items[1]!;
+      state.items.shift();
+      clearTracking(state);
+
+      moved.v = 99;
+
+      expect(state.items._dirty!.has(0)).toBe(true);
+      expect(state.items._dirty!.has(1)).toBe(false);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
     it("should track array unshift and propagate to parent", () => {
       const state = track({
         items: [1, 2, 3],
@@ -270,6 +295,18 @@ describe("Dirty Tracking", () => {
       expect(state.items._dirty!.has(2)).toBe(true);
       expect(state.items._dirty!.has(3)).toBe(true);
       expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should not mark dirty for empty unshift", () => {
+      const state = track({
+        items: [1, 2, 3],
+      });
+
+      const newLength = state.items.unshift();
+
+      expect(newLength).toBe(3);
+      expect(state.items._dirty!.size).toBe(0);
+      expect(state._dirty!.size).toBe(0);
     });
 
     it("should track mutations on unshifted items", () => {
@@ -309,6 +346,37 @@ describe("Dirty Tracking", () => {
       state.items[1]!.v = 100;
       expect(state.items[1]!._dirty!.has("v")).toBe(true);
       expect(state.items._dirty!.has(1)).toBe(true);
+    });
+
+    it("should track array splice deletions without insertions", () => {
+      const state = track({
+        items: [1, 2, 3, 4],
+      });
+
+      const removed = state.items.splice(1, 2);
+
+      expect(removed).toEqual([2, 3]);
+      expect(state.items).toEqual([1, 4]);
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should propagate dirty for splice inserts at end", () => {
+      const state = track({
+        items: [] as number[],
+      });
+
+      state.items.splice(0, 0, 1);
+
+      expect(state.items._dirty!.has(0)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+
+      clearTracking(state);
+
+      state.items.splice(state.items.length, 0, 2);
+
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
     });
 
     it("should track nested map mutations and propagate to parent", () => {
@@ -490,6 +558,130 @@ describe("Dirty Tracking", () => {
       expect(state.items._dirty!.has(1)).toBe(true);
     });
 
+    it("should track array sort", () => {
+      const state = track({
+        items: [3, 1, 2],
+      });
+
+      state.items.sort((a, b) => a - b);
+
+      expect(state.items).toEqual([1, 2, 3]);
+      expect(state.items._dirty!.has(0)).toBe(true);
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should track array reverse", () => {
+      const state = track({
+        items: [1, 2, 3],
+      });
+
+      state.items.reverse();
+
+      expect(state.items).toEqual([3, 2, 1]);
+      expect(state.items._dirty!.has(0)).toBe(true);
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should track array fill range", () => {
+      const state = track({
+        items: [1, 2, 3, 4],
+      });
+
+      state.items.fill(9, 1, 3);
+
+      expect(state.items).toEqual([1, 9, 9, 4]);
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state.items._dirty!.has(0)).toBe(false);
+      expect(state.items._dirty!.has(3)).toBe(false);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should track array fill with default bounds", () => {
+      const state = track({
+        items: [1, 2, 3],
+      });
+
+      state.items.fill(9);
+
+      expect(state.items).toEqual([9, 9, 9]);
+      expect(state.items._dirty!.has(0)).toBe(true);
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should handle array fill with no-op range", () => {
+      const state = track({
+        items: [1, 2, 3],
+      });
+
+      state.items.fill(9, 2, 1);
+
+      expect(state.items).toEqual([1, 2, 3]);
+      expect(state.items._dirty!.size).toBe(0);
+      expect(state._dirty!.size).toBe(0);
+    });
+
+    it("should handle array fill with negative start index", () => {
+      const state = track({
+        items: [1, 2, 3, 4],
+      });
+
+      state.items.fill(9, -2);
+
+      expect(state.items).toEqual([1, 2, 9, 9]);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state.items._dirty!.has(3)).toBe(true);
+      expect(state.items._dirty!.has(0)).toBe(false);
+      expect(state.items._dirty!.has(1)).toBe(false);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should track array copyWithin range", () => {
+      const state = track({
+        items: [1, 2, 3, 4],
+      });
+
+      state.items.copyWithin(1, 0, 2);
+
+      expect(state.items).toEqual([1, 1, 2, 4]);
+      expect(state.items._dirty!.has(1)).toBe(true);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state.items._dirty!.has(0)).toBe(false);
+      expect(state.items._dirty!.has(3)).toBe(false);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should track array copyWithin with default end", () => {
+      const state = track({
+        items: [1, 2, 3, 4],
+      });
+
+      state.items.copyWithin(2, 0);
+
+      expect(state.items).toEqual([1, 2, 1, 2]);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state.items._dirty!.has(3)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
+    });
+
+    it("should handle array copyWithin no-op range", () => {
+      const state = track({
+        items: [1, 2, 3],
+      });
+
+      state.items.copyWithin(0, 0, 0);
+
+      expect(state.items).toEqual([1, 2, 3]);
+      expect(state.items._dirty!.size).toBe(0);
+      expect(state._dirty!.size).toBe(0);
+    });
+
     it("should clear tracking recursively", () => {
       const state = track({
         player: { x: 0, y: 0 },
@@ -538,11 +730,23 @@ describe("Dirty Tracking", () => {
       expect(state.items._dirty!.size).toBe(0);
     });
 
+    it("should allow setting non-index properties without marking dirty", () => {
+      const state = track({ items: [1, 2, 3] });
+      (state.items as any).label = "scores";
+      expect((state.items as any).label).toBe("scores");
+      expect(state.items._dirty!.size).toBe(0);
+      expect(state._dirty!.size).toBe(0);
+    });
+
     it("should handle setting array length directly", () => {
       const state = track({ items: [1, 2, 3, 4, 5] });
       state.items.length = 2;
       expect(state.items.length).toBe(2);
       expect(state.items).toEqual([1, 2]);
+      expect(state.items._dirty!.has(2)).toBe(true);
+      expect(state.items._dirty!.has(3)).toBe(true);
+      expect(state.items._dirty!.has(4)).toBe(true);
+      expect(state._dirty!.has("items")).toBe(true);
     });
 
     it("should track direct array index assignment", () => {
