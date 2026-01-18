@@ -58,8 +58,6 @@ type InferObject<P, Parent extends NamedType, D extends number> = {
   }
     ? InferProperty<V, Parent, D>
     : never;
-} & {
-  _dirty?: Set<keyof P>;
 };
 
 // Helper for property type inference
@@ -74,13 +72,11 @@ type InferComplex<T, Parent extends NamedType, D extends number> = T extends {
   type: "array";
   value: infer V extends PropertyType;
 }
-  ? InferProperty<V, Parent, Prev[D]>[] & { _dirty?: Set<number> }
+  ? InferProperty<V, Parent, Prev[D]>[]
   : T extends { type: "optional"; value: infer V extends PropertyType }
     ? InferProperty<V, Parent, Prev[D]> | undefined
     : T extends { type: "record"; key: infer K extends PropertyType; value: infer V extends PropertyType }
-      ? Map<InferProperty<K, Parent, Prev[D]>, InferProperty<V, Parent, Prev[D]>> & {
-          _dirty?: Set<InferProperty<K, Parent, Prev[D]>>;
-        }
+      ? Map<InferProperty<K, Parent, Prev[D]>, InferProperty<V, Parent, Prev[D]>>
       : T extends { type: "reference"; ref: infer R extends NamedType }
         ? Infer<R, Prev[D]>
         : T extends { type: "self-reference" }

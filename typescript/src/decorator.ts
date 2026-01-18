@@ -213,27 +213,14 @@ export function buildSchema<T extends object>(
   return schema;
 }
 
-// ============ Dirty Tracking Types ============
-
-/** Add _dirty tracking to an object type */
-export type WithDirty<T> = T & { _dirty?: Set<keyof T> };
-
-/** Add _dirty tracking to an array (tracks dirty indices) */
-export type DirtyArray<T> = T[] & { _dirty?: Set<number> };
-
-/** Add _dirty tracking to a Map (tracks dirty keys) */
-export type DirtyMap<K, V> = Map<K, V> & { _dirty?: Set<K> };
-
 // ============ Class Loader ============
 
 // Overload: load from a class constructor
-export function loadClass<T extends object>(rootClass: AnyConstructor<T>): DeltaPackApi<WithDirty<T>>;
+export function loadClass<T extends object>(rootClass: AnyConstructor<T>): DeltaPackApi<T>;
 // Overload: load from a union definition
-export function loadClass<U extends ClassUnionDef>(unionDef: U): DeltaPackApi<WithDirty<InferUnion<U>>>;
+export function loadClass<U extends ClassUnionDef>(unionDef: U): DeltaPackApi<InferUnion<U>>;
 // Implementation
-export function loadClass<T extends object>(
-  rootClassOrUnion: AnyConstructor<T> | ClassUnionDef
-): DeltaPackApi<WithDirty<T>> {
+export function loadClass<T extends object>(rootClassOrUnion: AnyConstructor<T> | ClassUnionDef): DeltaPackApi<T> {
   const isUnion = isClassUnion(rootClassOrUnion);
   const rootName = rootClassOrUnion.name;
 
@@ -315,18 +302,17 @@ export function loadClass<T extends object>(
     }
   }
 
-  type D = WithDirty<T>;
-  const wrap = (obj: D) => wrapUnions(obj, rootType, schema, unionVariants) as T;
+  const wrap = (obj: T) => wrapUnions(obj, rootType, schema, unionVariants) as T;
 
   return {
-    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as D)), rootName) as D,
-    encode: (obj: D) => rawApi.encode(wrap(obj)),
-    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootName) as D,
-    encodeDiff: (a: D, b: D) => rawApi.encodeDiff(wrap(a), wrap(b)),
-    decodeDiff: (a: D, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootName) as D,
-    equals: (a: D, b: D) => rawApi.equals(wrap(a), wrap(b)),
-    clone: (obj: D) => hydrate(rawApi.clone(wrap(obj)), rootName) as D,
-    toJson: (obj: D) => rawApi.toJson(wrap(obj)),
+    fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as T)), rootName) as T,
+    encode: (obj: T) => rawApi.encode(wrap(obj)),
+    decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootName) as T,
+    encodeDiff: (a: T, b: T) => rawApi.encodeDiff(wrap(a), wrap(b)),
+    decodeDiff: (a: T, diff: Uint8Array) => hydrate(rawApi.decodeDiff(wrap(a), diff), rootName) as T,
+    equals: (a: T, b: T) => rawApi.equals(wrap(a), wrap(b)),
+    clone: (obj: T) => hydrate(rawApi.clone(wrap(obj)), rootName) as T,
+    toJson: (obj: T) => rawApi.toJson(wrap(obj)),
   };
 }
 

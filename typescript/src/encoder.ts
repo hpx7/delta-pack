@@ -1,4 +1,5 @@
 import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
+import { getDirty, getUnderlying } from "./tracking.js";
 
 export class Encoder {
   protected static _instance: Encoder | null = null;
@@ -210,42 +211,36 @@ export class DiffEncoder extends Encoder {
   }
 
   // Object diff - handles dirty tracking and change bit
-  pushObjectDiff<T>(a: T, b: T & { _dirty?: Set<string> }, equals: (a: T, b: T) => boolean, encodeDiff: () => void) {
-    const dirty = b._dirty;
-    const changed = dirty == null ? !equals(a, b) : dirty.size > 0;
+  pushObjectDiff<T>(a: T, b: T, equals: (a: T, b: T) => boolean, encodeDiff: () => void) {
+    const dirty = getDirty(b);
+    // If dirty tracking present with entries: definitely changed
+    // If dirty tracking present but empty: nothing changed (parent propagation ensures nested changes bubble up)
+    // If no dirty tracking: use equals check
+    const changed = dirty != null && dirty.size > 0 ? true : !equals(a, b);
     this.pushBoolean(changed);
     if (changed) encodeDiff();
   }
 
   // Generic field diff - handles change bit for object fields
-  pushFieldDiff<O extends { _dirty?: Set<string> }, K extends string & keyof O>(
+  pushFieldDiff<O extends object, K extends string & keyof O>(
     a: O,
     b: O,
     key: K,
     equals: (a: O[K], b: O[K]) => boolean,
     encodeDiff: (a: O[K], b: O[K]) => void
   ) {
-    if (b._dirty?.has(key) === false) {
-      this.pushBoolean(false);
-      return;
-    }
-    const aVal = a[key],
-      bVal = b[key];
-    const changed = !equals(aVal, bVal);
+    const result = this.checkFieldDiff(b, key);
+    if (!result) return;
+    const aVal = a[key];
+    const bValRaw = result.bValRaw as O[K];
+    const changed = !equals(aVal, bValRaw);
     this.pushBoolean(changed);
-    if (changed) encodeDiff(aVal, bVal);
+    if (changed) encodeDiff(aVal, bValRaw);
   }
 
   // Field diff for types that include their own change bit (boolean, object)
-  pushFieldDiffValue<O extends { _dirty?: Set<string> }, K extends string & keyof O>(
-    b: O,
-    key: K,
-    encodeDiff: () => void
-  ) {
-    if (b._dirty?.has(key) === false) {
-      this.pushBoolean(false);
-      return;
-    }
+  pushFieldDiffValue<O extends object, K extends string & keyof O>(b: O, key: K, encodeDiff: () => void) {
+    if (!this.checkFieldDiff(b, key)) return;
     encodeDiff();
   }
 
@@ -264,12 +259,12 @@ export class DiffEncoder extends Encoder {
 
   pushArrayDiff<T>(
     a: T[],
-    b: T[] & { _dirty?: Set<number> },
+    b: T[],
     equals: (x: T, y: T) => boolean,
     encode: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const dirty = b._dirty;
+    const dirty = getDirty(b);
     this.writeUVarint(b.length);
 
     // Collect changed indices (sparse encoding)
@@ -300,13 +295,13 @@ export class DiffEncoder extends Encoder {
 
   pushRecordDiff<K, T>(
     a: Map<K, T>,
-    b: Map<K, T> & { _dirty?: Set<K> },
+    b: Map<K, T>,
     equals: (x: T, y: T) => boolean,
     encodeKey: (x: K) => void,
     encodeVal: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const dirty = b._dirty;
+    const dirty = getDirty(b);
     const updates: K[] = [];
     const deletions: K[] = [];
     const additions: [K, T][] = [];
@@ -357,5 +352,18 @@ export class DiffEncoder extends Encoder {
       encodeKey(key);
       encodeVal(val);
     });
+  }
+
+  // Check if field can be skipped via dirty tracking. Returns unwrapped value, or null if skipped.
+  // Skips only if dirty tracking is active with entries and key is not dirty.
+  private checkFieldDiff(b: object, key: string): { bValRaw: unknown } | null {
+    const dirty = getDirty(b);
+    const bVal = (b as Record<string, unknown>)[key];
+    const bValRaw = bVal != null && typeof bVal === "object" ? getUnderlying(bVal as object) : bVal;
+    if (dirty != null && dirty.size > 0 && !dirty.has(key)) {
+      this.pushBoolean(false);
+      return null;
+    }
+    return { bValRaw };
   }
 }

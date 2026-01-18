@@ -381,7 +381,6 @@ console.log(player2.score); // 200
 
 - Creates deep copies of all nested objects, arrays, and maps
 - Primitives (strings, numbers, booleans) are copied by value
-- The `_dirty` field is **not** preserved in clones (clones always start clean)
 - Useful for creating modified copies without mutating the original state
 
 ## Decorator API
@@ -927,36 +926,35 @@ class Game {
 }
 ```
 
-**The `Tracked<T>` type:** The `track()` function returns a `Tracked<T>` which recursively adds `_dirty` sets at every level of the object tree.
-
 **When to use tracking:**
 
 - High-frequency updates (e.g., 20-60 times per second)
 - Large state objects where full comparison is expensive
 - Mutable state that changes incrementally each tick
 
-**Manual `_dirty` (alternative):** You can also set `_dirty` directly without using `track()`:
+**Manual tracking with `markDirty()`:** You can also track changes manually without using proxies:
 
 ```typescript
+import { markDirty, clearTracking } from "@hpx7/delta-pack";
+
 // Objects: track changed fields
 player.score = 150;
-player._dirty = new Set(["score"]);
+markDirty(player, "score");
 
 // Arrays: track changed indices
 items[5] = newItem;
-items._dirty = new Set([5]);
+markDirty(items, 5);
 
 // Maps: track changed keys
 players.set("p1", updatedPlayer);
-players._dirty = new Set(["p1"]);
+markDirty(players, "p1");
+
+// Encode and clear
+const diff = GameStateApi.encodeDiff(oldState, state);
+clearTracking(state);
 ```
 
-The `_dirty` field is:
-
-- **Optional**: If absent, full comparison is performed
-- **Type-safe**: `Set<keyof T>` for objects, `Set<number>` for arrays, `Set<K>` for maps
-- **Included in types**: Both codegen and interpreter types include `_dirty`
-- **Not serialized**: The `_dirty` field is never encoded in the binary format
+This is useful when you can't use proxies (e.g., performance-critical code) but still want delta encoding optimization.
 
 ### Quantized Floats
 

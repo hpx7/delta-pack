@@ -90,7 +90,7 @@ function renderObjectType(
 
   return `export type ${name} = {
 ${props}
-} & { _dirty?: Set<keyof ${name}> };`;
+};`;
 }
 
 function renderObjectApi(
@@ -342,14 +342,12 @@ function renderType(ctx: GeneratorContext, type: Type, name: string): string {
       const elem = renderType(ctx, type.value, name);
       const parens =
         type.value.type === "array" || type.value.type === "record";
-      return parens
-        ? `(${elem})[] & { _dirty?: Set<number> }`
-        : `${elem}[] & { _dirty?: Set<number> }`;
+      return parens ? `(${elem})[]` : `${elem}[]`;
     }
     case "optional":
       return `${renderType(ctx, type.value, name)} | undefined`;
     case "record":
-      return `Map<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}> & { _dirty?: Set<${renderType(ctx, type.key, name)}> }`;
+      return `Map<${renderType(ctx, type.key, name)}, ${renderType(ctx, type.value, name)}>`;
     case "reference":
       return type.ref.name!;
     case "self-reference":

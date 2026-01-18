@@ -6,7 +6,7 @@ export type Primitives = {
   unsignedIntField: number;
   floatField: number;
   booleanField: boolean;
-} & { _dirty?: Set<keyof Primitives> };
+};
 
 
 export const Primitives = {

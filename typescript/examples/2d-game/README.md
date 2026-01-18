@@ -138,16 +138,20 @@ client.lastMessage = updateMessage;
 
 ### Dirty Tracking Optimization
 
-The game marks only modified fields as dirty:
+The game uses `track()` to automatically track changes:
 
 ```typescript
-// Update player position
+import { track, clearTracking } from "@hpx7/delta-pack";
+
+// Wrap state with tracking
+const state = track(new GameState());
+
+// Modifications are automatically tracked
 player.x += vx * deltaTime;
 player.y += vy * deltaTime;
 
-// Mark this player as dirty in the map
-state.players._dirty!.add(playerId);
-state._dirty!.add("players");
+// After sending diff, clear tracking for next frame
+clearTracking(state);
 ```
 
 This allows `encodeDiff` to skip checking unchanged fields, making encoding faster.

@@ -1,35 +1,85 @@
-/** Keys of T excluding _dirty */
-type DataKeys<T> = Exclude<keyof T, "_dirty">;
+// ============ Internal Symbols ============
+
+/** Symbol for fast access to underlying object/array (bypasses proxy for encoding) */
+const UNDERLYING = Symbol.for("delta-pack:underlying");
+
+/** Symbol for fast access to dirty set */
+const DIRTY = Symbol.for("delta-pack:dirty");
+
+/** Symbol for parent reference (for dirty propagation) */
+const PARENT = Symbol.for("delta-pack:parent");
+
+/** Symbol for key in parent (for dirty propagation) */
+const PARENT_KEY = Symbol.for("delta-pack:parentKey");
+
+/**
+ * Get the underlying object/array for a tracked proxy.
+ * This bypasses proxy overhead for read-only access during encoding.
+ * @internal
+ */
+export function getUnderlying<T extends object>(obj: T): T {
+  return (obj as any)[UNDERLYING] ?? obj;
+}
+
+/**
+ * Get the dirty set for a tracked object.
+ * @internal Used by encoder for optimization - not part of public API
+ */
+export function getDirty(obj: unknown[]): Set<number> | undefined;
+export function getDirty<K>(obj: Map<K, unknown>): Set<K> | undefined;
+export function getDirty(obj: object): Set<string> | undefined;
+export function getDirty(obj: unknown): Set<string | number> | undefined;
+export function getDirty(obj: unknown): Set<string | number> | undefined {
+  if (obj == null || typeof obj !== "object") return undefined;
+  return (obj as any)[DIRTY];
+}
+
+/**
+ * Mark a key as dirty on an object for manual dirty tracking without proxies.
+ * Uses a Symbol property for fast getDirty() access.
+ * Propagates dirty marking up to parent containers if the object is tracked.
+ */
+export function markDirty(obj: unknown[], key: number): void;
+export function markDirty<K>(obj: Map<K, unknown>, key: K): void;
+export function markDirty(obj: object, key: string): void;
+export function markDirty(obj: object, key: unknown): void {
+  let dirty = (obj as any)[DIRTY] as Set<string | number> | undefined;
+  if (!dirty) {
+    dirty = new Set();
+    (obj as any)[DIRTY] = dirty;
+  }
+  dirty.add(key as string | number);
+  propagateToParent(obj);
+}
+
+// ============ Type Definitions ============
 
 /** Tracked Map with modified set() to accept plain values */
 type TrackedMap<K, V> = Omit<Map<K, Tracked<V>>, "set" | "get"> & {
-  _dirty?: Set<K>;
   set(key: K, value: V): TrackedMap<K, V>;
   get(key: K): Tracked<V> | undefined;
 };
 
-/** Recursively add dirty tracking to an object and its nested containers */
+/** Recursively track an object and its nested containers (type is unchanged) */
 export type Tracked<T> =
   T extends Map<infer K, infer V>
     ? TrackedMap<K, V>
     : T extends Array<infer U>
-      ? Array<Tracked<U>> & { _dirty?: Set<number> }
+      ? Array<Tracked<U>>
       : T extends object
-        ? { [P in DataKeys<T>]: Tracked<T[P]> } & { _dirty?: Set<DataKeys<T>> }
+        ? { [P in keyof T]: Tracked<T[P]> }
         : T;
 
-/** Callback to propagate dirty marking up the parent chain */
-type PropagateCallback = () => void;
-
-/** Fallback handler for unknown properties - binds methods to target */
-function getFallback<T extends object>(target: T, prop: string | symbol): unknown {
-  const value = (target as Record<string | symbol, unknown>)[prop];
-  return typeof value === "function" ? value.bind(target) : value;
-}
+// ============ Public API ============
 
 /**
  * Wraps an object with deep tracking. Property changes are automatically
- * tracked, and changes to nested objects/arrays/maps propagate up to parents.
+ * tracked at each level, with changes propagating up to parent containers.
+ * The encoder checks dirty sets at each level during diff encoding.
+ *
+ * Note: The tracking system assumes a tree structure. If the same object
+ * is stored in multiple locations (shared references), dirty propagation
+ * will only work for the most recent parent assignment.
  *
  * @example
  * ```typescript
@@ -40,15 +90,15 @@ function getFallback<T extends object>(target: T, prop: string | symbol): unknow
  * });
  *
  * state.tick = 1;                  // Marks "tick" dirty on state
- * state.player.x = 100;            // Marks "x" on player, "player" on state
- * state.players.get("p1")!.x = 50; // Marks "x" on player, "p1" on players, "players" on state
+ * state.player.x = 100;            // Marks "x" dirty on player, "player" dirty on state
+ * state.players.get("p1")!.x = 50; // Marks "x" dirty on player, "p1" dirty on players, "players" dirty on state
  *
  * const diff = api.encodeDiff(oldState, state);
  * clearTracking(state);  // Reset for next frame
  * ```
  */
 export function track<T extends object>(obj: T): Tracked<T> {
-  return trackWithParent(deepClone(obj), () => {}) as Tracked<T>;
+  return trackRecursive(deepClone(obj)) as Tracked<T>;
 }
 
 /**
@@ -59,8 +109,10 @@ export function clearTracking(obj: unknown): void {
     return;
   }
 
-  const record = obj as { _dirty?: Set<unknown> } & Record<string, unknown>;
-  record._dirty?.clear();
+  const dirty = getDirty(obj);
+  if (dirty) {
+    dirty.clear();
+  }
 
   if (obj instanceof Map) {
     for (const value of obj.values()) {
@@ -71,69 +123,108 @@ export function clearTracking(obj: unknown): void {
       clearTracking(obj[i]);
     }
   } else {
-    for (const key of Object.keys(record)) {
-      if (key !== "_dirty") {
-        clearTracking(record[key]);
-      }
+    for (const key of Object.keys(obj)) {
+      clearTracking((obj as Record<string, unknown>)[key]);
     }
   }
 }
 
-function trackWithParent<T>(obj: T, propagateToParent: PropagateCallback): T {
+// ============ Internal Implementation ============
+
+/** Fallback handler for unknown properties - binds methods to target */
+function getFallback<T extends object>(target: T, prop: string | symbol): unknown {
+  const value = (target as Record<string | symbol, unknown>)[prop];
+  return typeof value === "function" ? value.bind(target) : value;
+}
+
+/** Propagate dirty marking up to parent containers */
+function propagateToParent(child: object): void {
+  const parent = (child as any)[PARENT];
+  const key = (child as any)[PARENT_KEY];
+  if (parent != null && key != null) {
+    const parentDirty = getDirty(parent);
+    if (parentDirty && !parentDirty.has(key)) {
+      parentDirty.add(key);
+      propagateToParent(parent);
+    }
+  }
+}
+
+/** Set or update parent metadata on a tracked object (only runs on init/reparenting, not hot-path) */
+function setParentMeta(target: object, parent: object | undefined, parentKey: string | number | undefined): void {
+  if (parent == null || parentKey == null) return;
+  // Check if already defined (reparenting case)
+  if ((target as any)[PARENT] !== undefined) {
+    (target as any)[PARENT] = parent;
+    (target as any)[PARENT_KEY] = parentKey;
+  } else {
+    // Initial definition
+    Object.defineProperty(target, PARENT, { value: parent, writable: true });
+    Object.defineProperty(target, PARENT_KEY, { value: parentKey, writable: true });
+  }
+}
+
+/** Normalize array index (handles negative indices) */
+function normalizeIndex(idx: number, len: number): number {
+  return idx < 0 ? Math.max(len + idx, 0) : Math.min(idx, len);
+}
+
+function trackRecursive<T>(obj: T, parent?: object, parentKey?: string | number): T {
   if (obj == null || typeof obj !== "object") {
     return obj;
   }
 
+  // Fast-path: if already tracked, just update parent metadata
+  const underlying = getUnderlying(obj as object);
+  if (getDirty(underlying) != null) {
+    setParentMeta(underlying, parent, parentKey);
+    return obj;
+  }
+
   if (obj instanceof Map) {
-    return trackMap(obj as Map<unknown, unknown>, propagateToParent) as T;
+    return trackMap(obj as Map<unknown, unknown>, parent, parentKey) as T;
   }
 
   if (Array.isArray(obj)) {
-    return trackArray(obj, propagateToParent) as T;
+    return trackArray(obj, parent, parentKey) as T;
   }
 
-  return trackObject(obj as Record<string, unknown>, propagateToParent) as T;
+  return trackObject(obj as Record<string, unknown>, parent, parentKey) as T;
 }
 
-function trackObject<T extends Record<string, unknown>>(obj: T, propagateToParent: PropagateCallback): Tracked<T> {
-  const dirty = new Set<keyof T>();
+function trackObject<T extends Record<string, unknown>>(
+  obj: T,
+  parent?: object,
+  parentKey?: string | number
+): Tracked<T> {
+  const dirty = new Set<string>();
+  Object.defineProperty(obj, DIRTY, { value: dirty, writable: true });
+  setParentMeta(obj, parent, parentKey);
 
   // Recursively track all nested values
   const trackedChildren: Record<string, unknown> = {};
   for (const key of Object.keys(obj)) {
-    if (key !== "_dirty") {
-      const fieldKey = key as keyof T;
-      trackedChildren[key] = trackWithParent(obj[key], () => {
-        dirty.add(fieldKey);
-        propagateToParent();
-      });
-    }
+    trackedChildren[key] = trackRecursive(obj[key], obj, key);
   }
 
   const proxy = new Proxy(obj, {
     set(target, prop, value) {
-      if (prop === "_dirty" || typeof prop === "symbol") {
+      if (typeof prop === "symbol") {
         return true;
       }
-      const key = prop as keyof T;
+      const key = prop as string;
       if (target[key] !== value) {
         dirty.add(key);
-        propagateToParent();
-        // Track the new value with propagation
-        trackedChildren[prop] = trackWithParent(value, () => {
-          dirty.add(key);
-          propagateToParent();
-        });
+        propagateToParent(obj);
+        trackedChildren[key] = trackRecursive(value, obj, key);
       }
-      (target as Record<string, unknown>)[prop] = value;
+      (target as Record<string, unknown>)[key] = value;
       return true;
     },
     get(target, prop) {
-      if (prop === "_dirty") {
-        return dirty;
-      }
+      if (prop === UNDERLYING) return target;
       if (typeof prop === "symbol") {
-        return target[prop as unknown as string];
+        return (target as any)[prop];
       }
       const tracked = trackedChildren[prop];
       if (tracked != null) {
@@ -141,63 +232,57 @@ function trackObject<T extends Record<string, unknown>>(obj: T, propagateToParen
       }
       return target[prop];
     },
+    deleteProperty(target, prop) {
+      if (typeof prop === "symbol") {
+        return delete (target as any)[prop];
+      }
+      const key = prop as string;
+      if (key in target) {
+        dirty.add(key);
+        propagateToParent(obj);
+        delete trackedChildren[key];
+      }
+      return delete (target as Record<string, unknown>)[key];
+    },
   }) as Tracked<T>;
 
   return proxy;
 }
 
-function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { _dirty: Set<number> } {
+function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): Tracked<T[]> {
   const dirty = new Set<number>();
   const trackedItems: T[] = [];
+  Object.defineProperty(trackedItems, DIRTY, { value: dirty, writable: true });
+  setParentMeta(trackedItems, parent, parentKey);
 
-  const markDirtyForItem = (trackedValue: T) => {
-    let marked = false;
-    for (let i = 0; i < trackedItems.length; i++) {
-      if (trackedItems[i] === trackedValue) {
-        dirty.add(i);
-        marked = true;
-      }
-    }
-    if (marked) {
-      propagateToParent();
-    }
-  };
-
-  const trackItem = (item: T): T => {
-    let trackedValue: T;
-    const markDirty = () => markDirtyForItem(trackedValue);
-    trackedValue = trackWithParent(item, markDirty) as T;
-    return trackedValue;
-  };
-
-  for (const item of arr) {
-    trackedItems.push(trackItem(item));
+  // Track initial items
+  for (let i = 0; i < arr.length; i++) {
+    trackedItems.push(trackRecursive(arr[i], trackedItems, i) as T);
   }
 
   const markRangeDirty = (start: number, end: number) => {
-    if (start >= end) {
-      return;
-    }
+    if (start >= end) return;
     for (let i = start; i < end; i++) {
       dirty.add(i);
     }
-    propagateToParent();
+    propagateToParent(trackedItems);
   };
 
-  const markAllDirty = () => {
-    markRangeDirty(0, trackedItems.length);
-  };
-
-  const normalizeIndex = (index: number, length: number) => {
-    if (index < 0) {
-      return Math.max(length + index, 0);
+  // Update PARENT_KEY on elements after reordering
+  const updateParentKeys = (start: number, end: number) => {
+    for (let i = start; i < end; i++) {
+      const elem = trackedItems[i];
+      if (elem != null && typeof elem === "object") {
+        // Access underlying object to bypass proxy's symbol-ignoring set trap
+        const underlying = getUnderlying(elem as object);
+        (underlying as any)[PARENT_KEY] = i;
+      }
     }
-    return Math.min(index, length);
   };
 
   const proxy = new Proxy(trackedItems, {
     set(target, prop, value) {
-      if (prop === "_dirty" || typeof prop === "symbol") {
+      if (typeof prop === "symbol") {
         return true;
       }
       if (prop === "length") {
@@ -205,45 +290,41 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
         (target as unknown as { length: number }).length = value as number;
         const newLength = target.length;
         if (newLength !== oldLength) {
-          const start = Math.min(oldLength, newLength);
-          const end = Math.max(oldLength, newLength);
-          markRangeDirty(start, end);
+          markRangeDirty(Math.min(oldLength, newLength), Math.max(oldLength, newLength));
         }
         return true;
       }
       const index = Number(prop);
       if (!isNaN(index)) {
         dirty.add(index);
-        propagateToParent();
-        target[index] = trackItem(value as T);
+        propagateToParent(trackedItems);
+        target[index] = trackRecursive(value, trackedItems, index) as T;
         return true;
       }
       (target as unknown as Record<string, unknown>)[prop] = value;
       return true;
     },
     get(target, prop) {
-      if (prop === "_dirty") {
-        return dirty;
+      if (prop === UNDERLYING) return target;
+      if (typeof prop === "symbol") {
+        return (target as any)[prop];
       }
       if (prop === "push") {
         return (...items: T[]) => {
           const startIndex = target.length;
-          const trackedNewItems = items.map((item, i) => {
-            const idx = startIndex + i;
-            dirty.add(idx);
-            return trackItem(item);
-          });
-          if (trackedNewItems.length > 0) {
-            propagateToParent();
+          for (let i = 0; i < items.length; i++) {
+            dirty.add(startIndex + i);
+            target.push(trackRecursive(items[i], trackedItems, startIndex + i) as T);
           }
-          return target.push(...trackedNewItems);
+          propagateToParent(trackedItems);
+          return target.length;
         };
       }
       if (prop === "pop") {
         return () => {
           if (target.length > 0) {
             dirty.add(target.length - 1);
-            propagateToParent();
+            propagateToParent(trackedItems);
           }
           return target.pop();
         };
@@ -251,7 +332,10 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
       if (prop === "shift") {
         return () => {
           if (target.length > 0) {
-            markAllDirty();
+            markRangeDirty(0, target.length);
+            const result = target.shift();
+            updateParentKeys(0, target.length);
+            return result;
           }
           return target.shift();
         };
@@ -259,59 +343,56 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
       if (prop === "unshift") {
         return (...items: T[]) => {
           if (items.length === 0) {
-            return target.unshift();
+            return target.length;
           }
-          for (let i = 0; i < target.length + items.length; i++) {
-            dirty.add(i);
-          }
-          const trackedNewItems = items.map((item) => trackItem(item));
-          propagateToParent();
-          return target.unshift(...trackedNewItems);
+          markRangeDirty(0, target.length + items.length);
+          const result = target.unshift(...items.map((item, i) => trackRecursive(item, trackedItems, i) as T));
+          updateParentKeys(items.length, target.length);
+          return result;
         };
       }
       if (prop === "splice") {
         return (start: number, deleteCount?: number, ...items: T[]) => {
           const len = target.length;
-          const actualStart = start < 0 ? Math.max(len + start, 0) : Math.min(start, len);
+          const actualStart = normalizeIndex(start, len);
           const actualDeleteCount = deleteCount == null ? len - actualStart : Math.min(deleteCount, len - actualStart);
-          const shouldMark = actualDeleteCount > 0 || items.length > 0;
-          const didMarkRange = shouldMark && len > 0 && actualStart < len;
-          if (didMarkRange) {
-            markRangeDirty(actualStart, len);
+          if (actualDeleteCount > 0 || items.length > 0) {
+            markRangeDirty(actualStart, Math.max(len, actualStart + items.length));
           }
-          if (items.length > 0) {
-            for (let i = 0; i < items.length; i++) {
-              dirty.add(actualStart + i);
-            }
-            if (!didMarkRange) {
-              propagateToParent();
-            }
+          const result = target.splice(
+            actualStart,
+            actualDeleteCount,
+            ...items.map((item, i) => trackRecursive(item, trackedItems, actualStart + i) as T)
+          );
+          if (actualDeleteCount !== items.length) {
+            updateParentKeys(actualStart + items.length, target.length);
           }
-          const trackedNewItems = items.map((item) => trackItem(item));
-          return target.splice(actualStart, actualDeleteCount, ...trackedNewItems);
+          return result;
         };
       }
       if (prop === "sort") {
         return (compareFn?: (a: T, b: T) => number) => {
           target.sort(compareFn);
-          markAllDirty();
+          markRangeDirty(0, target.length);
+          updateParentKeys(0, target.length);
           return proxy;
         };
       }
       if (prop === "reverse") {
         return () => {
           target.reverse();
-          markAllDirty();
+          markRangeDirty(0, target.length);
+          updateParentKeys(0, target.length);
           return proxy;
         };
       }
       if (prop === "fill") {
         return (value: T, start?: number, end?: number) => {
           const len = target.length;
-          const actualStart = start == null ? 0 : normalizeIndex(Number(start), len);
-          const actualEnd = end == null ? len : normalizeIndex(Number(end), len);
+          const actualStart = start == null ? 0 : normalizeIndex(start, len);
+          const actualEnd = end == null ? len : normalizeIndex(end, len);
           for (let i = actualStart; i < actualEnd; i++) {
-            target[i] = trackItem(value);
+            target[i] = trackRecursive(value, trackedItems, i) as T;
           }
           markRangeDirty(actualStart, actualEnd);
           return proxy;
@@ -320,9 +401,9 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
       if (prop === "copyWithin") {
         return (targetIndex: number, start: number, end?: number) => {
           const len = target.length;
-          const to = normalizeIndex(Number(targetIndex), len);
-          const from = normalizeIndex(Number(start), len);
-          const final = end == null ? len : normalizeIndex(Number(end), len);
+          const to = normalizeIndex(targetIndex, len);
+          const from = normalizeIndex(start, len);
+          const final = end == null ? len : normalizeIndex(end, len);
           const count = Math.min(final - from, len - to);
           if (count > 0) {
             const copied = target.slice(from, from + count);
@@ -330,55 +411,46 @@ function trackArray<T>(arr: T[], propagateToParent: PropagateCallback): T[] & { 
               target[to + i] = copied[i]!;
             }
             markRangeDirty(to, to + count);
+            updateParentKeys(to, to + count);
           }
           return proxy;
         };
       }
       return getFallback(target, prop);
     },
-  }) as T[] & { _dirty: Set<number> };
+  }) as Tracked<T[]>;
 
   return proxy;
 }
 
-function trackMap<K, V>(map: Map<K, V>, propagateToParent: PropagateCallback): Map<K, V> & { _dirty: Set<K> } {
+function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | number): Tracked<Map<K, V>> {
   const dirty = new Set<K>();
-
-  // Create map of tracked values - proxy this directly so iteration methods work
   const trackedValues = new Map<K, V>();
+  Object.defineProperty(trackedValues, DIRTY, { value: dirty, writable: true });
+  setParentMeta(trackedValues, parent, parentKey);
+
   for (const [key, value] of map) {
-    trackedValues.set(
-      key,
-      trackWithParent(value, () => {
-        dirty.add(key);
-        propagateToParent();
-      }) as V
-    );
+    trackedValues.set(key, trackRecursive(value, trackedValues, key as string | number) as V);
   }
 
   const proxy = new Proxy(trackedValues, {
     get(target, prop) {
-      if (prop === "_dirty") {
-        return dirty;
+      if (prop === UNDERLYING) return target;
+      if (typeof prop === "symbol") {
+        return getFallback(target, prop);
       }
       if (prop === "set") {
         return (key: K, value: V) => {
           dirty.add(key);
-          propagateToParent();
-          target.set(
-            key,
-            trackWithParent(value, () => {
-              dirty.add(key);
-              propagateToParent();
-            }) as V
-          );
+          propagateToParent(trackedValues);
+          target.set(key, trackRecursive(value, trackedValues, key as string | number) as V);
           return proxy;
         };
       }
       if (prop === "delete") {
         return (key: K) => {
           dirty.add(key);
-          propagateToParent();
+          propagateToParent(trackedValues);
           return target.delete(key);
         };
       }
@@ -387,14 +459,13 @@ function trackMap<K, V>(map: Map<K, V>, propagateToParent: PropagateCallback): M
           for (const key of target.keys()) {
             dirty.add(key);
           }
-          propagateToParent();
+          propagateToParent(trackedValues);
           return target.clear();
         };
       }
-      // All other methods (get, values, entries, forEach, etc.) work automatically
       return getFallback(target, prop);
     },
-  }) as Map<K, V> & { _dirty: Set<K> };
+  }) as Tracked<Map<K, V>>;
 
   return proxy;
 }
@@ -421,9 +492,7 @@ function deepClone<T>(obj: T): T {
 
   const result: Record<string, unknown> = {};
   for (const key of Object.keys(obj)) {
-    if (key !== "_dirty") {
-      result[key] = deepClone((obj as Record<string, unknown>)[key]);
-    }
+    result[key] = deepClone((obj as Record<string, unknown>)[key]);
   }
   return result as T;
 }

@@ -8,55 +8,55 @@ export type Player = {
   score: number;
   isActive: boolean;
   partner?: Player | undefined;
-} & { _dirty?: Set<keyof Player> };
+};
 
 export type Position = {
   x: number;
   y: number;
-} & { _dirty?: Set<keyof Position> };
+};
 
 export type Velocity = {
   vx: number;
   vy: number;
-} & { _dirty?: Set<keyof Velocity> };
+};
 
 export type Entity = {
   id: string;
   position: Position;
-} & { _dirty?: Set<keyof Entity> };
+};
 
 export type MoveAction = {
   x: number;
   y: number;
-} & { _dirty?: Set<keyof MoveAction> };
+};
 
 export type AttackAction = {
   targetId: string;
   damage: number;
-} & { _dirty?: Set<keyof AttackAction> };
+};
 
 export type UseItemAction = {
   itemId: string;
-} & { _dirty?: Set<keyof UseItemAction> };
+};
 
 export type GameAction = { _type: "MoveAction" } & MoveAction | { _type: "AttackAction" } & AttackAction | { _type: "UseItemAction" } & UseItemAction;
 
 export type GameState = {
-  players: Player[] & { _dirty?: Set<number> };
+  players: Player[];
   currentPlayer?: string | undefined;
   round: number;
-  metadata: Map<string, string> & { _dirty?: Set<string> };
+  metadata: Map<string, string>;
   winningColor?: Color | undefined;
   lastAction?: GameAction | undefined;
-} & { _dirty?: Set<keyof GameState> };
+};
 
 export type Inventory = {
-  items?: (Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> } | undefined;
-} & { _dirty?: Set<keyof Inventory> };
+  items?: (Map<string, number>)[] | undefined;
+};
 
 export type PlayerRegistry = {
-  players: Map<string, Player> & { _dirty?: Set<string> };
-} & { _dirty?: Set<keyof PlayerRegistry> };
+  players: Map<string, Player>;
+};
 
 
 const Color = {
@@ -1118,7 +1118,7 @@ export const Inventory = {
       b,
       "items",
       (x, y) => _.equalsOptional(x, y, (x, y) => _.equalsArray(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y))),
-      (x, y) => encoder.pushOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(x, y, (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))), (x, y) => encoder.pushArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y), (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x)), (x, y) => encoder.pushRecordDiff<string, number>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushInt(x), (x, y) => encoder.pushIntDiff(x, y)))),
+      (x, y) => encoder.pushOptionalDiff<(Map<string, number>)[]>(x, y, (x) => encoder.pushArray(x, (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x))), (x, y) => encoder.pushArrayDiff<Map<string, number>>(x, y, (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y), (x) => encoder.pushRecord(x, (x) => encoder.pushString(x), (x) => encoder.pushInt(x)), (x, y) => encoder.pushRecordDiff<string, number>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushInt(x), (x, y) => encoder.pushIntDiff(x, y)))),
     );
   },
   decode(input: Uint8Array): Inventory {
@@ -1137,7 +1137,7 @@ export const Inventory = {
     return {
       items: decoder.nextFieldDiff(
         obj.items,
-        (x) => decoder.nextOptionalDiff<(Map<string, number> & { _dirty?: Set<string> })[] & { _dirty?: Set<number> }>(x, () => decoder.nextArray(() => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt())), (x) => decoder.nextArrayDiff<Map<string, number> & { _dirty?: Set<string> }>(x, () => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt()), (x) => decoder.nextRecordDiff<string, number>(x, () => decoder.nextString(), () => decoder.nextInt(), (x) => decoder.nextIntDiff(x)))),
+        (x) => decoder.nextOptionalDiff<(Map<string, number>)[]>(x, () => decoder.nextArray(() => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt())), (x) => decoder.nextArrayDiff<Map<string, number>>(x, () => decoder.nextRecord(() => decoder.nextString(), () => decoder.nextInt()), (x) => decoder.nextRecordDiff<string, number>(x, () => decoder.nextString(), () => decoder.nextInt(), (x) => decoder.nextIntDiff(x)))),
       ),
     };
   },

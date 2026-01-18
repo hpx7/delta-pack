@@ -26,10 +26,10 @@ export type { Infer } from "./infer.js";
 export { load, type DeltaPackApi } from "./interpreter.js";
 
 // Decorator mode API
-export { loadClass, buildSchema, type WithDirty, type DirtyArray, type DirtyMap } from "./decorator.js";
+export { loadClass, buildSchema } from "./decorator.js";
 
 // YAML schema parsing
 export { parseSchemaYml } from "./parser.js";
 
 // Dirty tracking
-export { track, clearTracking, type Tracked } from "./tracking.js";
+export { track, clearTracking, getDirty, markDirty, type Tracked } from "./tracking.js";

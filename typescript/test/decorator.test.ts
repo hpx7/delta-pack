@@ -457,29 +457,29 @@ describe("Delta Pack Reflection", () => {
 
     it("should not corrupt auxiliary Set/Map properties during encodeDiff", () => {
       // This tests that wrapUnions only processes schema-defined properties,
-      // not auxiliary properties like _dirty used for dirty tracking
-      class StateWithDirtyTracking {
+      // not auxiliary properties added by user code
+      class StateWithAuxiliaryProps {
         @StringType()
         name: string = "";
 
         @IntType()
         value: number = 0;
 
-        // Auxiliary property not part of schema
-        _dirty?: Set<keyof StateWithDirtyTracking>;
+        // Auxiliary property not part of schema (e.g., for user's own tracking)
+        _changedFields?: Set<string>;
       }
 
-      const api = loadClass(StateWithDirtyTracking);
+      const api = loadClass(StateWithAuxiliaryProps);
 
-      const state1 = new StateWithDirtyTracking();
+      const state1 = new StateWithAuxiliaryProps();
       state1.name = "test";
       state1.value = 100;
-      state1._dirty = new Set(["value"]);
+      state1._changedFields = new Set(["value"]);
 
-      const state2 = new StateWithDirtyTracking();
+      const state2 = new StateWithAuxiliaryProps();
       state2.name = "test";
       state2.value = 200;
-      state2._dirty = new Set(["value"]);
+      state2._changedFields = new Set(["value"]);
 
       // encodeDiff should work without corrupting the Set
       const diff = api.encodeDiff(state1, state2);
@@ -487,9 +487,9 @@ describe("Delta Pack Reflection", () => {
       expect(diff.length).toBeGreaterThan(0);
 
       // Verify the original Sets are still valid
-      expect(state1._dirty!.size).toBe(1);
-      expect(state2._dirty!.size).toBe(1);
-      expect(state1._dirty!.has("value")).toBe(true);
+      expect(state1._changedFields!.size).toBe(1);
+      expect(state2._changedFields!.size).toBe(1);
+      expect(state1._changedFields!.has("value")).toBe(true);
 
       // Decode the diff
       const decoded = api.decodeDiff(state1, diff);

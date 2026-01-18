@@ -6,16 +6,16 @@ export type Address = {
   street: string;
   zip: string;
   state: string;
-} & { _dirty?: Set<keyof Address> };
+};
 
 export type EmailContact = {
   email: string;
-} & { _dirty?: Set<keyof EmailContact> };
+};
 
 export type PhoneContact = {
   phone: string;
   extension?: number | undefined;
-} & { _dirty?: Set<keyof PhoneContact> };
+};
 
 export type Contact = { _type: "EmailContact" } & EmailContact | { _type: "PhoneContact" } & PhoneContact;
 
@@ -27,10 +27,10 @@ export type User = {
   married: boolean;
   hairColor: HairColor;
   address?: Address | undefined;
-  children: User[] & { _dirty?: Set<number> };
-  metadata: Map<string, string> & { _dirty?: Set<string> };
+  children: User[];
+  metadata: Map<string, string>;
   preferredContact?: Contact | undefined;
-} & { _dirty?: Set<keyof User> };
+};
 
 
 const HairColor = {

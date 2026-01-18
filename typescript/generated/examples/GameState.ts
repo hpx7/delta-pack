@@ -15,12 +15,12 @@ export type EffectType = "POISON" | "BURN" | "FREEZE" | "STUN" | "REGEN" | "HAST
 export type Position = {
   x: number;
   y: number;
-} & { _dirty?: Set<keyof Position> };
+};
 
 export type Velocity = {
   vx: number;
   vy: number;
-} & { _dirty?: Set<keyof Velocity> };
+};
 
 export type InventoryItem = {
   itemId: string;
@@ -29,14 +29,14 @@ export type InventoryItem = {
   rarity: ItemRarity;
   durability?: number | undefined;
   enchantmentLevel?: number | undefined;
-} & { _dirty?: Set<keyof InventoryItem> };
+};
 
 export type Equipment = {
   weapon?: WeaponType | undefined;
   armor?: string | undefined;
   accessory1?: string | undefined;
   accessory2?: string | undefined;
-} & { _dirty?: Set<keyof Equipment> };
+};
 
 export type PlayerStats = {
   health: number;
@@ -51,20 +51,20 @@ export type PlayerStats = {
   agility: number;
   intelligence: number;
   defense: number;
-} & { _dirty?: Set<keyof PlayerStats> };
+};
 
 export type ActiveEffect = {
   effectType: EffectType;
   duration: number;
   strength: number;
   stackCount: number;
-} & { _dirty?: Set<keyof ActiveEffect> };
+};
 
 export type AbilityCooldown = {
   abilityId: string;
   abilityType: AbilityType;
   remainingCooldown: number;
-} & { _dirty?: Set<keyof AbilityCooldown> };
+};
 
 export type Player = {
   playerId: string;
@@ -75,10 +75,10 @@ export type Player = {
   velocity: Velocity;
   rotation: number;
   stats: PlayerStats;
-  inventory: InventoryItem[] & { _dirty?: Set<number> };
+  inventory: InventoryItem[];
   equipment: Equipment;
-  activeEffects: ActiveEffect[] & { _dirty?: Set<number> };
-  abilityCooldowns: AbilityCooldown[] & { _dirty?: Set<number> };
+  activeEffects: ActiveEffect[];
+  abilityCooldowns: AbilityCooldown[];
   kills: number;
   deaths: number;
   assists: number;
@@ -90,7 +90,7 @@ export type Player = {
   isAiming: boolean;
   lastDamageTime?: number | undefined;
   respawnTime?: number | undefined;
-} & { _dirty?: Set<keyof Player> };
+};
 
 export type Enemy = {
   enemyId: string;
@@ -104,7 +104,7 @@ export type Enemy = {
   targetPlayerId?: string | undefined;
   lastAttackTime: number;
   lootTableId?: string | undefined;
-} & { _dirty?: Set<keyof Enemy> };
+};
 
 export type Projectile = {
   projectileId: string;
@@ -114,15 +114,15 @@ export type Projectile = {
   damage: number;
   penetration: number;
   timeToLive: number;
-  hitPlayers: string[] & { _dirty?: Set<number> };
-} & { _dirty?: Set<keyof Projectile> };
+  hitPlayers: string[];
+};
 
 export type DroppedLoot = {
   lootId: string;
   position: Position;
   item: InventoryItem;
   despawnTime: number;
-} & { _dirty?: Set<keyof DroppedLoot> };
+};
 
 export type WorldObject = {
   objectId: string;
@@ -132,7 +132,7 @@ export type WorldObject = {
   isDestroyed: boolean;
   isInteractable: boolean;
   interactedBy?: string | undefined;
-} & { _dirty?: Set<keyof WorldObject> };
+};
 
 export type MatchStats = {
   totalKills: number;
@@ -141,14 +141,14 @@ export type MatchStats = {
   totalHealingDone: number;
   longestKillStreak: number;
   matchDuration: number;
-} & { _dirty?: Set<keyof MatchStats> };
+};
 
 export type TeamScore = {
   team: Team;
   score: number;
   kills: number;
   objectivesCaptured: number;
-} & { _dirty?: Set<keyof TeamScore> };
+};
 
 export type GameSettings = {
   maxPlayers: number;
@@ -157,7 +157,7 @@ export type GameSettings = {
   roundTimeLimit: number;
   startingGold: number;
   gravityMultiplier: number;
-} & { _dirty?: Set<keyof GameSettings> };
+};
 
 export type GameState = {
   gameId: string;
@@ -166,18 +166,18 @@ export type GameState = {
   round: number;
   phase: string;
   timeRemaining: number;
-  players: Map<string, Player> & { _dirty?: Set<string> };
-  enemies: Map<string, Enemy> & { _dirty?: Set<string> };
-  projectiles: Map<string, Projectile> & { _dirty?: Set<string> };
-  droppedLoot: Map<string, DroppedLoot> & { _dirty?: Set<string> };
-  worldObjects: Map<string, WorldObject> & { _dirty?: Set<string> };
-  teamScores: TeamScore[] & { _dirty?: Set<number> };
+  players: Map<string, Player>;
+  enemies: Map<string, Enemy>;
+  projectiles: Map<string, Projectile>;
+  droppedLoot: Map<string, DroppedLoot>;
+  worldObjects: Map<string, WorldObject>;
+  teamScores: TeamScore[];
   matchStats: MatchStats;
   settings: GameSettings;
   winningTeam?: Team | undefined;
   mapName: string;
   weatherIntensity: number;
-} & { _dirty?: Set<keyof GameState> };
+};
 
 
 const Team = {

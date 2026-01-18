@@ -6,25 +6,25 @@ export type InnerInner = {
   long: number;
   enum: Enum;
   sint32: number;
-} & { _dirty?: Set<keyof InnerInner> };
+};
 
 export type Outer = {
-  bool: boolean[] & { _dirty?: Set<number> };
+  bool: boolean[];
   double: number;
-} & { _dirty?: Set<keyof Outer> };
+};
 
 export type Inner = {
   int32: number;
   innerInner: InnerInner;
   outer: Outer;
-} & { _dirty?: Set<keyof Inner> };
+};
 
 export type Test = {
   string: string;
   uint32: number;
   inner: Inner;
   float: number;
-} & { _dirty?: Set<keyof Test> };
+};
 
 
 const Enum = {
