@@ -86,6 +86,9 @@ export class ClientInput {
 // Client -> Server messages
 export class JoinMessage {
   @StringType()
+  id: string = ""; // Client-generated player ID
+
+  @StringType()
   name: string = "";
 
   constructor(overrides: Partial<JoinMessage> = {}) {

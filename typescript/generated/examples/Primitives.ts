@@ -42,6 +42,11 @@ export const Primitives = {
     return result;
   },
   clone(obj: Primitives): Primitives {
+    const result = Primitives._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Primitives): Primitives {
     return {
       stringField: obj.stringField,
       signedIntField: obj.signedIntField,
@@ -105,11 +110,7 @@ export const Primitives = {
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
-    encoder.pushFieldDiffValue(
-      b,
-      "booleanField",
-      () => encoder.pushBooleanDiff(a["booleanField"], b["booleanField"]),
-    );
+    encoder.pushBooleanDiff(a["booleanField"], b["booleanField"]);
   },
   decode(input: Uint8Array): Primitives {
     return Primitives._decode(_.Decoder.create(input));

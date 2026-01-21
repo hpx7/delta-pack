@@ -1,5 +1,11 @@
 import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
-import { getDirty, getUnderlying } from "./tracking.js";
+import {
+  getUnderlying,
+  getFieldVersions,
+  getCreatedVersions,
+  getDeletedVersions,
+  getSnapshotVersion,
+} from "./tracking.js";
 
 export class Encoder {
   protected static _instance: Encoder | null = null;
@@ -212,36 +218,45 @@ export class DiffEncoder extends Encoder {
 
   // Object diff - handles dirty tracking and change bit
   pushObjectDiff<T>(a: T, b: T, equals: (a: T, b: T) => boolean, encodeDiff: () => void) {
-    const dirty = getDirty(b);
-    // If dirty tracking present with entries: definitely changed
-    // If dirty tracking present but empty: nothing changed (parent propagation ensures nested changes bubble up)
-    // If no dirty tracking: use equals check
-    const changed = dirty != null && dirty.size > 0 ? true : !equals(a, b);
+    const versions = getFieldVersions(b);
+    const snapshotVersion = getSnapshotVersion(a);
+
+    let changed = false;
+    if (versions != null) {
+      // Version-based: check if any field changed since snapshot (or all if no snapshot)
+      const minVersion = snapshotVersion ?? -1;
+      for (const [, ver] of versions) {
+        if (ver > minVersion) {
+          changed = true;
+          break;
+        }
+      }
+    } else {
+      // No tracking: use equals check
+      changed = !equals(a, b);
+    }
+
     this.pushBoolean(changed);
     if (changed) encodeDiff();
   }
 
-  // Generic field diff - handles change bit for object fields
-  pushFieldDiff<O extends object, K extends string & keyof O>(
+  // Diff a primitive field: check tracking, compare values, encode if changed
+  pushFieldDiff<O, K extends string & keyof O>(
     a: O,
     b: O,
     key: K,
     equals: (a: O[K], b: O[K]) => boolean,
     encodeDiff: (a: O[K], b: O[K]) => void
   ) {
-    const result = this.checkFieldDiff(b, key);
-    if (!result) return;
+    if (this.isFieldUnchanged(a, b, key)) {
+      this.pushBoolean(false);
+      return;
+    }
     const aVal = a[key];
-    const bValRaw = result.bValRaw as O[K];
-    const changed = !equals(aVal, bValRaw);
+    const bVal = this.unwrap(b[key]) as O[K];
+    const changed = !equals(aVal, bVal);
     this.pushBoolean(changed);
-    if (changed) encodeDiff(aVal, bValRaw);
-  }
-
-  // Field diff for types that include their own change bit (boolean, object)
-  pushFieldDiffValue<O extends object, K extends string & keyof O>(b: O, key: K, encodeDiff: () => void) {
-    if (!this.checkFieldDiff(b, key)) return;
-    encodeDiff();
+    if (changed) encodeDiff(aVal, bVal);
   }
 
   pushOptionalDiff<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void, encodeDiff: (a: T, b: T) => void) {
@@ -264,17 +279,23 @@ export class DiffEncoder extends Encoder {
     encode: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const dirty = getDirty(b);
+    const versions = getFieldVersions(b);
+    const snapshotVersion = getSnapshotVersion(a);
     this.writeUVarint(b.length);
 
     // Collect changed indices (sparse encoding)
     const updates: number[] = [];
     const minLen = Math.min(a.length, b.length);
-    if (dirty != null) {
-      dirty.forEach((i) => {
-        if (i < minLen) updates.push(i);
+    if (versions != null) {
+      // Version-based: only include indices changed since snapshot (or all if no snapshot)
+      const minVersion = snapshotVersion ?? -1;
+      versions.forEach((ver, i) => {
+        if (typeof i === "number" && i < minLen && ver > minVersion) {
+          updates.push(i);
+        }
       });
     } else {
+      // No tracking: compare values
       for (let i = 0; i < minLen; i++) {
         if (!equals(a[i]!, b[i]!)) updates.push(i);
       }
@@ -301,26 +322,35 @@ export class DiffEncoder extends Encoder {
     encodeVal: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const dirty = getDirty(b);
+    const snapshotVersion = getSnapshotVersion(a);
+    const versions = getFieldVersions(b) as Map<K, number> | undefined;
+    const createdVersions = getCreatedVersions(b);
+    const deletedVersions = getDeletedVersions(b);
+
     const updates: K[] = [];
     const deletions: K[] = [];
     const additions: [K, T][] = [];
-    if (dirty != null) {
-      // With dirty tracking: only process dirty keys
-      dirty.forEach((dirtyKey) => {
-        if (a.has(dirtyKey) && b.has(dirtyKey)) {
-          // Key exists in both - it's an update
-          updates.push(dirtyKey);
-        } else if (!a.has(dirtyKey) && b.has(dirtyKey)) {
-          // Key not in a - it's an addition
-          additions.push([dirtyKey, b.get(dirtyKey)!]);
-        } else if (a.has(dirtyKey) && !b.has(dirtyKey)) {
-          // Key in a but not in b - it's a deletion
-          deletions.push(dirtyKey);
+
+    if (versions && createdVersions && deletedVersions) {
+      // Version-based: only include changes since snapshot (or all if no snapshot)
+      const minVersion = snapshotVersion ?? -1;
+      for (const [key, ver] of deletedVersions) {
+        if (ver > minVersion && a.has(key)) {
+          deletions.push(key);
         }
-      });
+      }
+      for (const [key, ver] of createdVersions) {
+        if (ver > minVersion && b.has(key)) {
+          additions.push([key, b.get(key)!]);
+        }
+      }
+      for (const [key, ver] of versions) {
+        if (ver > minVersion && b.has(key) && a.has(key)) {
+          updates.push(key);
+        }
+      }
     } else {
-      // Without dirty tracking: check all keys
+      // Without tracking: check all keys
       a.forEach((aVal, aKey) => {
         if (b.has(aKey)) {
           if (!equals(aVal, b.get(aKey)!)) {
@@ -336,6 +366,7 @@ export class DiffEncoder extends Encoder {
         }
       });
     }
+
     if (a.size > 0) {
       this.writeUVarint(deletions.length);
       deletions.forEach((key) => {
@@ -354,16 +385,18 @@ export class DiffEncoder extends Encoder {
     });
   }
 
-  // Check if field can be skipped via dirty tracking. Returns unwrapped value, or null if skipped.
-  // Skips only if dirty tracking is active with entries and key is not dirty.
-  private checkFieldDiff(b: object, key: string): { bValRaw: unknown } | null {
-    const dirty = getDirty(b);
-    const bVal = (b as Record<string, unknown>)[key];
-    const bValRaw = bVal != null && typeof bVal === "object" ? getUnderlying(bVal as object) : bVal;
-    if (dirty != null && dirty.size > 0 && !dirty.has(key)) {
-      this.pushBoolean(false);
-      return null;
-    }
-    return { bValRaw };
+  // Check if field is unchanged via version tracking (pure, no side effects)
+  private isFieldUnchanged<T>(a: T, b: T, key: string & keyof T): boolean {
+    const versions = getFieldVersions(b);
+    if (versions == null) return false; // No tracking, must compare values
+
+    const minVersion = getSnapshotVersion(a) ?? -1;
+    const fieldVersion = versions.get(key as string);
+    return fieldVersion == null || fieldVersion <= minVersion;
+  }
+
+  // Unwrap a potentially tracked value to get the underlying object
+  private unwrap<T>(val: T): T {
+    return val != null && typeof val === "object" ? (getUnderlying(val as object) as T) : val;
   }
 }

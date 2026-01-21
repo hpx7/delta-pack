@@ -1,14 +1,6 @@
 import WebSocket from "ws";
 import * as readline from "readline";
-import {
-  GameState,
-  ClientInput,
-  JoinMessage,
-  InputMessage,
-  StateMessage,
-  ClientMessageApi,
-  ServerMessageApi,
-} from "./schema.js";
+import { GameState, ClientInput, JoinMessage, InputMessage, ClientMessageApi, GameStateApi } from "./schema.js";
 
 // Client configuration
 const SERVER_URL = "ws://localhost:3000";
@@ -16,11 +8,10 @@ const INPUT_RATE = 50; // Send input updates every 50ms (20Hz)
 
 class GameClient {
   private ws: WebSocket | null = null;
-  private playerId: string | null = null;
+  private playerId: string; // Client-generated ID
   private playerName: string;
-  private gameState: GameState | null = null;
+  private gameState: GameState | null = null; // Also used as baseline for diff decoding
   private connected = false;
-  private lastMessage: StateMessage | null = null; // Last StateMessage received
 
   // Input state
   private input: ClientInput = new ClientInput();
@@ -30,6 +21,7 @@ class GameClient {
   private frameCount = 0;
 
   constructor(playerName: string) {
+    this.playerId = `player-${Math.random().toString(36).slice(2, 10)}`;
     this.playerName = playerName;
   }
 
@@ -48,16 +40,16 @@ class GameClient {
       try {
         const bytes = new Uint8Array(data);
 
-        let message: StateMessage;
-        if (this.lastMessage instanceof StateMessage) {
-          // Decode as diff from last update message
-          message = ServerMessageApi.decodeDiff(this.lastMessage, bytes) as StateMessage;
+        if (this.gameState != null) {
+          // Decode as diff from current state (which serves as baseline)
+          this.gameState = GameStateApi.decodeDiff(this.gameState, bytes);
         } else {
-          // First message, decode as full message
-          message = ServerMessageApi.decode(bytes) as StateMessage;
+          // First message, decode as full state
+          this.gameState = GameStateApi.decode(bytes);
+          console.log(`\n🎮 Joined game! Player ID: ${this.playerId}`);
         }
 
-        this.handleMessage(message);
+        this.onStateUpdate();
       } catch (err) {
         console.error("Failed to decode message:", err);
       }
@@ -78,33 +70,21 @@ class GameClient {
   private sendJoinMessage() {
     if (!this.ws || !this.connected) return;
 
-    const joinMsg = new JoinMessage({ name: this.playerName });
+    const joinMsg = new JoinMessage({ id: this.playerId, name: this.playerName });
     const encoded = ClientMessageApi.encode(joinMsg);
     this.ws.send(encoded);
-    console.log(`👤 Joining as "${this.playerName}"...`);
+    console.log(`👤 Joining as "${this.playerName}" (${this.playerId})...`);
   }
 
-  private handleMessage(message: StateMessage) {
-    if (this.lastMessage == null) {
-      // Initial full state
-      this.playerId = message.playerId;
-      this.gameState = message.state;
-      console.log(`\n🎮 Joined game! Player ID: ${this.playerId}`);
+  private onStateUpdate() {
+    this.frameCount++;
+    const now = Date.now();
+    if (now - this.lastUpdateTime > 1000) {
+      console.log(`\n📊 Update rate: ${this.frameCount} FPS`);
       this.printGameState();
-    } else {
-      // Update game state
-      this.gameState = message.state;
-
-      this.frameCount++;
-      const now = Date.now();
-      if (now - this.lastUpdateTime > 1000) {
-        console.log(`\n📊 Update rate: ${this.frameCount} FPS`);
-        this.printGameState();
-        this.frameCount = 0;
-        this.lastUpdateTime = now;
-      }
+      this.frameCount = 0;
+      this.lastUpdateTime = now;
     }
-    this.lastMessage = message;
   }
 
   private printGameState() {

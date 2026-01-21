@@ -1,13 +1,5 @@
 import { WebSocketServer, WebSocket } from "ws";
-import {
-  StateMessage,
-  JoinMessage,
-  InputMessage,
-  ClientMessageApi,
-  ServerMessageApi,
-  ClientMessage,
-  ServerMessage,
-} from "./schema.js";
+import { GameState, JoinMessage, InputMessage, ClientMessageApi, GameStateApi, ClientMessage } from "./schema.js";
 import { Game } from "./game.js";
 
 // Server configuration
@@ -19,7 +11,7 @@ interface Client {
   id: string;
   ws: WebSocket;
   name: string;
-  lastMessage: ServerMessage | null; // Last ServerMessage sent to this client
+  inSync: boolean; // Whether client is in sync with shared snapshot
 }
 
 class GameServer {
@@ -29,6 +21,7 @@ class GameServer {
   private broadcastInterval: NodeJS.Timeout | null = null;
   private statsInterval: NodeJS.Timeout | null = null;
   private clientIdCounter = 0;
+  private sharedSnapshot: GameState | null = null; // Shared baseline for all in-sync clients
 
   // Performance tracking
   private stats = {
@@ -67,7 +60,7 @@ class GameServer {
       id: clientId,
       ws,
       name: `Player${this.clientIdCounter}`,
-      lastMessage: null,
+      inSync: false,
     };
 
     console.log(`🔌 Client connected: ${clientId}`);
@@ -86,9 +79,9 @@ class GameServer {
     });
 
     ws.on("close", () => {
-      console.log(`🔌 Client disconnected: ${clientId}`);
-      this.game.removePlayer(clientId);
-      this.clients.delete(clientId);
+      console.log(`🔌 Client disconnected: ${client.id}`);
+      this.game.removePlayer(client.id);
+      this.clients.delete(client.id);
     });
 
     ws.on("error", (err) => {
@@ -98,18 +91,12 @@ class GameServer {
 
   private handleMessage(client: Client, message: ClientMessage) {
     if (message instanceof JoinMessage) {
-      // Add player to game
+      // Use client-provided ID
+      client.id = message.id;
       const playerName = message.name || client.name;
       this.game.addPlayer(client.id, playerName);
       this.clients.set(client.id, client);
-
-      // Send initial full state
-      const fullState = this.game.getStateForPlayer(client.id);
-      const stateMsg = new StateMessage({ playerId: client.id, state: fullState });
-
-      client.lastMessage = stateMsg;
-      const encoded = ServerMessageApi.encode(stateMsg);
-      client.ws.send(encoded);
+      // Client will receive full state on next broadcast (inSync starts false)
 
       console.log(`👤 ${playerName} joined the game`);
     } else if (message instanceof InputMessage) {
@@ -122,35 +109,37 @@ class GameServer {
     if (this.clients.size === 0) return;
 
     let totalBytes = 0;
+    let clientsSent = 0;
+    const currentState = this.game.getState();
 
-    // Send diff to each client based on their last message
+    // Send diff or full state to each client
     for (const client of this.clients.values()) {
-      if (client.ws.readyState === WebSocket.OPEN) {
-        if (client.lastMessage != null) {
-          // Create update message with current snapshot
-          const currentState = this.game.getStateForPlayer(client.id);
-          const updateMessage = new StateMessage({ playerId: client.id, state: currentState });
+      if (client.ws.readyState !== WebSocket.OPEN) continue;
 
-          // Send diff from last update message
-          const encoded = ServerMessageApi.encodeDiff(client.lastMessage, updateMessage);
-          client.ws.send(encoded);
-          totalBytes += encoded.length;
-
-          // Clone and update client's last message
-          client.lastMessage = ServerMessageApi.clone(updateMessage);
-        }
+      let encoded: Uint8Array;
+      if (client.inSync && this.sharedSnapshot) {
+        // In sync: send diff from shared snapshot
+        encoded = GameStateApi.encodeDiff(this.sharedSnapshot, currentState);
+      } else {
+        // New client: send full state, mark as in sync
+        encoded = GameStateApi.encode(currentState);
+        client.inSync = true;
       }
+
+      client.ws.send(encoded);
+      totalBytes += encoded.length;
+      clientsSent++;
     }
 
-    // Clear changes after broadcasting
-    this.game.resetChanges();
+    // Update shared snapshot once (not per client)
+    this.sharedSnapshot = GameStateApi.clone(currentState);
 
     // Track stats
     this.stats.totalBytesSent += totalBytes;
     this.stats.totalUpdates++;
     this.stats.lastSecondBytes += totalBytes;
     this.stats.lastSecondUpdates++;
-    const avgSize = this.clients.size > 0 ? totalBytes / this.clients.size : 0;
+    const avgSize = clientsSent > 0 ? totalBytes / clientsSent : 0;
     this.stats.avgDiffSize =
       (this.stats.avgDiffSize * (this.stats.totalUpdates - 1) + avgSize) / this.stats.totalUpdates;
   }

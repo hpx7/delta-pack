@@ -11,6 +11,7 @@ import {
   OptionalType,
   EnumType,
   ReferenceType,
+  SelfReferenceType,
   UnionType,
   Infer,
 } from "@hpx7/delta-pack";
@@ -1290,5 +1291,62 @@ describe("Edge Cases - Nested Containers", () => {
       const decoded = api.decodeDiff(state1, diff);
       expect(api.equals(decoded, state2)).toBe(true);
     });
+  });
+});
+
+describe("Interpreter Coverage - Edge Cases", () => {
+  it("toJson should omit undefined optional fields", () => {
+    const WithOptional = ObjectType("WithOptional", {
+      name: StringType(),
+      value: OptionalType(IntType()),
+    });
+    const api = load(WithOptional);
+
+    const obj: { name: string; value?: number } = { name: "test" };
+    const json = api.toJson(obj);
+    expect(json["name"]).toBe("test");
+    expect("value" in json).toBe(false); // Optional fields are omitted, not null
+  });
+
+  it("equals should return false for arrays with different elements", () => {
+    const api = load(ArrayHolder);
+
+    const a = { items: [1, 2, 3] };
+    const b = { items: [1, 2, 4] }; // Different third element
+
+    expect(api.equals(a, b)).toBe(false);
+  });
+
+  it("equals should return false for records with different values", () => {
+    const api = load(RecordHolder);
+
+    const a = { data: new Map([["key", 1]]) };
+    const b = { data: new Map([["key", 2]]) }; // Different value
+
+    expect(api.equals(a, b)).toBe(false);
+  });
+
+  it("clone should handle self-referencing types", () => {
+    const Node = ObjectType("Node", {
+      value: IntType(),
+      child: OptionalType(SelfReferenceType()),
+    });
+    type Node = { value: number; child?: Node };
+    const api = load(Node);
+
+    const original: Node = {
+      value: 1,
+      child: {
+        value: 2,
+      },
+    };
+
+    const cloned = api.clone(original);
+    expect(cloned.value).toBe(1);
+    expect(cloned.child?.value).toBe(2);
+    expect(cloned.child?.child).toBeUndefined();
+    // Verify it's a deep clone
+    expect(cloned).not.toBe(original);
+    expect(cloned.child).not.toBe(original.child);
   });
 });

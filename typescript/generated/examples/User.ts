@@ -75,6 +75,11 @@ export const Address = {
     return result;
   },
   clone(obj: Address): Address {
+    const result = Address._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Address): Address {
     return {
       street: obj.street,
       zip: obj.zip,
@@ -179,6 +184,11 @@ export const EmailContact = {
     return result;
   },
   clone(obj: EmailContact): EmailContact {
+    const result = EmailContact._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: EmailContact): EmailContact {
     return {
       email: obj.email,
     };
@@ -258,6 +268,11 @@ export const PhoneContact = {
     return result;
   },
   clone(obj: PhoneContact): PhoneContact {
+    const result = PhoneContact._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: PhoneContact): PhoneContact {
     return {
       phone: obj.phone,
       extension: obj.extension != null ? obj.extension : undefined,
@@ -351,10 +366,14 @@ export const Contact = {
   },
   clone(obj: Contact): Contact {
     if (obj._type === "EmailContact") {
-      return { _type: "EmailContact", ...EmailContact.clone(obj) };
+      const result = { _type: "EmailContact" as const, ...EmailContact._clone(obj) };
+      _.registerSnapshot(result, obj);
+      return result;
     }
     else if (obj._type === "PhoneContact") {
-      return { _type: "PhoneContact", ...PhoneContact.clone(obj) };
+      const result = { _type: "PhoneContact" as const, ...PhoneContact._clone(obj) };
+      _.registerSnapshot(result, obj);
+      return result;
     }
     throw new Error(`Invalid Contact: ${obj}`);
   },
@@ -497,6 +516,11 @@ export const User = {
     return result;
   },
   clone(obj: User): User {
+    const result = User._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: User): User {
     return {
       id: obj.id,
       name: obj.name,
@@ -504,8 +528,8 @@ export const User = {
       weight: obj.weight,
       married: obj.married,
       hairColor: obj.hairColor,
-      address: obj.address != null ? Address.clone(obj.address) : undefined,
-      children: obj.children.map((x) => User.clone(x)),
+      address: obj.address != null ? Address._clone(obj.address) : undefined,
+      children: obj.children.map((x) => User._clone(x)),
       metadata: new Map([...obj.metadata].map(([k, v]) => [k, v])),
       preferredContact: obj.preferredContact != null ? Contact.clone(obj.preferredContact) : undefined,
     };
@@ -575,11 +599,7 @@ export const User = {
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
-    encoder.pushFieldDiffValue(
-      b,
-      "married",
-      () => encoder.pushBooleanDiff(a["married"], b["married"]),
-    );
+    encoder.pushBooleanDiff(a["married"], b["married"]);
     encoder.pushFieldDiff(
       a,
       b,

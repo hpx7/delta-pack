@@ -282,6 +282,11 @@ export const Position = {
     return result;
   },
   clone(obj: Position): Position {
+    const result = Position._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Position): Position {
     return {
       x: obj.x,
       y: obj.y,
@@ -374,6 +379,11 @@ export const Velocity = {
     return result;
   },
   clone(obj: Velocity): Velocity {
+    const result = Velocity._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Velocity): Velocity {
     return {
       vx: obj.vx,
       vy: obj.vy,
@@ -482,6 +492,11 @@ export const InventoryItem = {
     return result;
   },
   clone(obj: InventoryItem): InventoryItem {
+    const result = InventoryItem._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: InventoryItem): InventoryItem {
     return {
       itemId: obj.itemId,
       name: obj.name,
@@ -648,6 +663,11 @@ export const Equipment = {
     return result;
   },
   clone(obj: Equipment): Equipment {
+    const result = Equipment._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Equipment): Equipment {
     return {
       weapon: obj.weapon != null ? obj.weapon : undefined,
       armor: obj.armor != null ? obj.armor : undefined,
@@ -800,6 +820,11 @@ export const PlayerStats = {
     return result;
   },
   clone(obj: PlayerStats): PlayerStats {
+    const result = PlayerStats._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: PlayerStats): PlayerStats {
     return {
       health: obj.health,
       maxHealth: obj.maxHealth,
@@ -1048,6 +1073,11 @@ export const ActiveEffect = {
     return result;
   },
   clone(obj: ActiveEffect): ActiveEffect {
+    const result = ActiveEffect._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: ActiveEffect): ActiveEffect {
     return {
       effectType: obj.effectType,
       duration: obj.duration,
@@ -1173,6 +1203,11 @@ export const AbilityCooldown = {
     return result;
   },
   clone(obj: AbilityCooldown): AbilityCooldown {
+    const result = AbilityCooldown._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: AbilityCooldown): AbilityCooldown {
     return {
       abilityId: obj.abilityId,
       abilityType: obj.abilityType,
@@ -1349,19 +1384,24 @@ export const Player = {
     return result;
   },
   clone(obj: Player): Player {
+    const result = Player._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Player): Player {
     return {
       playerId: obj.playerId,
       username: obj.username,
       team: obj.team != null ? obj.team : undefined,
       status: obj.status,
-      position: Position.clone(obj.position),
-      velocity: Velocity.clone(obj.velocity),
+      position: Position._clone(obj.position),
+      velocity: Velocity._clone(obj.velocity),
       rotation: obj.rotation,
-      stats: PlayerStats.clone(obj.stats),
-      inventory: obj.inventory.map((x) => InventoryItem.clone(x)),
-      equipment: Equipment.clone(obj.equipment),
-      activeEffects: obj.activeEffects.map((x) => ActiveEffect.clone(x)),
-      abilityCooldowns: obj.abilityCooldowns.map((x) => AbilityCooldown.clone(x)),
+      stats: PlayerStats._clone(obj.stats),
+      inventory: obj.inventory.map((x) => InventoryItem._clone(x)),
+      equipment: Equipment._clone(obj.equipment),
+      activeEffects: obj.activeEffects.map((x) => ActiveEffect._clone(x)),
+      abilityCooldowns: obj.abilityCooldowns.map((x) => AbilityCooldown._clone(x)),
       kills: obj.kills,
       deaths: obj.deaths,
       assists: obj.assists,
@@ -1564,21 +1604,9 @@ export const Player = {
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
-    encoder.pushFieldDiffValue(
-      b,
-      "isJumping",
-      () => encoder.pushBooleanDiff(a["isJumping"], b["isJumping"]),
-    );
-    encoder.pushFieldDiffValue(
-      b,
-      "isCrouching",
-      () => encoder.pushBooleanDiff(a["isCrouching"], b["isCrouching"]),
-    );
-    encoder.pushFieldDiffValue(
-      b,
-      "isAiming",
-      () => encoder.pushBooleanDiff(a["isAiming"], b["isAiming"]),
-    );
+    encoder.pushBooleanDiff(a["isJumping"], b["isJumping"]);
+    encoder.pushBooleanDiff(a["isCrouching"], b["isCrouching"]);
+    encoder.pushBooleanDiff(a["isAiming"], b["isAiming"]);
     encoder.pushFieldDiff(
       a,
       b,
@@ -1772,11 +1800,16 @@ export const Enemy = {
     return result;
   },
   clone(obj: Enemy): Enemy {
+    const result = Enemy._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Enemy): Enemy {
     return {
       enemyId: obj.enemyId,
       name: obj.name,
-      position: Position.clone(obj.position),
-      velocity: Velocity.clone(obj.velocity),
+      position: Position._clone(obj.position),
+      velocity: Velocity._clone(obj.velocity),
       health: obj.health,
       maxHealth: obj.maxHealth,
       level: obj.level,
@@ -1874,11 +1907,7 @@ export const Enemy = {
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
-    encoder.pushFieldDiffValue(
-      b,
-      "isAggro",
-      () => encoder.pushBooleanDiff(a["isAggro"], b["isAggro"]),
-    );
+    encoder.pushBooleanDiff(a["isAggro"], b["isAggro"]);
     encoder.pushFieldDiff(
       a,
       b,
@@ -2012,11 +2041,16 @@ export const Projectile = {
     return result;
   },
   clone(obj: Projectile): Projectile {
+    const result = Projectile._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Projectile): Projectile {
     return {
       projectileId: obj.projectileId,
       ownerId: obj.ownerId,
-      position: Position.clone(obj.position),
-      velocity: Velocity.clone(obj.velocity),
+      position: Position._clone(obj.position),
+      velocity: Velocity._clone(obj.velocity),
       damage: obj.damage,
       penetration: obj.penetration,
       timeToLive: obj.timeToLive,
@@ -2200,10 +2234,15 @@ export const DroppedLoot = {
     return result;
   },
   clone(obj: DroppedLoot): DroppedLoot {
+    const result = DroppedLoot._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: DroppedLoot): DroppedLoot {
     return {
       lootId: obj.lootId,
-      position: Position.clone(obj.position),
-      item: InventoryItem.clone(obj.item),
+      position: Position._clone(obj.position),
+      item: InventoryItem._clone(obj.item),
       despawnTime: obj.despawnTime,
     };
   },
@@ -2341,10 +2380,15 @@ export const WorldObject = {
     return result;
   },
   clone(obj: WorldObject): WorldObject {
+    const result = WorldObject._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: WorldObject): WorldObject {
     return {
       objectId: obj.objectId,
       objectType: obj.objectType,
-      position: Position.clone(obj.position),
+      position: Position._clone(obj.position),
       health: obj.health != null ? obj.health : undefined,
       isDestroyed: obj.isDestroyed,
       isInteractable: obj.isInteractable,
@@ -2410,16 +2454,8 @@ export const WorldObject = {
       (x, y) => _.equalsOptional(x, y, (x, y) => x === y),
       (x, y) => encoder.pushOptionalDiff<number>(x, y, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0)),
     );
-    encoder.pushFieldDiffValue(
-      b,
-      "isDestroyed",
-      () => encoder.pushBooleanDiff(a["isDestroyed"], b["isDestroyed"]),
-    );
-    encoder.pushFieldDiffValue(
-      b,
-      "isInteractable",
-      () => encoder.pushBooleanDiff(a["isInteractable"], b["isInteractable"]),
-    );
+    encoder.pushBooleanDiff(a["isDestroyed"], b["isDestroyed"]);
+    encoder.pushBooleanDiff(a["isInteractable"], b["isInteractable"]);
     encoder.pushFieldDiff(
       a,
       b,
@@ -2510,6 +2546,11 @@ export const MatchStats = {
     return result;
   },
   clone(obj: MatchStats): MatchStats {
+    const result = MatchStats._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: MatchStats): MatchStats {
     return {
       totalKills: obj.totalKills,
       totalDeaths: obj.totalDeaths,
@@ -2668,6 +2709,11 @@ export const TeamScore = {
     return result;
   },
   clone(obj: TeamScore): TeamScore {
+    const result = TeamScore._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: TeamScore): TeamScore {
     return {
       team: obj.team,
       score: obj.score,
@@ -2802,6 +2848,11 @@ export const GameSettings = {
     return result;
   },
   clone(obj: GameSettings): GameSettings {
+    const result = GameSettings._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: GameSettings): GameSettings {
     return {
       maxPlayers: obj.maxPlayers,
       friendlyFire: obj.friendlyFire,
@@ -2847,11 +2898,7 @@ export const GameSettings = {
       (x, y) => x === y,
       (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
     );
-    encoder.pushFieldDiffValue(
-      b,
-      "friendlyFire",
-      () => encoder.pushBooleanDiff(a["friendlyFire"], b["friendlyFire"]),
-    );
+    encoder.pushBooleanDiff(a["friendlyFire"], b["friendlyFire"]);
     encoder.pushFieldDiff(
       a,
       b,
@@ -2996,6 +3043,11 @@ export const GameState = {
     return result;
   },
   clone(obj: GameState): GameState {
+    const result = GameState._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: GameState): GameState {
     return {
       gameId: obj.gameId,
       serverTime: obj.serverTime,
@@ -3003,14 +3055,14 @@ export const GameState = {
       round: obj.round,
       phase: obj.phase,
       timeRemaining: obj.timeRemaining,
-      players: new Map([...obj.players].map(([k, v]) => [k, Player.clone(v)])),
-      enemies: new Map([...obj.enemies].map(([k, v]) => [k, Enemy.clone(v)])),
-      projectiles: new Map([...obj.projectiles].map(([k, v]) => [k, Projectile.clone(v)])),
-      droppedLoot: new Map([...obj.droppedLoot].map(([k, v]) => [k, DroppedLoot.clone(v)])),
-      worldObjects: new Map([...obj.worldObjects].map(([k, v]) => [k, WorldObject.clone(v)])),
-      teamScores: obj.teamScores.map((x) => TeamScore.clone(x)),
-      matchStats: MatchStats.clone(obj.matchStats),
-      settings: GameSettings.clone(obj.settings),
+      players: new Map([...obj.players].map(([k, v]) => [k, Player._clone(v)])),
+      enemies: new Map([...obj.enemies].map(([k, v]) => [k, Enemy._clone(v)])),
+      projectiles: new Map([...obj.projectiles].map(([k, v]) => [k, Projectile._clone(v)])),
+      droppedLoot: new Map([...obj.droppedLoot].map(([k, v]) => [k, DroppedLoot._clone(v)])),
+      worldObjects: new Map([...obj.worldObjects].map(([k, v]) => [k, WorldObject._clone(v)])),
+      teamScores: obj.teamScores.map((x) => TeamScore._clone(x)),
+      matchStats: MatchStats._clone(obj.matchStats),
+      settings: GameSettings._clone(obj.settings),
       winningTeam: obj.winningTeam != null ? obj.winningTeam : undefined,
       mapName: obj.mapName,
       weatherIntensity: obj.weatherIntensity,

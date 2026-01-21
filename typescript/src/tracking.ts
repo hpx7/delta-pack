@@ -3,7 +3,7 @@
 /** Symbol for fast access to underlying object/array (bypasses proxy for encoding) */
 const UNDERLYING = Symbol.for("delta-pack:underlying");
 
-/** Symbol for fast access to dirty set */
+/** Symbol for fast access to dirty version map (Map<key, version>) */
 const DIRTY = Symbol.for("delta-pack:dirty");
 
 /** Symbol for parent reference (for dirty propagation) */
@@ -11,6 +11,125 @@ const PARENT = Symbol.for("delta-pack:parent");
 
 /** Symbol for key in parent (for dirty propagation) */
 const PARENT_KEY = Symbol.for("delta-pack:parentKey");
+
+/** Symbol for snapshot version (set on cloned objects) */
+const SNAPSHOT_VERSION = Symbol.for("delta-pack:snapshotVersion");
+
+/** Symbol for created version map (Map<K, version> for maps - tracks new keys) */
+const CREATED = Symbol.for("delta-pack:created");
+
+/** Symbol for deleted version map (Map<K, version> for maps - tracks deleted keys) */
+const DELETED = Symbol.for("delta-pack:deleted");
+
+// ============ Version Management ============
+
+/** Global monotonic version counter */
+let globalVersion = 0;
+
+/** Get the next version number (monotonically increasing) */
+function nextVersion(): number {
+  return ++globalVersion;
+}
+
+/** Get the current version number */
+export function currentVersion(): number {
+  return globalVersion;
+}
+
+// ============ Snapshot Registry ============
+
+/** WeakRef registry for snapshot auto-pruning */
+const snapshotRefs = new Set<WeakRef<object>>();
+
+/**
+ * Register a snapshot for version tracking and auto-pruning.
+ * Called by clone() to capture the current version.
+ * @internal
+ */
+export function registerSnapshot(snapshot: object, source: object): void {
+  if (!isTracked(source)) return;
+
+  const version = currentVersion();
+  // Recursively set SNAPSHOT_VERSION on snapshot and all nested containers
+  setSnapshotVersionRecursive(snapshot, version);
+  snapshotRefs.add(new WeakRef(snapshot));
+
+  // Prune deleted entries on each clone
+  pruneDeletedEntries(source);
+}
+
+/** Recursively set SNAPSHOT_VERSION on an object and all its nested containers */
+function setSnapshotVersionRecursive(obj: unknown, version: number): void {
+  if (obj == null || typeof obj !== "object") return;
+  Object.defineProperty(obj, SNAPSHOT_VERSION, { value: version });
+
+  if (obj instanceof Map) {
+    for (const value of obj.values()) {
+      setSnapshotVersionRecursive(value, version);
+    }
+  } else if (Array.isArray(obj)) {
+    for (const item of obj) {
+      setSnapshotVersionRecursive(item, version);
+    }
+  } else {
+    for (const value of Object.values(obj)) {
+      setSnapshotVersionRecursive(value, version);
+    }
+  }
+}
+
+/**
+ * Get the snapshot version of an object (if it was created via clone from a tracked source).
+ * @internal
+ */
+export function getSnapshotVersion(obj: unknown): number | undefined {
+  if (obj == null || typeof obj !== "object") return undefined;
+  return (obj as any)[SNAPSHOT_VERSION];
+}
+
+/** Check if an object is tracked (has dirty version map) */
+function isTracked(obj: object): boolean {
+  return (obj as any)[DIRTY] != null;
+}
+
+/** Prune deleted map entries that are older than the oldest surviving snapshot */
+function pruneDeletedEntries(obj: object): void {
+  // Find oldest surviving snapshot version
+  let oldestVersion = Infinity;
+  for (const ref of snapshotRefs) {
+    const snap = ref.deref();
+    if (snap == null) {
+      snapshotRefs.delete(ref);
+    } else {
+      const v = getSnapshotVersion(snap);
+      if (v != null) oldestVersion = Math.min(oldestVersion, v);
+    }
+  }
+
+  // Recursively prune DELETED entries older than oldestVersion
+  // When oldestVersion is Infinity (no snapshots), all entries are pruned
+  pruneRecursive(obj, oldestVersion);
+}
+
+function pruneRecursive(obj: unknown, minVersion: number): void {
+  if (obj == null || typeof obj !== "object") return;
+
+  if (obj instanceof Map) {
+    const deleted = (obj as any)[DELETED] as Map<unknown, number> | undefined;
+    if (deleted) {
+      for (const [key, version] of deleted) {
+        if (version < minVersion) deleted.delete(key);
+      }
+    }
+    for (const value of obj.values()) pruneRecursive(value, minVersion);
+  } else if (Array.isArray(obj)) {
+    for (const item of obj) pruneRecursive(item, minVersion);
+  } else {
+    for (const value of Object.values(obj)) pruneRecursive(value, minVersion);
+  }
+}
+
+// ============ Internal Accessors for Encoder ============
 
 /**
  * Get the underlying object/array for a tracked proxy.
@@ -22,34 +141,28 @@ export function getUnderlying<T extends object>(obj: T): T {
 }
 
 /**
- * Get the dirty set for a tracked object.
- * @internal Used by encoder for optimization - not part of public API
+ * Get the dirty version map for a tracked object (Map<key, version>).
+ * @internal Used by encoder for optimization
  */
-export function getDirty(obj: unknown[]): Set<number> | undefined;
-export function getDirty<K>(obj: Map<K, unknown>): Set<K> | undefined;
-export function getDirty(obj: object): Set<string> | undefined;
-export function getDirty(obj: unknown): Set<string | number> | undefined;
-export function getDirty(obj: unknown): Set<string | number> | undefined {
+export function getFieldVersions(obj: unknown): Map<string | number, number> | undefined {
   if (obj == null || typeof obj !== "object") return undefined;
   return (obj as any)[DIRTY];
 }
 
 /**
- * Mark a key as dirty on an object for manual dirty tracking without proxies.
- * Uses a Symbol property for fast getDirty() access.
- * Propagates dirty marking up to parent containers if the object is tracked.
+ * Get the created version map for a tracked map (Map<K, version>).
+ * @internal Used by encoder for optimization
  */
-export function markDirty(obj: unknown[], key: number): void;
-export function markDirty<K>(obj: Map<K, unknown>, key: K): void;
-export function markDirty(obj: object, key: string): void;
-export function markDirty(obj: object, key: unknown): void {
-  let dirty = (obj as any)[DIRTY] as Set<string | number> | undefined;
-  if (!dirty) {
-    dirty = new Set();
-    (obj as any)[DIRTY] = dirty;
-  }
-  dirty.add(key as string | number);
-  propagateToParent(obj);
+export function getCreatedVersions<K>(obj: Map<K, unknown>): Map<K, number> | undefined {
+  return (obj as any)?.[CREATED];
+}
+
+/**
+ * Get the deleted version map for a tracked map (Map<K, version>).
+ * @internal Used by encoder for optimization
+ */
+export function getDeletedVersions<K>(obj: Map<K, unknown>): Map<K, number> | undefined {
+  return (obj as any)?.[DELETED];
 }
 
 // ============ Type Definitions ============
@@ -74,8 +187,8 @@ export type Tracked<T> =
 
 /**
  * Wraps an object with deep tracking. Property changes are automatically
- * tracked at each level, with changes propagating up to parent containers.
- * The encoder checks dirty sets at each level during diff encoding.
+ * tracked at each level with version numbers, enabling efficient diffs
+ * from arbitrary baseline snapshots.
  *
  * Note: The tracking system assumes a tree structure. If the same object
  * is stored in multiple locations (shared references), dirty propagation
@@ -89,44 +202,17 @@ export type Tracked<T> =
  *   players: new Map([["p1", { x: 0, y: 0 }]]),
  * });
  *
- * state.tick = 1;                  // Marks "tick" dirty on state
- * state.player.x = 100;            // Marks "x" dirty on player, "player" dirty on state
- * state.players.get("p1")!.x = 50; // Marks "x" dirty on player, "p1" dirty on players, "players" dirty on state
+ * state.tick = 1;                  // Records version for "tick"
+ * state.player.x = 100;            // Records version for "x", propagates to parent
  *
- * const diff = api.encodeDiff(oldState, state);
- * clearTracking(state);  // Reset for next frame
+ * const snapshot1 = api.clone(state);  // Captures current version
+ *
+ * state.tick = 2;
+ * const diff = api.encodeDiff(snapshot1, state);  // Only includes changes since snapshot1
  * ```
  */
 export function track<T extends object>(obj: T): Tracked<T> {
   return trackRecursive(deepClone(obj)) as Tracked<T>;
-}
-
-/**
- * Clear dirty tracking recursively on an object and all its tracked children.
- */
-export function clearTracking(obj: unknown): void {
-  if (obj == null || typeof obj !== "object") {
-    return;
-  }
-
-  const dirty = getDirty(obj);
-  if (dirty) {
-    dirty.clear();
-  }
-
-  if (obj instanceof Map) {
-    for (const value of obj.values()) {
-      clearTracking(value);
-    }
-  } else if (Array.isArray(obj)) {
-    for (let i = 0; i < obj.length; i++) {
-      clearTracking(obj[i]);
-    }
-  } else {
-    for (const key of Object.keys(obj)) {
-      clearTracking((obj as Record<string, unknown>)[key]);
-    }
-  }
 }
 
 // ============ Internal Implementation ============
@@ -138,14 +224,17 @@ function getFallback<T extends object>(target: T, prop: string | symbol): unknow
 }
 
 /** Propagate dirty marking up to parent containers */
-function propagateToParent(child: object): void {
+function propagateToParent(child: object, version: number): void {
   const parent = (child as any)[PARENT];
   const key = (child as any)[PARENT_KEY];
   if (parent != null && key != null) {
-    const parentDirty = getDirty(parent);
-    if (parentDirty && !parentDirty.has(key)) {
-      parentDirty.add(key);
-      propagateToParent(parent);
+    const parentDirty = getFieldVersions(parent);
+    if (parentDirty) {
+      const existingVersion = parentDirty.get(key);
+      if (existingVersion == null || version > existingVersion) {
+        parentDirty.set(key, version);
+        propagateToParent(parent, version);
+      }
     }
   }
 }
@@ -176,7 +265,7 @@ function trackRecursive<T>(obj: T, parent?: object, parentKey?: string | number)
 
   // Fast-path: if already tracked, just update parent metadata
   const underlying = getUnderlying(obj as object);
-  if (getDirty(underlying) != null) {
+  if (getFieldVersions(underlying) != null) {
     setParentMeta(underlying, parent, parentKey);
     return obj;
   }
@@ -197,7 +286,7 @@ function trackObject<T extends Record<string, unknown>>(
   parent?: object,
   parentKey?: string | number
 ): Tracked<T> {
-  const dirty = new Set<string>();
+  const dirty = new Map<string, number>();
   Object.defineProperty(obj, DIRTY, { value: dirty, writable: true });
   setParentMeta(obj, parent, parentKey);
 
@@ -214,8 +303,9 @@ function trackObject<T extends Record<string, unknown>>(
       }
       const key = prop as string;
       if (target[key] !== value) {
-        dirty.add(key);
-        propagateToParent(obj);
+        const version = nextVersion();
+        dirty.set(key, version);
+        propagateToParent(obj, version);
         trackedChildren[key] = trackRecursive(value, obj, key);
       }
       (target as Record<string, unknown>)[key] = value;
@@ -238,8 +328,9 @@ function trackObject<T extends Record<string, unknown>>(
       }
       const key = prop as string;
       if (key in target) {
-        dirty.add(key);
-        propagateToParent(obj);
+        const version = nextVersion();
+        dirty.set(key, version);
+        propagateToParent(obj, version);
         delete trackedChildren[key];
       }
       return delete (target as Record<string, unknown>)[key];
@@ -250,7 +341,7 @@ function trackObject<T extends Record<string, unknown>>(
 }
 
 function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): Tracked<T[]> {
-  const dirty = new Set<number>();
+  const dirty = new Map<number, number>();
   const trackedItems: T[] = [];
   Object.defineProperty(trackedItems, DIRTY, { value: dirty, writable: true });
   setParentMeta(trackedItems, parent, parentKey);
@@ -262,10 +353,11 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
 
   const markRangeDirty = (start: number, end: number) => {
     if (start >= end) return;
+    const version = nextVersion();
     for (let i = start; i < end; i++) {
-      dirty.add(i);
+      dirty.set(i, version);
     }
-    propagateToParent(trackedItems);
+    propagateToParent(trackedItems, version);
   };
 
   // Update PARENT_KEY on elements after reordering
@@ -296,8 +388,9 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
       }
       const index = Number(prop);
       if (!isNaN(index)) {
-        dirty.add(index);
-        propagateToParent(trackedItems);
+        const version = nextVersion();
+        dirty.set(index, version);
+        propagateToParent(trackedItems, version);
         target[index] = trackRecursive(value, trackedItems, index) as T;
         return true;
       }
@@ -312,19 +405,21 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
       if (prop === "push") {
         return (...items: T[]) => {
           const startIndex = target.length;
+          const version = nextVersion();
           for (let i = 0; i < items.length; i++) {
-            dirty.add(startIndex + i);
+            dirty.set(startIndex + i, version);
             target.push(trackRecursive(items[i], trackedItems, startIndex + i) as T);
           }
-          propagateToParent(trackedItems);
+          propagateToParent(trackedItems, version);
           return target.length;
         };
       }
       if (prop === "pop") {
         return () => {
           if (target.length > 0) {
-            dirty.add(target.length - 1);
-            propagateToParent(trackedItems);
+            const version = nextVersion();
+            dirty.set(target.length - 1, version);
+            propagateToParent(trackedItems, version);
           }
           return target.pop();
         };
@@ -391,10 +486,14 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
           const len = target.length;
           const actualStart = start == null ? 0 : normalizeIndex(start, len);
           const actualEnd = end == null ? len : normalizeIndex(end, len);
+          const version = nextVersion();
           for (let i = actualStart; i < actualEnd; i++) {
             target[i] = trackRecursive(value, trackedItems, i) as T;
+            dirty.set(i, version);
           }
-          markRangeDirty(actualStart, actualEnd);
+          if (actualStart < actualEnd) {
+            propagateToParent(trackedItems, version);
+          }
           return proxy;
         };
       }
@@ -407,10 +506,12 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
           const count = Math.min(final - from, len - to);
           if (count > 0) {
             const copied = target.slice(from, from + count);
+            const version = nextVersion();
             for (let i = 0; i < count; i++) {
               target[to + i] = copied[i]!;
+              dirty.set(to + i, version);
             }
-            markRangeDirty(to, to + count);
+            propagateToParent(trackedItems, version);
             updateParentKeys(to, to + count);
           }
           return proxy;
@@ -424,9 +525,14 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
 }
 
 function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | number): Tracked<Map<K, V>> {
-  const dirty = new Set<K>();
+  const dirty = new Map<K, number>();
+  const created = new Map<K, number>();
+  const deleted = new Map<K, number>();
   const trackedValues = new Map<K, V>();
+
   Object.defineProperty(trackedValues, DIRTY, { value: dirty, writable: true });
+  Object.defineProperty(trackedValues, CREATED, { value: created, writable: true });
+  Object.defineProperty(trackedValues, DELETED, { value: deleted, writable: true });
   setParentMeta(trackedValues, parent, parentKey);
 
   for (const [key, value] of map) {
@@ -441,25 +547,42 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
       }
       if (prop === "set") {
         return (key: K, value: V) => {
-          dirty.add(key);
-          propagateToParent(trackedValues);
+          const version = nextVersion();
+          if (target.has(key)) {
+            // Update existing key
+            dirty.set(key, version);
+          } else {
+            // New key
+            created.set(key, version);
+          }
+          // Revive if previously deleted
+          deleted.delete(key);
+          propagateToParent(trackedValues, version);
           target.set(key, trackRecursive(value, trackedValues, key as string | number) as V);
           return proxy;
         };
       }
       if (prop === "delete") {
         return (key: K) => {
-          dirty.add(key);
-          propagateToParent(trackedValues);
+          if (target.has(key)) {
+            const version = nextVersion();
+            deleted.set(key, version);
+            dirty.delete(key);
+            created.delete(key);
+            propagateToParent(trackedValues, version);
+          }
           return target.delete(key);
         };
       }
       if (prop === "clear") {
         return () => {
+          const version = nextVersion();
           for (const key of target.keys()) {
-            dirty.add(key);
+            deleted.set(key, version);
+            dirty.delete(key);
+            created.delete(key);
           }
-          propagateToParent(trackedValues);
+          propagateToParent(trackedValues, version);
           return target.clear();
         };
       }

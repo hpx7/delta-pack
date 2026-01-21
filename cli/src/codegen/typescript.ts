@@ -19,10 +19,6 @@ function createContext(schema: Record<string, Type>): GeneratorContext {
 // ============ Utilities ============
 
 // Types that handle their own change detection (don't need wrapper to add change bit)
-function hasOwnChangeBit(type: Type): boolean {
-  return type.type === "boolean";
-}
-
 function ifElseChain<T>(
   items: readonly T[],
   render: (item: T, i: number, prefix: string) => string,
@@ -150,6 +146,11 @@ ${toJsonBody}
     return result;
   },
   clone(obj: ${name}): ${name} {
+    const result = ${name}._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: ${name}): ${name} {
     return {
 ${cloneBody}
     };
@@ -218,7 +219,7 @@ function renderUnionApi(
   const cloneCases = ifElseChain(
     options,
     (opt, _, p) =>
-      `    ${p}if (obj._type === "${opt.name}") {\n      return { _type: "${opt.name}", ...${renderClone(ctx, opt, opt.name!, "obj")} };\n    }`,
+      `    ${p}if (obj._type === "${opt.name}") {\n      const result = { _type: "${opt.name}" as const, ...${opt.name}._clone(obj) };\n      _.registerSnapshot(result, obj);\n      return result;\n    }`,
   );
 
   const equalsCases = ifElseChain(
@@ -474,9 +475,12 @@ function renderClone(
     case "reference":
       return renderClone(ctx, type.ref, type.ref.name!, key);
     case "self-reference":
-      return `${ctx.currentTypeName}.clone(${key})`;
-    default:
+      return `${ctx.currentTypeName}._clone(${key})`;
+    case "union":
+      // Unions don't have _clone, use clone (which handles registration)
       return `${name}.clone(${key})`;
+    default:
+      return `${name}._clone(${key})`;
   }
 }
 
@@ -598,15 +602,11 @@ function renderEncodeDiffField(
       key,
     );
   }
-  // Types with own change bit use pushFieldDiffValue
-  if (hasOwnChangeBit(type)) {
-    return `encoder.pushFieldDiffValue(
-      ${b},
-      ${key},
-      () => ${renderEncodeDiff(ctx, type, name, `${a}[${key}]`, `${b}[${key}]`)},
-    );`;
+  // Boolean: just compare directly (tracking overhead > comparison cost)
+  if (type.type === "boolean") {
+    return `${renderEncodeDiff(ctx, type, name, `${a}[${key}]`, `${b}[${key}]`)};`;
   }
-  // Use pushFieldDiff for primitives, enums, optionals
+  // Other primitives, enums, optionals: use pushFieldDiff with tracking
   const eqExpr = renderEquals(ctx, type, name, "x", "y");
   const diffExpr = renderEncodeDiff(ctx, type, name, "x", "y");
   return `encoder.pushFieldDiff(
@@ -706,11 +706,11 @@ function renderDecodeDiffField(
   if (type.type === "reference") {
     return renderDecodeDiffField(ctx, type.ref, type.ref.name!, key);
   }
-  // Types with own change bit use their own decode logic
-  if (hasOwnChangeBit(type)) {
+  // Boolean: decode directly (no separate change bit)
+  if (type.type === "boolean") {
     return renderDecodeDiff(ctx, type, name, key);
   }
-  // Use nextFieldDiff for primitives, enums, optionals
+  // Other primitives, enums, optionals: use nextFieldDiff
   const diffExpr = renderDecodeDiff(ctx, type, name, "x");
   return `decoder.nextFieldDiff(
         ${key},

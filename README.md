@@ -391,9 +391,9 @@ Array item diffs:
 Map diff format:
 
 ```
-[numDeletions: varint][deletionIndices: varint...]
-[numUpdates: varint][updateIndices: varint...][updateDiffs...]
-[numAdditions: varint][newKeyValuePairs...]
+[numDeletions: varint][key][key]...
+[numUpdates: varint][key][valueDiff][key][valueDiff]...
+[numAdditions: varint][key][value][key][value]...
 ```
 
 ### Optimization Strategies
@@ -455,8 +455,8 @@ Typical savings for incremental updates:
 
 See the `examples/` directory for complete schema examples:
 
-- `examples/primitives/` - Basic primitive types
-- `examples/allTypes/` - Comprehensive type showcase
+- `examples/Primitives/` - Basic primitive types
+- `examples/GameState/` - Comprehensive game state with nested objects, arrays, and maps
 
 Each example includes:
 

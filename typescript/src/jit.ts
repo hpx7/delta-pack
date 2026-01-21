@@ -110,11 +110,6 @@ export function compileEncodeDecode(rootType: NamedType): {
   };
 }
 
-// Types that handle their own change detection (don't need wrapper to add change bit)
-function hasOwnChangeBit(type: Type): boolean {
-  return type.type === "boolean" || type.type === "object" || type.type === "self-reference";
-}
-
 class JitCompiler {
   private varCounter = 0;
   private enumIndices: Map<readonly string[], number> = new Map();
@@ -277,11 +272,11 @@ class JitCompiler {
     if (type.type === "reference") {
       return this.compileEncodeDiffField(type.ref, a, b, key, type.ref);
     }
-    // Types with own change bit use pushFieldDiffValue
-    if (hasOwnChangeBit(type)) {
-      return `encoder.pushFieldDiffValue(${b}, ${key}, () => { ${this.compileEncodeDiff(type, `${a}[${key}]`, `${b}[${key}]`, parent)} });`;
+    // Types that handle their own change bit (no pushFieldDiff wrapper needed)
+    if (type.type === "boolean" || type.type === "object" || type.type === "self-reference") {
+      return this.compileEncodeDiff(type, `${a}[${key}]`, `${b}[${key}]`, parent);
     }
-    // Use pushFieldDiff for primitives, enums, optionals, unions
+    // Other types: use pushFieldDiff with tracking
     const x = this.nextVar("x");
     const y = this.nextVar("y");
     const eqExpr = this.compileEquals(type, x, y, parent);
@@ -384,11 +379,11 @@ class JitCompiler {
     if (type.type === "reference") {
       return this.compileDecodeDiffExprField(type.ref, a, type.ref);
     }
-    // Types with own change bit use their own decode logic
-    if (hasOwnChangeBit(type)) {
+    // Types that handle their own change bit (no nextFieldDiff wrapper needed)
+    if (type.type === "boolean" || type.type === "object" || type.type === "self-reference") {
       return this.compileDecodeDiffExpr(type, a, parent);
     }
-    // Use nextFieldDiff for primitives, enums, optionals
+    // Other types: use nextFieldDiff
     const x = this.nextVar("x");
     const diffExpr = this.compileDecodeDiffExpr(type, x, parent);
     return `decoder.nextFieldDiff(${a}, (${x}) => ${diffExpr})`;

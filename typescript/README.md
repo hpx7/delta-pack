@@ -868,10 +868,10 @@ Delta encoding is most effective when:
 
 ### Dirty Tracking with `track()`
 
-For maximum `encodeDiff` performance, use `track()` to automatically track which fields have changed. This allows delta encoding to skip comparison checks entirely:
+For maximum `encodeDiff` performance, use `track()` to automatically track which fields have changed. This allows delta encoding to skip comparison checks entirely. The tracking system uses version numbers, enabling efficient diffs from arbitrary baseline snapshots:
 
 ```typescript
-import { track, clearTracking } from "@hpx7/delta-pack";
+import { track } from "@hpx7/delta-pack";
 
 // Wrap state with tracking
 const state = track({
@@ -880,16 +880,20 @@ const state = track({
   players: new Map([["p1", { x: 0, y: 0 }]]),
 });
 
-// Mutations are automatically tracked
-state.tick = 1; // Marks "tick" dirty
-state.player.x = 100; // Marks "x" on player, "player" on state
-state.players.get("p1")!.x = 50; // Marks "x" on player, "p1" on players, "players" on state
+// Mutations are automatically tracked with version numbers
+state.tick = 1;
+state.player.x = 100;
+state.players.get("p1")!.x = 50;
 
-// Efficient delta encoding - only changed fields are compared
-const diff = GameStateApi.encodeDiff(oldState, state);
+// Take a snapshot - captures current version
+const snapshot = GameStateApi.clone(state);
 
-// Clear tracking for next update cycle
-clearTracking(state);
+// More mutations after snapshot
+state.tick = 2;
+state.player.y = 200;
+
+// Efficient delta encoding - only includes changes since snapshot
+const diff = GameStateApi.encodeDiff(snapshot, state);
 ```
 
 **Deep tracking:** Changes to nested objects, arrays, and maps automatically propagate up to parents. This works with:
@@ -899,14 +903,14 @@ clearTracking(state);
 - Maps: `state.players.get("p1")!.x = 50` marks the player, key "p1", and `state.players`
 - Array methods: `push`, `pop`, `shift`, `unshift`, `splice` all mark appropriate indices
 
-**Game loop pattern:**
+**Multi-client game loop pattern:**
 
 ```typescript
 class Game {
-  private state = track(new GameState());
+  private state = track(GameStateApi.default());
 
   tick() {
-    // Mutations are automatically tracked
+    // Mutations are automatically tracked with versions
     this.state.tick++;
     for (const [id, input] of this.inputs) {
       const player = this.state.players.get(id)!;
@@ -917,11 +921,13 @@ class Game {
 
   broadcast() {
     for (const client of this.clients) {
-      const diff = GameStateApi.encodeDiff(client.lastState, this.state);
+      // Each client has its own snapshot from their last update
+      const diff = GameStateApi.encodeDiff(client.lastSnapshot, this.state);
       client.send(diff);
-      client.lastState = GameStateApi.clone(this.state);
+      // Clone captures version for next diff
+      client.lastSnapshot = GameStateApi.clone(this.state);
     }
-    clearTracking(this.state); // Reset for next tick
+    // No manual clearing needed - version tracking handles it
   }
 }
 ```
@@ -931,30 +937,7 @@ class Game {
 - High-frequency updates (e.g., 20-60 times per second)
 - Large state objects where full comparison is expensive
 - Mutable state that changes incrementally each tick
-
-**Manual tracking with `markDirty()`:** You can also track changes manually without using proxies:
-
-```typescript
-import { markDirty, clearTracking } from "@hpx7/delta-pack";
-
-// Objects: track changed fields
-player.score = 150;
-markDirty(player, "score");
-
-// Arrays: track changed indices
-items[5] = newItem;
-markDirty(items, 5);
-
-// Maps: track changed keys
-players.set("p1", updatedPlayer);
-markDirty(players, "p1");
-
-// Encode and clear
-const diff = GameStateApi.encodeDiff(oldState, state);
-clearTracking(state);
-```
-
-This is useful when you can't use proxies (e.g., performance-critical code) but still want delta encoding optimization.
+- Multiple clients with different baseline states (each gets minimal diff)
 
 ### Quantized Floats
 
@@ -984,9 +967,9 @@ Maps enable efficient delta encoding for entity collections (only changed entiti
 
 See the `examples/` directory for complete examples:
 
-- `examples/primitives/` - Basic primitive types
-- `examples/user/` - User profile with unions and optionals
-- `examples/game/` - Multiplayer game with complex state
+- `examples/Primitives/` - Basic primitive types
+- `examples/User/` - User profile with unions and optionals
+- `examples/GameState/` - Multiplayer game with complex state
 
 Each example includes:
 

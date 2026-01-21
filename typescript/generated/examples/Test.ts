@@ -67,6 +67,11 @@ export const InnerInner = {
     return result;
   },
   clone(obj: InnerInner): InnerInner {
+    const result = InnerInner._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: InnerInner): InnerInner {
     return {
       long: obj.long,
       enum: obj.enum,
@@ -174,6 +179,11 @@ export const Outer = {
     return result;
   },
   clone(obj: Outer): Outer {
+    const result = Outer._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Outer): Outer {
     return {
       bool: obj.bool.map((x) => x),
       double: obj.double,
@@ -269,10 +279,15 @@ export const Inner = {
     return result;
   },
   clone(obj: Inner): Inner {
+    const result = Inner._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Inner): Inner {
     return {
       int32: obj.int32,
-      innerInner: InnerInner.clone(obj.innerInner),
-      outer: Outer.clone(obj.outer),
+      innerInner: InnerInner._clone(obj.innerInner),
+      outer: Outer._clone(obj.outer),
     };
   },
   equals(a: Inner, b: Inner): boolean {
@@ -382,10 +397,15 @@ export const Test = {
     return result;
   },
   clone(obj: Test): Test {
+    const result = Test._clone(obj);
+    _.registerSnapshot(result, obj);
+    return result;
+  },
+  _clone(obj: Test): Test {
     return {
       string: obj.string,
       uint32: obj.uint32,
-      inner: Inner.clone(obj.inner),
+      inner: Inner._clone(obj.inner),
       float: obj.float,
     };
   },

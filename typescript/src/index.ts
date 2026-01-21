@@ -32,4 +32,4 @@ export { loadClass, buildSchema } from "./decorator.js";
 export { parseSchemaYml } from "./parser.js";
 
 // Dirty tracking
-export { track, clearTracking, getDirty, markDirty, type Tracked } from "./tracking.js";
+export { track, registerSnapshot, type Tracked } from "./tracking.js";

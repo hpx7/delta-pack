@@ -2,6 +2,7 @@ import * as _ from "./helpers.js";
 import { NamedType, Type } from "./schema.js";
 import type { Infer } from "./infer.js";
 import { compileEncodeDecode } from "./jit.js";
+import { registerSnapshot } from "./tracking.js";
 
 /**
  * The serialization API returned by {@link load} for a given schema type.
@@ -311,6 +312,12 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     encodeDiff: (a, b) => jit.encodeDiff(a, b),
     decodeDiff: (a, diff: Uint8Array) => jit.decodeDiff(a, diff),
     equals: (a, b) => _equals(a, b, rootType, rootType),
-    clone: (obj) => _clone(obj, rootType, rootType),
+    clone: (obj) => {
+      const cloned = _clone(obj, rootType, rootType);
+      if (cloned != null && typeof cloned === "object") {
+        registerSnapshot(cloned as object, obj as object);
+      }
+      return cloned;
+    },
   };
 }

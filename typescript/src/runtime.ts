@@ -2,3 +2,4 @@
 export { Encoder, DiffEncoder } from "./encoder.js";
 export { Decoder, DiffDecoder } from "./decoder.js";
 export * from "./helpers.js";
+export { registerSnapshot } from "./tracking.js";

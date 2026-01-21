@@ -1,4 +1,4 @@
-import { track, clearTracking } from "@hpx7/delta-pack";
+import { track } from "@hpx7/delta-pack";
 import { Player, GameState, ClientInput } from "./schema.js";
 
 export class Game {
@@ -102,12 +102,8 @@ export class Game {
     }
   }
 
-  getStateForPlayer(_id: string): GameState {
+  getState(): GameState {
     return this.state;
-  }
-
-  resetChanges() {
-    clearTracking(this.state);
   }
 
   getStats() {
