@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import assert from "assert";
 import * as msgpack from "msgpackr";
+import * as rfc6902 from "rfc6902";
 import { load, parseSchemaYml, type DeltaPackApi } from "@hpx7/delta-pack";
 import protobuf from "protobufjs";
 
@@ -66,6 +67,8 @@ function main() {
   console.log("## Full Encoding Size Comparison (bytes)\n");
   console.log("Lower is better. Multiplier shows size relative to smallest format.\n");
 
+  const fullGroups: ChartGroup[] = [];
+
   for (const example of examples) {
     const result = benchmarkFullEncode(example);
     if (!result) continue;
@@ -86,12 +89,25 @@ function main() {
 
     printTable(headers, allRows);
     console.log();
+
+    for (let i = 0; i < result.json.length; i++) {
+      fullGroups.push({
+        label: `${example} State${i + 1}`,
+        bars: [
+          { label: "JSON", value: result.json[i]!, color: COLORS.json },
+          { label: "MessagePack", value: result.msgpack[i]!, color: COLORS.msgpack },
+          { label: "Protobuf", value: result.protobuf[i]!, color: COLORS.protobuf },
+          { label: "Delta-Pack", value: result.deltaPack[i]!, color: COLORS.deltaPack },
+        ],
+      });
+    }
   }
 
   // Section 2: Delta Encoding Size Comparison
   console.log("## Delta Encoding Size Comparison (bytes)\n");
-  console.log("Compares delta-pack's `encodeDiff(prev, next)` vs re-encoding with other formats.\n");
-  console.log("This demonstrates bandwidth savings for incremental state updates.\n");
+  console.log("Compares delta-pack diffs against JSON Patch (RFC 6902) for incremental updates.\n");
+
+  const deltaGroups: ChartGroup[] = [];
 
   for (const example of examples) {
     const result = benchmarkDeltaEncode(example);
@@ -99,24 +115,33 @@ function main() {
 
     console.log(`### ${example}\n`);
 
-    const headers = ["Transition", "JSON", "MessagePack", "Protobuf", "Delta-Pack Full", "Delta-Pack Diff", "Savings"];
+    const headers = ["Transition", "JSON (full)", "JSON Patch", "Delta-Pack Full", "Delta-Pack Diff", "vs JSON Patch"];
     const allRows = result.transitions.map((t) => {
-      const minOther = Math.min(t.json, t.msgpack, t.protobuf);
-      const savings = ((1 - t.deltaDiff / minOther) * 100).toFixed(0);
-      return [
-        t.name,
-        `${t.json}B`,
-        `${t.msgpack}B`,
-        `${t.protobuf}B`,
-        `${t.deltaFull}B`,
-        `${t.deltaDiff}B`,
-        `${savings}%`,
-      ];
+      const savings = ((1 - t.deltaDiff / t.jsonPatch) * 100).toFixed(0);
+      return [t.name, `${t.json}B`, `${t.jsonPatch}B`, `${t.deltaFull}B`, `${t.deltaDiff}B`, `${savings}%`];
     });
 
     printTable(headers, allRows);
     console.log();
+
+    for (const t of result.transitions) {
+      deltaGroups.push({
+        label: `${example} ${t.name}`,
+        bars: [
+          { label: "JSON (full)", value: t.json, color: COLORS.json },
+          { label: "JSON Patch", value: t.jsonPatch, color: COLORS.jsonPatch },
+          { label: "Delta-Pack Full", value: t.deltaFull, color: COLORS.protobuf },
+          { label: "Delta-Pack Diff", value: t.deltaDiff, color: COLORS.deltaPack },
+        ],
+      });
+    }
   }
+
+  // Generate SVG charts
+  fs.mkdirSync("charts", { recursive: true });
+  fs.writeFileSync("charts/full-encode.svg", generateBarChartSvg("Full Encoding Size (bytes)", fullGroups));
+  fs.writeFileSync("charts/delta-encode.svg", generateBarChartSvg("Delta Encoding Size (bytes)", deltaGroups));
+  console.log("Charts written to charts/full-encode.svg and charts/delta-encode.svg");
 }
 
 function printTable(headers: string[], rows: string[][]) {
@@ -168,31 +193,36 @@ function benchmarkDeltaEncode(example: string) {
   const transitions: {
     name: string;
     json: number;
-    msgpack: number;
-    protobuf: number;
+    jsonPatch: number;
     deltaFull: number;
     deltaDiff: number;
   }[] = [];
 
   const State = getDeltaPackApi(example);
-  const MessageType = getProtobufType(example);
 
   for (let i = 0; i < states.length - 1; i++) {
     const prev = states[i];
     const next = states[i + 1];
 
-    // Other formats must send the full new state
+    // JSON full re-send (naive baseline)
     const jsonSize = Buffer.from(JSON.stringify(next)).length;
-    const msgpackSize = msgpack.pack(next).length;
-    const protobufSize = MessageType.encode(MessageType.fromObject(next)).finish().length;
 
-    // Delta-pack can send just the diff
+    // JSON Patch (RFC 6902)
+    const patch = rfc6902.createPatch(prev, next);
+    const jsonPatchSize = Buffer.from(JSON.stringify(patch)).length;
+
+    // Verify JSON Patch round-trip
+    const patched = structuredClone(prev);
+    rfc6902.applyPatch(patched, patch);
+    assert(deepEquals(patched, next), `JSON Patch round-trip failed for ${example} state${i + 1}→${i + 2}`);
+
+    // Delta-pack
     const prevParsed = State.fromJson(prev);
     const nextParsed = State.fromJson(next);
     const fullEncode = State.encode(nextParsed);
     const diff = State.encodeDiff(prevParsed, nextParsed);
 
-    // Verify round-trip
+    // Verify delta-pack round-trip
     const reconstructed = State.decodeDiff(prevParsed, diff);
     assert(
       deepEquals(State.toJson(reconstructed), next),
@@ -202,8 +232,7 @@ function benchmarkDeltaEncode(example: string) {
     transitions.push({
       name: `State${i + 1}→${i + 2}`,
       json: jsonSize,
-      msgpack: msgpackSize,
-      protobuf: protobufSize,
+      jsonPatch: jsonPatchSize,
       deltaFull: fullEncode.length,
       deltaDiff: diff.length,
     });
@@ -254,6 +283,95 @@ function encodeDeltaPack(states: any[], example: string): number[] {
     assert(deepEquals(decoded, state), `Delta-pack state${i + 1} round-trip mismatch`);
     return encoded.length;
   });
+}
+
+const COLORS = {
+  json: "#f59e0b",
+  msgpack: "#8b5cf6",
+  protobuf: "#3b82f6",
+  deltaPack: "#10b981",
+  jsonPatch: "#ef4444",
+};
+
+interface ChartGroup {
+  label: string;
+  bars: { label: string; value: number; color: string }[];
+}
+
+function escapeXml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function generateBarChartSvg(title: string, groups: ChartGroup[]): string {
+  const width = 680;
+  const labelWidth = 130;
+  const valueWidth = 70;
+  const barAreaWidth = width - labelWidth - valueWidth - 24;
+  const barHeight = 20;
+  const barGap = 4;
+  const groupHeaderHeight = 24;
+  const groupGap = 16;
+  const titleHeight = 40;
+  const bottomPadding = 12;
+
+  let height = titleHeight;
+  for (const group of groups) {
+    height += groupHeaderHeight;
+    height += group.bars.length * (barHeight + barGap) - barGap;
+    height += groupGap;
+  }
+  height += bottomPadding;
+
+  const lines: string[] = [];
+  lines.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+  );
+  lines.push(`  <style>`);
+  lines.push(`    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }`);
+  lines.push(`  </style>`);
+  lines.push(`  <rect width="${width}" height="${height}" fill="white" rx="8"/>`);
+
+  // Title
+  lines.push(
+    `  <text x="${width / 2}" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#111827">${escapeXml(title)}</text>`
+  );
+
+  let y = titleHeight;
+
+  for (const group of groups) {
+    // Group label
+    lines.push(
+      `  <text x="12" y="${y + 16}" font-size="13" font-weight="600" fill="#374151">${escapeXml(group.label)}</text>`
+    );
+    y += groupHeaderHeight;
+
+    const maxValue = Math.max(...group.bars.map((b) => b.value));
+
+    for (const bar of group.bars) {
+      const barW = maxValue > 0 ? (bar.value / maxValue) * barAreaWidth : 0;
+
+      // Bar label
+      lines.push(
+        `  <text x="${labelWidth - 4}" y="${y + 14}" text-anchor="end" font-size="11" fill="#6b7280">${escapeXml(bar.label)}</text>`
+      );
+
+      // Bar
+      lines.push(
+        `  <rect x="${labelWidth}" y="${y}" width="${Math.max(barW, 2)}" height="${barHeight}" fill="${bar.color}" rx="3"/>`
+      );
+
+      // Value label
+      lines.push(
+        `  <text x="${labelWidth + barW + 6}" y="${y + 14}" font-size="11" fill="#374151" font-weight="500">${bar.value}B</text>`
+      );
+
+      y += barHeight + barGap;
+    }
+    y += groupGap - barGap;
+  }
+
+  lines.push(`</svg>`);
+  return lines.join("\n");
 }
 
 main();

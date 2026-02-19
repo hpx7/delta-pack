@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@hpx7/delta-pack": "file:../typescript",
+    "rfc6902": "^5.1.1",
     "msgpackr": "^1.11.5",
     "protobufjs": "^7.5.4"
   },
