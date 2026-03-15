@@ -57,13 +57,13 @@ Encoding size comparisons using the example schemas in [`examples/`](examples/).
 
 JSON, MessagePack, Protobuf, and Delta-Pack compared for full state snapshots.
 
-<img src="benchmark/charts/full-encode.svg" alt="Full encoding size comparison" />
+<img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/full-encode.svg" alt="Full encoding size comparison" />
 
 ### Delta Encoding
 
 Delta-Pack diffs vs JSON Patch (RFC 6902) for incremental updates.
 
-<img src="benchmark/charts/delta-encode.svg" alt="Delta encoding size comparison" />
+<img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/delta-encode.svg" alt="Delta encoding size comparison" />
 
 ## API
 
