@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DeltaPack Documentation</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/highlight.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -87,6 +89,7 @@
       .then(res => res.text())
       .then(md => {
         document.getElementById('readme').innerHTML = marked.parse(md);
+        hljs.highlightAll();
       })
       .catch(() => {
         document.getElementById('readme').innerHTML = '<p>Failed to load README.</p>';
