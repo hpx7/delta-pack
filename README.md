@@ -1,5 +1,13 @@
 # Delta-Pack
 
+[![TypeScript CI](https://github.com/hpx7/delta-pack/actions/workflows/typescript-ci.yml/badge.svg)](https://github.com/hpx7/delta-pack/actions/workflows/typescript-ci.yml)
+[![C# CI](https://github.com/hpx7/delta-pack/actions/workflows/csharp-ci.yml/badge.svg)](https://github.com/hpx7/delta-pack/actions/workflows/csharp-ci.yml)
+[![Rust CI](https://github.com/hpx7/delta-pack/actions/workflows/rust-ci.yml/badge.svg)](https://github.com/hpx7/delta-pack/actions/workflows/rust-ci.yml)
+
+[![npm](https://img.shields.io/npm/v/@hpx7/delta-pack)](https://www.npmjs.com/package/@hpx7/delta-pack)
+[![NuGet](https://img.shields.io/nuget/v/DeltaPack)](https://www.nuget.org/packages/DeltaPack)
+[![crates.io](https://img.shields.io/crates/v/delta-pack)](https://crates.io/crates/delta-pack)
+
 Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and real-time systems. Supports TypeScript, C#, and Rust.
 
 Delta-Pack combines the schema-based binary encoding of [Protobuf](https://protobuf.dev/) with the delta encoding of [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode full snapshots and diffs across languages.
