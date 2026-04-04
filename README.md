@@ -1,8 +1,8 @@
 # Delta-Pack
 
-Schema-based binary serialization with built-in delta compression, designed for real-time state synchronization.
+Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and real-time systems. Supports TypeScript, C#, and Rust.
 
-Delta-Pack combines the compact binary encoding of schema-based formats like [Protobuf](https://protobuf.dev/) with the incremental update capabilities of formats like [JSON Patch](https://jsonpatch.com/).
+Delta-Pack combines the schema-based binary encoding of [Protobuf](https://protobuf.dev/) with the delta encoding of [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode full snapshots and diffs across languages.
 
 Define your data schema using the supported [data types](#data-types), either in YAML or programmatically with [language-native APIs](#usage):
 
@@ -40,11 +40,11 @@ Given two snapshots of a Player, where position and health have changed:
   "name": "Alice",
   "position": { "x": 2.3, "y": 3.5 },  // was 1.0
   "health": 82,                        // was 100
-  "team": "BLUE"
+  "team": "RED"
 }
 ```
 
-Delta-pack can compactly encode the full snapshot as well as the diff:
+Delta-Pack can compactly encode the full snapshot as well as the diff:
 
 ```bash
 $ delta-pack encode schema.yml --type Player --input state1.json
@@ -58,17 +58,25 @@ $ delta-pack encode-diff schema.yml --type Player --old state1.json --new state2
 
 Encoding size comparisons using the example schemas in [`examples/`](examples/).
 
-### Full Encoding
+### Snapshot Encoding
 
-JSON, MessagePack, Protobuf, and Delta-Pack compared for full state snapshots. Lower is better.
+JSON, MessagePack, Protobuf, and Delta-Pack compared for snapshot encoding. Lower is better.
 
-<img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/full-encode.svg" alt="Full encoding size comparison" />
+<img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/full-encode.svg" alt="Snapshot encoding size comparison" />
 
 ### Delta Encoding
 
-Delta-Pack diffs vs JSON Patch (RFC 6902) for incremental updates. Lower is better.
+Delta-Pack diffs vs JSON Patch (RFC 6902) for delta encoding. Lower is better.
 
 <img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/delta-encode.svg" alt="Delta encoding size comparison" />
+
+### Performance
+
+Per-language encoding/decoding speed benchmarks:
+
+- [TypeScript](typescript/benchmark/) (vs JSON, MessagePack, Protobuf)
+- [C#](csharp/benchmarks/) (vs System.Text.Json, MessagePack-CSharp)
+- [Rust](rust/benchmarks/) (vs JSON, MessagePack)
 
 ## API
 
@@ -151,13 +159,20 @@ delta-pack generate schema.yml -l rust -o generated.rs
 Generated code provides a namespace per type with all API functions and full type safety:
 
 ```typescript
-import { GameState } from "./generated";
+import { Player } from "./generated";
 
-const state: GameState = GameState.default();
-const bytes = GameState.encode(state);
-const decoded = GameState.decode(bytes);
-const diff = GameState.encodeDiff(prev, state);
-const updated = GameState.decodeDiff(prev, diff);
+const prev: Player = Player.default();
+const current: Player = { ...prev, health: 82 };
+
+// Snapshot
+const snapshotBytes = Player.encode(current);
+const decoded = Player.decode(snapshotBytes);
+Player.equals(decoded, current); // true
+
+// Delta
+const diffBytes = Player.encodeDiff(prev, current);
+const patched = Player.decodeDiff(prev, diffBytes);
+Player.equals(patched, current); // true
 ```
 
 ### TypeScript
@@ -175,30 +190,31 @@ import fs from "node:fs";
 import { load, parseSchemaYml } from "@hpx7/delta-pack";
 
 const schema = parseSchemaYml(fs.readFileSync("schema.yml", "utf-8"));
-const GameState = load(schema.GameState);
 
-const encoded = GameState.encode(state);
-const diff = GameState.encodeDiff(prev, state);
+const api = load(schema["Position"]);
+const bytes = api.encode({ x: 1.5, y: 2.0 });
 ```
 
 **Decorator mode** -- define schemas as TypeScript classes:
 
 ```typescript
-import {
-  loadClass,
-  StringType,
-  IntType,
-  FloatType,
-  ObjectType,
-} from "@hpx7/delta-pack";
+import { loadClass, FloatType } from "@hpx7/delta-pack";
 
 class Position {
-  x = FloatType({ precision: 0.1 });
-  y = FloatType({ precision: 0.1 });
+  @FloatType({ precision: 0.1 })
+  x: number;
+
+  @FloatType({ precision: 0.1 })
+  y: number;
+
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
 }
 
 const api = loadClass(Position);
-const encoded = api.encode({ x: 1.5, y: 2.0 });
+const bytes = api.encode(new Position(1.5, 2.0));
 ```
 
 ### C#
@@ -209,23 +225,32 @@ dotnet add package DeltaPack
 
 The C# runtime is Unity-compatible. In addition to codegen, C# supports two runtime modes:
 
-**Interpreter mode** -- parse schemas at runtime:
-
-```csharp
-var schema = Parser.ParseYml(File.ReadAllText("schema.yml"));
-var api = Interpreter.Load<GameState>(schema["GameState"]);
-
-byte[] bytes = api.Encode(state);
-byte[] diff = api.EncodeDiff(prev, state);
-```
-
 **Reflection mode** -- build schemas from C# classes:
 
 ```csharp
-var codec = new DeltaPackCodec<GameState>();
+class Position {
+    [DeltaPackPrecision(0.1)]
+    public float X { get; set; }
+    [DeltaPackPrecision(0.1)]
+    public float Y { get; set; }
+}
 
-byte[] bytes = codec.Encode(state);
-byte[] diff = codec.EncodeDiff(prev, state);
+var api = new DeltaPackCodec<Position>();
+byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
+```
+
+**Interpreter mode** -- parse schemas at runtime:
+
+```csharp
+class Position {
+    public float X { get; set; }
+    public float Y { get; set; }
+}
+
+var schema = Parser.ParseYml(File.ReadAllText("schema.yml"));
+
+var api = Interpreter.Load<Position>(schema["Position"]);
+byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
 ```
 
 ### Rust
@@ -237,10 +262,10 @@ cargo add delta-pack
 Rust uses codegen exclusively:
 
 ```rust
-let bytes = GameState::encode(&state);
-let decoded = GameState::decode(&bytes);
-let diff = GameState::encode_diff(&prev, &state);
-let updated = GameState::decode_diff(&prev, &diff);
+use generated::Position;
+
+let pos = Position { x: 1.5, y: 2.0 };
+let bytes = pos.encode();
 ```
 
 ### CLI
@@ -249,14 +274,14 @@ The `delta-pack` CLI handles [code generation](#code-generation-recommended) and
 
 ```bash
 # Encode JSON to binary
-delta-pack encode schema.yml -t GameState -i state.json -o state.bin
+delta-pack encode schema.yml -t Player -i state.json -o state.bin
 
 # Decode binary to JSON
-delta-pack decode schema.yml -t GameState -i state.bin -o state.json
+delta-pack decode schema.yml -t Player -i state.bin -o state.json
 
 # Create a binary diff
-delta-pack encode-diff schema.yml -t GameState --old prev.json --new next.json -o diff.bin
+delta-pack encode-diff schema.yml -t Player --old prev.json --new next.json -o diff.bin
 
 # Apply a binary diff
-delta-pack decode-diff schema.yml -t GameState --old prev.json --diff diff.bin -o next.json
+delta-pack decode-diff schema.yml -t Player --old prev.json --diff diff.bin -o next.json
 ```
