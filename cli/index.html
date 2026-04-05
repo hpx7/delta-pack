@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DeltaPack Documentation</title>
+  <title>DeltaPack CLI Reference</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/github.min.css">
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/highlight.min.js"></script>
@@ -17,30 +17,9 @@
       color: #24292f;
       line-height: 1.6;
     }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 16px;
-      margin-bottom: 48px;
-      padding-bottom: 32px;
-      border-bottom: 1px solid #d0d7de;
-    }
-    .card {
-      border: 1px solid #d0d7de;
-      border-radius: 8px;
-      padding: 20px;
-      text-decoration: none;
-      color: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .card:hover {
-      border-color: #0969da;
-      box-shadow: 0 4px 12px rgba(9, 105, 218, 0.1);
-    }
-    .card h2 { margin: 0 0 6px 0; color: #0969da; font-size: 1.1em; }
-    .card p { margin: 0; color: #57606a; font-size: 0.9em; }
-
-    /* README styles */
+    .back { margin-bottom: 24px; }
+    .back a { color: #0969da; text-decoration: none; }
+    .back a:hover { text-decoration: underline; }
     #readme h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 8px; }
     #readme h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 6px; margin-top: 32px; }
     #readme pre {
@@ -61,7 +40,6 @@
     #readme table { border-collapse: collapse; width: 100%; margin: 16px 0; }
     #readme th, #readme td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
     #readme th { background: #f6f8fa; }
-    #readme img { max-width: 100%; }
     #readme blockquote {
       border-left: 4px solid #d0d7de;
       margin: 16px 0;
@@ -71,29 +49,11 @@
   </style>
 </head>
 <body>
-  <div class="cards">
-    <a href="typescript/" class="card">
-      <h2>TypeScript API Reference</h2>
-      <p>Documentation for the TypeScript/JavaScript package.</p>
-    </a>
-    <a href="csharp/" class="card">
-      <h2>C# API Reference</h2>
-      <p>Documentation for the C# package (Unity-compatible).</p>
-    </a>
-    <a href="rust/" class="card">
-      <h2>Rust API Reference</h2>
-      <p>Documentation for the Rust crate.</p>
-    </a>
-    <a href="cli/" class="card">
-      <h2>CLI Reference</h2>
-      <p>Command-line tool for code generation and data conversion.</p>
-    </a>
-  </div>
-
+  <div class="back"><a href="../">&larr; Back to DeltaPack Documentation</a></div>
   <div id="readme">Loading...</div>
 
   <script>
-    fetch('https://raw.githubusercontent.com/hpx7/delta-pack/main/README.md')
+    fetch('https://raw.githubusercontent.com/hpx7/delta-pack/main/cli/README.md')
       .then(res => res.text())
       .then(md => {
         document.getElementById('readme').innerHTML = marked.parse(md);
