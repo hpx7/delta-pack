@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 mod decoder;
 mod encoder;
 mod helpers;
