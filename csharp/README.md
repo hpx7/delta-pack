@@ -65,7 +65,7 @@ GameState:
 Generate C# code using the CLI:
 
 ```bash
-npx delta-pack generate schema.yml -l csharp -o Generated.cs
+delta-pack generate schema.yml -l csharp -o Generated.cs
 ```
 
 The generated code provides static methods for each type:

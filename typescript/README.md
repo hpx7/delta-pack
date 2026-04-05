@@ -86,7 +86,7 @@ Player:
 Generate TypeScript code using the CLI:
 
 ```bash
-npx delta-pack generate schema.yml -l typescript -o generated.ts
+delta-pack generate schema.yml -l typescript -o generated.ts
 ```
 
 Then use the generated code:
@@ -597,9 +597,6 @@ npm install -g @hpx7/delta-pack-cli
 
 # Generate from YAML schema
 delta-pack generate schema.yml -l typescript -o generated.ts
-
-# Or use npx
-npx delta-pack generate schema.yml -l typescript -o generated.ts
 ```
 
 For programmatic code generation, import from the CLI package:
@@ -826,7 +823,7 @@ GameState:
 Generate the code:
 
 ```bash
-npx delta-pack generate game.schema.yml -l typescript -o generated.ts
+delta-pack generate game.schema.yml -l typescript -o generated.ts
 ```
 
 Then use the generated code:

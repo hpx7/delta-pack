@@ -54,7 +54,7 @@ User:
 ### 2. Generate Rust Code
 
 ```bash
-npx delta-pack generate schema.yml -l rust > src/generated.rs
+delta-pack generate schema.yml -l rust > src/generated.rs
 ```
 
 ### 3. Use the Generated Types
@@ -107,15 +107,16 @@ fn main() {
 
 Every generated type provides these methods:
 
-| Method | Description |
-|--------|-------------|
-| `encode(&self) -> Vec<u8>` | Serialize to binary |
-| `decode(buf: &[u8]) -> Self` | Deserialize from binary |
+| Method                                       | Description                                 |
+| -------------------------------------------- | ------------------------------------------- |
+| `encode(&self) -> Vec<u8>`                   | Serialize to binary                         |
+| `decode(buf: &[u8]) -> Self`                 | Deserialize from binary                     |
 | `encode_diff(a: &Self, b: &Self) -> Vec<u8>` | Encode only the differences from `a` to `b` |
-| `decode_diff(a: &Self, diff: &[u8]) -> Self` | Apply a diff to `a` to produce `b` |
-| `equals(&self, other: &Self) -> bool` | Deep equality (respects float precision) |
+| `decode_diff(a: &Self, diff: &[u8]) -> Self` | Apply a diff to `a` to produce `b`          |
+| `equals(&self, other: &Self) -> bool`        | Deep equality (respects float precision)    |
 
 Generated types also derive:
+
 - `Clone`, `Debug` - Standard traits
 - `Default` - All fields initialized to zero/empty values
 - `Serialize`, `Deserialize` - Serde support for JSON interop
@@ -124,22 +125,22 @@ Generated types also derive:
 
 ### Primitives
 
-| Schema | Rust Type | Notes |
-|--------|-----------|-------|
-| `string` | `String` | UTF-8, dictionary-compressed |
-| `int` | `i64` | Signed, varint-encoded |
-| `uint` | `u64` | Unsigned, varint-encoded |
-| `int(min=0, max=100)` | `u64` | Bounded, more compact |
-| `float` | `f32` | 32-bit IEEE 754 |
-| `float(precision=0.01)` | `f32` | Quantized for smaller diffs |
-| `boolean` | `bool` | 1 bit, RLE-compressed |
+| Schema                  | Rust Type | Notes                        |
+| ----------------------- | --------- | ---------------------------- |
+| `string`                | `String`  | UTF-8, dictionary-compressed |
+| `int`                   | `i64`     | Signed, varint-encoded       |
+| `uint`                  | `u64`     | Unsigned, varint-encoded     |
+| `int(min=0, max=100)`   | `u64`     | Bounded, more compact        |
+| `float`                 | `f32`     | 32-bit IEEE 754              |
+| `float(precision=0.01)` | `f32`     | Quantized for smaller diffs  |
+| `boolean`               | `bool`    | 1 bit, RLE-compressed        |
 
 ### Containers
 
-| Schema | Rust Type |
-|--------|-----------|
-| `T[]` | `Vec<T>` |
-| `T?` | `Option<T>` |
+| Schema   | Rust Type       |
+| -------- | --------------- |
+| `T[]`    | `Vec<T>`        |
+| `T?`     | `Option<T>`     |
 | `<K, V>` | `HashMap<K, V>` |
 
 ### Named Types
@@ -172,7 +173,7 @@ Recursive types are supported and generate `Box<T>`:
 ```yaml
 TreeNode:
   value: int
-  children: TreeNode[]  # Generates Vec<Box<TreeNode>>
+  children: TreeNode[] # Generates Vec<Box<TreeNode>>
 ```
 
 ## Binary Format
@@ -189,11 +190,11 @@ TreeNode:
 
 Benchmarks comparing encode throughput (higher is better):
 
-| Schema | DeltaPack | JSON | MessagePack |
-|--------|-----------|------|-------------|
-| Primitives | 34.1M ops/s | 11.1M | 10.1M |
-| GameState | 5.8M ops/s | 673K | 816K |
-| User | 5.3M ops/s | 1.8M | 2.0M |
+| Schema     | DeltaPack   | JSON  | MessagePack |
+| ---------- | ----------- | ----- | ----------- |
+| Primitives | 34.1M ops/s | 11.1M | 10.1M       |
+| GameState  | 5.8M ops/s  | 673K  | 816K        |
+| User       | 5.3M ops/s  | 1.8M  | 2.0M        |
 
 Run benchmarks:
 

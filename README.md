@@ -8,9 +8,9 @@
 [![NuGet](https://img.shields.io/nuget/v/DeltaPack)](https://www.nuget.org/packages/DeltaPack)
 [![crates.io](https://img.shields.io/crates/v/delta-pack)](https://crates.io/crates/delta-pack)
 
-Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and real-time systems. Supports TypeScript, C#, and Rust.
+Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and real-time systems. Implementations available for TypeScript, C#, and Rust.
 
-Delta-Pack combines the schema-based binary encoding of [Protobuf](https://protobuf.dev/) with the delta encoding of [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode full snapshots and diffs across languages.
+Delta-Pack combines the schema-based binary encoding of formats like [Protobuf](https://protobuf.dev/) with the delta encoding of formats like [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode snapshots and diffs across languages.
 
 Define your data schema using the supported [data types](#data-types), either in YAML or programmatically with [language-native APIs](#usage):
 
@@ -164,76 +164,98 @@ delta-pack generate schema.yml -l csharp -o Generated.cs
 delta-pack generate schema.yml -l rust -o generated.rs
 ```
 
-Generated code provides a namespace per type with all API functions and full type safety:
+### [TypeScript](typescript/)
 
-```typescript
-import { Player } from "./generated";
-
-const prev: Player = Player.default();
-const current: Player = { ...prev, health: 82 };
-
-// Snapshot
-const snapshotBytes = Player.encode(current);
-const decoded = Player.decode(snapshotBytes);
-Player.equals(decoded, current); // true
-
-// Delta
-const diffBytes = Player.encodeDiff(prev, current);
-const patched = Player.decodeDiff(prev, diffBytes);
-Player.equals(patched, current); // true
-```
-
-### TypeScript
+Install:
 
 ```bash
 npm install @hpx7/delta-pack
 ```
 
-In addition to codegen, TypeScript supports two runtime modes:
+Typescript supports codegen mode as well a dynamic runtime mode.
 
-**Interpreter mode** -- parse schemas at runtime, no build step needed:
+**Codegen:**
 
 ```typescript
-import fs from "node:fs";
-import { load, parseSchemaYml } from "@hpx7/delta-pack";
+import { Position } from "./generated";
 
-const schema = parseSchemaYml(fs.readFileSync("schema.yml", "utf-8"));
+const prev: Position = Position.default();
+const current: Position = { ...prev, x: 1.5 };
 
-const api = load(schema["Position"]);
+// Snapshot
+const snapshotBytes = Position.encode(current);
+const decoded = Position.decode(snapshotBytes);
+Position.equals(decoded, current); // true
+
+// Delta
+const diffBytes = Position.encodeDiff(prev, current);
+const patched = Position.decodeDiff(prev, diffBytes);
+Position.equals(patched, current); // true
+```
+
+**Runtime** -- define schemas programmatically, no build step needed:
+
+Schema definition:
+
+```typescript
+import { ObjectType, FloatType, load, Infer } from "@hpx7/delta-pack";
+
+const Position = ObjectType("Position", {
+  x: FloatType({ precision: 0.1 }),
+  y: FloatType({ precision: 0.1 }),
+});
+type Position = Infer<typeof Position>;
+
+const api = load(Position);
 const bytes = api.encode({ x: 1.5, y: 2.0 });
 ```
 
-**Decorator mode** -- define schemas as TypeScript classes:
+Class definition:
 
 ```typescript
-import { loadClass, FloatType } from "@hpx7/delta-pack";
+import { FloatType, loadClass } from "@hpx7/delta-pack";
 
 class Position {
   @FloatType({ precision: 0.1 })
-  x: number;
+  x: number = 0;
 
   @FloatType({ precision: 0.1 })
-  y: number;
-
-  constructor(x = 0, y = 0) {
-    this.x = x;
-    this.y = y;
-  }
+  y: number = 0;
 }
 
 const api = loadClass(Position);
-const bytes = api.encode(new Position(1.5, 2.0));
+const bytes = api.encode(new Position());
 ```
 
-### C#
+### [C#](csharp/)
+
+Install:
 
 ```bash
 dotnet add package DeltaPack
 ```
 
-The C# runtime is Unity-compatible. In addition to codegen, C# supports two runtime modes:
+The C# runtime is Unity-compatible, and supports both codegen and runtime modes.
 
-**Reflection mode** -- build schemas from C# classes:
+**Codegen:**
+
+```csharp
+var prev = Position.Default();
+var current = Position.Clone(prev);
+current.X = 1.5f;
+
+// Snapshot
+byte[] snapshotBytes = Position.Encode(current);
+Position decoded = Position.Decode(snapshotBytes);
+Position.Equals(decoded, current); // true
+
+// Delta
+byte[] diffBytes = Position.EncodeDiff(prev, current);
+Position patched = Position.DecodeDiff(prev, diffBytes);
+Position.Equals(patched, current); // true
+```
+
+**Runtime** -- build schemas from C# classes:
 
 ```csharp
 class Position {
@@ -247,21 +269,9 @@ var api = new DeltaPackCodec<Position>();
 byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
 ```
 
-**Interpreter mode** -- parse schemas at runtime:
+### [Rust](rust/)
 
-```csharp
-class Position {
-    public float X { get; set; }
-    public float Y { get; set; }
-}
-
-var schema = Parser.ParseYml(File.ReadAllText("schema.yml"));
-
-var api = Interpreter.Load<Position>(schema["Position"]);
-byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
-```
-
-### Rust
+Install:
 
 ```bash
 cargo add delta-pack
@@ -272,11 +282,21 @@ Rust uses codegen exclusively:
 ```rust
 use generated::Position;
 
-let pos = Position { x: 1.5, y: 2.0 };
-let bytes = pos.encode();
+let prev = Position::default();
+let current = Position { x: 1.5, ..prev.clone() };
+
+// Snapshot
+let snapshot_bytes = current.encode();
+let decoded = Position::decode(&snapshot_bytes);
+current.equals(&decoded); // true
+
+// Delta
+let diff_bytes = Position::encode_diff(&prev, &current);
+let patched = Position::decode_diff(&prev, &diff_bytes);
+current.equals(&patched); // true
 ```
 
-### CLI
+### [CLI](cli/)
 
 The `delta-pack` CLI handles [code generation](#code-generation-recommended) and data conversion:
 
