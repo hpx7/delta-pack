@@ -35,7 +35,7 @@ User:
   address: Address?
   tags: string[]
   metadata: &lt;string, string&gt;</code></pre></div><h4 id="2-generate-rust-code"><a class="doc-anchor" href="#2-generate-rust-code">§</a>2. Generate Rust Code</h4><div class="example-wrap"><pre class="language-bash"><code>delta-pack generate schema.yml -l rust &gt; src/generated.rs</code></pre></div><h4 id="3-use-the-generated-types"><a class="doc-anchor" href="#3-use-the-generated-types">§</a>3. Use the Generated Types</h4>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span><span class="kw">crate</span>::generated::{User, Address, HairColor};
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">use </span><span class="kw">crate</span>::generated::{User, Address, HairColor};
 
 <span class="kw">fn </span>main() {
     <span class="comment">// Create a user
@@ -126,8 +126,7 @@ Message:
 <p>Recursive types are supported and generate <code>Box&lt;T&gt;</code>:</p>
 <div class="example-wrap"><pre class="language-yaml"><code>TreeNode:
   value: int
-  children: TreeNode[] # Generates Vec&lt;Box&lt;TreeNode&gt;&gt;</code></pre></div><h3 id="binary-format"><a class="doc-anchor" href="#binary-format">§</a>Binary Format</h3>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code>[data section][RLE section][numRleBits: reverse varint]</code></pre></div>
+  children: TreeNode[] # Generates Vec&lt;Box&lt;TreeNode&gt;&gt;</code></pre></div><h3 id="binary-format"><a class="doc-anchor" href="#binary-format">§</a>Binary Format</h3><div class="example-wrap"><pre class="language-text"><code>[data section][RLE section][numRleBits: reverse varint]</code></pre></div>
 <ul>
 <li><strong>Data section</strong>: Primitives encoded sequentially (strings with dictionary, varints, floats)</li>
 <li><strong>RLE section</strong>: Run-length encoded bits (booleans, optional flags, change indicators)</li>
@@ -149,7 +148,7 @@ cargo run --release</code></pre></div><h4 id="faster-decoding-with-mimalloc"><a 
 <div class="example-wrap"><pre class="language-toml"><code># Cargo.toml
 [dependencies]
 mimalloc = &quot;0.1&quot;</code></pre></div>
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// main.rs
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="comment">// main.rs
 </span><span class="attr">#[global_allocator]
 </span><span class="kw">static </span>GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;</code></pre></div><h3 id="cross-language-compatibility"><a class="doc-anchor" href="#cross-language-compatibility">§</a>Cross-Language Compatibility</h3>
 <p>Delta-Pack ensures binary compatibility across Rust, TypeScript, and C#:</p>
