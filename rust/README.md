@@ -59,7 +59,7 @@ delta-pack generate schema.yml -l rust > src/generated.rs
 
 ### 3. Use the Generated Types
 
-```rust
+```rust,ignore
 use crate::generated::{User, Address, HairColor};
 
 fn main() {
@@ -178,7 +178,7 @@ TreeNode:
 
 ## Binary Format
 
-```
+```text
 [data section][RLE section][numRleBits: reverse varint]
 ```
 
@@ -214,7 +214,7 @@ Decode performance is allocation-bound. Using mimalloc instead of the system all
 mimalloc = "0.1"
 ```
 
-```rust
+```rust,ignore
 // main.rs
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
