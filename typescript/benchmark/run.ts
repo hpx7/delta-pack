@@ -34,7 +34,12 @@ interface ProtobufType {
   decode: (data: Uint8Array) => unknown;
 }
 
-export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]) {
+export interface BenchmarkChartData {
+  encodeGroups: ChartGroup[];
+  decodeGroups: ChartGroup[];
+}
+
+export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]): BenchmarkChartData | undefined {
   const deltaPack =
     mode === "codegen"
       ? (deltapackGenerated as Record<string, DeltaPackApi<unknown>>)
@@ -62,7 +67,7 @@ export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]
 
   console.log("## Encoding Speed Comparison (ops/s)\n");
   console.log("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
-  runBenchmarksForExamples(examples, (state) => ({
+  const encodeGroups = runBenchmarksForExamples(examples, (state) => ({
     JSON: () => textEncoder.encode(JSON.stringify(state.jsonInput)),
     MessagePack: () => msgpack.pack(state.jsonInput),
     Protobuf: () => state.protobufApi.encode(state.protobufInput).finish(),
@@ -71,12 +76,14 @@ export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]
 
   console.log("\n## Decoding Speed Comparison (ops/s)\n");
   console.log("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
-  runBenchmarksForExamples(examples, (state) => ({
+  const decodeGroups = runBenchmarksForExamples(examples, (state) => ({
     JSON: () => JSON.parse(textDecoder.decode(state.jsonEncoded)),
     MessagePack: () => msgpack.unpack(state.msgpackEncoded),
     Protobuf: () => state.protobufApi.decode(state.protobufEncoded),
     DeltaPack: () => state.deltaPackApi.decode(state.deltaPackEncoded),
   }));
+
+  return { encodeGroups, decodeGroups };
 }
 
 function globalWarmup(examples: Example[]) {
@@ -100,7 +107,12 @@ function globalWarmup(examples: Example[]) {
   }
 }
 
-function runBenchmarksForExamples(examples: Example[], getActions: (state: StateData) => Record<string, () => void>) {
+function runBenchmarksForExamples(
+  examples: Example[],
+  getActions: (state: StateData) => Record<string, () => void>
+): ChartGroup[] {
+  const groups: ChartGroup[] = [];
+
   for (const example of examples) {
     console.log(`### ${example.name}\n`);
 
@@ -113,7 +125,20 @@ function runBenchmarksForExamples(examples: Example[], getActions: (state: State
 
     printTable(example.states.length, results);
     console.log();
+
+    for (let i = 0; i < example.states.length; i++) {
+      groups.push({
+        label: `${example.name} State${i + 1}`,
+        bars: Object.entries(results).map(([name, ops]) => ({
+          label: name,
+          value: ops[i]!,
+          color: FORMAT_COLORS[name] ?? "#999999",
+        })),
+      });
+    }
   }
+
+  return groups;
 }
 
 function measureOpsPerSecond(action: () => void): number {
@@ -168,6 +193,89 @@ function formatOps(ops: number): string {
   if (ops >= 1_000_000) return `${(ops / 1_000_000).toFixed(1)}M`;
   if (ops >= 1_000) return `${(ops / 1_000).toFixed(1)}K`;
   return ops.toFixed(0);
+}
+
+const FORMAT_COLORS: Record<string, string> = {
+  JSON: "#f59e0b",
+  MessagePack: "#8b5cf6",
+  Protobuf: "#3b82f6",
+  DeltaPack: "#10b981",
+};
+
+export interface ChartGroup {
+  label: string;
+  bars: { label: string; value: number; color: string }[];
+}
+
+function escapeXml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+export function generateBarChartSvg(title: string, groups: ChartGroup[]): string {
+  const width = 680;
+  const labelWidth = 130;
+  const valueWidth = 70;
+  const barAreaWidth = width - labelWidth - valueWidth - 24;
+  const barHeight = 20;
+  const barGap = 4;
+  const groupHeaderHeight = 24;
+  const groupGap = 16;
+  const titleHeight = 40;
+  const bottomPadding = 12;
+
+  let height = titleHeight;
+  for (const group of groups) {
+    height += groupHeaderHeight;
+    height += group.bars.length * (barHeight + barGap) - barGap;
+    height += groupGap;
+  }
+  height += bottomPadding;
+
+  const lines: string[] = [];
+  lines.push(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`
+  );
+  lines.push(`  <style>`);
+  lines.push(`    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }`);
+  lines.push(`  </style>`);
+  lines.push(`  <rect width="${width}" height="${height}" fill="white" rx="8"/>`);
+
+  lines.push(
+    `  <text x="${width / 2}" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#111827">${escapeXml(title)}</text>`
+  );
+
+  let y = titleHeight;
+
+  for (const group of groups) {
+    lines.push(
+      `  <text x="12" y="${y + 16}" font-size="13" font-weight="600" fill="#374151">${escapeXml(group.label)}</text>`
+    );
+    y += groupHeaderHeight;
+
+    const maxValue = Math.max(...group.bars.map((b) => b.value));
+
+    for (const bar of group.bars) {
+      const barW = maxValue > 0 ? (bar.value / maxValue) * barAreaWidth : 0;
+
+      lines.push(
+        `  <text x="${labelWidth - 4}" y="${y + 14}" text-anchor="end" font-size="11" fill="#6b7280">${escapeXml(bar.label)}</text>`
+      );
+
+      lines.push(
+        `  <rect x="${labelWidth}" y="${y}" width="${Math.max(barW, 2)}" height="${barHeight}" fill="${bar.color}" rx="3"/>`
+      );
+
+      lines.push(
+        `  <text x="${labelWidth + barW + 6}" y="${y + 14}" font-size="11" fill="#374151" font-weight="500">${formatOps(bar.value)}</text>`
+      );
+
+      y += barHeight + barGap;
+    }
+    y += groupGap - barGap;
+  }
+
+  lines.push(`</svg>`);
+  return lines.join("\n");
 }
 
 function loadExamples(

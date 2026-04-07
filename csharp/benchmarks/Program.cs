@@ -57,15 +57,23 @@ public class Program
 
         Console.WriteLine("## Encoding Speed Comparison (ops/s)\n");
         Console.WriteLine("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
-        RunEncodeBenchmarks(examples);
+        var encodeGroups = RunEncodeBenchmarks(examples);
 
         Console.WriteLine("\n## Decoding Speed Comparison (ops/s)\n");
         Console.WriteLine("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
-        RunDecodeBenchmarks(examples);
+        var decodeGroups = RunDecodeBenchmarks(examples);
+
+        var chartsDir = Path.Combine("benchmarks", "charts");
+        Directory.CreateDirectory(chartsDir);
+        File.WriteAllText(Path.Combine(chartsDir, "encode.svg"), GenerateBarChartSvg("Encoding Speed (ops/s)", encodeGroups));
+        File.WriteAllText(Path.Combine(chartsDir, "decode.svg"), GenerateBarChartSvg("Decoding Speed (ops/s)", decodeGroups));
+        Console.WriteLine("\nCharts written to benchmarks/charts/encode.svg and benchmarks/charts/decode.svg");
     }
 
-    static void RunEncodeBenchmarks(List<Example> examples)
+    static List<ChartGroup> RunEncodeBenchmarks(List<Example> examples)
     {
+        var groups = new List<ChartGroup>();
+
         foreach (var example in examples)
         {
             Console.WriteLine($"### {example.Name}\n");
@@ -101,11 +109,17 @@ public class Program
 
             PrintTable(example.States.Count, results);
             Console.WriteLine();
+
+            CollectChartGroups(groups, example.Name, example.States.Count, results);
         }
+
+        return groups;
     }
 
-    static void RunDecodeBenchmarks(List<Example> examples)
+    static List<ChartGroup> RunDecodeBenchmarks(List<Example> examples)
     {
+        var groups = new List<ChartGroup>();
+
         foreach (var example in examples)
         {
             Console.WriteLine($"### {example.Name}\n");
@@ -141,7 +155,11 @@ public class Program
 
             PrintTable(example.States.Count, results);
             Console.WriteLine();
+
+            CollectChartGroups(groups, example.Name, example.States.Count, results);
         }
+
+        return groups;
     }
 
     static void Warmup(Action action)
@@ -214,6 +232,87 @@ public class Program
         if (ops >= 1_000)
             return $"{ops / 1_000:F1}K";
         return $"{ops:F0}";
+    }
+
+    static void CollectChartGroups(List<ChartGroup> groups, string exampleName, int stateCount, Dictionary<string, List<double>> results)
+    {
+        for (int i = 0; i < stateCount; i++)
+        {
+            var bars = new List<ChartBar>();
+            foreach (var (format, ops) in results)
+            {
+                bars.Add(new ChartBar(format, ops[i], FormatColors.GetValueOrDefault(format, "#999999")));
+            }
+            groups.Add(new ChartGroup($"{exampleName} State{i + 1}", bars));
+        }
+    }
+
+    static readonly Dictionary<string, string> FormatColors = new()
+    {
+        ["JSON"] = "#f59e0b",
+        ["MessagePack"] = "#8b5cf6",
+        ["Protobuf"] = "#3b82f6",
+        ["DeltaPack"] = "#10b981",
+    };
+
+    static string EscapeXml(string s) =>
+        s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+    static string GenerateBarChartSvg(string title, List<ChartGroup> groups)
+    {
+        const int width = 680;
+        const int labelWidth = 130;
+        const int valueWidth = 70;
+        const int barAreaWidth = width - labelWidth - valueWidth - 24;
+        const int barHeight = 20;
+        const int barGap = 4;
+        const int groupHeaderHeight = 24;
+        const int groupGap = 16;
+        const int titleHeight = 40;
+        const int bottomPadding = 12;
+
+        int height = titleHeight;
+        foreach (var group in groups)
+        {
+            height += groupHeaderHeight;
+            height += group.Bars.Count * (barHeight + barGap) - barGap;
+            height += groupGap;
+        }
+        height += bottomPadding;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width}\" height=\"{height}\" viewBox=\"0 0 {width} {height}\">");
+        sb.AppendLine("  <style>");
+        sb.AppendLine("    text { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; }");
+        sb.AppendLine("  </style>");
+        sb.AppendLine($"  <rect width=\"{width}\" height=\"{height}\" fill=\"white\" rx=\"8\"/>");
+
+        sb.AppendLine($"  <text x=\"{width / 2}\" y=\"28\" text-anchor=\"middle\" font-size=\"15\" font-weight=\"bold\" fill=\"#111827\">{EscapeXml(title)}</text>");
+
+        int y = titleHeight;
+
+        foreach (var group in groups)
+        {
+            sb.AppendLine($"  <text x=\"12\" y=\"{y + 16}\" font-size=\"13\" font-weight=\"600\" fill=\"#374151\">{EscapeXml(group.Label)}</text>");
+            y += groupHeaderHeight;
+
+            double maxValue = group.Bars.Max(b => b.Value);
+
+            foreach (var bar in group.Bars)
+            {
+                double barW = maxValue > 0 ? (bar.Value / maxValue) * barAreaWidth : 0;
+
+                sb.AppendLine($"  <text x=\"{labelWidth - 4}\" y=\"{y + 14}\" text-anchor=\"end\" font-size=\"11\" fill=\"#6b7280\">{EscapeXml(bar.Label)}</text>");
+                sb.AppendLine($"  <rect x=\"{labelWidth}\" y=\"{y}\" width=\"{Math.Max(barW, 2):F0}\" height=\"{barHeight}\" fill=\"{bar.Color}\" rx=\"3\"/>");
+                sb.AppendLine($"  <text x=\"{labelWidth + barW + 6:F0}\" y=\"{y + 14}\" font-size=\"11\" fill=\"#374151\" font-weight=\"500\">{FormatOps(bar.Value)}</text>");
+
+                y += barHeight + barGap;
+            }
+            y += groupGap - barGap;
+        }
+
+        sb.AppendLine("</svg>");
+        return sb.ToString();
     }
 
     static Dictionary<string, DeltaPackOps> CreateCodegenOps()
@@ -393,3 +492,6 @@ record DeltaPackOps(
     Func<object?, byte[]> Encode,
     Func<byte[], object?> Decode,
     Func<object?, object?, bool> AreEqual);
+
+record ChartBar(string Label, double Value, string Color);
+record ChartGroup(string Label, List<ChartBar> Bars);

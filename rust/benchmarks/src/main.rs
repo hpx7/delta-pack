@@ -46,11 +46,25 @@ fn main() {
 
     println!("\n## Encoding Speed Comparison (ops/s)\n");
     println!("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
-    run_encode_benchmarks(&examples);
+    let encode_groups = run_encode_benchmarks(&examples);
 
     println!("\n## Decoding Speed Comparison (ops/s)\n");
     println!("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
-    run_decode_benchmarks(&examples);
+    let decode_groups = run_decode_benchmarks(&examples);
+
+    let charts_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("charts");
+    fs::create_dir_all(&charts_dir).unwrap();
+    fs::write(
+        charts_dir.join("encode.svg"),
+        generate_bar_chart_svg("Encoding Speed (ops/s)", &encode_groups),
+    )
+    .unwrap();
+    fs::write(
+        charts_dir.join("decode.svg"),
+        generate_bar_chart_svg("Decoding Speed (ops/s)", &decode_groups),
+    )
+    .unwrap();
+    println!("\nCharts written to benchmarks/charts/encode.svg and benchmarks/charts/decode.svg");
 }
 
 fn global_warmup(examples: &[Example]) {
@@ -72,7 +86,9 @@ fn global_warmup(examples: &[Example]) {
     }
 }
 
-fn run_encode_benchmarks(examples: &[Example]) {
+fn run_encode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
+    let mut groups = Vec::new();
+
     for example in examples {
         println!("### {}\n", example.name);
 
@@ -111,10 +127,15 @@ fn run_encode_benchmarks(examples: &[Example]) {
 
         print_table(example.states.len(), &results);
         println!();
+        collect_chart_groups(&mut groups, &example.name, example.states.len(), &results);
     }
+
+    groups
 }
 
-fn run_decode_benchmarks(examples: &[Example]) {
+fn run_decode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
+    let mut groups = Vec::new();
+
     for example in examples {
         println!("### {}\n", example.name);
 
@@ -153,7 +174,10 @@ fn run_decode_benchmarks(examples: &[Example]) {
 
         print_table(example.states.len(), &results);
         println!();
+        collect_chart_groups(&mut groups, &example.name, example.states.len(), &results);
     }
+
+    groups
 }
 
 fn measure_ops_per_second<F: FnMut()>(mut action: F) -> f64 {
@@ -188,9 +212,8 @@ fn print_table(state_count: usize, results: &HashMap<&str, Vec<f64>>) {
     }
 
     // Build rows (in consistent order)
-    let format_order = ["JSON", "MessagePack", "DeltaPack"];
     let mut rows: Vec<Vec<String>> = Vec::new();
-    for format in format_order {
+    for format in FORMAT_ORDER {
         if let Some(ops) = results.get(format) {
             let mut row = vec![format.to_string()];
             for i in 0..state_count {
@@ -240,6 +263,155 @@ fn format_ops(ops: f64) -> String {
     } else {
         format!("{:.0}", ops)
     }
+}
+
+// ============ Chart Generation ============
+
+const FORMAT_ORDER: &[&str] = &["JSON", "MessagePack", "DeltaPack"];
+
+fn collect_chart_groups(
+    groups: &mut Vec<ChartGroup>,
+    example_name: &str,
+    state_count: usize,
+    results: &HashMap<&str, Vec<f64>>,
+) {
+    for i in 0..state_count {
+        let bars: Vec<ChartBar> = FORMAT_ORDER
+            .iter()
+            .filter_map(|&name| {
+                results.get(name).map(|ops| ChartBar {
+                    label: name.to_string(),
+                    value: ops[i],
+                    color: format_color(name).to_string(),
+                })
+            })
+            .collect();
+        groups.push(ChartGroup {
+            label: format!("{} State{}", example_name, i + 1),
+            bars,
+        });
+    }
+}
+
+fn format_color(name: &str) -> &'static str {
+    match name {
+        "JSON" => "#f59e0b",
+        "MessagePack" => "#8b5cf6",
+        "Protobuf" => "#3b82f6",
+        "DeltaPack" => "#10b981",
+        _ => "#999999",
+    }
+}
+
+struct ChartBar {
+    label: String,
+    value: f64,
+    color: String,
+}
+
+struct ChartGroup {
+    label: String,
+    bars: Vec<ChartBar>,
+}
+
+fn escape_xml(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+fn generate_bar_chart_svg(title: &str, groups: &[ChartGroup]) -> String {
+    let width = 680;
+    let label_width = 130;
+    let value_width = 70;
+    let bar_area_width = width - label_width - value_width - 24;
+    let bar_height = 20;
+    let bar_gap = 4;
+    let group_header_height = 24;
+    let group_gap = 16;
+    let title_height = 40;
+    let bottom_padding = 12;
+
+    let mut height = title_height;
+    for group in groups {
+        height += group_header_height;
+        height += group.bars.len() as i32 * (bar_height + bar_gap) - bar_gap;
+        height += group_gap;
+    }
+    height += bottom_padding;
+
+    let mut lines = Vec::new();
+    lines.push(format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\">",
+        width, height, width, height
+    ));
+    lines.push("  <style>".to_string());
+    lines.push(
+        "    text { font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif; }"
+            .to_string(),
+    );
+    lines.push("  </style>".to_string());
+    lines.push(format!(
+        "  <rect width=\"{}\" height=\"{}\" fill=\"white\" rx=\"8\"/>",
+        width, height
+    ));
+
+    lines.push(format!(
+        "  <text x=\"{}\" y=\"28\" text-anchor=\"middle\" font-size=\"15\" font-weight=\"bold\" fill=\"#111827\">{}</text>",
+        width / 2,
+        escape_xml(title)
+    ));
+
+    let mut y = title_height;
+
+    for group in groups {
+        lines.push(format!(
+            "  <text x=\"12\" y=\"{}\" font-size=\"13\" font-weight=\"600\" fill=\"#374151\">{}</text>",
+            y + 16,
+            escape_xml(&group.label)
+        ));
+        y += group_header_height;
+
+        let max_value = group.bars.iter().map(|b| b.value).fold(0.0f64, f64::max);
+
+        for bar in &group.bars {
+            let bar_w = if max_value > 0.0 {
+                (bar.value / max_value) * bar_area_width as f64
+            } else {
+                0.0
+            };
+
+            lines.push(format!(
+                "  <text x=\"{}\" y=\"{}\" text-anchor=\"end\" font-size=\"11\" fill=\"#6b7280\">{}</text>",
+                label_width - 4,
+                y + 14,
+                escape_xml(&bar.label)
+            ));
+
+            lines.push(format!(
+                "  <rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\" rx=\"3\"/>",
+                label_width,
+                y,
+                f64::max(bar_w, 2.0) as i32,
+                bar_height,
+                bar.color
+            ));
+
+            lines.push(format!(
+                "  <text x=\"{}\" y=\"{}\" font-size=\"11\" fill=\"#374151\" font-weight=\"500\">{}</text>",
+                label_width as f64 + bar_w + 6.0,
+                y + 14,
+                format_ops(bar.value)
+            ));
+
+            y += bar_height + bar_gap;
+        }
+        y += group_gap - bar_gap;
+    }
+
+    lines.push("</svg>".to_string());
+    lines.join("\n")
 }
 
 // ============ Example Loading ============
