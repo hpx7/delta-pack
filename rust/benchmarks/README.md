@@ -1,6 +1,6 @@
 # Rust Performance Benchmarks
 
-Performance comparison of DeltaPack against serde_json and rmp-serde (MessagePack).
+Performance comparison of DeltaPack against serde_json, rmp-serde (MessagePack), and prost (Protobuf).
 
 ## Running
 

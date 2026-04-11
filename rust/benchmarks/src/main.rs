@@ -7,6 +7,27 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 mod generated;
 
+#[allow(warnings)]
+mod protobuf {
+    pub mod primitives {
+        include!(concat!(env!("OUT_DIR"), "/primitives.rs"));
+        include!(concat!(env!("OUT_DIR"), "/primitives.serde.rs"));
+    }
+    pub mod test {
+        include!(concat!(env!("OUT_DIR"), "/test.rs"));
+        include!(concat!(env!("OUT_DIR"), "/test.serde.rs"));
+    }
+    pub mod user {
+        include!(concat!(env!("OUT_DIR"), "/user.rs"));
+        include!(concat!(env!("OUT_DIR"), "/user.serde.rs"));
+    }
+    pub mod gamestate {
+        include!(concat!(env!("OUT_DIR"), "/gamestate.rs"));
+        include!(concat!(env!("OUT_DIR"), "/gamestate.serde.rs"));
+    }
+}
+
+use prost::Message;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -74,12 +95,14 @@ fn global_warmup(examples: &[Example]) {
             for _ in 0..WARMUP_ITERATIONS {
                 let _ = serde_json::to_vec(&state.json_value);
                 let _ = rmp_serde::to_vec(&state.json_value);
+                let _ = (state.protobuf_encode)();
                 let _ = (state.deltapack_encode)();
             }
             // Warmup decode
             for _ in 0..WARMUP_ITERATIONS {
                 let _: serde_json::Value = serde_json::from_slice(&state.json_encoded).unwrap();
                 let _: serde_json::Value = rmp_serde::from_slice(&state.msgpack_encoded).unwrap();
+                let _ = (state.protobuf_decode)();
                 let _ = (state.deltapack_decode)();
             }
         }
@@ -95,6 +118,7 @@ fn run_encode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
         let mut results: HashMap<&str, Vec<f64>> = HashMap::new();
         results.insert("JSON", Vec::new());
         results.insert("MessagePack", Vec::new());
+        results.insert("Protobuf", Vec::new());
         results.insert("DeltaPack", Vec::new());
 
         for state in &example.states {
@@ -113,6 +137,15 @@ fn run_encode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
                 .unwrap()
                 .push(measure_ops_per_second(|| {
                     let _ = rmp_serde::to_vec(&json_value);
+                }));
+        }
+        for state in &example.states {
+            let encode_fn = &state.protobuf_encode;
+            results
+                .get_mut("Protobuf")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = encode_fn();
                 }));
         }
         for state in &example.states {
@@ -142,6 +175,7 @@ fn run_decode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
         let mut results: HashMap<&str, Vec<f64>> = HashMap::new();
         results.insert("JSON", Vec::new());
         results.insert("MessagePack", Vec::new());
+        results.insert("Protobuf", Vec::new());
         results.insert("DeltaPack", Vec::new());
 
         for state in &example.states {
@@ -160,6 +194,15 @@ fn run_decode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
                 .unwrap()
                 .push(measure_ops_per_second(|| {
                     let _: serde_json::Value = rmp_serde::from_slice(&msgpack_encoded).unwrap();
+                }));
+        }
+        for state in &example.states {
+            let decode_fn = &state.protobuf_decode;
+            results
+                .get_mut("Protobuf")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = decode_fn();
                 }));
         }
         for state in &example.states {
@@ -267,7 +310,7 @@ fn format_ops(ops: f64) -> String {
 
 // ============ Chart Generation ============
 
-const FORMAT_ORDER: &[&str] = &["JSON", "MessagePack", "DeltaPack"];
+const FORMAT_ORDER: &[&str] = &["JSON", "MessagePack", "Protobuf", "DeltaPack"];
 
 fn collect_chart_groups(
     groups: &mut Vec<ChartGroup>,
@@ -427,6 +470,8 @@ struct StateData {
     msgpack_encoded: Vec<u8>,
     deltapack_encode: Box<dyn Fn() -> Vec<u8>>,
     deltapack_decode: Box<dyn Fn()>,
+    protobuf_encode: Box<dyn Fn() -> Vec<u8>>,
+    protobuf_decode: Box<dyn Fn()>,
 }
 
 fn load_examples(examples_dir: &PathBuf) -> Vec<Example> {
@@ -509,14 +554,26 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
-            // Verify round-trip
+            // Verify DeltaPack round-trip
             let decoded = Primitives::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for Primitives"
             );
 
+            // Verify Protobuf round-trip
+            let proto: protobuf::primitives::Primitives = serde_json::from_str(&json).unwrap();
+            let proto_encoded = proto.encode_to_vec();
+            let proto_decoded =
+                protobuf::primitives::Primitives::decode(proto_encoded.as_slice()).unwrap();
+            assert_eq!(
+                proto, proto_decoded,
+                "Protobuf round-trip failed for Primitives"
+            );
+
             let typed_clone = typed.clone();
+            let proto_clone = proto;
+            let proto_encoded_for_decode = proto_encoded;
             StateData {
                 json_value,
                 json_encoded,
@@ -524,6 +581,11 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
                     Primitives::decode(&deltapack_encoded);
+                }),
+                protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
+                protobuf_decode: Box::new(move || {
+                    protobuf::primitives::Primitives::decode(proto_encoded_for_decode.as_slice())
+                        .unwrap();
                 }),
             }
         })
@@ -552,14 +614,22 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
-            // Verify round-trip
+            // Verify DeltaPack round-trip
             let decoded = Test::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for Test"
             );
 
+            // Verify Protobuf round-trip
+            let proto: protobuf::test::Test = serde_json::from_str(&json).unwrap();
+            let proto_encoded = proto.encode_to_vec();
+            let proto_decoded = protobuf::test::Test::decode(proto_encoded.as_slice()).unwrap();
+            assert_eq!(proto, proto_decoded, "Protobuf round-trip failed for Test");
+
             let typed_clone = typed.clone();
+            let proto_clone = proto;
+            let proto_encoded_for_decode = proto_encoded;
             StateData {
                 json_value,
                 json_encoded,
@@ -567,6 +637,10 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
                     Test::decode(&deltapack_encoded);
+                }),
+                protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
+                protobuf_decode: Box::new(move || {
+                    protobuf::test::Test::decode(proto_encoded_for_decode.as_slice()).unwrap();
                 }),
             }
         })
@@ -595,14 +669,22 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
-            // Verify round-trip
+            // Verify DeltaPack round-trip
             let decoded = User::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for User"
             );
 
+            // Verify Protobuf round-trip
+            let proto: protobuf::user::User = serde_json::from_str(&json).unwrap();
+            let proto_encoded = proto.encode_to_vec();
+            let proto_decoded = protobuf::user::User::decode(proto_encoded.as_slice()).unwrap();
+            assert_eq!(proto, proto_decoded, "Protobuf round-trip failed for User");
+
             let typed_clone = typed.clone();
+            let proto_clone = proto;
+            let proto_encoded_for_decode = proto_encoded;
             StateData {
                 json_value,
                 json_encoded,
@@ -610,6 +692,10 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
                     User::decode(&deltapack_encoded);
+                }),
+                protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
+                protobuf_decode: Box::new(move || {
+                    protobuf::user::User::decode(proto_encoded_for_decode.as_slice()).unwrap();
                 }),
             }
         })
@@ -638,14 +724,26 @@ fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
-            // Verify round-trip
+            // Verify DeltaPack round-trip
             let decoded = GameState::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for GameState"
             );
 
+            // Verify Protobuf round-trip
+            let proto: protobuf::gamestate::GameState = serde_json::from_str(&json).unwrap();
+            let proto_encoded = proto.encode_to_vec();
+            let proto_decoded =
+                protobuf::gamestate::GameState::decode(proto_encoded.as_slice()).unwrap();
+            assert_eq!(
+                proto, proto_decoded,
+                "Protobuf round-trip failed for GameState"
+            );
+
             let typed_clone = typed.clone();
+            let proto_clone = proto;
+            let proto_encoded_for_decode = proto_encoded;
             StateData {
                 json_value,
                 json_encoded,
@@ -653,6 +751,11 @@ fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
                     GameState::decode(&deltapack_encoded);
+                }),
+                protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
+                protobuf_decode: Box::new(move || {
+                    protobuf::gamestate::GameState::decode(proto_encoded_for_decode.as_slice())
+                        .unwrap();
                 }),
             }
         })
