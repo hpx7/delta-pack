@@ -453,6 +453,21 @@ ${decodeDiffNewCases}
 
 // ============ Type Helpers ============
 
+// Cast `expr - min` into a u32 for bit-packed enum encoding.
+function intBitOffsetRs(expr: string, min: number): string {
+  if (min === 0) return `${expr} as u32`;
+  const minExpr = min < 0 ? `(${min})` : `${min}`;
+  return `(${expr} - ${minExpr}) as u32`;
+}
+
+// Cast a bit-packed enum decode result back to the storage type and re-add min.
+function intBitDecodeRs(decodeExpr: string, min: number, isSigned: boolean): string {
+  const target = isSigned ? "i64" : "u64";
+  if (min === 0) return `${decodeExpr} as ${target}`;
+  const minExpr = min < 0 ? `(${min})` : `${min}`;
+  return `${decodeExpr} as ${target} + ${minExpr}`;
+}
+
 // Types that handle their own change bit in diff encoding
 function hasOwnChangeBit(type: Type): boolean {
   if (type.type === "boolean") return true;
@@ -614,6 +629,9 @@ function renderEncodeCallback(ctx: GeneratorContext, type: Type): string {
     case "string":
       return `|enc, item| enc.push_string(item)`;
     case "int":
+      if (type.numBits != null) {
+        return `|enc, &item| enc.push_enum(${intBitOffsetRs("item", type.min!)}, ${type.numBits})`;
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `|enc, &item| enc.push_uint(item)`
@@ -658,6 +676,9 @@ function renderEncode(ctx: GeneratorContext, type: Type, key: string): string {
     case "string":
       return `encoder.push_string(&${key})`;
     case "int":
+      if (type.numBits != null) {
+        return `encoder.push_enum(${intBitOffsetRs(key, type.min!)}, ${type.numBits})`;
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `encoder.push_uint(${key})`
@@ -704,6 +725,10 @@ function renderDecodeCallback(ctx: GeneratorContext, type: Type): string {
     case "string":
       return `|dec| dec.next_string()`;
     case "int":
+      if (type.numBits != null) {
+        const signed = type.min! < 0;
+        return `|dec| ${intBitDecodeRs(`dec.next_enum(${type.numBits})`, type.min!, signed)}`;
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `|dec| dec.next_uint()`
@@ -750,6 +775,11 @@ function renderEncodeDiffCallback(ctx: GeneratorContext, type: Type): string {
     case "string":
       return `|enc, a, b| enc.push_string_diff(a, b)`;
     case "int":
+      if (type.numBits != null) {
+        const aOff = intBitOffsetRs("a", type.min!);
+        const bOff = intBitOffsetRs("b", type.min!);
+        return `|enc, &a, &b| enc.push_enum_diff(${aOff}, ${bOff}, ${type.numBits})`;
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `|enc, &a, &b| enc.push_uint_diff(a, b)`
@@ -807,6 +837,11 @@ function renderDecodeDiffCallback(ctx: GeneratorContext, type: Type): string {
     case "string":
       return `|dec, a| dec.next_string_diff(a)`;
     case "int":
+      if (type.numBits != null) {
+        const signed = type.min! < 0;
+        const aOff = intBitOffsetRs("a", type.min!);
+        return `|dec, &a| ${intBitDecodeRs(`dec.next_enum_diff(${aOff}, ${type.numBits})`, type.min!, signed)}`;
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `|dec, &a| dec.next_uint_diff(a)`
@@ -898,6 +933,10 @@ function renderDecode(ctx: GeneratorContext, type: Type): string {
     case "string":
       return `decoder.next_string()`;
     case "int":
+      if (type.numBits != null) {
+        const signed = type.min! < 0;
+        return intBitDecodeRs(`decoder.next_enum(${type.numBits})`, type.min!, signed);
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `decoder.next_uint()`
@@ -948,6 +987,9 @@ function renderEncodeDiff(
     case "string":
       return `encoder.push_string_diff(&${a}, &${b})`;
     case "int":
+      if (type.numBits != null) {
+        return `encoder.push_enum_diff(${intBitOffsetRs(a, type.min!)}, ${intBitOffsetRs(b, type.min!)}, ${type.numBits})`;
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `encoder.push_uint_diff(${a}, ${b})`
@@ -1002,6 +1044,14 @@ function renderDecodeDiff(
     case "string":
       return `decoder.next_string_diff(&${key})`;
     case "int":
+      if (type.numBits != null) {
+        const signed = type.min! < 0;
+        return intBitDecodeRs(
+          `decoder.next_enum_diff(${intBitOffsetRs(key, type.min!)}, ${type.numBits})`,
+          type.min!,
+          signed,
+        );
+      }
       if (type.min != null && type.min >= 0) {
         return type.min === 0
           ? `decoder.next_uint_diff(${key})`

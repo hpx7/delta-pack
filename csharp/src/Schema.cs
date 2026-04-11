@@ -6,7 +6,18 @@ public abstract record SchemaType;
 
 // Primitive types
 public sealed record StringType : SchemaType;
-public sealed record IntType(long? Min = null, long? Max = null) : SchemaType;
+public sealed record IntType(long? Min = null, long? Max = null) : SchemaType
+{
+    public int? NumBits { get; } = ComputeNumBits(Min, Max);
+
+    private static int? ComputeNumBits(long? min, long? max)
+    {
+        if (min == null || max == null) return null;
+        var range = max.Value - min.Value + 1;
+        var bits = range <= 1 ? 1 : (int)Math.Ceiling(Math.Log(range, 2));
+        return bits <= 8 ? bits : null;
+    }
+}
 public sealed record FloatType(double? Precision = null) : SchemaType;
 public sealed record BooleanType : SchemaType;
 public sealed record EnumType(IReadOnlyList<string> Options) : SchemaType

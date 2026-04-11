@@ -4,6 +4,7 @@ export type Primitives = {
   stringField: string;
   signedIntField: number;
   unsignedIntField: number;
+  boundedIntField: number;
   floatField: number;
   booleanField: boolean;
 };
@@ -15,6 +16,7 @@ export const Primitives = {
       stringField: "",
       signedIntField: 0,
       unsignedIntField: 0,
+      boundedIntField: 0,
       floatField: 0.0,
       booleanField: false,
     };
@@ -28,6 +30,7 @@ export const Primitives = {
       stringField: _.tryParseField(() => _.parseString(o["stringField"]), "Primitives.stringField"),
       signedIntField: _.tryParseField(() => _.parseInt(o["signedIntField"]), "Primitives.signedIntField"),
       unsignedIntField: _.tryParseField(() => _.parseInt(o["unsignedIntField"], 0), "Primitives.unsignedIntField"),
+      boundedIntField: _.tryParseField(() => _.parseInt(o["boundedIntField"], -10, 10), "Primitives.boundedIntField"),
       floatField: _.tryParseField(() => _.parseFloat(o["floatField"]), "Primitives.floatField"),
       booleanField: _.tryParseField(() => _.parseBoolean(o["booleanField"]), "Primitives.booleanField"),
     };
@@ -37,6 +40,7 @@ export const Primitives = {
     result["stringField"] = obj.stringField;
     result["signedIntField"] = obj.signedIntField;
     result["unsignedIntField"] = obj.unsignedIntField;
+    result["boundedIntField"] = obj.boundedIntField;
     result["floatField"] = obj.floatField;
     result["booleanField"] = obj.booleanField;
     return result;
@@ -51,6 +55,7 @@ export const Primitives = {
       stringField: obj.stringField,
       signedIntField: obj.signedIntField,
       unsignedIntField: obj.unsignedIntField,
+      boundedIntField: obj.boundedIntField,
       floatField: obj.floatField,
       booleanField: obj.booleanField,
     };
@@ -60,6 +65,7 @@ export const Primitives = {
       a.stringField === b.stringField &&
       a.signedIntField === b.signedIntField &&
       a.unsignedIntField === b.unsignedIntField &&
+      a.boundedIntField === b.boundedIntField &&
       _.equalsFloat(a.floatField, b.floatField) &&
       a.booleanField === b.booleanField
     );
@@ -73,6 +79,7 @@ export const Primitives = {
     encoder.pushString(obj.stringField);
     encoder.pushInt(obj.signedIntField);
     encoder.pushBoundedInt(obj.unsignedIntField, 0);
+    encoder.pushEnum((obj.boundedIntField - -10), 5);
     encoder.pushFloat(obj.floatField);
     encoder.pushBoolean(obj.booleanField);
   },
@@ -106,6 +113,13 @@ export const Primitives = {
     encoder.pushFieldDiff(
       a,
       b,
+      "boundedIntField",
+      (x, y) => x === y,
+      (x, y) => encoder.pushEnumDiff((x - -10), (y - -10), 5),
+    );
+    encoder.pushFieldDiff(
+      a,
+      b,
       "floatField",
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
@@ -120,6 +134,7 @@ export const Primitives = {
       stringField: decoder.nextString(),
       signedIntField: decoder.nextInt(),
       unsignedIntField: decoder.nextBoundedInt(0),
+      boundedIntField: (decoder.nextEnum(5) + -10),
       floatField: decoder.nextFloat(),
       booleanField: decoder.nextBoolean(),
     };
@@ -141,6 +156,10 @@ export const Primitives = {
       unsignedIntField: decoder.nextFieldDiff(
         obj.unsignedIntField,
         (x) => decoder.nextBoundedIntDiff(x, 0),
+      ),
+      boundedIntField: decoder.nextFieldDiff(
+        obj.boundedIntField,
+        (x) => (decoder.nextEnumDiff((x - -10), 5) + -10),
       ),
       floatField: decoder.nextFieldDiff(
         obj.floatField,

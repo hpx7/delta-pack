@@ -13,6 +13,8 @@ pub struct Primitives {
     pub signed_int_field: i64,
     #[serde(rename = "unsignedIntField")]
     pub unsigned_int_field: u64,
+    #[serde(rename = "boundedIntField")]
+    pub bounded_int_field: i64,
     #[serde(rename = "floatField")]
     pub float_field: f32,
     #[serde(rename = "booleanField")]
@@ -25,6 +27,7 @@ impl Default for Primitives {
             string_field: String::new(),
             signed_int_field: 0,
             unsigned_int_field: 0,
+            bounded_int_field: 0,
             float_field: 0.0,
             boolean_field: false,
         }
@@ -36,6 +39,7 @@ impl Primitives {
         self.string_field == other.string_field
             && self.signed_int_field == other.signed_int_field
             && self.unsigned_int_field == other.unsigned_int_field
+            && self.bounded_int_field == other.bounded_int_field
             && delta_pack::equals_float(self.float_field, other.float_field)
             && self.boolean_field == other.boolean_field
     }
@@ -51,6 +55,7 @@ impl Primitives {
         encoder.push_string(&self.string_field);
         encoder.push_int(self.signed_int_field);
         encoder.push_uint(self.unsigned_int_field);
+        encoder.push_enum((self.bounded_int_field - (-10)) as u32, 5);
         encoder.push_float(self.float_field);
         encoder.push_boolean(self.boolean_field);
     }
@@ -89,6 +94,12 @@ impl Primitives {
             |enc, &a, &b| enc.push_uint_diff(a, b),
         );
         encoder.push_field_diff(
+            &a.bounded_int_field,
+            &b.bounded_int_field,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_enum_diff((a - (-10)) as u32, (b - (-10)) as u32, 5),
+        );
+        encoder.push_field_diff(
             &a.float_field,
             &b.float_field,
             |x, y| delta_pack::equals_float(*x, *y),
@@ -106,6 +117,7 @@ impl Primitives {
             string_field: decoder.next_string(),
             signed_int_field: decoder.next_int(),
             unsigned_int_field: decoder.next_uint(),
+            bounded_int_field: decoder.next_enum(5) as i64 + (-10),
             float_field: decoder.next_float(),
             boolean_field: decoder.next_boolean(),
         }
@@ -125,6 +137,9 @@ impl Primitives {
                 .next_field_diff(&obj.signed_int_field, |dec, &a| dec.next_int_diff(a)),
             unsigned_int_field: decoder
                 .next_field_diff(&obj.unsigned_int_field, |dec, &a| dec.next_uint_diff(a)),
+            bounded_int_field: decoder.next_field_diff(&obj.bounded_int_field, |dec, &a| {
+                dec.next_enum_diff((a - (-10)) as u32, 5) as i64 + (-10)
+            }),
             float_field: decoder
                 .next_field_diff(&obj.float_field, |dec, &a| dec.next_float_diff(a)),
             boolean_field: decoder.next_boolean_diff(obj.boolean_field),

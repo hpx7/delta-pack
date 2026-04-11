@@ -123,6 +123,9 @@ class JitCompiler {
       case "string":
         return `encoder.pushString(${expr});`;
       case "int":
+        if (type.numBits != null) {
+          return `encoder.pushEnum(${this.intOffset(expr, type.min!)}, ${type.numBits});`;
+        }
         if (type.min != null && type.min >= 0) {
           return `encoder.pushBoundedInt(${expr}, ${type.min});`;
         }
@@ -181,6 +184,10 @@ class JitCompiler {
       case "string":
         return `decoder.nextString()`;
       case "int":
+        if (type.numBits != null) {
+          const e = `decoder.nextEnum(${type.numBits})`;
+          return type.min === 0 ? e : `(${e} + ${type.min})`;
+        }
         if (type.min != null && type.min >= 0) {
           return `decoder.nextBoundedInt(${type.min})`;
         }
@@ -318,6 +325,9 @@ class JitCompiler {
       case "string":
         return `encoder.pushStringDiff(${a}, ${b})`;
       case "int":
+        if (type.numBits != null) {
+          return `encoder.pushEnumDiff(${this.intOffset(a, type.min!)}, ${this.intOffset(b, type.min!)}, ${type.numBits})`;
+        }
         if (type.min != null && type.min >= 0) {
           return `encoder.pushBoundedIntDiff(${a}, ${b}, ${type.min})`;
         }
@@ -423,6 +433,10 @@ class JitCompiler {
       case "string":
         return `decoder.nextStringDiff(${a})`;
       case "int":
+        if (type.numBits != null) {
+          const e = `decoder.nextEnumDiff(${this.intOffset(a, type.min!)}, ${type.numBits})`;
+          return type.min === 0 ? e : `(${e} + ${type.min})`;
+        }
         if (type.min != null && type.min >= 0) {
           return `decoder.nextBoundedIntDiff(${a}, ${type.min})`;
         }
@@ -481,6 +495,10 @@ class JitCompiler {
 
   private nextVar(prefix = "v"): string {
     return `${prefix}${this.varCounter++}`;
+  }
+
+  private intOffset(expr: string, min: number): string {
+    return min === 0 ? expr : `(${expr} - ${min})`;
   }
 
   private getEnumRef(options: readonly string[]): string {

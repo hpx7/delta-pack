@@ -25,6 +25,7 @@ export const primitives = $root.primitives = (() => {
          * @property {string|null} [stringField] Primitives stringField
          * @property {number|null} [signedIntField] Primitives signedIntField
          * @property {number|null} [unsignedIntField] Primitives unsignedIntField
+         * @property {number|null} [boundedIntField] Primitives boundedIntField
          * @property {number|null} [floatField] Primitives floatField
          * @property {boolean|null} [booleanField] Primitives booleanField
          */
@@ -67,6 +68,14 @@ export const primitives = $root.primitives = (() => {
          * @instance
          */
         Primitives.prototype.unsignedIntField = 0;
+
+        /**
+         * Primitives boundedIntField.
+         * @member {number} boundedIntField
+         * @memberof primitives.Primitives
+         * @instance
+         */
+        Primitives.prototype.boundedIntField = 0;
 
         /**
          * Primitives floatField.
@@ -114,10 +123,12 @@ export const primitives = $root.primitives = (() => {
                 writer.uint32(/* id 2, wireType 0 =*/16).sint32(message.signedIntField);
             if (message.unsignedIntField != null && Object.hasOwnProperty.call(message, "unsignedIntField"))
                 writer.uint32(/* id 3, wireType 0 =*/24).uint32(message.unsignedIntField);
+            if (message.boundedIntField != null && Object.hasOwnProperty.call(message, "boundedIntField"))
+                writer.uint32(/* id 4, wireType 0 =*/32).sint32(message.boundedIntField);
             if (message.floatField != null && Object.hasOwnProperty.call(message, "floatField"))
-                writer.uint32(/* id 4, wireType 5 =*/37).float(message.floatField);
+                writer.uint32(/* id 5, wireType 5 =*/45).float(message.floatField);
             if (message.booleanField != null && Object.hasOwnProperty.call(message, "booleanField"))
-                writer.uint32(/* id 5, wireType 0 =*/40).bool(message.booleanField);
+                writer.uint32(/* id 6, wireType 0 =*/48).bool(message.booleanField);
             return writer;
         };
 
@@ -167,10 +178,14 @@ export const primitives = $root.primitives = (() => {
                         break;
                     }
                 case 4: {
-                        message.floatField = reader.float();
+                        message.boundedIntField = reader.sint32();
                         break;
                     }
                 case 5: {
+                        message.floatField = reader.float();
+                        break;
+                    }
+                case 6: {
                         message.booleanField = reader.bool();
                         break;
                     }
@@ -218,6 +233,9 @@ export const primitives = $root.primitives = (() => {
             if (message.unsignedIntField != null && message.hasOwnProperty("unsignedIntField"))
                 if (!$util.isInteger(message.unsignedIntField))
                     return "unsignedIntField: integer expected";
+            if (message.boundedIntField != null && message.hasOwnProperty("boundedIntField"))
+                if (!$util.isInteger(message.boundedIntField))
+                    return "boundedIntField: integer expected";
             if (message.floatField != null && message.hasOwnProperty("floatField"))
                 if (typeof message.floatField !== "number")
                     return "floatField: number expected";
@@ -245,6 +263,8 @@ export const primitives = $root.primitives = (() => {
                 message.signedIntField = object.signedIntField | 0;
             if (object.unsignedIntField != null)
                 message.unsignedIntField = object.unsignedIntField >>> 0;
+            if (object.boundedIntField != null)
+                message.boundedIntField = object.boundedIntField | 0;
             if (object.floatField != null)
                 message.floatField = Number(object.floatField);
             if (object.booleanField != null)
@@ -269,6 +289,7 @@ export const primitives = $root.primitives = (() => {
                 object.stringField = "";
                 object.signedIntField = 0;
                 object.unsignedIntField = 0;
+                object.boundedIntField = 0;
                 object.floatField = 0;
                 object.booleanField = false;
             }
@@ -278,6 +299,8 @@ export const primitives = $root.primitives = (() => {
                 object.signedIntField = message.signedIntField;
             if (message.unsignedIntField != null && message.hasOwnProperty("unsignedIntField"))
                 object.unsignedIntField = message.unsignedIntField;
+            if (message.boundedIntField != null && message.hasOwnProperty("boundedIntField"))
+                object.boundedIntField = message.boundedIntField;
             if (message.floatField != null && message.hasOwnProperty("floatField"))
                 object.floatField = options.json && !isFinite(message.floatField) ? String(message.floatField) : message.floatField;
             if (message.booleanField != null && message.hasOwnProperty("booleanField"))

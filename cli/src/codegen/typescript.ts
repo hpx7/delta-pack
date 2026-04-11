@@ -516,6 +516,10 @@ function renderEquals(
   }
 }
 
+function intOffset(expr: string, min: number): string {
+  return min === 0 ? expr : `(${expr} - ${min})`;
+}
+
 function renderEncode(
   ctx: GeneratorContext,
   type: Type,
@@ -526,6 +530,9 @@ function renderEncode(
     case "string":
       return `encoder.pushString(${key})`;
     case "int":
+      if (type.numBits != null) {
+        return `encoder.pushEnum(${intOffset(key, type.min!)}, ${type.numBits})`;
+      }
       return type.min != null && type.min >= 0
         ? `encoder.pushBoundedInt(${key}, ${type.min})`
         : `encoder.pushInt(${key})`;
@@ -557,6 +564,10 @@ function renderDecode(ctx: GeneratorContext, type: Type, name: string): string {
     case "string":
       return `decoder.nextString()`;
     case "int":
+      if (type.numBits != null) {
+        const e = `decoder.nextEnum(${type.numBits})`;
+        return type.min === 0 ? e : `(${e} + ${type.min})`;
+      }
       return type.min != null && type.min >= 0
         ? `decoder.nextBoundedInt(${type.min})`
         : `decoder.nextInt()`;
@@ -630,6 +641,9 @@ function renderEncodeDiff(
     case "string":
       return `encoder.pushStringDiff(${a}, ${b})`;
     case "int":
+      if (type.numBits != null) {
+        return `encoder.pushEnumDiff(${intOffset(a, type.min!)}, ${intOffset(b, type.min!)}, ${type.numBits})`;
+      }
       return type.min != null && type.min >= 0
         ? `encoder.pushBoundedIntDiff(${a}, ${b}, ${type.min})`
         : `encoder.pushIntDiff(${a}, ${b})`;
@@ -729,6 +743,10 @@ function renderDecodeDiff(
     case "string":
       return `decoder.nextStringDiff(${key})`;
     case "int":
+      if (type.numBits != null) {
+        const e = `decoder.nextEnumDiff(${intOffset(key, type.min!)}, ${type.numBits})`;
+        return type.min === 0 ? e : `(${e} + ${type.min})`;
+      }
       return type.min != null && type.min >= 0
         ? `decoder.nextBoundedIntDiff(${key}, ${type.min})`
         : `decoder.nextIntDiff(${key})`;

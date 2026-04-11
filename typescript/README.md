@@ -988,7 +988,7 @@ Each example includes:
 | `FloatType({ precision })` | `number`        | Quantized float with specified precision    |
 | `BooleanType()`            | `boolean`       | Single bit boolean                          |
 
-**Bounded integers:** When `min` is specified, values are encoded as `value - min` using unsigned varints, which is more compact for values near the minimum. The `max` parameter adds validation in `fromJson()` but doesn't affect encoding.
+**Bounded integers:** When `min` is specified, values are encoded as `value - min` using unsigned varints, which is more compact for values near the minimum. When both `min` and `max` are specified and the range fits in 8 bits (≤ 256 values), values are bit-packed using the minimum number of bits needed (`ceil(log2(range))`). The `max` parameter also adds validation in `fromJson()`.
 
 ### Container Types
 

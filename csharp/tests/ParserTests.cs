@@ -426,4 +426,29 @@ Test:
         var ex = Assert.Throws<ArgumentException>(() => Parser.ParseSchemaYml(yaml));
         Assert.Contains("valid identifier", ex.Message);
     }
+
+    [Fact]
+    public void ParsesUintWithMaxParameter()
+    {
+        var yaml = @"
+Test:
+  byteValue: uint(max=255)
+  smallValue: uint(max=15)
+  withMin: uint(min=1, max=100)
+";
+        var schema = Parser.ParseSchemaYml(yaml);
+        var test = (ObjectType)schema["Test"];
+
+        var byteValue = (IntType)test.Properties["byteValue"];
+        Assert.Equal(0L, byteValue.Min);
+        Assert.Equal(255L, byteValue.Max);
+
+        var smallValue = (IntType)test.Properties["smallValue"];
+        Assert.Equal(0L, smallValue.Min);
+        Assert.Equal(15L, smallValue.Max);
+
+        var withMin = (IntType)test.Properties["withMin"];
+        Assert.Equal(1L, withMin.Min);
+        Assert.Equal(100L, withMin.Max);
+    }
 }

@@ -292,4 +292,119 @@ public class InterpreterTests
         Assert.Equal("Alicia", scores[1L]);
         Assert.Equal("Charlie", scores[3L]);
     }
+
+    [Fact]
+    public void BitPackedInt_EncodeDecodeRoundTrip()
+    {
+        var schema = new Props
+        {
+            ["BitPacked"] = new ObjectType(new Props
+            {
+                ["smallZero"] = new IntType(0, 7),
+                ["smallByte"] = new IntType(0, 255),
+                ["withOffset"] = new IntType(1, 100),
+                ["signed"] = new IntType(-10, 10),
+                ["single"] = new IntType(42, 42),
+                ["unbounded"] = new IntType()
+            })
+        };
+        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "BitPacked");
+
+        var a = new Dictionary<string, object?>
+        {
+            ["smallZero"] = 5L,
+            ["smallByte"] = 200L,
+            ["withOffset"] = 1L,
+            ["signed"] = -7L,
+            ["single"] = 42L,
+            ["unbounded"] = -1000L
+        };
+
+        var encoded = api.Encode(a);
+        var decoded = api.Decode(encoded);
+
+        Assert.Equal(5L, decoded["smallZero"]);
+        Assert.Equal(200L, decoded["smallByte"]);
+        Assert.Equal(1L, decoded["withOffset"]);
+        Assert.Equal(-7L, decoded["signed"]);
+        Assert.Equal(42L, decoded["single"]);
+        Assert.Equal(-1000L, decoded["unbounded"]);
+    }
+
+    [Fact]
+    public void BitPackedInt_DiffRoundTrip()
+    {
+        var schema = new Props
+        {
+            ["BitPacked"] = new ObjectType(new Props
+            {
+                ["smallZero"] = new IntType(0, 7),
+                ["signed"] = new IntType(-10, 10),
+                ["withOffset"] = new IntType(1, 100)
+            })
+        };
+        var api = Interpreter.Load<Dictionary<string, object?>>(schema, "BitPacked");
+
+        var a = new Dictionary<string, object?>
+        {
+            ["smallZero"] = 5L,
+            ["signed"] = -7L,
+            ["withOffset"] = 50L
+        };
+        var b = new Dictionary<string, object?>
+        {
+            ["smallZero"] = 0L,
+            ["signed"] = 10L,
+            ["withOffset"] = 100L
+        };
+
+        var diff = api.EncodeDiff(a, b);
+        var decoded = api.DecodeDiff(a, diff);
+
+        Assert.Equal(0L, decoded["smallZero"]);
+        Assert.Equal(10L, decoded["signed"]);
+        Assert.Equal(100L, decoded["withOffset"]);
+    }
+
+    [Fact]
+    public void BitPackedInt_ProducesSmallerOutputThanBoundedVarint()
+    {
+        var packedSchema = new Props
+        {
+            ["P"] = new ObjectType(new Props
+            {
+                ["a"] = new IntType(0, 255),
+                ["b"] = new IntType(0, 255),
+                ["c"] = new IntType(0, 255),
+                ["d"] = new IntType(0, 255)
+            })
+        };
+        var unpackedSchema = new Props
+        {
+            ["P"] = new ObjectType(new Props
+            {
+                ["a"] = new IntType(Min: 0),
+                ["b"] = new IntType(Min: 0),
+                ["c"] = new IntType(Min: 0),
+                ["d"] = new IntType(Min: 0)
+            })
+        };
+
+        var packedApi = Interpreter.Load<Dictionary<string, object?>>(packedSchema, "P");
+        var unpackedApi = Interpreter.Load<Dictionary<string, object?>>(unpackedSchema, "P");
+
+        var value = new Dictionary<string, object?>
+        {
+            ["a"] = 200L,
+            ["b"] = 201L,
+            ["c"] = 202L,
+            ["d"] = 203L
+        };
+
+        var packedBytes = packedApi.Encode(value);
+        var unpackedBytes = unpackedApi.Encode(value);
+
+        Assert.True(packedBytes.Length < unpackedBytes.Length,
+            $"packed={packedBytes.Length} should be less than unpacked={unpackedBytes.Length}");
+    }
 }

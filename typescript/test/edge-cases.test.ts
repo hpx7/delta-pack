@@ -97,6 +97,96 @@ describe("Edge Cases - Boundary Values", () => {
     });
   });
 
+  describe("Bit-packed Integers", () => {
+    it("should compute numBits when range fits in 8 bits", () => {
+      expect(IntType({ min: 0, max: 7 }).numBits).toBe(3);
+      expect(IntType({ min: 0, max: 255 }).numBits).toBe(8);
+      expect(IntType({ min: -10, max: 10 }).numBits).toBe(5);
+      expect(IntType({ min: 1, max: 100 }).numBits).toBe(7);
+      expect(IntType({ min: 42, max: 42 }).numBits).toBe(1);
+    });
+
+    it("should skip numBits when range exceeds 8 bits", () => {
+      expect(IntType({ min: 0, max: 256 }).numBits).toBeUndefined();
+      expect(IntType({ min: 0, max: 500 }).numBits).toBeUndefined();
+    });
+
+    it("should skip numBits when min or max is missing", () => {
+      expect(IntType().numBits).toBeUndefined();
+      expect(IntType({ min: 0 }).numBits).toBeUndefined();
+      expect(IntType({ max: 100 }).numBits).toBeUndefined();
+    });
+
+    it("should round-trip bit-packed values across full and diff paths", () => {
+      const BitPacked = ObjectType("BitPacked", {
+        smallZero: IntType({ min: 0, max: 7 }),
+        smallByte: IntType({ min: 0, max: 255 }),
+        withOffset: IntType({ min: 1, max: 100 }),
+        signed: IntType({ min: -10, max: 10 }),
+        single: IntType({ min: 42, max: 42 }),
+        unbounded: IntType(),
+      });
+      type BitPacked = Infer<typeof BitPacked>;
+      const api = load(BitPacked);
+
+      const a: BitPacked = {
+        smallZero: 5,
+        smallByte: 200,
+        withOffset: 1,
+        signed: -7,
+        single: 42,
+        unbounded: -1000,
+      };
+      const b: BitPacked = {
+        smallZero: 0,
+        smallByte: 255,
+        withOffset: 100,
+        signed: 10,
+        single: 42,
+        unbounded: 1000,
+      };
+
+      // Full round-trip
+      expect(api.decode(api.encode(a))).toEqual(a);
+      expect(api.decode(api.encode(b))).toEqual(b);
+
+      // Diff round-trip
+      const diff = api.encodeDiff(a, b);
+      expect(api.decodeDiff(a, diff)).toEqual(b);
+
+      // No-change diff
+      const sameDiff = api.encodeDiff(a, a);
+      expect(api.decodeDiff(a, sameDiff)).toEqual(a);
+    });
+
+    it("should produce smaller encodings than bounded varint for packed values", () => {
+      const Packed = ObjectType("Packed", {
+        a: IntType({ min: 0, max: 255 }),
+        b: IntType({ min: 0, max: 255 }),
+        c: IntType({ min: 0, max: 255 }),
+        d: IntType({ min: 0, max: 255 }),
+      });
+      type Packed = Infer<typeof Packed>;
+
+      const Unpacked = ObjectType("Unpacked", {
+        a: IntType({ min: 0 }),
+        b: IntType({ min: 0 }),
+        c: IntType({ min: 0 }),
+        d: IntType({ min: 0 }),
+      });
+      type Unpacked = Infer<typeof Unpacked>;
+
+      const value = { a: 200, b: 201, c: 202, d: 203 };
+      const packedApi = load(Packed);
+      const unpackedApi = load(Unpacked);
+
+      const packedBytes = packedApi.encode(value);
+      const unpackedBytes = unpackedApi.encode(value);
+
+      expect(packedBytes.length).toBeLessThan(unpackedBytes.length);
+    });
+  });
+
   describe("Float Edge Cases", () => {
     const FloatEdges = ObjectType("FloatEdges", {
       zero: FloatType(),

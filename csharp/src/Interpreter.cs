@@ -130,7 +130,9 @@ public static class Interpreter
 
                 case IntType it:
                     var intVal = Convert.ToInt64(obj);
-                    if (it.Min.HasValue && it.Min.Value >= 0)
+                    if (it.NumBits.HasValue)
+                        encoder.PushEnum((int)(intVal - it.Min!.Value), it.NumBits.Value);
+                    else if (it.Min.HasValue && it.Min.Value >= 0)
                         encoder.PushBoundedInt(intVal, it.Min.Value);
                     else
                         encoder.PushInt(intVal);
@@ -201,7 +203,11 @@ public static class Interpreter
             return type switch
             {
                 StringType => decoder.NextString(),
-                IntType it => it.Min.HasValue && it.Min.Value >= 0 ? decoder.NextBoundedInt(it.Min.Value) : decoder.NextInt(),
+                IntType it => it.NumBits.HasValue
+                    ? (long)decoder.NextEnum(it.NumBits.Value) + it.Min!.Value
+                    : it.Min.HasValue && it.Min.Value >= 0
+                        ? decoder.NextBoundedInt(it.Min.Value)
+                        : decoder.NextInt(),
                 FloatType ft => ft.Precision.HasValue
                     ? decoder.NextFloatQuantized((float)ft.Precision.Value)
                     : decoder.NextFloat(),
@@ -379,7 +385,9 @@ public static class Interpreter
                 case IntType it:
                     var intA = Convert.ToInt64(a);
                     var intB = Convert.ToInt64(b);
-                    if (it.Min.HasValue && it.Min.Value >= 0)
+                    if (it.NumBits.HasValue)
+                        encoder.PushEnumDiff((int)(intA - it.Min!.Value), (int)(intB - it.Min.Value), it.NumBits.Value);
+                    else if (it.Min.HasValue && it.Min.Value >= 0)
                         encoder.PushBoundedIntDiff(intA, intB, it.Min.Value);
                     else
                         encoder.PushIntDiff(intA, intB);
@@ -540,9 +548,11 @@ public static class Interpreter
             return type switch
             {
                 StringType => decoder.NextStringDiff((string)a!),
-                IntType it => it.Min.HasValue && it.Min.Value >= 0
-                    ? decoder.NextBoundedIntDiff(Convert.ToInt64(a), it.Min.Value)
-                    : decoder.NextIntDiff(Convert.ToInt64(a)),
+                IntType it => it.NumBits.HasValue
+                    ? (long)decoder.NextEnumDiff((int)(Convert.ToInt64(a) - it.Min!.Value), it.NumBits.Value) + it.Min.Value
+                    : it.Min.HasValue && it.Min.Value >= 0
+                        ? decoder.NextBoundedIntDiff(Convert.ToInt64(a), it.Min.Value)
+                        : decoder.NextIntDiff(Convert.ToInt64(a)),
                 FloatType ft => ft.Precision.HasValue
                     ? decoder.NextFloatQuantizedDiff(Convert.ToSingle(a), (float)ft.Precision.Value)
                     : decoder.NextFloatDiff(Convert.ToSingle(a)),

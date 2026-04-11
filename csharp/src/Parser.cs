@@ -83,7 +83,18 @@ public static class Parser
             return new StringType();
 
         if (str.StartsWith("uint"))
-            return new IntType(Min: 0);
+        {
+            if (str == "uint")
+                return new IntType(Min: 0);
+            var parameters = ParseParams(str, "uint");
+            var min = parameters.TryGetValue("min", out var minStr)
+                ? long.Parse(minStr)
+                : 0L;
+            var max = parameters.TryGetValue("max", out var maxStr)
+                ? long.Parse(maxStr)
+                : (long?)null;
+            return new IntType(min, max);
+        }
 
         if (str.StartsWith("int"))
         {
@@ -139,6 +150,7 @@ public static class Parser
         {
             "float" => FloatParamRegex,
             "int" => IntParamRegex,
+            "uint" => UintParamRegex,
             _ => throw new ArgumentException($"Unknown parameterized type: {typeName}")
         };
         var match = regex.Match(value);
@@ -166,4 +178,5 @@ public static class Parser
 
     private static readonly Regex FloatParamRegex = new(@"^float\((.+)\)$", RegexOptions.Compiled);
     private static readonly Regex IntParamRegex = new(@"^int\((.+)\)$", RegexOptions.Compiled);
+    private static readonly Regex UintParamRegex = new(@"^uint\((.+)\)$", RegexOptions.Compiled);
 }

@@ -71,17 +71,17 @@
   <text x="142.8049544844053" y="678" font-size="11" fill="#374151" font-weight="500">100B</text>
   <text x="12" y="716" font-size="13" font-weight="600" fill="#374151">Primitives State1→2</text>
   <text x="126" y="738" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="724" width="186.3225806451613" height="20" fill="#f59e0b" rx="3"/>
-  <text x="322.32258064516134" y="738" font-size="11" fill="#374151" font-weight="500">114B</text>
+  <rect x="130" y="724" width="184.86486486486487" height="20" fill="#f59e0b" rx="3"/>
+  <text x="320.8648648648649" y="738" font-size="11" fill="#374151" font-weight="500">135B</text>
   <text x="126" y="762" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
   <rect x="130" y="748" width="456" height="20" fill="#ef4444" rx="3"/>
-  <text x="592" y="762" font-size="11" fill="#374151" font-weight="500">279B</text>
+  <text x="592" y="762" font-size="11" fill="#374151" font-weight="500">333B</text>
   <text x="126" y="786" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="772" width="37.59139784946237" height="20" fill="#3b82f6" rx="3"/>
-  <text x="173.59139784946237" y="786" font-size="11" fill="#374151" font-weight="500">23B</text>
+  <rect x="130" y="772" width="31.495495495495494" height="20" fill="#3b82f6" rx="3"/>
+  <text x="167.4954954954955" y="786" font-size="11" fill="#374151" font-weight="500">23B</text>
   <text x="126" y="810" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="796" width="37.59139784946237" height="20" fill="#10b981" rx="3"/>
-  <text x="173.59139784946237" y="810" font-size="11" fill="#374151" font-weight="500">23B</text>
+  <rect x="130" y="796" width="32.86486486486486" height="20" fill="#10b981" rx="3"/>
+  <text x="168.86486486486487" y="810" font-size="11" fill="#374151" font-weight="500">24B</text>
   <text x="12" y="848" font-size="13" font-weight="600" fill="#374151">User State1→2</text>
   <text x="126" y="870" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="856" width="364.2758620689655" height="20" fill="#f59e0b" rx="3"/>

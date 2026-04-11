@@ -35,6 +35,7 @@ export interface IntType {
   type: "int";
   min?: number;
   max?: number;
+  numBits?: number;
 }
 
 export interface FloatType {
@@ -222,6 +223,11 @@ export function IntType(options?: { min?: number | string; max?: number | string
   const type: IntType = { type: "int" };
   if (min != null) type.min = min;
   if (max != null) type.max = max;
+  if (min != null && max != null) {
+    const range = max - min + 1;
+    const bits = range <= 1 ? 1 : Math.ceil(Math.log2(range));
+    if (bits <= 8) type.numBits = bits;
+  }
 
   return createUnifiedType(type);
 }

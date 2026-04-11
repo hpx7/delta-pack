@@ -24,14 +24,15 @@ namespace Primitives {
     static SchemaReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgxzY2hlbWEucHJvdG8SCnByaW1pdGl2ZXMifQoKUHJpbWl0aXZlcxITCgtz",
-            "dHJpbmdGaWVsZBgBIAEoCRIWCg5zaWduZWRJbnRGaWVsZBgCIAEoERIYChB1",
-            "bnNpZ25lZEludEZpZWxkGAMgASgNEhIKCmZsb2F0RmllbGQYBCABKAISFAoM",
-            "Ym9vbGVhbkZpZWxkGAUgASgIYgZwcm90bzM="));
+            "CgxzY2hlbWEucHJvdG8SCnByaW1pdGl2ZXMilgEKClByaW1pdGl2ZXMSEwoL",
+            "c3RyaW5nRmllbGQYASABKAkSFgoOc2lnbmVkSW50RmllbGQYAiABKBESGAoQ",
+            "dW5zaWduZWRJbnRGaWVsZBgDIAEoDRIXCg9ib3VuZGVkSW50RmllbGQYBCAB",
+            "KBESEgoKZmxvYXRGaWVsZBgFIAEoAhIUCgxib29sZWFuRmllbGQYBiABKAhi",
+            "BnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Primitives.Primitives), global::Primitives.Primitives.Parser, new[]{ "StringField", "SignedIntField", "UnsignedIntField", "FloatField", "BooleanField" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Primitives.Primitives), global::Primitives.Primitives.Parser, new[]{ "StringField", "SignedIntField", "UnsignedIntField", "BoundedIntField", "FloatField", "BooleanField" }, null, null, null, null)
           }));
     }
     #endregion
@@ -76,6 +77,7 @@ namespace Primitives {
       stringField_ = other.stringField_;
       signedIntField_ = other.signedIntField_;
       unsignedIntField_ = other.unsignedIntField_;
+      boundedIntField_ = other.boundedIntField_;
       floatField_ = other.floatField_;
       booleanField_ = other.booleanField_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
@@ -123,8 +125,20 @@ namespace Primitives {
       }
     }
 
+    /// <summary>Field number for the "boundedIntField" field.</summary>
+    public const int BoundedIntFieldFieldNumber = 4;
+    private int boundedIntField_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int BoundedIntField {
+      get { return boundedIntField_; }
+      set {
+        boundedIntField_ = value;
+      }
+    }
+
     /// <summary>Field number for the "floatField" field.</summary>
-    public const int FloatFieldFieldNumber = 4;
+    public const int FloatFieldFieldNumber = 5;
     private float floatField_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -136,7 +150,7 @@ namespace Primitives {
     }
 
     /// <summary>Field number for the "booleanField" field.</summary>
-    public const int BooleanFieldFieldNumber = 5;
+    public const int BooleanFieldFieldNumber = 6;
     private bool booleanField_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
@@ -165,6 +179,7 @@ namespace Primitives {
       if (StringField != other.StringField) return false;
       if (SignedIntField != other.SignedIntField) return false;
       if (UnsignedIntField != other.UnsignedIntField) return false;
+      if (BoundedIntField != other.BoundedIntField) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(FloatField, other.FloatField)) return false;
       if (BooleanField != other.BooleanField) return false;
       return Equals(_unknownFields, other._unknownFields);
@@ -177,6 +192,7 @@ namespace Primitives {
       if (StringField.Length != 0) hash ^= StringField.GetHashCode();
       if (SignedIntField != 0) hash ^= SignedIntField.GetHashCode();
       if (UnsignedIntField != 0) hash ^= UnsignedIntField.GetHashCode();
+      if (BoundedIntField != 0) hash ^= BoundedIntField.GetHashCode();
       if (FloatField != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(FloatField);
       if (BooleanField != false) hash ^= BooleanField.GetHashCode();
       if (_unknownFields != null) {
@@ -209,12 +225,16 @@ namespace Primitives {
         output.WriteRawTag(24);
         output.WriteUInt32(UnsignedIntField);
       }
+      if (BoundedIntField != 0) {
+        output.WriteRawTag(32);
+        output.WriteSInt32(BoundedIntField);
+      }
       if (FloatField != 0F) {
-        output.WriteRawTag(37);
+        output.WriteRawTag(45);
         output.WriteFloat(FloatField);
       }
       if (BooleanField != false) {
-        output.WriteRawTag(40);
+        output.WriteRawTag(48);
         output.WriteBool(BooleanField);
       }
       if (_unknownFields != null) {
@@ -239,12 +259,16 @@ namespace Primitives {
         output.WriteRawTag(24);
         output.WriteUInt32(UnsignedIntField);
       }
+      if (BoundedIntField != 0) {
+        output.WriteRawTag(32);
+        output.WriteSInt32(BoundedIntField);
+      }
       if (FloatField != 0F) {
-        output.WriteRawTag(37);
+        output.WriteRawTag(45);
         output.WriteFloat(FloatField);
       }
       if (BooleanField != false) {
-        output.WriteRawTag(40);
+        output.WriteRawTag(48);
         output.WriteBool(BooleanField);
       }
       if (_unknownFields != null) {
@@ -265,6 +289,9 @@ namespace Primitives {
       }
       if (UnsignedIntField != 0) {
         size += 1 + pb::CodedOutputStream.ComputeUInt32Size(UnsignedIntField);
+      }
+      if (BoundedIntField != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeSInt32Size(BoundedIntField);
       }
       if (FloatField != 0F) {
         size += 1 + 4;
@@ -292,6 +319,9 @@ namespace Primitives {
       }
       if (other.UnsignedIntField != 0) {
         UnsignedIntField = other.UnsignedIntField;
+      }
+      if (other.BoundedIntField != 0) {
+        BoundedIntField = other.BoundedIntField;
       }
       if (other.FloatField != 0F) {
         FloatField = other.FloatField;
@@ -330,11 +360,15 @@ namespace Primitives {
             UnsignedIntField = input.ReadUInt32();
             break;
           }
-          case 37: {
+          case 32: {
+            BoundedIntField = input.ReadSInt32();
+            break;
+          }
+          case 45: {
             FloatField = input.ReadFloat();
             break;
           }
-          case 40: {
+          case 48: {
             BooleanField = input.ReadBool();
             break;
           }
@@ -369,11 +403,15 @@ namespace Primitives {
             UnsignedIntField = input.ReadUInt32();
             break;
           }
-          case 37: {
+          case 32: {
+            BoundedIntField = input.ReadSInt32();
+            break;
+          }
+          case 45: {
             FloatField = input.ReadFloat();
             break;
           }
-          case 40: {
+          case 48: {
             BooleanField = input.ReadBool();
             break;
           }

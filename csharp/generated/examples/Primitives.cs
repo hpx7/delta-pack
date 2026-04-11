@@ -8,6 +8,7 @@ namespace Generated.Examples
         public string StringField { get; set; } = "";
         public long SignedIntField { get; set; }
         public long UnsignedIntField { get; set; }
+        public long BoundedIntField { get; set; }
         public float FloatField { get; set; }
         public bool BooleanField { get; set; }
 
@@ -20,6 +21,7 @@ namespace Generated.Examples
                 StringField = DeltaPack.JsonHelpers.ParseString(json.GetProperty("stringField")),
                 SignedIntField = json.GetProperty("signedIntField").GetInt64(),
                 UnsignedIntField = json.GetProperty("unsignedIntField").GetInt64(),
+                BoundedIntField = json.GetProperty("boundedIntField").GetInt64(),
                 FloatField = json.GetProperty("floatField").GetSingle(),
                 BooleanField = DeltaPack.JsonHelpers.ParseBoolean(json.GetProperty("booleanField")),
             };
@@ -31,6 +33,7 @@ namespace Generated.Examples
             result["stringField"] = obj.StringField;
             result["signedIntField"] = obj.SignedIntField;
             result["unsignedIntField"] = obj.UnsignedIntField;
+            result["boundedIntField"] = obj.BoundedIntField;
             result["floatField"] = obj.FloatField;
             result["booleanField"] = obj.BooleanField;
             return result;
@@ -43,6 +46,7 @@ namespace Generated.Examples
                 StringField = obj.StringField,
                 SignedIntField = obj.SignedIntField,
                 UnsignedIntField = obj.UnsignedIntField,
+                BoundedIntField = obj.BoundedIntField,
                 FloatField = obj.FloatField,
                 BooleanField = obj.BooleanField,
             };
@@ -53,6 +57,7 @@ namespace Generated.Examples
             return a.StringField == b.StringField &&
                 a.SignedIntField == b.SignedIntField &&
                 a.UnsignedIntField == b.UnsignedIntField &&
+                a.BoundedIntField == b.BoundedIntField &&
                 DeltaPack.EqualityHelpers.EqualsFloat(a.FloatField, b.FloatField) &&
                 a.BooleanField == b.BooleanField;
         }
@@ -69,6 +74,7 @@ namespace Generated.Examples
             encoder.PushString(obj.StringField);
             encoder.PushInt(obj.SignedIntField);
             encoder.PushBoundedInt(obj.UnsignedIntField, 0);
+            encoder.PushEnum((int)(obj.BoundedIntField - -10), 5);
             encoder.PushFloat(obj.FloatField);
             encoder.PushBoolean(obj.BooleanField);
         }
@@ -85,6 +91,7 @@ namespace Generated.Examples
             encoder.PushFieldDiff<string>(a.StringField, b.StringField, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
             encoder.PushFieldDiff<long>(a.SignedIntField, b.SignedIntField, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
             encoder.PushFieldDiff<long>(a.UnsignedIntField, b.UnsignedIntField, (x, y) => x == y, (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
+            encoder.PushFieldDiff<long>(a.BoundedIntField, b.BoundedIntField, (x, y) => x == y, (x, y) => encoder.PushEnumDiff((int)(x - -10), (int)(y - -10), 5));
             encoder.PushFieldDiff<float>(a.FloatField, b.FloatField, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
             encoder.PushBooleanDiff(a.BooleanField, b.BooleanField);
         }
@@ -102,6 +109,7 @@ namespace Generated.Examples
                 StringField = decoder.NextString(),
                 SignedIntField = decoder.NextInt(),
                 UnsignedIntField = decoder.NextBoundedInt(0),
+                BoundedIntField = (long)decoder.NextEnum(5) + -10,
                 FloatField = decoder.NextFloat(),
                 BooleanField = decoder.NextBoolean(),
             };
@@ -120,6 +128,7 @@ namespace Generated.Examples
                 StringField = decoder.NextFieldDiff(obj.StringField, x => decoder.NextStringDiff(x)),
                 SignedIntField = decoder.NextFieldDiff(obj.SignedIntField, x => decoder.NextIntDiff(x)),
                 UnsignedIntField = decoder.NextFieldDiff(obj.UnsignedIntField, x => decoder.NextBoundedIntDiff(x, 0)),
+                BoundedIntField = decoder.NextFieldDiff(obj.BoundedIntField, x => (long)decoder.NextEnumDiff((int)(x - -10), 5) + -10),
                 FloatField = decoder.NextFieldDiff(obj.FloatField, x => decoder.NextFloatDiff(x)),
                 BooleanField = decoder.NextBooleanDiff(obj.BooleanField),
             };

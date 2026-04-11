@@ -4,5 +4,6 @@ Primitives:
   stringField: string
   signedIntField: int
   unsignedIntField: uint
+  boundedIntField: int(min=-10, max=10)
   floatField: float
   booleanField: boolean

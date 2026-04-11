@@ -10,7 +10,7 @@
         {
           "type": "string",
           "description": "Type alias or field type definition",
-          "pattern": "^(<(string|int|uint), ?[a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*|(string|int|uint|float|boolean)(\\([a-zA-Z_]+=[0-9.]+\\))?((\\[\\])|(\\?))*|[A-Z][a-zA-Z0-9]*((\\[\\])|(\\?))*)$"
+          "pattern": "^(<(string|int|uint), ?[a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*|(string|int|uint|float|boolean)(\\([a-zA-Z_]+=-?[0-9.]+(, ?[a-zA-Z_]+=-?[0-9.]+)*\\))?((\\[\\])|(\\?))*|[A-Z][a-zA-Z0-9]*((\\[\\])|(\\?))*)$"
         },
         {
           "type": "array",
@@ -29,7 +29,7 @@
             "^[a-z][a-zA-Z0-9]*$": {
               "type": "string",
               "description": "Field type (primitive, reference, array, optional, or record)",
-              "pattern": "^(<(string|int|uint), ?[a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*|(string|int|uint|float|boolean)(\\([a-zA-Z_]+=[0-9.]+\\))?((\\[\\])|(\\?))*|[A-Z][a-zA-Z0-9]*((\\[\\])|(\\?))*)$"
+              "pattern": "^(<(string|int|uint), ?[a-zA-Z0-9\\[\\]\\?]+>((\\[\\])|(\\?))*|(string|int|uint|float|boolean)(\\([a-zA-Z_]+=-?[0-9.]+(, ?[a-zA-Z_]+=-?[0-9.]+)*\\))?((\\[\\])|(\\?))*|[A-Z][a-zA-Z0-9]*((\\[\\])|(\\?))*)$"
             }
           },
           "additionalProperties": false,
@@ -90,7 +90,8 @@
       "Player": {
         "id": "UserId",
         "name": "string",
-        "score": "int",
+        "score": "uint(max=999)",
+        "health": "int(min=0, max=100)",
         "position": "Position",
         "color": "Color?",
         "tags": "string[]",

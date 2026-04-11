@@ -2,6 +2,7 @@
   "stringField": "example string",
   "signedIntField": -42,
   "unsignedIntField": 42,
+  "boundedIntField": -7,
   "floatField": 3.14,
   "booleanField": true
 }

@@ -694,6 +694,14 @@ function renderEquals(
   }
 }
 
+function intOffsetCs(expr: string, min: number): string {
+  return min === 0 ? `(int)${expr}` : `(int)(${expr} - ${min})`;
+}
+
+function intDecodeCs(decodeExpr: string, min: number): string {
+  return min === 0 ? `(long)${decodeExpr}` : `(long)${decodeExpr} + ${min}`;
+}
+
 function renderEncode(
   ctx: GeneratorContext,
   type: Type,
@@ -705,6 +713,9 @@ function renderEncode(
     case "string":
       return `encoder.PushString(${key})`;
     case "int":
+      if (type.numBits != null) {
+        return `encoder.PushEnum(${intOffsetCs(key, type.min!)}, ${type.numBits})`;
+      }
       return type.min != null && type.min >= 0
         ? `encoder.PushBoundedInt(${key}, ${type.min})`
         : `encoder.PushInt(${key})`;
@@ -746,6 +757,9 @@ function renderDecode(
     case "string":
       return `decoder.NextString()`;
     case "int":
+      if (type.numBits != null) {
+        return intDecodeCs(`decoder.NextEnum(${type.numBits})`, type.min!);
+      }
       return type.min != null && type.min >= 0
         ? `decoder.NextBoundedInt(${type.min})`
         : `decoder.NextInt()`;
@@ -818,6 +832,9 @@ function renderEncodeDiff(
     case "string":
       return `encoder.PushStringDiff(${a}, ${b})`;
     case "int":
+      if (type.numBits != null) {
+        return `encoder.PushEnumDiff(${intOffsetCs(a, type.min!)}, ${intOffsetCs(b, type.min!)}, ${type.numBits})`;
+      }
       return type.min != null && type.min >= 0
         ? `encoder.PushBoundedIntDiff(${a}, ${b}, ${type.min})`
         : `encoder.PushIntDiff(${a}, ${b})`;
@@ -913,6 +930,9 @@ function renderDecodeDiff(
     case "string":
       return `decoder.NextStringDiff(${key})`;
     case "int":
+      if (type.numBits != null) {
+        return intDecodeCs(`decoder.NextEnumDiff(${intOffsetCs(key, type.min!)}, ${type.numBits})`, type.min!);
+      }
       return type.min != null && type.min >= 0
         ? `decoder.NextBoundedIntDiff(${key}, ${type.min})`
         : `decoder.NextIntDiff(${key})`;
