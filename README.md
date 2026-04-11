@@ -12,7 +12,7 @@ Ultra-compact serialization format, designed to power state synchronization for 
 
 Delta-Pack combines the schema-based binary encoding of formats like [Protobuf](https://protobuf.dev/) with the delta encoding of formats like [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode snapshots and diffs across languages.
 
-Define your data schema using the supported [data types](#data-types), either in YAML or programmatically with [language-native APIs](#usage):
+Define your data schema using the supported [data types](#data-types), either programmatically with [language-native APIs](#usage) or with YAML:
 
 ```yaml
 # schema.yml
@@ -86,6 +86,53 @@ Per-language encoding/decoding speed benchmarks:
 - [C#](csharp/benchmarks/) (vs System.Text.Json, MessagePack-CSharp)
 - [Rust](rust/benchmarks/) (vs JSON, MessagePack)
 
+## Data Types
+
+All types are available across TypeScript, C#, and Rust. The examples below use the YAML schema syntax. The **Encode** column describes snapshot encoding; the **Diff** column describes delta encoding between two values of the same type.
+
+### Primitives
+
+| Type              | YAML Schema             | JSON Example | Encode                                        | Diff                                           |
+| ----------------- | ----------------------- | ------------ | --------------------------------------------- | ---------------------------------------------- |
+| String            | `string`                | `"hello"`    | UTF-8 with per-message dictionary compression | New value (old value pre-loaded in dictionary) |
+| Int               | `int`                   | `42`, `-7`   | ZigZag varint                                 | New value                                      |
+| Int (bounded)     | `int(min=0, max=100)`   | `50`         | Bit-packed in ⌈log₂(max − min + 1)⌉ bits      | New value                                      |
+| Uint              | `uint`                  | `42`         | Varint (shorthand for `int` with min=0)       | New value                                      |
+| Float             | `float`                 | `3.14`       | IEEE 754 32-bit                               | New value                                      |
+| Float (quantized) | `float(precision=0.01)` | `3.14`       | round(value / precision) as ZigZag varint     | New value                                      |
+| Boolean           | `boolean`               | `true`       | Single bit (RLE-compressed)                   | Change bit (decoder flips old value)           |
+
+### Containers
+
+| Type     | YAML Schema     | JSON Example        | Encode                               | Diff                                                                           |
+| -------- | --------------- | ------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| Array    | `int[]`         | `[1, 2, 3]`         | Length prefix + elements in sequence | New length + sparse updates (index + element diff) + appended elements         |
+| Optional | `string?`       | `"value"` or `null` | Presence bit + value if present      | Was null: new value directly; was non-null: presence bit + value diff          |
+| Map      | `<string, int>` | `{"a": 1, "b": 2}`  | Length prefix + key-value pairs      | Positional deletions + positional updates (with value diffs) + keyed additions |
+
+Map keys must be `string` or `int`.
+
+### Named Types
+
+| Type       | YAML Schema                                                                     | JSON Example                         | Encode                        | Diff                                                             |
+| ---------- | ------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------- | ---------------------------------------------------------------- |
+| Object     | `Position:`<br>&nbsp;&nbsp;`x: float`<br>&nbsp;&nbsp;`y: float`                 | `{"x": 1.5, "y": 2.0}`               | Fields in declaration order   | Change bit + per-field change bits with diffs                    |
+| Enum       | `Team:`<br>&nbsp;&nbsp;`- RED`<br>&nbsp;&nbsp;`- BLUE`<br>&nbsp;&nbsp;`- GREEN` | `"RED"`                              | ⌈log₂(variant count)⌉ bits    | New value                                                        |
+| Union      | `Contact:`<br>&nbsp;&nbsp;`- EmailContact`<br>&nbsp;&nbsp;`- PhoneContact`      | `{"EmailContact": {"email": "..."}}` | Variant bits + variant fields | Same type: per-field diffs; new type: variant bits + full encode |
+| Type alias | `UserId: string`                                                                | `"abc123"`                           | Resolved to underlying type   | Resolved to underlying type                                      |
+
+### Binary layout
+
+All encoded messages share the same binary structure:
+
+```
+[data section][RLE bits][bit count (reverse varint)]
+```
+
+The **data section** contains sequential varints, strings, and floats. The **RLE section** contains run-length encoded bits — booleans, enums, bounded integers, and diff change flags are all packed here. The bit count at the end allows the decoder to locate the boundary between the two sections.
+
+In object and union diffs, unchanged fields are skipped entirely via **change bits** — if a field's change bit is `0`, no data follows for that field. For boolean fields, the change bit _is_ the diff (the decoder flips the old value). Array and map diffs are sparse: only changed elements are encoded, identified by index (arrays) or positional key index (maps).
+
 ## API
 
 Every object and union type provides the following functions:
@@ -114,41 +161,6 @@ Every object and union type provides the following functions:
 ```
 
 The server sends a full `encode` snapshot when a client first connects, then sends `encodeDiff` deltas for subsequent state changes. The client applies each delta to its local copy using `decodeDiff`.
-
-## Data Types
-
-All types are available across TypeScript, C#, and Rust. The examples below use the YAML schema syntax.
-
-### Primitives
-
-| Type              | YAML Schema             | JSON Example | Encoding                                |
-| ----------------- | ----------------------- | ------------ | --------------------------------------- |
-| String            | `string`                | `"hello"`    | Dictionary-compressed UTF-8             |
-| Int               | `int`                   | `42`, `-7`   | ZigZag varint                           |
-| Int (bounded)     | `int(min=0, max=100)`   | `50`         | Bit-packed (min bits for range)         |
-| Uint              | `uint`                  | `42`         | Varint (shorthand for `int` with min=0) |
-| Float             | `float`                 | `3.14`       | IEEE 754 32-bit                         |
-| Float (quantized) | `float(precision=0.01)` | `3.14`       | Quantized to varint                     |
-| Boolean           | `boolean`               | `true`       | Single bit (RLE-compressed)             |
-
-### Containers
-
-| Type     | YAML Schema     | JSON Example        | Encoding                        |
-| -------- | --------------- | ------------------- | ------------------------------- |
-| Array    | `int[]`         | `[1, 2, 3]`         | Length prefix + elements        |
-| Optional | `string?`       | `"value"` or `null` | Presence bit + value            |
-| Map      | `<string, int>` | `{"a": 1, "b": 2}`  | Length prefix + key-value pairs |
-
-Map keys must be `string` or `int`.
-
-### Named Types
-
-| Type       | YAML Schema                                                                     | JSON Example                         | Encoding                       |
-| ---------- | ------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------ |
-| Object     | `Position:`<br>&nbsp;&nbsp;`x: float`<br>&nbsp;&nbsp;`y: float`                 | `{"x": 1.5, "y": 2.0}`               | Sequential fields              |
-| Enum       | `Team:`<br>&nbsp;&nbsp;`- RED`<br>&nbsp;&nbsp;`- BLUE`<br>&nbsp;&nbsp;`- GREEN` | `"RED"`                              | Minimum bits for variant count |
-| Union      | `Contact:`<br>&nbsp;&nbsp;`- EmailContact`<br>&nbsp;&nbsp;`- PhoneContact`      | `{"EmailContact": {"email": "..."}}` | Variant index + variant data   |
-| Type alias | `UserId: string`                                                                | `"abc123"`                           | Resolved to underlying type    |
 
 ## Usage
 
