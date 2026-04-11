@@ -1,98 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="680" height="976" viewBox="0 0 680 976">
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="580" viewBox="0 0 680 580">
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   </style>
-  <rect width="680" height="976" fill="white" rx="8"/>
+  <rect width="680" height="580" fill="white" rx="8"/>
   <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#111827">Delta Encoding Size (bytes)</text>
   <text x="12" y="56" font-size="13" font-weight="600" fill="#374151">GameState State1→2</text>
   <text x="126" y="78" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="64" width="456" height="20" fill="#f59e0b" rx="3"/>
-  <text x="592" y="78" font-size="11" fill="#374151" font-weight="500">2683B</text>
+  <text x="592" y="78" font-size="11" fill="#374151" font-weight="500">6693B</text>
   <text x="126" y="102" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="88" width="223.496086470369" height="20" fill="#ef4444" rx="3"/>
-  <text x="359.496086470369" y="102" font-size="11" fill="#374151" font-weight="500">1315B</text>
+  <rect x="130" y="88" width="310.8812191842223" height="20" fill="#ef4444" rx="3"/>
+  <text x="446.8812191842223" y="102" font-size="11" fill="#374151" font-weight="500">4563B</text>
   <text x="126" y="126" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="112" width="50.30786433097279" height="20" fill="#3b82f6" rx="3"/>
-  <text x="186.3078643309728" y="126" font-size="11" fill="#374151" font-weight="500">296B</text>
+  <rect x="130" y="112" width="61.79471089197669" height="20" fill="#3b82f6" rx="3"/>
+  <text x="197.7947108919767" y="126" font-size="11" fill="#374151" font-weight="500">907B</text>
   <text x="126" y="150" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="136" width="22.774506149832277" height="20" fill="#10b981" rx="3"/>
-  <text x="158.7745061498323" y="150" font-size="11" fill="#374151" font-weight="500">134B</text>
+  <rect x="130" y="136" width="40.74226804123711" height="20" fill="#10b981" rx="3"/>
+  <text x="176.7422680412371" y="150" font-size="11" fill="#374151" font-weight="500">598B</text>
   <text x="12" y="188" font-size="13" font-weight="600" fill="#374151">GameState State2→3</text>
   <text x="126" y="210" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="196" width="456" height="20" fill="#f59e0b" rx="3"/>
-  <text x="592" y="210" font-size="11" fill="#374151" font-weight="500">3094B</text>
+  <text x="592" y="210" font-size="11" fill="#374151" font-weight="500">6701B</text>
   <text x="126" y="234" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="220" width="295.2062055591467" height="20" fill="#ef4444" rx="3"/>
-  <text x="431.2062055591467" y="234" font-size="11" fill="#374151" font-weight="500">2003B</text>
+  <rect x="130" y="220" width="57.433815848380846" height="20" fill="#ef4444" rx="3"/>
+  <text x="193.43381584838085" y="234" font-size="11" fill="#374151" font-weight="500">844B</text>
   <text x="126" y="258" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="244" width="55.120879120879124" height="20" fill="#3b82f6" rx="3"/>
-  <text x="191.12087912087912" y="258" font-size="11" fill="#374151" font-weight="500">374B</text>
+  <rect x="130" y="244" width="61.72093717355618" height="20" fill="#3b82f6" rx="3"/>
+  <text x="197.7209371735562" y="258" font-size="11" fill="#374151" font-weight="500">907B</text>
   <text x="126" y="282" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="268" width="26.823529411764707" height="20" fill="#10b981" rx="3"/>
-  <text x="162.8235294117647" y="282" font-size="11" fill="#374151" font-weight="500">182B</text>
-  <text x="12" y="320" font-size="13" font-weight="600" fill="#374151">GameState State3→4</text>
+  <rect x="130" y="268" width="4.082972690643188" height="20" fill="#10b981" rx="3"/>
+  <text x="140.08297269064317" y="282" font-size="11" fill="#374151" font-weight="500">60B</text>
+  <text x="12" y="320" font-size="13" font-weight="600" fill="#374151">Primitives State1→2</text>
   <text x="126" y="342" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="328" width="456" height="20" fill="#f59e0b" rx="3"/>
-  <text x="592" y="342" font-size="11" fill="#374151" font-weight="500">3273B</text>
+  <rect x="130" y="328" width="184.86486486486487" height="20" fill="#f59e0b" rx="3"/>
+  <text x="320.8648648648649" y="342" font-size="11" fill="#374151" font-weight="500">135B</text>
   <text x="126" y="366" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="352" width="207.58936755270392" height="20" fill="#ef4444" rx="3"/>
-  <text x="343.58936755270395" y="366" font-size="11" fill="#374151" font-weight="500">1490B</text>
+  <rect x="130" y="352" width="456" height="20" fill="#ef4444" rx="3"/>
+  <text x="592" y="366" font-size="11" fill="#374151" font-weight="500">333B</text>
   <text x="126" y="390" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="376" width="55.31072410632447" height="20" fill="#3b82f6" rx="3"/>
-  <text x="191.31072410632447" y="390" font-size="11" fill="#374151" font-weight="500">397B</text>
+  <rect x="130" y="376" width="31.495495495495494" height="20" fill="#3b82f6" rx="3"/>
+  <text x="167.4954954954955" y="390" font-size="11" fill="#374151" font-weight="500">23B</text>
   <text x="126" y="414" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="400" width="13.792850595783685" height="20" fill="#10b981" rx="3"/>
-  <text x="149.79285059578368" y="414" font-size="11" fill="#374151" font-weight="500">99B</text>
-  <text x="12" y="452" font-size="13" font-weight="600" fill="#374151">GameState State4→5</text>
+  <rect x="130" y="400" width="32.86486486486486" height="20" fill="#10b981" rx="3"/>
+  <text x="168.86486486486487" y="414" font-size="11" fill="#374151" font-weight="500">24B</text>
+  <text x="12" y="452" font-size="13" font-weight="600" fill="#374151">User State1→2</text>
   <text x="126" y="474" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="460" width="456" height="20" fill="#f59e0b" rx="3"/>
-  <text x="592" y="474" font-size="11" fill="#374151" font-weight="500">6693B</text>
+  <rect x="130" y="460" width="364.2758620689655" height="20" fill="#f59e0b" rx="3"/>
+  <text x="500.2758620689655" y="474" font-size="11" fill="#374151" font-weight="500">973B</text>
   <text x="126" y="498" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="484" width="310.8812191842223" height="20" fill="#ef4444" rx="3"/>
-  <text x="446.8812191842223" y="498" font-size="11" fill="#374151" font-weight="500">4563B</text>
+  <rect x="130" y="484" width="456" height="20" fill="#ef4444" rx="3"/>
+  <text x="592" y="498" font-size="11" fill="#374151" font-weight="500">1218B</text>
   <text x="126" y="522" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="508" width="61.79471089197669" height="20" fill="#3b82f6" rx="3"/>
-  <text x="197.7947108919767" y="522" font-size="11" fill="#374151" font-weight="500">907B</text>
+  <rect x="130" y="508" width="89.10344827586208" height="20" fill="#3b82f6" rx="3"/>
+  <text x="225.1034482758621" y="522" font-size="11" fill="#374151" font-weight="500">238B</text>
   <text x="126" y="546" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="532" width="40.74226804123711" height="20" fill="#10b981" rx="3"/>
-  <text x="176.7422680412371" y="546" font-size="11" fill="#374151" font-weight="500">598B</text>
-  <text x="12" y="584" font-size="13" font-weight="600" fill="#374151">GameState State5→6</text>
-  <text x="126" y="606" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="592" width="456" height="20" fill="#f59e0b" rx="3"/>
-  <text x="592" y="606" font-size="11" fill="#374151" font-weight="500">6701B</text>
-  <text x="126" y="630" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="616" width="57.433815848380846" height="20" fill="#ef4444" rx="3"/>
-  <text x="193.43381584838085" y="630" font-size="11" fill="#374151" font-weight="500">844B</text>
-  <text x="126" y="654" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="640" width="61.72093717355618" height="20" fill="#3b82f6" rx="3"/>
-  <text x="197.7209371735562" y="654" font-size="11" fill="#374151" font-weight="500">907B</text>
-  <text x="126" y="678" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="664" width="4.082972690643188" height="20" fill="#10b981" rx="3"/>
-  <text x="140.08297269064317" y="678" font-size="11" fill="#374151" font-weight="500">60B</text>
-  <text x="12" y="716" font-size="13" font-weight="600" fill="#374151">Primitives State1→2</text>
-  <text x="126" y="738" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="724" width="184.86486486486487" height="20" fill="#f59e0b" rx="3"/>
-  <text x="320.8648648648649" y="738" font-size="11" fill="#374151" font-weight="500">135B</text>
-  <text x="126" y="762" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="748" width="456" height="20" fill="#ef4444" rx="3"/>
-  <text x="592" y="762" font-size="11" fill="#374151" font-weight="500">333B</text>
-  <text x="126" y="786" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="772" width="31.495495495495494" height="20" fill="#3b82f6" rx="3"/>
-  <text x="167.4954954954955" y="786" font-size="11" fill="#374151" font-weight="500">23B</text>
-  <text x="126" y="810" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="796" width="32.86486486486486" height="20" fill="#10b981" rx="3"/>
-  <text x="168.86486486486487" y="810" font-size="11" fill="#374151" font-weight="500">24B</text>
-  <text x="12" y="848" font-size="13" font-weight="600" fill="#374151">User State1→2</text>
-  <text x="126" y="870" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="856" width="364.2758620689655" height="20" fill="#f59e0b" rx="3"/>
-  <text x="500.2758620689655" y="870" font-size="11" fill="#374151" font-weight="500">973B</text>
-  <text x="126" y="894" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
-  <rect x="130" y="880" width="456" height="20" fill="#ef4444" rx="3"/>
-  <text x="592" y="894" font-size="11" fill="#374151" font-weight="500">1218B</text>
-  <text x="126" y="918" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="904" width="89.10344827586208" height="20" fill="#3b82f6" rx="3"/>
-  <text x="225.1034482758621" y="918" font-size="11" fill="#374151" font-weight="500">238B</text>
-  <text x="126" y="942" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="928" width="61.77339901477833" height="20" fill="#10b981" rx="3"/>
-  <text x="197.77339901477833" y="942" font-size="11" fill="#374151" font-weight="500">165B</text>
+  <rect x="130" y="532" width="61.77339901477833" height="20" fill="#10b981" rx="3"/>
+  <text x="197.77339901477833" y="546" font-size="11" fill="#374151" font-weight="500">165B</text>
 </svg>

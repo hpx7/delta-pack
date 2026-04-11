@@ -1,9 +1,6 @@
 import GameState_state1 from "../../../examples/GameState/state1.json";
 import GameState_state2 from "../../../examples/GameState/state2.json";
 import GameState_state3 from "../../../examples/GameState/state3.json";
-import GameState_state4 from "../../../examples/GameState/state4.json";
-import GameState_state5 from "../../../examples/GameState/state5.json";
-import GameState_state6 from "../../../examples/GameState/state6.json";
 import Primitives_state1 from "../../../examples/Primitives/state1.json";
 import Primitives_state2 from "../../../examples/Primitives/state2.json";
 import Test_state1 from "../../../examples/Test/state1.json";
@@ -21,7 +18,7 @@ import Test_proto from "../../../examples/Test/schema.proto";
 import User_proto from "../../../examples/User/schema.proto";
 
 export const exampleData: Record<string, object[]> = {
-  GameState: [GameState_state1, GameState_state2, GameState_state3, GameState_state4, GameState_state5, GameState_state6],
+  GameState: [GameState_state1, GameState_state2, GameState_state3],
   Primitives: [Primitives_state1, Primitives_state2],
   Test: [Test_state1],
   User: [User_state1, User_state2],

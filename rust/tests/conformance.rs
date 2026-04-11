@@ -151,5 +151,5 @@ conformance_tests!(
     game_state,
     GameState,
     "GameState",
-    vec!["state1", "state2", "state3", "state4", "state5", "state6"]
+    vec!["state1", "state2", "state3"]
 );
