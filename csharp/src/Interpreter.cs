@@ -640,7 +640,7 @@ public static class Interpreter
 
         private OrderedDictionary<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder) =>
             decoder.NextRecordDiff(
-                (IDictionary<object, object?>)a!,
+                (OrderedDictionary<object, object?>)a!,
                 () => Decode(rt.Key, decoder)!,
                 () => Decode(rt.Value, decoder),
                 val => DecodeDiffValue(val, rt.Value, decoder));

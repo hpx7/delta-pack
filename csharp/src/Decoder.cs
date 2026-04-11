@@ -197,7 +197,7 @@ public class Decoder
     }
 
     public OrderedDictionary<TKey, TValue> NextRecordDiff<TKey, TValue>(
-        IDictionary<TKey, TValue> obj,
+        OrderedDictionary<TKey, TValue> obj,
         Func<TKey> decodeKey,
         Func<TValue> decodeVal,
         Func<TValue, TValue> decodeDiff)
@@ -208,24 +208,17 @@ public class Decoder
 
         if (obj.Count > 0)
         {
-            // Build key array for index-based lookup
-            var keys = new TKey[obj.Count];
-            var ki = 0;
-            foreach (var kvp in obj)
-                keys[ki++] = kvp.Key;
-
             var numDeletions = (int)NextUInt();
             for (var i = 0; i < numDeletions; i++)
             {
-                var idx = (int)NextUInt();
-                result.Remove(keys[idx]);
+                var key = obj.GetKeyAtIndex((int)NextUInt());
+                result.Remove(key);
             }
 
             var numUpdates = (int)NextUInt();
             for (var i = 0; i < numUpdates; i++)
             {
-                var idx = (int)NextUInt();
-                var key = keys[idx];
+                var key = obj.GetKeyAtIndex((int)NextUInt());
                 result[key] = decodeDiff(result[key]);
             }
         }

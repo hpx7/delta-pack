@@ -125,6 +125,8 @@ public class OrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDicti
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) =>
         _list.CopyTo(array, arrayIndex);
 
+    public TKey GetKeyAtIndex(int index) => _list[index].Key;
+
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _list.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
