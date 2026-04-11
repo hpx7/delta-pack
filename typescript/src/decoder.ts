@@ -86,7 +86,7 @@ export class Decoder {
   protected readUVarint() {
     let result = 0;
     let multiplier = 1;
-    while (true) {
+    for (let i = 0; i < 10; i++) {
       const byte = this.bytes[this.pos++]!;
       result += (byte & 0x7f) * multiplier;
       if (byte < 0x80) {
@@ -94,6 +94,7 @@ export class Decoder {
       }
       multiplier *= 128;
     }
+    throw new Error("Invalid varint");
   }
 
   protected readFloat() {

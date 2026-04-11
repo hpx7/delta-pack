@@ -121,7 +121,7 @@ export function utf8Read(bytes: Uint8Array, start: number, len: number): string 
       chunks[i++] = t;
     } else if (t > 191 && t < 224) {
       chunks[i++] = ((t & 31) << 6) | (bytes[pos++]! & 63);
-    } else if (t > 239 && t < 365) {
+    } else if (t > 239 && t < 245) {
       t =
         (((t & 7) << 18) | ((bytes[pos++]! & 63) << 12) | ((bytes[pos++]! & 63) << 6) | (bytes[pos++]! & 63)) - 0x10000;
       chunks[i++] = 0xd800 + (t >> 10);

@@ -67,20 +67,18 @@ impl<'a> Decoder<'a> {
             let start = self.pos;
             self.pos += len;
             self.dict.push(DictEntry::Pos(start, len));
-            return unsafe {
-                String::from(std::str::from_utf8_unchecked(
-                    &self.buffer[start..start + len],
-                ))
-            };
+            return String::from(
+                std::str::from_utf8(&self.buffer[start..start + len])
+                    .expect("invalid UTF-8 in buffer"),
+            );
         }
 
         // Negative = dictionary index
         match &self.dict[(-len_or_idx - 1) as usize] {
-            DictEntry::Pos(start, len) => unsafe {
-                String::from(std::str::from_utf8_unchecked(
-                    &self.buffer[*start..*start + *len],
-                ))
-            },
+            DictEntry::Pos(start, len) => String::from(
+                std::str::from_utf8(&self.buffer[*start..*start + *len])
+                    .expect("invalid UTF-8 in buffer"),
+            ),
             DictEntry::Owned(s) => s.clone(),
         }
     }
@@ -132,9 +130,9 @@ impl<'a> Decoder<'a> {
     pub fn next_string_diff(&mut self, a: &str) -> String {
         // Only add to dictionary if not already present (for decoder sync)
         let already_in_dict = self.dict.iter().any(|entry| match entry {
-            DictEntry::Pos(start, len) => unsafe {
-                std::str::from_utf8_unchecked(&self.buffer[*start..*start + *len]) == a
-            },
+            DictEntry::Pos(start, len) => std::str::from_utf8(&self.buffer[*start..*start + *len])
+                .map(|s| s == a)
+                .unwrap_or(false),
             DictEntry::Owned(s) => s == a,
         });
         if !already_in_dict {
