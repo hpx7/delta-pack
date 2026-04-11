@@ -121,7 +121,7 @@ GameState:
   round: uint
 </code></pre>
 <p>Generate C# code using the CLI:</p>
-<pre><code class="lang-bash">npx delta-pack generate schema.yml -l csharp -o Generated.cs
+<pre><code class="lang-bash">delta-pack generate schema.yml -l csharp -o Generated.cs
 </code></pre>
 <p>The generated code provides static methods for each type:</p>
 <pre><code class="lang-csharp">// Generated types are plain classes
@@ -144,7 +144,7 @@ Player result = Player.DecodeDiff(oldPlayer, diff);
 <ul>
 <li><strong>Primitives</strong>: <code>string</code>, <code>bool</code>, <code>int</code>, <code>uint</code>, <code>long</code>, <code>ulong</code>, <code>float</code>, <code>double</code>, <code>byte</code>, <code>short</code>, etc.</li>
 <li><strong>Enums</strong>: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)</li>
-<li><strong>Collections</strong>: <code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey, TValue&gt;</code> (TKey: <code>string</code>, <code>int</code>, <code>uint</code>, <code>long</code>, <code>ulong</code>)</li>
+<li><strong>Collections</strong>: <code>List&lt;T&gt;</code>, <code>OrderedDictionary&lt;TKey, TValue&gt;</code> (TKey: <code>string</code>, <code>int</code>, <code>uint</code>, <code>long</code>, <code>ulong</code>)</li>
 <li><strong>Nullable value types</strong>: <code>int?</code>, <code>float?</code>, etc.</li>
 <li><strong>Nullable reference types</strong>: <code>Player?</code>, <code>string?</code>, etc.</li>
 <li><strong>Nested objects</strong>: Any class with public properties</li>

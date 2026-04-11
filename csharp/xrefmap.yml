@@ -307,6 +307,22 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Decoder.NextIntDiff
   nameWithType: Decoder.NextIntDiff
+- uid: DeltaPack.Decoder.NextObjectDiff*
+  name: NextObjectDiff
+  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextObjectDiff_
+  commentId: Overload:DeltaPack.Decoder.NextObjectDiff
+  isSpec: "True"
+  fullName: DeltaPack.Decoder.NextObjectDiff
+  nameWithType: Decoder.NextObjectDiff
+- uid: DeltaPack.Decoder.NextObjectDiff``1(``0,System.Func{``0})
+  name: NextObjectDiff<T>(T, Func<T>)
+  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextObjectDiff__1___0_System_Func___0__
+  commentId: M:DeltaPack.Decoder.NextObjectDiff``1(``0,System.Func{``0})
+  name.vb: NextObjectDiff(Of T)(T, Func(Of T))
+  fullName: DeltaPack.Decoder.NextObjectDiff<T>(T, System.Func<T>)
+  fullName.vb: DeltaPack.Decoder.NextObjectDiff(Of T)(T, System.Func(Of T))
+  nameWithType: Decoder.NextObjectDiff<T>(T, Func<T>)
+  nameWithType.vb: Decoder.NextObjectDiff(Of T)(T, Func(Of T))
 - uid: DeltaPack.Decoder.NextOptional*
   name: NextOptional
   href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextOptional_
@@ -1021,6 +1037,22 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Encoder.PushIntDiff
   nameWithType: Encoder.PushIntDiff
+- uid: DeltaPack.Encoder.PushObjectDiff*
+  name: PushObjectDiff
+  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushObjectDiff_
+  commentId: Overload:DeltaPack.Encoder.PushObjectDiff
+  isSpec: "True"
+  fullName: DeltaPack.Encoder.PushObjectDiff
+  nameWithType: Encoder.PushObjectDiff
+- uid: DeltaPack.Encoder.PushObjectDiff``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action)
+  name: PushObjectDiff<T>(T, T, Func<T, T, bool>, Action)
+  href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushObjectDiff__1___0___0_System_Func___0___0_System_Boolean__System_Action_
+  commentId: M:DeltaPack.Encoder.PushObjectDiff``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action)
+  name.vb: PushObjectDiff(Of T)(T, T, Func(Of T, T, Boolean), Action)
+  fullName: DeltaPack.Encoder.PushObjectDiff<T>(T, T, System.Func<T, T, bool>, System.Action)
+  fullName.vb: DeltaPack.Encoder.PushObjectDiff(Of T)(T, T, System.Func(Of T, T, Boolean), System.Action)
+  nameWithType: Encoder.PushObjectDiff<T>(T, T, Func<T, T, bool>, Action)
+  nameWithType.vb: Encoder.PushObjectDiff(Of T)(T, T, Func(Of T, T, Boolean), Action)
 - uid: DeltaPack.Encoder.PushOptional*
   name: PushOptional
   href: api/DeltaPack.Encoder.html#DeltaPack_Encoder_PushOptional_
@@ -1544,6 +1576,19 @@ references:
   isSpec: "True"
   fullName: DeltaPack.IntType.Min
   nameWithType: IntType.Min
+- uid: DeltaPack.IntType.NumBits
+  name: NumBits
+  href: api/DeltaPack.IntType.html#DeltaPack_IntType_NumBits
+  commentId: P:DeltaPack.IntType.NumBits
+  fullName: DeltaPack.IntType.NumBits
+  nameWithType: IntType.NumBits
+- uid: DeltaPack.IntType.NumBits*
+  name: NumBits
+  href: api/DeltaPack.IntType.html#DeltaPack_IntType_NumBits_
+  commentId: Overload:DeltaPack.IntType.NumBits
+  isSpec: "True"
+  fullName: DeltaPack.IntType.NumBits
+  nameWithType: IntType.NumBits
 - uid: DeltaPack.Interpreter
   name: Interpreter
   href: api/DeltaPack.Interpreter.html
@@ -1744,6 +1789,318 @@ references:
   isSpec: "True"
   fullName: DeltaPack.OptionalType.Value
   nameWithType: OptionalType.Value
+- uid: DeltaPack.OrderedDictionaryExtensions
+  name: OrderedDictionaryExtensions
+  href: api/DeltaPack.OrderedDictionaryExtensions.html
+  commentId: T:DeltaPack.OrderedDictionaryExtensions
+  fullName: DeltaPack.OrderedDictionaryExtensions
+  nameWithType: OrderedDictionaryExtensions
+- uid: DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary*
+  name: ToOrderedDictionary
+  href: api/DeltaPack.OrderedDictionaryExtensions.html#DeltaPack_OrderedDictionaryExtensions_ToOrderedDictionary_
+  commentId: Overload:DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary
+  nameWithType: OrderedDictionaryExtensions.ToOrderedDictionary
+- uid: DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary``3(System.Collections.Generic.IEnumerable{``0},System.Func{``0,``1},System.Func{``0,``2})
+  name: ToOrderedDictionary<TSource, TKey, TValue>(IEnumerable<TSource>, Func<TSource, TKey>, Func<TSource, TValue>)
+  href: api/DeltaPack.OrderedDictionaryExtensions.html#DeltaPack_OrderedDictionaryExtensions_ToOrderedDictionary__3_System_Collections_Generic_IEnumerable___0__System_Func___0___1__System_Func___0___2__
+  commentId: M:DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary``3(System.Collections.Generic.IEnumerable{``0},System.Func{``0,``1},System.Func{``0,``2})
+  name.vb: ToOrderedDictionary(Of TSource, TKey, TValue)(IEnumerable(Of TSource), Func(Of TSource, TKey), Func(Of TSource, TValue))
+  fullName: DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary<TSource, TKey, TValue>(System.Collections.Generic.IEnumerable<TSource>, System.Func<TSource, TKey>, System.Func<TSource, TValue>)
+  fullName.vb: DeltaPack.OrderedDictionaryExtensions.ToOrderedDictionary(Of TSource, TKey, TValue)(System.Collections.Generic.IEnumerable(Of TSource), System.Func(Of TSource, TKey), System.Func(Of TSource, TValue))
+  nameWithType: OrderedDictionaryExtensions.ToOrderedDictionary<TSource, TKey, TValue>(IEnumerable<TSource>, Func<TSource, TKey>, Func<TSource, TValue>)
+  nameWithType.vb: OrderedDictionaryExtensions.ToOrderedDictionary(Of TSource, TKey, TValue)(IEnumerable(Of TSource), Func(Of TSource, TKey), Func(Of TSource, TValue))
+- uid: DeltaPack.OrderedDictionary`2
+  name: OrderedDictionary<TKey, TValue>
+  href: api/DeltaPack.OrderedDictionary-2.html
+  commentId: T:DeltaPack.OrderedDictionary`2
+  name.vb: OrderedDictionary(Of TKey, TValue)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue)
+  nameWithType: OrderedDictionary<TKey, TValue>
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue)
+- uid: DeltaPack.OrderedDictionary`2.#ctor
+  name: OrderedDictionary()
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2__ctor
+  commentId: M:DeltaPack.OrderedDictionary`2.#ctor
+  name.vb: New()
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.OrderedDictionary()
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).New()
+  nameWithType: OrderedDictionary<TKey, TValue>.OrderedDictionary()
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).New()
+- uid: DeltaPack.OrderedDictionary`2.#ctor(System.Collections.Generic.IDictionary{`0,`1})
+  name: OrderedDictionary(IDictionary<TKey, TValue>)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2__ctor_System_Collections_Generic_IDictionary__0__1__
+  commentId: M:DeltaPack.OrderedDictionary`2.#ctor(System.Collections.Generic.IDictionary{`0,`1})
+  name.vb: New(IDictionary(Of TKey, TValue))
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.OrderedDictionary(System.Collections.Generic.IDictionary<TKey, TValue>)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).New(System.Collections.Generic.IDictionary(Of TKey, TValue))
+  nameWithType: OrderedDictionary<TKey, TValue>.OrderedDictionary(IDictionary<TKey, TValue>)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).New(IDictionary(Of TKey, TValue))
+- uid: DeltaPack.OrderedDictionary`2.#ctor(System.Int32)
+  name: OrderedDictionary(int)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2__ctor_System_Int32_
+  commentId: M:DeltaPack.OrderedDictionary`2.#ctor(System.Int32)
+  name.vb: New(Integer)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.OrderedDictionary(int)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).New(Integer)
+  nameWithType: OrderedDictionary<TKey, TValue>.OrderedDictionary(int)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).New(Integer)
+- uid: DeltaPack.OrderedDictionary`2.#ctor*
+  name: OrderedDictionary
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2__ctor_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.#ctor
+  isSpec: "True"
+  name.vb: New
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.OrderedDictionary
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).New
+  nameWithType: OrderedDictionary<TKey, TValue>.OrderedDictionary
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).New
+- uid: DeltaPack.OrderedDictionary`2.Add(System.Collections.Generic.KeyValuePair{`0,`1})
+  name: Add(KeyValuePair<TKey, TValue>)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Add_System_Collections_Generic_KeyValuePair__0__1__
+  commentId: M:DeltaPack.OrderedDictionary`2.Add(System.Collections.Generic.KeyValuePair{`0,`1})
+  name.vb: Add(KeyValuePair(Of TKey, TValue))
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Add(System.Collections.Generic.KeyValuePair<TKey, TValue>)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Add(System.Collections.Generic.KeyValuePair(Of TKey, TValue))
+  nameWithType: OrderedDictionary<TKey, TValue>.Add(KeyValuePair<TKey, TValue>)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Add(KeyValuePair(Of TKey, TValue))
+- uid: DeltaPack.OrderedDictionary`2.Add(`0,`1)
+  name: Add(TKey, TValue)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Add__0__1_
+  commentId: M:DeltaPack.OrderedDictionary`2.Add(`0,`1)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Add(TKey, TValue)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Add(TKey, TValue)
+  nameWithType: OrderedDictionary<TKey, TValue>.Add(TKey, TValue)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Add(TKey, TValue)
+- uid: DeltaPack.OrderedDictionary`2.Add*
+  name: Add
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Add_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Add
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Add
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Add
+  nameWithType: OrderedDictionary<TKey, TValue>.Add
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Add
+- uid: DeltaPack.OrderedDictionary`2.Clear
+  name: Clear()
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Clear
+  commentId: M:DeltaPack.OrderedDictionary`2.Clear
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Clear()
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Clear()
+  nameWithType: OrderedDictionary<TKey, TValue>.Clear()
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Clear()
+- uid: DeltaPack.OrderedDictionary`2.Clear*
+  name: Clear
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Clear_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Clear
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Clear
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Clear
+  nameWithType: OrderedDictionary<TKey, TValue>.Clear
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Clear
+- uid: DeltaPack.OrderedDictionary`2.Contains(System.Collections.Generic.KeyValuePair{`0,`1})
+  name: Contains(KeyValuePair<TKey, TValue>)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Contains_System_Collections_Generic_KeyValuePair__0__1__
+  commentId: M:DeltaPack.OrderedDictionary`2.Contains(System.Collections.Generic.KeyValuePair{`0,`1})
+  name.vb: Contains(KeyValuePair(Of TKey, TValue))
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Contains(System.Collections.Generic.KeyValuePair<TKey, TValue>)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Contains(System.Collections.Generic.KeyValuePair(Of TKey, TValue))
+  nameWithType: OrderedDictionary<TKey, TValue>.Contains(KeyValuePair<TKey, TValue>)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Contains(KeyValuePair(Of TKey, TValue))
+- uid: DeltaPack.OrderedDictionary`2.Contains*
+  name: Contains
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Contains_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Contains
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Contains
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Contains
+  nameWithType: OrderedDictionary<TKey, TValue>.Contains
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Contains
+- uid: DeltaPack.OrderedDictionary`2.ContainsKey(`0)
+  name: ContainsKey(TKey)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_ContainsKey__0_
+  commentId: M:DeltaPack.OrderedDictionary`2.ContainsKey(`0)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.ContainsKey(TKey)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).ContainsKey(TKey)
+  nameWithType: OrderedDictionary<TKey, TValue>.ContainsKey(TKey)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).ContainsKey(TKey)
+- uid: DeltaPack.OrderedDictionary`2.ContainsKey*
+  name: ContainsKey
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_ContainsKey_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.ContainsKey
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.ContainsKey
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).ContainsKey
+  nameWithType: OrderedDictionary<TKey, TValue>.ContainsKey
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).ContainsKey
+- uid: DeltaPack.OrderedDictionary`2.CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)
+  name: CopyTo(KeyValuePair<TKey, TValue>[], int)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_CopyTo_System_Collections_Generic_KeyValuePair__0__1____System_Int32_
+  commentId: M:DeltaPack.OrderedDictionary`2.CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)
+  name.vb: CopyTo(KeyValuePair(Of TKey, TValue)(), Integer)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.CopyTo(System.Collections.Generic.KeyValuePair<TKey, TValue>[], int)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).CopyTo(System.Collections.Generic.KeyValuePair(Of TKey, TValue)(), Integer)
+  nameWithType: OrderedDictionary<TKey, TValue>.CopyTo(KeyValuePair<TKey, TValue>[], int)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).CopyTo(KeyValuePair(Of TKey, TValue)(), Integer)
+- uid: DeltaPack.OrderedDictionary`2.CopyTo*
+  name: CopyTo
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_CopyTo_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.CopyTo
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.CopyTo
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).CopyTo
+  nameWithType: OrderedDictionary<TKey, TValue>.CopyTo
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).CopyTo
+- uid: DeltaPack.OrderedDictionary`2.Count
+  name: Count
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Count
+  commentId: P:DeltaPack.OrderedDictionary`2.Count
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Count
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Count
+  nameWithType: OrderedDictionary<TKey, TValue>.Count
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Count
+- uid: DeltaPack.OrderedDictionary`2.Count*
+  name: Count
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Count_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Count
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Count
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Count
+  nameWithType: OrderedDictionary<TKey, TValue>.Count
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Count
+- uid: DeltaPack.OrderedDictionary`2.GetEnumerator
+  name: GetEnumerator()
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_GetEnumerator
+  commentId: M:DeltaPack.OrderedDictionary`2.GetEnumerator
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.GetEnumerator()
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).GetEnumerator()
+  nameWithType: OrderedDictionary<TKey, TValue>.GetEnumerator()
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).GetEnumerator()
+- uid: DeltaPack.OrderedDictionary`2.GetEnumerator*
+  name: GetEnumerator
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_GetEnumerator_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.GetEnumerator
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.GetEnumerator
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).GetEnumerator
+  nameWithType: OrderedDictionary<TKey, TValue>.GetEnumerator
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).GetEnumerator
+- uid: DeltaPack.OrderedDictionary`2.IsReadOnly
+  name: IsReadOnly
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_IsReadOnly
+  commentId: P:DeltaPack.OrderedDictionary`2.IsReadOnly
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.IsReadOnly
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).IsReadOnly
+  nameWithType: OrderedDictionary<TKey, TValue>.IsReadOnly
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).IsReadOnly
+- uid: DeltaPack.OrderedDictionary`2.IsReadOnly*
+  name: IsReadOnly
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_IsReadOnly_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.IsReadOnly
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.IsReadOnly
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).IsReadOnly
+  nameWithType: OrderedDictionary<TKey, TValue>.IsReadOnly
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).IsReadOnly
+- uid: DeltaPack.OrderedDictionary`2.Item(`0)
+  name: this[TKey]
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Item__0_
+  commentId: P:DeltaPack.OrderedDictionary`2.Item(`0)
+  name.vb: this[](TKey)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.this[TKey]
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).this[](TKey)
+  nameWithType: OrderedDictionary<TKey, TValue>.this[TKey]
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).this[](TKey)
+- uid: DeltaPack.OrderedDictionary`2.Item*
+  name: this
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Item_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Item
+  isSpec: "True"
+  name.vb: this[]
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.this
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).this[]
+  nameWithType: OrderedDictionary<TKey, TValue>.this
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).this[]
+- uid: DeltaPack.OrderedDictionary`2.Keys
+  name: Keys
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Keys
+  commentId: P:DeltaPack.OrderedDictionary`2.Keys
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Keys
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Keys
+  nameWithType: OrderedDictionary<TKey, TValue>.Keys
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Keys
+- uid: DeltaPack.OrderedDictionary`2.Keys*
+  name: Keys
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Keys_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Keys
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Keys
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Keys
+  nameWithType: OrderedDictionary<TKey, TValue>.Keys
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Keys
+- uid: DeltaPack.OrderedDictionary`2.Remove(System.Collections.Generic.KeyValuePair{`0,`1})
+  name: Remove(KeyValuePair<TKey, TValue>)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Remove_System_Collections_Generic_KeyValuePair__0__1__
+  commentId: M:DeltaPack.OrderedDictionary`2.Remove(System.Collections.Generic.KeyValuePair{`0,`1})
+  name.vb: Remove(KeyValuePair(Of TKey, TValue))
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Remove(System.Collections.Generic.KeyValuePair<TKey, TValue>)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Remove(System.Collections.Generic.KeyValuePair(Of TKey, TValue))
+  nameWithType: OrderedDictionary<TKey, TValue>.Remove(KeyValuePair<TKey, TValue>)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Remove(KeyValuePair(Of TKey, TValue))
+- uid: DeltaPack.OrderedDictionary`2.Remove(`0)
+  name: Remove(TKey)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Remove__0_
+  commentId: M:DeltaPack.OrderedDictionary`2.Remove(`0)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Remove(TKey)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Remove(TKey)
+  nameWithType: OrderedDictionary<TKey, TValue>.Remove(TKey)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Remove(TKey)
+- uid: DeltaPack.OrderedDictionary`2.Remove*
+  name: Remove
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Remove_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Remove
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Remove
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Remove
+  nameWithType: OrderedDictionary<TKey, TValue>.Remove
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Remove
+- uid: DeltaPack.OrderedDictionary`2.TryGetValue(`0,`1@)
+  name: TryGetValue(TKey, out TValue)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_TryGetValue__0__1__
+  commentId: M:DeltaPack.OrderedDictionary`2.TryGetValue(`0,`1@)
+  name.vb: TryGetValue(TKey, TValue)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.TryGetValue(TKey, out TValue)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).TryGetValue(TKey, TValue)
+  nameWithType: OrderedDictionary<TKey, TValue>.TryGetValue(TKey, out TValue)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).TryGetValue(TKey, TValue)
+- uid: DeltaPack.OrderedDictionary`2.TryGetValue*
+  name: TryGetValue
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_TryGetValue_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.TryGetValue
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.TryGetValue
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).TryGetValue
+  nameWithType: OrderedDictionary<TKey, TValue>.TryGetValue
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).TryGetValue
+- uid: DeltaPack.OrderedDictionary`2.Values
+  name: Values
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Values
+  commentId: P:DeltaPack.OrderedDictionary`2.Values
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Values
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Values
+  nameWithType: OrderedDictionary<TKey, TValue>.Values
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Values
+- uid: DeltaPack.OrderedDictionary`2.Values*
+  name: Values
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_Values_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.Values
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.Values
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).Values
+  nameWithType: OrderedDictionary<TKey, TValue>.Values
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).Values
 - uid: DeltaPack.Parser
   name: Parser
   href: api/DeltaPack.Parser.html

@@ -274,6 +274,34 @@
     },
     {
       "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.OrderedDictionary-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.OrderedDictionary-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.OrderedDictionary<TKey, TValue>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.OrderedDictionary-2.yml\" sourcestartlinenumber=\"1\">A dictionary that preserves insertion order.\nBacked by a List for ordered storage and a Dictionary for O(1) key lookup.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.OrderedDictionaryExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.OrderedDictionaryExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.OrderedDictionaryExtensions",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
       "source_relative_path": "api/DeltaPack.Parser.yml",
       "output": {
         ".html": {

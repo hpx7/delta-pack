@@ -186,7 +186,7 @@ Class Encoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Encoder_PushArrayDiff__1_System_Collections_Generic_IList___0__System_Collections_Generic_IList___0__System_Func___0___0_System_Boolean__System_Action___0__System_Action___0___0__" data-uid="DeltaPack.Encoder.PushArrayDiff``1(System.Collections.Generic.IList{``0},System.Collections.Generic.IList{``0},System.Func{``0,``0,System.Boolean},System.Action{``0},System.Action{``0,``0})">
   PushArrayDiff&lt;T&gt;(IList&lt;T&gt;, IList&lt;T&gt;, Func&lt;T, T, bool&gt;, Action&lt;T&gt;, Action&lt;T, T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L209"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L219"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -468,7 +468,7 @@ Class Encoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Encoder_PushFieldDiff__1___0___0_System_Func___0___0_System_Boolean__System_Action___0___0__" data-uid="DeltaPack.Encoder.PushFieldDiff``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action{``0,``0})">
   PushFieldDiff&lt;T&gt;(T, T, Func&lt;T, T, bool&gt;, Action&lt;T, T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L165"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L175"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -702,11 +702,53 @@ Class Encoder  <a class="header-action link-secondary" title="View source" href=
 
 
 
+  <a id="DeltaPack_Encoder_PushObjectDiff_" data-uid="DeltaPack.Encoder.PushObjectDiff*"></a>
+
+  <h3 id="DeltaPack_Encoder_PushObjectDiff__1___0___0_System_Func___0___0_System_Boolean__System_Action_" data-uid="DeltaPack.Encoder.PushObjectDiff``1(``0,``0,System.Func{``0,``0,System.Boolean},System.Action)">
+  PushObjectDiff&lt;T&gt;(T, T, Func&lt;T, T, bool&gt;, Action)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L165"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public void PushObjectDiff&lt;T&gt;(T a, T b, Func&lt;T, T, bool&gt; equals, Action encodeDiff)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>a</code> <span class="xref">T</span></dt>
+    <dd></dd>
+    <dt><code>b</code> <span class="xref">T</span></dt>
+    <dd></dd>
+    <dt><code>equals</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-3">Func</a>&lt;T, T, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a>&gt;</dt>
+    <dd></dd>
+    <dt><code>encodeDiff</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.action">Action</a></dt>
+    <dd></dd>
+  </dl>
+
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
   <a id="DeltaPack_Encoder_PushOptionalDiff_" data-uid="DeltaPack.Encoder.PushOptionalDiff*"></a>
 
   <h3 id="DeltaPack_Encoder_PushOptionalDiff__1_System_Nullable___0__System_Nullable___0__System_Action___0__System_Action___0___0__" data-uid="DeltaPack.Encoder.PushOptionalDiff``1(System.Nullable{``0},System.Nullable{``0},System.Action{``0},System.Action{``0,``0})">
   PushOptionalDiff&lt;T&gt;(T?, T?, Action&lt;T&gt;, Action&lt;T, T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L192"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L202"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -748,7 +790,7 @@ Class Encoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Encoder_PushOptionalDiff__1___0___0_System_Action___0__System_Action___0___0__" data-uid="DeltaPack.Encoder.PushOptionalDiff``1(``0,``0,System.Action{``0},System.Action{``0,``0})">
   PushOptionalDiff&lt;T&gt;(T?, T?, Action&lt;T&gt;, Action&lt;T, T&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L175"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L185"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -828,7 +870,7 @@ Class Encoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Encoder_PushRecordDiff__2_System_Collections_Generic_IDictionary___0___1__System_Collections_Generic_IDictionary___0___1__System_Func___1___1_System_Boolean__System_Action___0__System_Action___1__System_Action___1___1__" data-uid="DeltaPack.Encoder.PushRecordDiff``2(System.Collections.Generic.IDictionary{``0,``1},System.Collections.Generic.IDictionary{``0,``1},System.Func{``1,``1,System.Boolean},System.Action{``0},System.Action{``1},System.Action{``1,``1})">
   PushRecordDiff&lt;TKey, TValue&gt;(IDictionary&lt;TKey, TValue&gt;, IDictionary&lt;TKey, TValue&gt;, Func&lt;TValue, TValue, bool&gt;, Action&lt;TKey&gt;, Action&lt;TValue&gt;, Action&lt;TValue, TValue&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L241"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L251"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
@@ -1013,7 +1055,7 @@ Class Encoder  <a class="header-action link-secondary" title="View source" href=
 
   <h3 id="DeltaPack_Encoder_ToBuffer" data-uid="DeltaPack.Encoder.ToBuffer">
   ToBuffer()
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L299"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Encoder.cs/#L309"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
