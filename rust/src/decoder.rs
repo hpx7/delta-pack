@@ -347,12 +347,14 @@ impl<'a> Decoder<'a> {
         if !a.is_empty() {
             let num_deletions = self.next_uint() as usize;
             for _ in 0..num_deletions {
-                let key = key_read(self);
+                let idx = self.next_uint() as usize;
+                let key = a.get_index(idx).unwrap().0.clone();
                 result.shift_remove(&key);
             }
             let num_updates = self.next_uint() as usize;
             for _ in 0..num_updates {
-                let key = key_read(self);
+                let idx = self.next_uint() as usize;
+                let key = a.get_index(idx).unwrap().0.clone();
                 let new_val = val_diff(self, result.get(&key).unwrap());
                 result.insert(key, new_val);
             }

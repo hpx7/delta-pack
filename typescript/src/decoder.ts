@@ -199,14 +199,16 @@ export class DiffDecoder extends Decoder {
   nextRecordDiff<K, T>(obj: Map<K, T>, decodeKey: () => K, decodeVal: () => T, decodeDiff: (a: T) => T): Map<K, T> {
     const result: Map<K, T> = new Map(obj);
     if (obj.size > 0) {
+      const keys = [...obj.keys()];
       const numDeletions = this.readUVarint();
       for (let i = 0; i < numDeletions; i++) {
-        const key = decodeKey();
-        result.delete(key);
+        const idx = this.readUVarint();
+        result.delete(keys[idx]!);
       }
       const numUpdates = this.readUVarint();
       for (let i = 0; i < numUpdates; i++) {
-        const key = decodeKey();
+        const idx = this.readUVarint();
+        const key = keys[idx]!;
         result.set(key, decodeDiff(result.get(key)!));
       }
     }

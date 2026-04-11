@@ -28,8 +28,8 @@
   <rect x="130" y="244" width="55.120879120879124" height="20" fill="#3b82f6" rx="3"/>
   <text x="191.12087912087912" y="258" font-size="11" fill="#374151" font-weight="500">374B</text>
   <text x="126" y="282" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="268" width="29.918552036199095" height="20" fill="#10b981" rx="3"/>
-  <text x="165.9185520361991" y="282" font-size="11" fill="#374151" font-weight="500">203B</text>
+  <rect x="130" y="268" width="26.823529411764707" height="20" fill="#10b981" rx="3"/>
+  <text x="162.8235294117647" y="282" font-size="11" fill="#374151" font-weight="500">182B</text>
   <text x="12" y="320" font-size="13" font-weight="600" fill="#374151">GameState State3→4</text>
   <text x="126" y="342" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="328" width="456" height="20" fill="#f59e0b" rx="3"/>
@@ -41,8 +41,8 @@
   <rect x="130" y="376" width="55.31072410632447" height="20" fill="#3b82f6" rx="3"/>
   <text x="191.31072410632447" y="390" font-size="11" fill="#374151" font-weight="500">397B</text>
   <text x="126" y="414" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="400" width="16.3006416131989" height="20" fill="#10b981" rx="3"/>
-  <text x="152.3006416131989" y="414" font-size="11" fill="#374151" font-weight="500">117B</text>
+  <rect x="130" y="400" width="13.792850595783685" height="20" fill="#10b981" rx="3"/>
+  <text x="149.79285059578368" y="414" font-size="11" fill="#374151" font-weight="500">99B</text>
   <text x="12" y="452" font-size="13" font-weight="600" fill="#374151">GameState State4→5</text>
   <text x="126" y="474" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="460" width="456" height="20" fill="#f59e0b" rx="3"/>
@@ -54,8 +54,8 @@
   <rect x="130" y="508" width="61.79471089197669" height="20" fill="#3b82f6" rx="3"/>
   <text x="197.7947108919767" y="522" font-size="11" fill="#374151" font-weight="500">907B</text>
   <text x="126" y="546" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="532" width="41.55983863738234" height="20" fill="#10b981" rx="3"/>
-  <text x="177.55983863738234" y="546" font-size="11" fill="#374151" font-weight="500">610B</text>
+  <rect x="130" y="532" width="40.74226804123711" height="20" fill="#10b981" rx="3"/>
+  <text x="176.7422680412371" y="546" font-size="11" fill="#374151" font-weight="500">598B</text>
   <text x="12" y="584" font-size="13" font-weight="600" fill="#374151">GameState State5→6</text>
   <text x="126" y="606" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="592" width="456" height="20" fill="#f59e0b" rx="3"/>
@@ -67,8 +67,8 @@
   <rect x="130" y="640" width="61.72093717355618" height="20" fill="#3b82f6" rx="3"/>
   <text x="197.7209371735562" y="654" font-size="11" fill="#374151" font-weight="500">907B</text>
   <text x="126" y="678" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="664" width="6.804954484405313" height="20" fill="#10b981" rx="3"/>
-  <text x="142.8049544844053" y="678" font-size="11" fill="#374151" font-weight="500">100B</text>
+  <rect x="130" y="664" width="4.082972690643188" height="20" fill="#10b981" rx="3"/>
+  <text x="140.08297269064317" y="678" font-size="11" fill="#374151" font-weight="500">60B</text>
   <text x="12" y="716" font-size="13" font-weight="600" fill="#374151">Primitives State1→2</text>
   <text x="126" y="738" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
   <rect x="130" y="724" width="184.86486486486487" height="20" fill="#f59e0b" rx="3"/>
@@ -93,6 +93,6 @@
   <rect x="130" y="904" width="89.10344827586208" height="20" fill="#3b82f6" rx="3"/>
   <text x="225.1034482758621" y="918" font-size="11" fill="#374151" font-weight="500">238B</text>
   <text x="126" y="942" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="928" width="63.27093596059113" height="20" fill="#10b981" rx="3"/>
-  <text x="199.27093596059115" y="942" font-size="11" fill="#374151" font-weight="500">169B</text>
+  <rect x="130" y="928" width="61.77339901477833" height="20" fill="#10b981" rx="3"/>
+  <text x="197.77339901477833" y="942" font-size="11" fill="#374151" font-weight="500">165B</text>
 </svg>

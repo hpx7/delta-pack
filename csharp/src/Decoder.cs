@@ -208,17 +208,24 @@ public class Decoder
 
         if (obj.Count > 0)
         {
+            // Build key array for index-based lookup
+            var keys = new TKey[obj.Count];
+            var ki = 0;
+            foreach (var kvp in obj)
+                keys[ki++] = kvp.Key;
+
             var numDeletions = (int)NextUInt();
             for (var i = 0; i < numDeletions; i++)
             {
-                var key = decodeKey();
-                result.Remove(key);
+                var idx = (int)NextUInt();
+                result.Remove(keys[idx]);
             }
 
             var numUpdates = (int)NextUInt();
             for (var i = 0; i < numUpdates; i++)
             {
-                var key = decodeKey();
+                var idx = (int)NextUInt();
+                var key = keys[idx];
                 result[key] = decodeDiff(result[key]);
             }
         }

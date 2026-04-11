@@ -1,3 +1,4 @@
+using DeltaPack;
 using Xunit;
 
 namespace DeltaPack.Tests;
@@ -190,7 +191,7 @@ public class EncoderDecoderTests
     [Fact]
     public void Record_RoundTrips()
     {
-        var values = new Dictionary<string, long>
+        var values = new OrderedDictionary<string, long>
         {
             ["one"] = 1,
             ["two"] = 2,
@@ -319,13 +320,13 @@ public class EncoderDecoderTests
     [Fact]
     public void RecordDiff_WithChanges_RoundTrips()
     {
-        var a = new Dictionary<string, long>
+        var a = new OrderedDictionary<string, long>
         {
             ["one"] = 1,
             ["two"] = 2,
             ["three"] = 3
         };
-        var b = new Dictionary<string, long>
+        var b = new OrderedDictionary<string, long>
         {
             ["one"] = 1,
             ["two"] = 20,  // updated

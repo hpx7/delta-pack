@@ -258,22 +258,24 @@ public class Encoder
         where TKey : notnull
     {
         // Caller handles change bit via PushFieldDiff
-        var updates = new List<TKey>();
-        var deletions = new List<TKey>();
+        var updates = new List<(int idx, TKey key)>();
+        var deletions = new List<int>();
         var additions = new List<(TKey key, TValue val)>();
 
-        // Check all keys
+        // Check all keys, tracking position for index-based encoding
+        var idx = 0;
         foreach (var (aKey, aVal) in a)
         {
             if (b.TryGetValue(aKey, out var bVal))
             {
                 if (!valueEquals(aVal, bVal))
-                    updates.Add(aKey);
+                    updates.Add((idx, aKey));
             }
             else
             {
-                deletions.Add(aKey);
+                deletions.Add(idx);
             }
+            idx++;
         }
 
         foreach (var (bKey, bVal) in b)
@@ -285,13 +287,13 @@ public class Encoder
         if (a.Count > 0)
         {
             PushUInt((uint)deletions.Count);
-            foreach (var key in deletions)
-                encodeKey(key);
+            foreach (var delIdx in deletions)
+                PushUInt((uint)delIdx);
 
             PushUInt((uint)updates.Count);
-            foreach (var key in updates)
+            foreach (var (updIdx, key) in updates)
             {
-                encodeKey(key);
+                PushUInt((uint)updIdx);
                 encodeDiff(a[key], b[key]);
             }
         }

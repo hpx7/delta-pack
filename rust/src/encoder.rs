@@ -315,17 +315,17 @@ impl Encoder {
         FVD: FnMut(&mut Self, &V, &V),
         E: FnMut(&V, &V) -> bool,
     {
-        let mut deletions = Vec::new();
-        let mut updates = Vec::new();
+        let mut deletions: Vec<usize> = Vec::new();
+        let mut updates: Vec<(usize, K)> = Vec::new();
         let mut additions = Vec::new();
 
-        for (k, av) in a {
+        for (idx, (k, av)) in a.iter().enumerate() {
             if let Some(bv) = b.get(k) {
                 if !equals(av, bv) {
-                    updates.push(k.clone());
+                    updates.push((idx, k.clone()));
                 }
             } else {
-                deletions.push(k.clone());
+                deletions.push(idx);
             }
         }
 
@@ -338,12 +338,12 @@ impl Encoder {
         // Write deletions and updates (only if a was non-empty)
         if !a.is_empty() {
             self.push_uint(deletions.len() as u64);
-            for key in &deletions {
-                key_write(self, key);
+            for del_idx in &deletions {
+                self.push_uint(*del_idx as u64);
             }
             self.push_uint(updates.len() as u64);
-            for key in &updates {
-                key_write(self, key);
+            for (upd_idx, key) in &updates {
+                self.push_uint(*upd_idx as u64);
                 val_diff(self, a.get(key).unwrap(), b.get(key).unwrap());
             }
         }

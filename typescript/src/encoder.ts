@@ -327,8 +327,15 @@ export class DiffEncoder extends Encoder {
     const createdVersions = getCreatedVersions(b);
     const deletedVersions = getDeletedVersions(b);
 
-    const updates: K[] = [];
-    const deletions: K[] = [];
+    // Build key→index map for positional encoding
+    const keyToIndex = new Map<K, number>();
+    let idx = 0;
+    for (const key of a.keys()) {
+      keyToIndex.set(key, idx++);
+    }
+
+    const updates: { idx: number; key: K }[] = [];
+    const deletions: number[] = [];
     const additions: [K, T][] = [];
 
     if (versions && createdVersions && deletedVersions) {
@@ -336,7 +343,7 @@ export class DiffEncoder extends Encoder {
       const minVersion = snapshotVersion ?? -1;
       for (const [key, ver] of deletedVersions) {
         if (ver > minVersion && a.has(key)) {
-          deletions.push(key);
+          deletions.push(keyToIndex.get(key)!);
         }
       }
       for (const [key, ver] of createdVersions) {
@@ -346,7 +353,7 @@ export class DiffEncoder extends Encoder {
       }
       for (const [key, ver] of versions) {
         if (ver > minVersion && b.has(key) && a.has(key)) {
-          updates.push(key);
+          updates.push({ idx: keyToIndex.get(key)!, key });
         }
       }
     } else {
@@ -354,10 +361,10 @@ export class DiffEncoder extends Encoder {
       a.forEach((aVal, aKey) => {
         if (b.has(aKey)) {
           if (!equals(aVal, b.get(aKey)!)) {
-            updates.push(aKey);
+            updates.push({ idx: keyToIndex.get(aKey)!, key: aKey });
           }
         } else {
-          deletions.push(aKey);
+          deletions.push(keyToIndex.get(aKey)!);
         }
       });
       b.forEach((bVal, bKey) => {
@@ -369,14 +376,14 @@ export class DiffEncoder extends Encoder {
 
     if (a.size > 0) {
       this.writeUVarint(deletions.length);
-      deletions.forEach((key) => {
-        encodeKey(key);
-      });
+      for (const delIdx of deletions) {
+        this.writeUVarint(delIdx);
+      }
       this.writeUVarint(updates.length);
-      updates.forEach((key) => {
-        encodeKey(key);
+      for (const { idx: updIdx, key } of updates) {
+        this.writeUVarint(updIdx);
         encodeDiff(a.get(key)!, b.get(key)!);
-      });
+      }
     }
     this.writeUVarint(additions.length);
     additions.forEach(([key, val]) => {
