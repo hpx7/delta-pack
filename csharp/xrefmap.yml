@@ -378,15 +378,15 @@ references:
   isSpec: "True"
   fullName: DeltaPack.Decoder.NextRecordDiff
   nameWithType: Decoder.NextRecordDiff
-- uid: DeltaPack.Decoder.NextRecordDiff``2(System.Collections.Generic.IDictionary{``0,``1},System.Func{``0},System.Func{``1},System.Func{``1,``1})
-  name: NextRecordDiff<TKey, TValue>(IDictionary<TKey, TValue>, Func<TKey>, Func<TValue>, Func<TValue, TValue>)
-  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextRecordDiff__2_System_Collections_Generic_IDictionary___0___1__System_Func___0__System_Func___1__System_Func___1___1__
-  commentId: M:DeltaPack.Decoder.NextRecordDiff``2(System.Collections.Generic.IDictionary{``0,``1},System.Func{``0},System.Func{``1},System.Func{``1,``1})
-  name.vb: NextRecordDiff(Of TKey, TValue)(IDictionary(Of TKey, TValue), Func(Of TKey), Func(Of TValue), Func(Of TValue, TValue))
-  fullName: DeltaPack.Decoder.NextRecordDiff<TKey, TValue>(System.Collections.Generic.IDictionary<TKey, TValue>, System.Func<TKey>, System.Func<TValue>, System.Func<TValue, TValue>)
-  fullName.vb: DeltaPack.Decoder.NextRecordDiff(Of TKey, TValue)(System.Collections.Generic.IDictionary(Of TKey, TValue), System.Func(Of TKey), System.Func(Of TValue), System.Func(Of TValue, TValue))
-  nameWithType: Decoder.NextRecordDiff<TKey, TValue>(IDictionary<TKey, TValue>, Func<TKey>, Func<TValue>, Func<TValue, TValue>)
-  nameWithType.vb: Decoder.NextRecordDiff(Of TKey, TValue)(IDictionary(Of TKey, TValue), Func(Of TKey), Func(Of TValue), Func(Of TValue, TValue))
+- uid: DeltaPack.Decoder.NextRecordDiff``2(DeltaPack.OrderedDictionary{``0,``1},System.Func{``0},System.Func{``1},System.Func{``1,``1})
+  name: NextRecordDiff<TKey, TValue>(OrderedDictionary<TKey, TValue>, Func<TKey>, Func<TValue>, Func<TValue, TValue>)
+  href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextRecordDiff__2_DeltaPack_OrderedDictionary___0___1__System_Func___0__System_Func___1__System_Func___1___1__
+  commentId: M:DeltaPack.Decoder.NextRecordDiff``2(DeltaPack.OrderedDictionary{``0,``1},System.Func{``0},System.Func{``1},System.Func{``1,``1})
+  name.vb: NextRecordDiff(Of TKey, TValue)(OrderedDictionary(Of TKey, TValue), Func(Of TKey), Func(Of TValue), Func(Of TValue, TValue))
+  fullName: DeltaPack.Decoder.NextRecordDiff<TKey, TValue>(DeltaPack.OrderedDictionary<TKey, TValue>, System.Func<TKey>, System.Func<TValue>, System.Func<TValue, TValue>)
+  fullName.vb: DeltaPack.Decoder.NextRecordDiff(Of TKey, TValue)(DeltaPack.OrderedDictionary(Of TKey, TValue), System.Func(Of TKey), System.Func(Of TValue), System.Func(Of TValue, TValue))
+  nameWithType: Decoder.NextRecordDiff<TKey, TValue>(OrderedDictionary<TKey, TValue>, Func<TKey>, Func<TValue>, Func<TValue, TValue>)
+  nameWithType.vb: Decoder.NextRecordDiff(Of TKey, TValue)(OrderedDictionary(Of TKey, TValue), Func(Of TKey), Func(Of TValue), Func(Of TValue, TValue))
 - uid: DeltaPack.Decoder.NextRecord``2(System.Func{``0},System.Func{``1})
   name: NextRecord<TKey, TValue>(Func<TKey>, Func<TValue>)
   href: api/DeltaPack.Decoder.html#DeltaPack_Decoder_NextRecord__2_System_Func___0__System_Func___1__
@@ -1987,6 +1987,24 @@ references:
   fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).GetEnumerator
   nameWithType: OrderedDictionary<TKey, TValue>.GetEnumerator
   nameWithType.vb: OrderedDictionary(Of TKey, TValue).GetEnumerator
+- uid: DeltaPack.OrderedDictionary`2.GetKeyAtIndex(System.Int32)
+  name: GetKeyAtIndex(int)
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_GetKeyAtIndex_System_Int32_
+  commentId: M:DeltaPack.OrderedDictionary`2.GetKeyAtIndex(System.Int32)
+  name.vb: GetKeyAtIndex(Integer)
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.GetKeyAtIndex(int)
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).GetKeyAtIndex(Integer)
+  nameWithType: OrderedDictionary<TKey, TValue>.GetKeyAtIndex(int)
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).GetKeyAtIndex(Integer)
+- uid: DeltaPack.OrderedDictionary`2.GetKeyAtIndex*
+  name: GetKeyAtIndex
+  href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_GetKeyAtIndex_
+  commentId: Overload:DeltaPack.OrderedDictionary`2.GetKeyAtIndex
+  isSpec: "True"
+  fullName: DeltaPack.OrderedDictionary<TKey, TValue>.GetKeyAtIndex
+  fullName.vb: DeltaPack.OrderedDictionary(Of TKey, TValue).GetKeyAtIndex
+  nameWithType: OrderedDictionary<TKey, TValue>.GetKeyAtIndex
+  nameWithType.vb: OrderedDictionary(Of TKey, TValue).GetKeyAtIndex
 - uid: DeltaPack.OrderedDictionary`2.IsReadOnly
   name: IsReadOnly
   href: api/DeltaPack.OrderedDictionary-2.html#DeltaPack_OrderedDictionary_2_IsReadOnly
