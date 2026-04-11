@@ -4,11 +4,12 @@ import { runBenchmarks, generateBarChartSvg } from "./run.js";
 
 const args = process.argv.slice(2);
 const mode = args.includes("--interpreter") ? "interpreter" : "codegen";
+const save = args.includes("--save");
 const filter = args.filter((arg) => !arg.startsWith("--"));
 
 const chartData = runBenchmarks(mode, filter.length > 0 ? filter : undefined);
 
-if (chartData) {
+if (chartData && save) {
   const chartsDir = path.join(import.meta.dirname, "..", "charts");
   fs.mkdirSync(chartsDir, { recursive: true });
   fs.writeFileSync(

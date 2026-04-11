@@ -58,6 +58,8 @@ function deepEquals(a: unknown, b: unknown, tolerance = 0.1): boolean {
 }
 
 function main() {
+  const save = process.argv.includes("--save");
+
   const examples = fs
     .readdirSync(examplesDir, { withFileTypes: true })
     .filter((f) => f.isDirectory())
@@ -138,10 +140,12 @@ function main() {
   }
 
   // Generate SVG charts
-  fs.mkdirSync("charts", { recursive: true });
-  fs.writeFileSync("charts/full-encode.svg", generateBarChartSvg("Full Encoding Size (bytes)", fullGroups));
-  fs.writeFileSync("charts/delta-encode.svg", generateBarChartSvg("Delta Encoding Size (bytes)", deltaGroups));
-  console.log("Charts written to charts/full-encode.svg and charts/delta-encode.svg");
+  if (save) {
+    fs.mkdirSync("charts", { recursive: true });
+    fs.writeFileSync("charts/full-encode.svg", generateBarChartSvg("Full Encoding Size (bytes)", fullGroups));
+    fs.writeFileSync("charts/delta-encode.svg", generateBarChartSvg("Delta Encoding Size (bytes)", deltaGroups));
+    console.log("Charts written to charts/full-encode.svg and charts/delta-encode.svg");
+  }
 }
 
 function printTable(headers: string[], rows: string[][]) {

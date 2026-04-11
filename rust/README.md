@@ -201,7 +201,8 @@ Run benchmarks:
 ```bash
 cd rust/benchmarks
 ./build.sh  # Generate benchmark schemas
-cargo run --release
+cargo run --release          # Run benchmarks
+cargo run --release -- --save  # Run and save charts
 ```
 
 ### Faster Decoding with mimalloc

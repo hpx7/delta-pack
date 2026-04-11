@@ -16,6 +16,9 @@ dotnet run -c Release --project benchmarks GameState User
 # Run in interpreter mode
 dotnet run -c Release --project benchmarks -- --interpreter
 dotnet run -c Release --project benchmarks -- --interpreter Primitives
+
+# Save charts to benchmarks/charts/
+dotnet run -c Release --project benchmarks -- --save
 ```
 
 ## Modes

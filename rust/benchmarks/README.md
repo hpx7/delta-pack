@@ -12,6 +12,9 @@ cargo run --release -p delta-pack-benchmarks  # Run all benchmarks
 # Run specific benchmarks (case-insensitive, partial match)
 cargo run --release -p delta-pack-benchmarks -- primitives
 cargo run --release -p delta-pack-benchmarks -- gamestate user
+
+# Save charts to benchmarks/charts/
+cargo run --release -p delta-pack-benchmarks -- --save
 ```
 
 ## Results (codegen)

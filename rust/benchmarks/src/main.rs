@@ -38,7 +38,13 @@ const BENCHMARK_DURATION_MS: u64 = 500;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let filter: Vec<&str> = args.iter().skip(1).map(|s| s.as_str()).collect();
+    let save = args.iter().any(|a| a == "--save");
+    let filter: Vec<&str> = args
+        .iter()
+        .skip(1)
+        .filter(|a| !a.starts_with("--"))
+        .map(|s| s.as_str())
+        .collect();
 
     let examples_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -73,19 +79,23 @@ fn main() {
     println!("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
     let decode_groups = run_decode_benchmarks(&examples);
 
-    let charts_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("charts");
-    fs::create_dir_all(&charts_dir).unwrap();
-    fs::write(
-        charts_dir.join("encode.svg"),
-        generate_bar_chart_svg("Encoding Speed (ops/s)", &encode_groups),
-    )
-    .unwrap();
-    fs::write(
-        charts_dir.join("decode.svg"),
-        generate_bar_chart_svg("Decoding Speed (ops/s)", &decode_groups),
-    )
-    .unwrap();
-    println!("\nCharts written to benchmarks/charts/encode.svg and benchmarks/charts/decode.svg");
+    if save {
+        let charts_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("charts");
+        fs::create_dir_all(&charts_dir).unwrap();
+        fs::write(
+            charts_dir.join("encode.svg"),
+            generate_bar_chart_svg("Encoding Speed (ops/s)", &encode_groups),
+        )
+        .unwrap();
+        fs::write(
+            charts_dir.join("decode.svg"),
+            generate_bar_chart_svg("Decoding Speed (ops/s)", &decode_groups),
+        )
+        .unwrap();
+        println!(
+            "\nCharts written to benchmarks/charts/encode.svg and benchmarks/charts/decode.svg"
+        );
+    }
 }
 
 fn global_warmup(examples: &[Example]) {

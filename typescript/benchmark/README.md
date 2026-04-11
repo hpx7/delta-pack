@@ -17,6 +17,9 @@ npm run bench gamestate user
 npm run bench -- --interpreter
 npm run bench -- --interpreter primitives
 
+# Save charts to benchmark/charts/
+npm run bench -- --save
+
 # Browser benchmarks
 npx serve benchmark  # then open http://localhost:3000
 # Optional query params: ?mode=interpreter&filter=primitives

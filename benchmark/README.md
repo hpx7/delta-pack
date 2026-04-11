@@ -13,7 +13,8 @@ For performance benchmarks, see:
 ## Running
 
 ```bash
-npm run bench
+npm run bench            # Run benchmarks
+npm run bench -- --save  # Run and save charts to charts/
 ```
 
 ## Full Encoding Size (bytes)

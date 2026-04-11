@@ -16,6 +16,7 @@ public class Program
     {
         // Parse flags
         bool interpreterMode = args.Contains("--interpreter", StringComparer.OrdinalIgnoreCase);
+        bool save = args.Contains("--save", StringComparer.OrdinalIgnoreCase);
         var filter = args.Where(a => !a.StartsWith("--")).ToArray();
 
         var examplesDir = Path.Combine("..", "examples");
@@ -63,11 +64,14 @@ public class Program
         Console.WriteLine("Higher is better. The multiplier shows how much slower each format is compared to the fastest.\n");
         var decodeGroups = RunDecodeBenchmarks(examples);
 
-        var chartsDir = Path.Combine("benchmarks", "charts");
-        Directory.CreateDirectory(chartsDir);
-        File.WriteAllText(Path.Combine(chartsDir, "encode.svg"), GenerateBarChartSvg("Encoding Speed (ops/s)", encodeGroups));
-        File.WriteAllText(Path.Combine(chartsDir, "decode.svg"), GenerateBarChartSvg("Decoding Speed (ops/s)", decodeGroups));
-        Console.WriteLine("\nCharts written to benchmarks/charts/encode.svg and benchmarks/charts/decode.svg");
+        if (save)
+        {
+            var chartsDir = Path.Combine("benchmarks", "charts");
+            Directory.CreateDirectory(chartsDir);
+            File.WriteAllText(Path.Combine(chartsDir, "encode.svg"), GenerateBarChartSvg("Encoding Speed (ops/s)", encodeGroups));
+            File.WriteAllText(Path.Combine(chartsDir, "decode.svg"), GenerateBarChartSvg("Decoding Speed (ops/s)", decodeGroups));
+            Console.WriteLine("\nCharts written to benchmarks/charts/encode.svg and benchmarks/charts/decode.svg");
+        }
     }
 
     static List<ChartGroup> RunEncodeBenchmarks(List<Example> examples)
