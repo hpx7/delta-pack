@@ -307,14 +307,14 @@ impl<'a> Decoder<'a> {
         &mut self,
         mut key_read: FK,
         mut val_read: FV,
-    ) -> std::collections::HashMap<K, V>
+    ) -> indexmap::IndexMap<K, V>
     where
         K: Eq + std::hash::Hash,
         FK: FnMut(&mut Self) -> K,
         FV: FnMut(&mut Self) -> V,
     {
         let len = self.next_uint() as usize;
-        let mut map = std::collections::HashMap::with_capacity(len);
+        let mut map = indexmap::IndexMap::with_capacity(len);
         for _ in 0..len {
             let k = key_read(self);
             let v = val_read(self);
@@ -329,11 +329,11 @@ impl<'a> Decoder<'a> {
     #[inline]
     pub fn next_record_diff<K, V, FK, FV, FVD>(
         &mut self,
-        a: &std::collections::HashMap<K, V>,
+        a: &indexmap::IndexMap<K, V>,
         mut key_read: FK,
         mut val_read: FV,
         mut val_diff: FVD,
-    ) -> std::collections::HashMap<K, V>
+    ) -> indexmap::IndexMap<K, V>
     where
         K: Clone + Eq + std::hash::Hash,
         V: Clone,
@@ -348,7 +348,7 @@ impl<'a> Decoder<'a> {
             let num_deletions = self.next_uint() as usize;
             for _ in 0..num_deletions {
                 let key = key_read(self);
-                result.remove(&key);
+                result.shift_remove(&key);
             }
             let num_updates = self.next_uint() as usize;
             for _ in 0..num_updates {
@@ -579,14 +579,14 @@ mod tests {
     #[test]
     fn test_record_encode_decode() {
         let mut encoder = Encoder::new();
-        let mut map = std::collections::HashMap::new();
+        let mut map = indexmap::IndexMap::new();
         map.insert("a".to_string(), 1i64);
         map.insert("b".to_string(), 2i64);
         encoder.push_record(&map, |enc, k| enc.push_string(k), |enc, &v| enc.push_int(v));
         let buf = encoder.finish();
 
         let mut decoder = Decoder::new(&buf);
-        let result: std::collections::HashMap<String, i64> =
+        let result: indexmap::IndexMap<String, i64> =
             decoder.next_record(|dec| dec.next_string(), |dec| dec.next_int());
         assert_eq!(result, map);
     }

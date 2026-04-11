@@ -233,9 +233,9 @@ public sealed class DeltaPackCodec<T> where T : class
         return result;
     }
 
-    private Dictionary<object, object?> ToUntypedDictionary(IDictionary dict, DictionaryMapping mapping)
+    private OrderedDictionary<object, object?> ToUntypedDictionary(IDictionary dict, DictionaryMapping mapping)
     {
-        var result = new Dictionary<object, object?>();
+        var result = new OrderedDictionary<object, object?>();
         foreach (DictionaryEntry entry in dict)
         {
             // Convert key to interpreter's expected type (long for int types)
@@ -383,7 +383,7 @@ public sealed class DeltaPackCodec<T> where T : class
     {
         var valueType = GetElementType(mapping.Value);
         var typedDict = (IDictionary)Activator.CreateInstance(
-            typeof(Dictionary<,>).MakeGenericType(mapping.KeyType, valueType))!;
+            typeof(OrderedDictionary<,>).MakeGenericType(mapping.KeyType, valueType))!;
         foreach (var (key, value) in dict)
         {
             var typedKey = ConvertKeyToTyped(key, mapping.KeyType);
@@ -479,7 +479,8 @@ internal sealed class SchemaBuilder
         }
 
         // Dictionaries
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+        if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(OrderedDictionary<,>)
+            || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
         {
             var args = type.GetGenericArguments();
             var keyType = args[0];

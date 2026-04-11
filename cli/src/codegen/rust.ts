@@ -87,7 +87,7 @@ function renderSchema(ctx: GeneratorContext): string {
 
 use delta_pack::{Decoder, Encoder};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use delta_pack::IndexMap;
 
 ${[...enums, ...structs].join("\n\n")}
 `;
@@ -506,7 +506,7 @@ function renderType(ctx: GeneratorContext, type: Type): string {
     case "optional":
       return `Option<${renderType(ctx, type.value)}>`;
     case "record":
-      return `HashMap<${renderType(ctx, type.key)}, ${renderType(ctx, type.value)}>`;
+      return `IndexMap<${renderType(ctx, type.key)}, ${renderType(ctx, type.value)}>`;
     case "object":
       return type.name!;
     case "reference":
@@ -535,7 +535,7 @@ function renderDefault(ctx: GeneratorContext, type: Type): string {
     case "optional":
       return "None";
     case "record":
-      return "HashMap::new()";
+      return "IndexMap::new()";
     case "reference":
       return `${type.ref.name!}::default()`;
     case "self-reference":

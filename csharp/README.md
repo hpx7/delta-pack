@@ -92,7 +92,7 @@ Player result = Player.DecodeDiff(oldPlayer, diff);
 
 - **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `byte`, `short`, etc.
 - **Enums**: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)
-- **Collections**: `List<T>`, `Dictionary<TKey, TValue>` (TKey: `string`, `int`, `uint`, `long`, `ulong`)
+- **Collections**: `List<T>`, `OrderedDictionary<TKey, TValue>` (TKey: `string`, `int`, `uint`, `long`, `ulong`)
 - **Nullable value types**: `int?`, `float?`, etc.
 - **Nullable reference types**: `Player?`, `string?`, etc.
 - **Nested objects**: Any class with public properties

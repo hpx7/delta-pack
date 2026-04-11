@@ -248,7 +248,7 @@ public class InterpreterTests
         var encoded = api.Encode(playerScores);
         var decoded = api.Decode(encoded);
 
-        var scores = (Dictionary<object, object?>)decoded["scores"]!;
+        var scores = (IDictionary<object, object?>)decoded["scores"]!;
         Assert.Equal("Alice", scores[1L]);
         Assert.Equal("Bob", scores[2L]);
         Assert.Equal("Charlie", scores[-5L]);
@@ -287,7 +287,7 @@ public class InterpreterTests
         var diff = api.EncodeDiff(a, b);
         var result = api.DecodeDiff(a, diff);
 
-        var scores = (Dictionary<object, object?>)result["scores"]!;
+        var scores = (IDictionary<object, object?>)result["scores"]!;
         Assert.Equal(2, scores.Count);
         Assert.Equal("Alicia", scores[1L]);
         Assert.Equal("Charlie", scores[3L]);

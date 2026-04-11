@@ -45,7 +45,7 @@ macro_rules! conformance_tests {
                     let obj: $type_name = serde_json::from_str(&json).unwrap();
                     let rust_encoded = obj.encode();
 
-                    // Encoding order is undefined (HashMap), so only check decoded equality
+                    // Verify decoded equality (encoding is deterministic with IndexMap)
                     let golden_decoded = $type_name::decode(&golden_bytes);
                     let rust_decoded = $type_name::decode(&rust_encoded);
                     assert!(
@@ -94,7 +94,7 @@ macro_rules! conformance_tests {
                     let new_obj: $type_name = serde_json::from_str(&new_json).unwrap();
                     let rust_encoded = $type_name::encode_diff(&old_obj, &new_obj);
 
-                    // Encoding order is undefined (HashMap), so only check decoded equality
+                    // Verify decoded equality (encoding is deterministic with IndexMap)
                     let golden_decoded = $type_name::decode_diff(&old_obj, &golden_diff);
                     let rust_decoded = $type_name::decode_diff(&old_obj, &rust_encoded);
                     assert!(

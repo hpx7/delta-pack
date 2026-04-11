@@ -28,7 +28,7 @@ public class Player
 // GameState class
 public class GameState
 {
-    public Dictionary<string, Player> Players { get; set; } = new();
+    public OrderedDictionary<string, Player> Players { get; set; } = new();
     public int Tick { get; set; }
     public float GameTime { get; set; }
 }

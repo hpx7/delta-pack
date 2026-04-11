@@ -81,13 +81,13 @@ public class Decoder
         return arr;
     }
 
-    public Dictionary<TKey, TValue> NextRecord<TKey, TValue>(
+    public OrderedDictionary<TKey, TValue> NextRecord<TKey, TValue>(
         Func<TKey> innerKeyRead,
         Func<TValue> innerValRead)
         where TKey : notnull
     {
         var len = (int)NextUInt();
-        var dict = new Dictionary<TKey, TValue>(len);
+        var dict = new OrderedDictionary<TKey, TValue>(len);
         for (var i = 0; i < len; i++)
             dict[innerKeyRead()] = innerValRead();
         return dict;
@@ -196,7 +196,7 @@ public class Decoder
         return newArr;
     }
 
-    public Dictionary<TKey, TValue> NextRecordDiff<TKey, TValue>(
+    public OrderedDictionary<TKey, TValue> NextRecordDiff<TKey, TValue>(
         IDictionary<TKey, TValue> obj,
         Func<TKey> decodeKey,
         Func<TValue> decodeVal,
@@ -204,7 +204,7 @@ public class Decoder
         where TKey : notnull
     {
         // Caller handles change bit via NextFieldDiff
-        var result = new Dictionary<TKey, TValue>(obj);
+        var result = new OrderedDictionary<TKey, TValue>(obj);
 
         if (obj.Count > 0)
         {

@@ -282,7 +282,7 @@ impl Encoder {
     #[inline]
     pub fn push_record<K, V, FK, FV>(
         &mut self,
-        map: &std::collections::HashMap<K, V>,
+        map: &indexmap::IndexMap<K, V>,
         mut key_write: FK,
         mut val_write: FV,
     ) where
@@ -302,8 +302,8 @@ impl Encoder {
     #[inline]
     pub fn push_record_diff<K, V, FK, FV, FVD, E>(
         &mut self,
-        a: &std::collections::HashMap<K, V>,
-        b: &std::collections::HashMap<K, V>,
+        a: &indexmap::IndexMap<K, V>,
+        b: &indexmap::IndexMap<K, V>,
         mut equals: E,
         mut key_write: FK,
         mut val_write: FV,

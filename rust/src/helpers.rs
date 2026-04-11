@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::hash::Hash;
 
 const FLOAT_EPSILON: f32 = 0.001;
@@ -29,7 +29,7 @@ where
     a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| equals(x, y))
 }
 
-pub fn equals_record<K, V, F>(a: &HashMap<K, V>, b: &HashMap<K, V>, mut value_equals: F) -> bool
+pub fn equals_record<K, V, F>(a: &IndexMap<K, V>, b: &IndexMap<K, V>, mut value_equals: F) -> bool
 where
     K: Eq + Hash,
     F: FnMut(&V, &V) -> bool,

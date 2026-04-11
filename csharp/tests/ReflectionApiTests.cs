@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DeltaPack;
 using Xunit;
 
 namespace DeltaPack.Tests;
@@ -308,7 +309,7 @@ public class ReflectionApiTests
     // Dictionaries
     public class Stats
     {
-        public Dictionary<string, int> Values { get; set; } = new();
+        public OrderedDictionary<string, int> Values { get; set; } = new();
     }
 
     [Fact]
@@ -317,7 +318,7 @@ public class ReflectionApiTests
         var codec = new DeltaPackCodec<Stats>();
         var stats = new Stats
         {
-            Values = new Dictionary<string, int>
+            Values = new OrderedDictionary<string, int>
             {
                 ["strength"] = 10,
                 ["agility"] = 15,
@@ -336,7 +337,7 @@ public class ReflectionApiTests
     // Int-keyed dictionaries
     public class IntKeyedContainer
     {
-        public Dictionary<int, string> PlayerNames { get; set; } = new();
+        public OrderedDictionary<int, string> PlayerNames { get; set; } = new();
     }
 
     [Fact]
@@ -345,7 +346,7 @@ public class ReflectionApiTests
         var codec = new DeltaPackCodec<IntKeyedContainer>();
         var container = new IntKeyedContainer
         {
-            PlayerNames = new Dictionary<int, string>
+            PlayerNames = new OrderedDictionary<int, string>
             {
                 [1] = "Alice",
                 [2] = "Bob",
@@ -375,7 +376,7 @@ public class ReflectionApiTests
     // UInt-keyed dictionaries
     public class UIntKeyedContainer
     {
-        public Dictionary<uint, int> ItemCounts { get; set; } = new();
+        public OrderedDictionary<uint, int> ItemCounts { get; set; } = new();
     }
 
     [Fact]
@@ -384,7 +385,7 @@ public class ReflectionApiTests
         var codec = new DeltaPackCodec<UIntKeyedContainer>();
         var container = new UIntKeyedContainer
         {
-            ItemCounts = new Dictionary<uint, int>
+            ItemCounts = new OrderedDictionary<uint, int>
             {
                 [100] = 5,
                 [200] = 10,
@@ -418,7 +419,7 @@ public class ReflectionApiTests
 
         var a = new IntKeyedContainer
         {
-            PlayerNames = new Dictionary<int, string>
+            PlayerNames = new OrderedDictionary<int, string>
             {
                 [1] = "Alice",
                 [2] = "Bob"
@@ -427,7 +428,7 @@ public class ReflectionApiTests
 
         var b = new IntKeyedContainer
         {
-            PlayerNames = new Dictionary<int, string>
+            PlayerNames = new OrderedDictionary<int, string>
             {
                 [1] = "Alicia",  // Changed
                 [3] = "Charlie" // Added (2 removed)
@@ -452,12 +453,12 @@ public class ReflectionApiTests
 
         var a = new Stats
         {
-            Values = new Dictionary<string, int>() // Empty
+            Values = new OrderedDictionary<string, int>() // Empty
         };
 
         var b = new Stats
         {
-            Values = new Dictionary<string, int>
+            Values = new OrderedDictionary<string, int>
             {
                 ["health"] = 100,
                 ["mana"] = 50
@@ -479,7 +480,7 @@ public class ReflectionApiTests
 
         var a = new Stats
         {
-            Values = new Dictionary<string, int>
+            Values = new OrderedDictionary<string, int>
             {
                 ["health"] = 100,
                 ["mana"] = 50
@@ -488,7 +489,7 @@ public class ReflectionApiTests
 
         var b = new Stats
         {
-            Values = new Dictionary<string, int>() // Empty
+            Values = new OrderedDictionary<string, int>() // Empty
         };
 
         var diff = codec.EncodeDiff(a, b);
@@ -743,7 +744,7 @@ public class ReflectionApiTests
     {
         public string Name { get; set; } = "";
         public List<Player> Members { get; set; } = new();
-        public Dictionary<string, int> Resources { get; set; } = new();
+        public OrderedDictionary<string, int> Resources { get; set; } = new();
     }
 
     [Fact]
@@ -758,7 +759,7 @@ public class ReflectionApiTests
                 new() { Name = "Alice", Score = 100, Active = true },
                 new() { Name = "Bob", Score = 80, Active = false }
             },
-            Resources = new Dictionary<string, int>
+            Resources = new OrderedDictionary<string, int>
             {
                 ["gold"] = 1000,
                 ["gems"] = 50

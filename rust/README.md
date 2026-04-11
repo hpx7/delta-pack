@@ -141,7 +141,7 @@ Generated types also derive:
 | -------- | --------------- |
 | `T[]`    | `Vec<T>`        |
 | `T?`     | `Option<T>`     |
-| `<K, V>` | `HashMap<K, V>` |
+| `<K, V>` | `IndexMap<K, V>` |
 
 ### Named Types
 
@@ -228,7 +228,7 @@ Delta-Pack ensures binary compatibility across Rust, TypeScript, and C#:
 - Conformance tests verify encode/decode compatibility
 - Diff encoding uses sorted keys for deterministic output
 
-Note: Full encodes may produce different byte sequences across languages due to HashMap iteration order, but decoded values are identical.
+All languages use insertion-order-preserving maps (`IndexMap` in Rust, `Map` in TypeScript, `OrderedDictionary` in C#), producing deterministic encoding for the same insertion order.
 
 ## License
 

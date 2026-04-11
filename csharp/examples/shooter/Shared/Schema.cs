@@ -4,8 +4,8 @@ namespace Shooter.Shared;
 
 public class GameState
 {
-    public Dictionary<string, Player> Players { get; set; } = new();
-    public Dictionary<string, Bullet> Bullets { get; set; } = new();
+    public OrderedDictionary<string, Player> Players { get; set; } = new();
+    public OrderedDictionary<string, Bullet> Bullets { get; set; } = new();
     public uint Tick { get; set; }
 }
 
