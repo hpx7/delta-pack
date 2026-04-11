@@ -307,14 +307,14 @@
 <a href=#307 id=307 data-nosnippet>307</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
 <a href=#308 id=308 data-nosnippet>308</a>        <span class="kw-2">mut </span>key_read: FK,
 <a href=#309 id=309 data-nosnippet>309</a>        <span class="kw-2">mut </span>val_read: FV,
-<a href=#310 id=310 data-nosnippet>310</a>    ) -&gt; std::collections::HashMap&lt;K, V&gt;
+<a href=#310 id=310 data-nosnippet>310</a>    ) -&gt; indexmap::IndexMap&lt;K, V&gt;
 <a href=#311 id=311 data-nosnippet>311</a>    <span class="kw">where
 <a href=#312 id=312 data-nosnippet>312</a>        </span>K: Eq + std::hash::Hash,
 <a href=#313 id=313 data-nosnippet>313</a>        FK: FnMut(<span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; K,
 <a href=#314 id=314 data-nosnippet>314</a>        FV: FnMut(<span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; V,
 <a href=#315 id=315 data-nosnippet>315</a>    {
 <a href=#316 id=316 data-nosnippet>316</a>        <span class="kw">let </span>len = <span class="self">self</span>.next_uint() <span class="kw">as </span>usize;
-<a href=#317 id=317 data-nosnippet>317</a>        <span class="kw">let </span><span class="kw-2">mut </span>map = std::collections::HashMap::with_capacity(len);
+<a href=#317 id=317 data-nosnippet>317</a>        <span class="kw">let </span><span class="kw-2">mut </span>map = indexmap::IndexMap::with_capacity(len);
 <a href=#318 id=318 data-nosnippet>318</a>        <span class="kw">for _ in </span><span class="number">0</span>..len {
 <a href=#319 id=319 data-nosnippet>319</a>            <span class="kw">let </span>k = key_read(<span class="self">self</span>);
 <a href=#320 id=320 data-nosnippet>320</a>            <span class="kw">let </span>v = val_read(<span class="self">self</span>);
@@ -329,11 +329,11 @@
 <a href=#329 id=329 data-nosnippet>329</a>    </span><span class="attr">#[inline]
 <a href=#330 id=330 data-nosnippet>330</a>    </span><span class="kw">pub fn </span>next_record_diff&lt;K, V, FK, FV, FVD&gt;(
 <a href=#331 id=331 data-nosnippet>331</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#332 id=332 data-nosnippet>332</a>        a: <span class="kw-2">&amp;</span>std::collections::HashMap&lt;K, V&gt;,
+<a href=#332 id=332 data-nosnippet>332</a>        a: <span class="kw-2">&amp;</span>indexmap::IndexMap&lt;K, V&gt;,
 <a href=#333 id=333 data-nosnippet>333</a>        <span class="kw-2">mut </span>key_read: FK,
 <a href=#334 id=334 data-nosnippet>334</a>        <span class="kw-2">mut </span>val_read: FV,
 <a href=#335 id=335 data-nosnippet>335</a>        <span class="kw-2">mut </span>val_diff: FVD,
-<a href=#336 id=336 data-nosnippet>336</a>    ) -&gt; std::collections::HashMap&lt;K, V&gt;
+<a href=#336 id=336 data-nosnippet>336</a>    ) -&gt; indexmap::IndexMap&lt;K, V&gt;
 <a href=#337 id=337 data-nosnippet>337</a>    <span class="kw">where
 <a href=#338 id=338 data-nosnippet>338</a>        </span>K: Clone + Eq + std::hash::Hash,
 <a href=#339 id=339 data-nosnippet>339</a>        V: Clone,
@@ -348,7 +348,7 @@
 <a href=#348 id=348 data-nosnippet>348</a>            <span class="kw">let </span>num_deletions = <span class="self">self</span>.next_uint() <span class="kw">as </span>usize;
 <a href=#349 id=349 data-nosnippet>349</a>            <span class="kw">for _ in </span><span class="number">0</span>..num_deletions {
 <a href=#350 id=350 data-nosnippet>350</a>                <span class="kw">let </span>key = key_read(<span class="self">self</span>);
-<a href=#351 id=351 data-nosnippet>351</a>                result.remove(<span class="kw-2">&amp;</span>key);
+<a href=#351 id=351 data-nosnippet>351</a>                result.shift_remove(<span class="kw-2">&amp;</span>key);
 <a href=#352 id=352 data-nosnippet>352</a>            }
 <a href=#353 id=353 data-nosnippet>353</a>            <span class="kw">let </span>num_updates = <span class="self">self</span>.next_uint() <span class="kw">as </span>usize;
 <a href=#354 id=354 data-nosnippet>354</a>            <span class="kw">for _ in </span><span class="number">0</span>..num_updates {
@@ -579,14 +579,14 @@
 <a href=#579 id=579 data-nosnippet>579</a>    <span class="attr">#[test]
 <a href=#580 id=580 data-nosnippet>580</a>    </span><span class="kw">fn </span>test_record_encode_decode() {
 <a href=#581 id=581 data-nosnippet>581</a>        <span class="kw">let </span><span class="kw-2">mut </span>encoder = Encoder::new();
-<a href=#582 id=582 data-nosnippet>582</a>        <span class="kw">let </span><span class="kw-2">mut </span>map = std::collections::HashMap::new();
+<a href=#582 id=582 data-nosnippet>582</a>        <span class="kw">let </span><span class="kw-2">mut </span>map = indexmap::IndexMap::new();
 <a href=#583 id=583 data-nosnippet>583</a>        map.insert(<span class="string">"a"</span>.to_string(), <span class="number">1i64</span>);
 <a href=#584 id=584 data-nosnippet>584</a>        map.insert(<span class="string">"b"</span>.to_string(), <span class="number">2i64</span>);
 <a href=#585 id=585 data-nosnippet>585</a>        encoder.push_record(<span class="kw-2">&amp;</span>map, |enc, k| enc.push_string(k), |enc, <span class="kw-2">&amp;</span>v| enc.push_int(v));
 <a href=#586 id=586 data-nosnippet>586</a>        <span class="kw">let </span>buf = encoder.finish();
 <a href=#587 id=587 data-nosnippet>587</a>
 <a href=#588 id=588 data-nosnippet>588</a>        <span class="kw">let </span><span class="kw-2">mut </span>decoder = Decoder::new(<span class="kw-2">&amp;</span>buf);
-<a href=#589 id=589 data-nosnippet>589</a>        <span class="kw">let </span>result: std::collections::HashMap&lt;String, i64&gt; =
+<a href=#589 id=589 data-nosnippet>589</a>        <span class="kw">let </span>result: indexmap::IndexMap&lt;String, i64&gt; =
 <a href=#590 id=590 data-nosnippet>590</a>            decoder.next_record(|dec| dec.next_string(), |dec| dec.next_int());
 <a href=#591 id=591 data-nosnippet>591</a>        <span class="macro">assert_eq!</span>(result, map);
 <a href=#592 id=592 data-nosnippet>592</a>    }

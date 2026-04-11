@@ -49,7 +49,7 @@ Optimization: if a was None, we know b must be Some (else unchanged).
 So skip the present bit in None→Some case.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.push_record" class="method"><a class="src rightside" href="../src/delta_pack/encoder.rs.html#283-298">Source</a><h4 class="code-header">pub fn <a href="#method.push_record" class="fn">push_record</a>&lt;K, V, FK, FV&gt;(
     &amp;mut self,
-    map: &amp;<a class="struct" href="https://doc.rust-lang.org/1.94.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;K, V&gt;,
+    map: &amp;<a class="struct" href="struct.IndexMap.html" title="struct delta_pack::IndexMap">IndexMap</a>&lt;K, V&gt;,
     key_write: FK,
     val_write: FV,
 )<div class="where">where
@@ -58,8 +58,8 @@ So skip the present bit in None→Some case.</p>
     FV: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/ops/function/trait.FnMut.html" title="trait core::ops::function::FnMut">FnMut</a>(&amp;mut Self, <a class="primitive" href="https://doc.rust-lang.org/1.94.1/std/primitive.reference.html">&amp;V</a>),</div></h4></section></summary><div class="docblock"><p>Encode a record (map) by writing length followed by key-value pairs.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.push_record_diff" class="method"><a class="src rightside" href="../src/delta_pack/encoder.rs.html#303-357">Source</a><h4 class="code-header">pub fn <a href="#method.push_record_diff" class="fn">push_record_diff</a>&lt;K, V, FK, FV, FVD, E&gt;(
     &amp;mut self,
-    a: &amp;<a class="struct" href="https://doc.rust-lang.org/1.94.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;K, V&gt;,
-    b: &amp;<a class="struct" href="https://doc.rust-lang.org/1.94.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;K, V&gt;,
+    a: &amp;<a class="struct" href="struct.IndexMap.html" title="struct delta_pack::IndexMap">IndexMap</a>&lt;K, V&gt;,
+    b: &amp;<a class="struct" href="struct.IndexMap.html" title="struct delta_pack::IndexMap">IndexMap</a>&lt;K, V&gt;,
     equals: E,
     key_write: FK,
     val_write: FV,

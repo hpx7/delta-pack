@@ -282,7 +282,7 @@
 <a href=#282 id=282 data-nosnippet>282</a>    </span><span class="attr">#[inline]
 <a href=#283 id=283 data-nosnippet>283</a>    </span><span class="kw">pub fn </span>push_record&lt;K, V, FK, FV&gt;(
 <a href=#284 id=284 data-nosnippet>284</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#285 id=285 data-nosnippet>285</a>        map: <span class="kw-2">&amp;</span>std::collections::HashMap&lt;K, V&gt;,
+<a href=#285 id=285 data-nosnippet>285</a>        map: <span class="kw-2">&amp;</span>indexmap::IndexMap&lt;K, V&gt;,
 <a href=#286 id=286 data-nosnippet>286</a>        <span class="kw-2">mut </span>key_write: FK,
 <a href=#287 id=287 data-nosnippet>287</a>        <span class="kw-2">mut </span>val_write: FV,
 <a href=#288 id=288 data-nosnippet>288</a>    ) <span class="kw">where
@@ -302,8 +302,8 @@
 <a href=#302 id=302 data-nosnippet>302</a>    </span><span class="attr">#[inline]
 <a href=#303 id=303 data-nosnippet>303</a>    </span><span class="kw">pub fn </span>push_record_diff&lt;K, V, FK, FV, FVD, E&gt;(
 <a href=#304 id=304 data-nosnippet>304</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#305 id=305 data-nosnippet>305</a>        a: <span class="kw-2">&amp;</span>std::collections::HashMap&lt;K, V&gt;,
-<a href=#306 id=306 data-nosnippet>306</a>        b: <span class="kw-2">&amp;</span>std::collections::HashMap&lt;K, V&gt;,
+<a href=#305 id=305 data-nosnippet>305</a>        a: <span class="kw-2">&amp;</span>indexmap::IndexMap&lt;K, V&gt;,
+<a href=#306 id=306 data-nosnippet>306</a>        b: <span class="kw-2">&amp;</span>indexmap::IndexMap&lt;K, V&gt;,
 <a href=#307 id=307 data-nosnippet>307</a>        <span class="kw-2">mut </span>equals: E,
 <a href=#308 id=308 data-nosnippet>308</a>        <span class="kw-2">mut </span>key_write: FK,
 <a href=#309 id=309 data-nosnippet>309</a>        <span class="kw-2">mut </span>val_write: FV,

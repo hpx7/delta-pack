@@ -34,17 +34,17 @@ So no present bit in None→Some case.</p>
     &amp;mut self,
     key_read: FK,
     val_read: FV,
-) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.94.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;K, V&gt;<div class="where">where
+) -&gt; <a class="struct" href="struct.IndexMap.html" title="struct delta_pack::IndexMap">IndexMap</a>&lt;K, V&gt;<div class="where">where
     K: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a>,
     FK: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/ops/function/trait.FnMut.html" title="trait core::ops::function::FnMut">FnMut</a>(&amp;mut Self) -&gt; K,
     FV: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/ops/function/trait.FnMut.html" title="trait core::ops::function::FnMut">FnMut</a>(&amp;mut Self) -&gt; V,</div></h4></section></summary><div class="docblock"><p>Decode a record (map) by reading length followed by key-value pairs.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.next_record_diff" class="method"><a class="src rightside" href="../src/delta_pack/decoder.rs.html#330-370">Source</a><h4 class="code-header">pub fn <a href="#method.next_record_diff" class="fn">next_record_diff</a>&lt;K, V, FK, FV, FVD&gt;(
     &amp;mut self,
-    a: &amp;<a class="struct" href="https://doc.rust-lang.org/1.94.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;K, V&gt;,
+    a: &amp;<a class="struct" href="struct.IndexMap.html" title="struct delta_pack::IndexMap">IndexMap</a>&lt;K, V&gt;,
     key_read: FK,
     val_read: FV,
     val_diff: FVD,
-) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.94.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;K, V&gt;<div class="where">where
+) -&gt; <a class="struct" href="struct.IndexMap.html" title="struct delta_pack::IndexMap">IndexMap</a>&lt;K, V&gt;<div class="where">where
     K: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> + <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a>,
     V: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a>,
     FK: <a class="trait" href="https://doc.rust-lang.org/1.94.1/core/ops/function/trait.FnMut.html" title="trait core::ops::function::FnMut">FnMut</a>(&amp;mut Self) -&gt; K,
