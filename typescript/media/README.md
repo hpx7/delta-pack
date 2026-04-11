@@ -1,465 +1,315 @@
 # Delta-Pack
 
-A compact binary serialization format with efficient delta compression for real-time state synchronization.
+[![TypeScript CI](https://github.com/hpx7/delta-pack/actions/workflows/typescript-ci.yml/badge.svg)](https://github.com/hpx7/delta-pack/actions/workflows/typescript-ci.yml)
+[![C# CI](https://github.com/hpx7/delta-pack/actions/workflows/csharp-ci.yml/badge.svg)](https://github.com/hpx7/delta-pack/actions/workflows/csharp-ci.yml)
+[![Rust CI](https://github.com/hpx7/delta-pack/actions/workflows/rust-ci.yml/badge.svg)](https://github.com/hpx7/delta-pack/actions/workflows/rust-ci.yml)
 
-## Overview
+[![npm](https://img.shields.io/npm/v/@hpx7/delta-pack)](https://www.npmjs.com/package/@hpx7/delta-pack)
+[![NuGet](https://img.shields.io/nuget/v/DeltaPack)](https://www.nuget.org/packages/DeltaPack)
+[![crates.io](https://img.shields.io/crates/v/delta-pack)](https://crates.io/crates/delta-pack)
 
-Delta-pack provides a schema-driven approach to binary serialization with built-in delta compression. It's designed for use cases like multiplayer games, collaborative applications, and real-time systems where network bandwidth is critical.
+Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and real-time systems. Implementations available for TypeScript, C#, and Rust.
 
-**Key Features:**
+Delta-Pack combines the schema-based binary encoding of formats like [Protobuf](https://protobuf.dev/) with the delta encoding of formats like [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode snapshots and diffs across languages.
 
-- **Compact Binary Format**: Efficient encoding of primitive types, objects, arrays, and maps
-- **Delta Compression**: Send only what changed between states, dramatically reducing bandwidth
-- **Schema-Driven**: Type-safe code generation from declarative schemas
-- **String Dictionary**: Automatic deduplication of repeated strings
-- **RLE Compression**: Run-length encoding for boolean arrays
-
-## Schema Types
-
-Delta-pack schemas are defined using a simple YAML format that supports the following types:
-
-### Primitive Types
+Define your data schema using the supported [data types](#data-types), either in YAML or programmatically with [language-native APIs](#usage):
 
 ```yaml
-MyObject:
-  stringField: string # UTF-8 encoded string
-  signedInt: int # Variable-length signed integer
-  unsignedInt: uint # Variable-length unsigned integer
-  floatField: float # 32-bit IEEE 754 float
-  booleanField: boolean # Single bit boolean
-```
-
-### Type Aliases
-
-Create reusable type definitions:
-
-```yaml
-UserId: string # Type alias for string
-PlayerId: uint # Type alias for uint
-
-User:
-  id: UserId
-  name: string
-```
-
-### Enums
-
-Define enumerated types with string constants:
-
-```yaml
-Color:
+# schema.yml
+Team:
   - RED
-  - GREEN
   - BLUE
+  - GREEN
+
+Position:
+  x: float(precision=0.1)
+  y: float(precision=0.1)
 
 Player:
-  favoriteColor: Color
-```
-
-Enums are bit-packed using the minimum bits needed (e.g., 4 variants = 2 bits, 8 variants = 3 bits).
-
-### Union Types
-
-Define union types by listing type names that exist in the schema:
-
-```yaml
-EmailContact:
-  email: string
-
-PhoneContact:
-  phone: string
-  extension: uint?
-
-Contact:
-  - EmailContact
-  - PhoneContact
-
-User:
-  preferredContact: Contact?
-```
-
-**How it works:**
-
-- If an array contains only type names defined in the schema, it's treated as a union type
-- If an array contains literal strings not in the schema, it's treated as an enum
-- Union discriminators are bit-packed like enums (e.g., 4 variants = 2 bits)
-
-### Objects
-
-Nested object types:
-
-```yaml
-Address:
-  street: string
-  city: string
-  zipCode: string
-
-User:
   name: string
-  address: Address # Nested object
+  position: Position
+  health: uint
+  team: Team?
 ```
 
-### Optional Types
+Given two snapshots of a Player, where position and health have changed:
 
-Mark fields as optional with `?`:
+```jsonc
+// state1.json
+{
+  "name": "Alice",
+  "position": { "x": 1.0, "y": 3.5 },
+  "health": 100,
+  "team": "RED"
+}
 
-```yaml
-User:
-  name: string
-  middleName: string? # Optional field
-  address: Address? # Optional nested object
+// state2.json
+{
+  "name": "Alice",
+  "position": { "x": 2.3, "y": 3.5 },  // was 1.0
+  "health": 82,                        // was 100
+  "team": "RED"
+}
 ```
 
-Optional fields encode a presence bit before the value.
+Delta-Pack can compactly encode the full snapshot as well as the diff:
 
-### Arrays
+```bash
+$ delta-pack encode schema.yml --type Player --input state1.json
+# → 11 bytes
 
-Define array types with `[]`:
-
-```yaml
-User:
-  name: string
-  tags: string[] # Array of strings
-  scores: int[] # Array of integers
+$ delta-pack encode-diff schema.yml --type Player --old state1.json --new state2.json
+# → 5 bytes
 ```
 
-### Maps (Records)
+## Benchmarks
 
-Maps use angle bracket syntax `<KeyType, ValueType>`:
+Encoding size comparisons using the example schemas in [`examples/`](examples/).
 
-```yaml
-User:
-  name: string
-  metadata: <string, string> # Map<string, string>
-  scores: <string, int> # Map<string, int>
-  playerPositions: <PlayerId, Position> # Map<PlayerId, Position>
-```
+### Snapshot Encoding
 
-**Nested Containers:**
-You can nest maps in arrays or optionals:
+JSON, MessagePack, Protobuf, and Delta-Pack compared for snapshot encoding. Lower is better.
 
-```yaml
-Inventory:
-  items: <string, int>[]? # Optional array of maps
+<img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/full-encode.svg" alt="Snapshot encoding size comparison" />
 
-GameState:
-  players: <string, Player> # Map of player ID to Player object
-```
+### Delta Encoding
 
-**Key Type Restrictions:**
+Delta-Pack diffs vs JSON Patch (RFC 6902) for delta encoding. Lower is better.
 
-- Map keys must be `string`, `int`, or `uint`
-- Map values can be any type (primitives, objects, arrays, etc.)
+<img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/delta-encode.svg" alt="Delta encoding size comparison" />
 
-**Encoding:**
-Maps are encoded as key-value pairs in binary format.
+### Performance
 
-### IDE Support & Validation
+Per-language encoding/decoding speed benchmarks:
 
-Enable schema validation and autocompletion in your IDE:
+- [TypeScript](typescript/benchmark/) (vs JSON, MessagePack, Protobuf)
+- [C#](csharp/benchmarks/) (vs System.Text.Json, MessagePack-CSharp)
+- [Rust](rust/benchmarks/) (vs JSON, MessagePack)
 
-**VS Code:**
-Add this comment at the top of your schema file:
+## API
 
-```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
+Every object and union type provides the following functions:
 
-UserId: string
-# ... rest of schema
-```
+| Function                         | Description                                         |
+| -------------------------------- | --------------------------------------------------- |
+| `encode(obj) → bytes`            | Serialize to binary                                 |
+| `decode(bytes) → obj`            | Deserialize from binary                             |
+| `encodeDiff(prev, next) → bytes` | Delta-compress only the changes between two states  |
+| `decodeDiff(prev, diff) → obj`   | Apply a delta to reconstruct the new state          |
+| `equals(a, b) → bool`            | Deep equality comparison (respects float precision) |
+| `clone(obj) → obj`               | Deep clone                                          |
+| `fromJson(json) → obj`           | Parse from JSON with lenient type coercion          |
+| `toJson(obj) → json`             | Convert to a JSON-serializable representation       |
 
-**IntelliJ/WebStorm:**
-
-1. Go to Preferences → Languages & Frameworks → Schemas and DTDs → JSON Schema Mappings
-2. Add new mapping with URL: `https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
-`
-3. Map to file pattern: `*.schema.yml` or specific files
-
-**Using the schema:**
-All example schema files include the schema reference at the top. Just copy the first line when creating your own schemas:
-
-```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/hpx7/delta-pack/refs/heads/main/schema.json
-```
-
-For local development, you can also reference the schema file directly:
-
-```yaml
-# yaml-language-server: $schema=../../schema.json
-```
-
-This provides:
-
-- ✓ Type validation
-- ✓ Autocomplete for primitive types
-- ✓ Error highlighting for invalid syntax
-- ✓ Documentation on hover
-
-## Core API
-
-Every type defined in a schema generates a consistent API with four core operations:
-
-### `encode(object) → bytes`
-
-Serializes an object to binary format.
-
-**Example:**
+### Typical flow
 
 ```
-Input: { name: "Alice", age: 30, active: true }
-Output: [binary data] (e.g., 15 bytes)
+          encode              decode
+ Server ────────→ [bytes] ────────→ Client
+   T                                  T
+
+          encodeDiff          decodeDiff
+ Server ────────→ [bytes] ────────→ Client
+ (prev,next)                     (prev,diff)
 ```
 
-### `decode(bytes) → object`
+The server sends a full `encode` snapshot when a client first connects, then sends `encodeDiff` deltas for subsequent state changes. The client applies each delta to its local copy using `decodeDiff`.
 
-Deserializes binary data back to an object.
+## Data Types
 
-**Example:**
+All types are available across TypeScript, C#, and Rust. The examples below use the YAML schema syntax.
 
-```
-Input: [binary data] (15 bytes)
-Output: { name: "Alice", age: 30, active: true }
-```
+### Primitives
 
-### `encodeDiff(oldObject, newObject) → bytes`
+| Type              | YAML Schema             | JSON Example | Encoding                                |
+| ----------------- | ----------------------- | ------------ | --------------------------------------- |
+| String            | `string`                | `"hello"`    | Dictionary-compressed UTF-8             |
+| Int               | `int`                   | `42`, `-7`   | ZigZag varint                           |
+| Int (bounded)     | `int(min=0, max=100)`   | `50`         | Bit-packed (min bits for range)         |
+| Uint              | `uint`                  | `42`         | Varint (shorthand for `int` with min=0) |
+| Float             | `float`                 | `3.14`       | IEEE 754 32-bit                         |
+| Float (quantized) | `float(precision=0.01)` | `3.14`       | Quantized to varint                     |
+| Boolean           | `boolean`               | `true`       | Single bit (RLE-compressed)             |
 
-Encodes only the differences between two objects.
+### Containers
 
-**Example:**
+| Type     | YAML Schema     | JSON Example        | Encoding                        |
+| -------- | --------------- | ------------------- | ------------------------------- |
+| Array    | `int[]`         | `[1, 2, 3]`         | Length prefix + elements        |
+| Optional | `string?`       | `"value"` or `null` | Presence bit + value            |
+| Map      | `<string, int>` | `{"a": 1, "b": 2}`  | Length prefix + key-value pairs |
 
-```
-Input:
-  old: { name: "Alice", age: 30, active: true }
-  new: { name: "Alice", age: 31, active: true }
-Output: [binary data] (e.g., 3 bytes - only age changed)
-```
+Map keys must be `string` or `int`.
 
-### `decodeDiff(oldObject, diffBytes) → newObject`
+### Named Types
 
-Applies a diff to an old object to reconstruct the new object.
+| Type       | YAML Schema                                                                     | JSON Example                         | Encoding                       |
+| ---------- | ------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------ |
+| Object     | `Position:`<br>&nbsp;&nbsp;`x: float`<br>&nbsp;&nbsp;`y: float`                 | `{"x": 1.5, "y": 2.0}`               | Sequential fields              |
+| Enum       | `Team:`<br>&nbsp;&nbsp;`- RED`<br>&nbsp;&nbsp;`- BLUE`<br>&nbsp;&nbsp;`- GREEN` | `"RED"`                              | Minimum bits for variant count |
+| Union      | `Contact:`<br>&nbsp;&nbsp;`- EmailContact`<br>&nbsp;&nbsp;`- PhoneContact`      | `{"EmailContact": {"email": "..."}}` | Variant index + variant data   |
+| Type alias | `UserId: string`                                                                | `"abc123"`                           | Resolved to underlying type    |
 
-**Example:**
+## Usage
 
-```
-Input:
-  old: { name: "Alice", age: 30, active: true }
-  diff: [binary data] (3 bytes)
-Output: { name: "Alice", age: 31, active: true }
-```
+Delta-Pack supports TypeScript, C#, and Rust. All three share the same schema format and binary encoding, so a TypeScript server can communicate with a Rust or C# client.
 
-## Object Encoding Format
+### Code generation (recommended)
 
-Objects are encoded in a compact binary format optimized for size and speed.
+Generate typed code from a YAML schema using the [CLI](#cli):
 
-### Format Structure
-
-```
-[data][rle]
-```
-
-Where:
-
-- **Data**: Sequential encoding of all non-boolean primitive values
-- **RLE**: RLE-compressed boolean array with length suffix
-
-### RLE Section
-
-Format:
-
-```
-[rleBits][numRleBits: reverse varint]
+```bash
+delta-pack generate schema.yml -l typescript -o generated.ts
+delta-pack generate schema.yml -l csharp -o Generated.cs
+delta-pack generate schema.yml -l rust -o generated.rs
 ```
 
-The reverse varint at the end stores the exact number of RLE bits, allowing reading from the end of the buffer to determine where the RLE bits begin.
+### [TypeScript](typescript/)
 
-The RLE bits contain:
+Install:
 
-1. **Boolean fields**: All boolean values in field order
-2. **Optional presence flags**: One bit per optional field indicating presence
-3. **Array/Map change flags**: Bits indicating if collections changed (in diffs)
-4. **Quantized change flags**: Bits indicating if quantized values changed (in diffs)
-
-The boolean bits are RLE-compressed to handle long sequences of identical values efficiently.
-
-### Data Section
-
-Primitive values are encoded sequentially:
-
-**Strings:**
-
-```
-[lengthOrIndex: varint][utf8Bytes (if new string)]
+```bash
+npm install @hpx7/delta-pack
 ```
 
-- Positive length: New string with UTF-8 bytes
-- Zero: Empty string
-- Negative index: Reference to string dictionary entry
+Typescript supports codegen mode as well a dynamic runtime mode.
 
-**Integers (int/uint):**
+**Codegen:**
 
-```
-[value: varint]
-```
+```typescript
+import { Position } from "./generated";
 
-- Variable-length encoding (1-5 bytes)
-- Smaller values use fewer bytes
+const prev: Position = Position.default();
+const current: Position = { ...prev, x: 1.5 };
 
-**Floats:**
+// Snapshot
+const snapshotBytes = Position.encode(current);
+const decoded = Position.decode(snapshotBytes);
+Position.equals(decoded, current); // true
 
-```
-[value: 32-bit IEEE 754]
-```
-
-- Standard 4-byte float representation
-
-**Arrays:**
-
-```
-[length: varint][item1][item2]...[itemN]
+// Delta
+const diffBytes = Position.encodeDiff(prev, current);
+const patched = Position.decodeDiff(prev, diffBytes);
+Position.equals(patched, current); // true
 ```
 
-**Maps:**
+**Runtime** -- define schemas programmatically, no build step needed:
 
-```
-[size: varint][key1][value1][key2][value2]...
-```
+Schema definition:
 
-### String Dictionary Compression
+```typescript
+import { ObjectType, FloatType, load, Infer } from "@hpx7/delta-pack";
 
-Strings are automatically deduplicated within a single encode/decode operation:
+const Position = ObjectType("Position", {
+  x: FloatType({ precision: 0.1 }),
+  y: FloatType({ precision: 0.1 }),
+});
+type Position = Infer<typeof Position>;
 
-1. First occurrence: `[length][utf8Bytes]`
-2. Subsequent occurrences: `[negativeIndex]`
-
-Example:
-
-```
-["hello", "world", "hello"]
-→ [5]["hello"][5]["world"][-1]  // -1 references first "hello"
+const api = load(Position);
+const bytes = api.encode({ x: 1.5, y: 2.0 });
 ```
 
-## Diff Encoding Format
+Class definition:
 
-Diffs encode only what changed between two objects, dramatically reducing bandwidth for incremental updates.
+```typescript
+import { FloatType, loadClass } from "@hpx7/delta-pack";
 
-### Diff Structure
+class Position {
+  @FloatType({ precision: 0.1 })
+  x: number = 0;
 
-```
-[metadata][changedFields]
-```
+  @FloatType({ precision: 0.1 })
+  y: number = 0;
+}
 
-### Change Detection
-
-For each field, a "changed" bit indicates if the value differs:
-
-**Primitives:**
-
-```
-[changed: bit][newValue: encoded (if changed)]
+const api = loadClass(Position);
+const bytes = api.encode(new Position());
 ```
 
-**Objects:**
+### [C#](csharp/)
 
-```
-[changed: bit][fieldDiffs: recursive (if changed)]
-```
+Install:
 
-**Arrays:**
-
-```
-[changed: bit][lengthChanged: bit][itemDiffs]
+```bash
+dotnet add package DeltaPack
 ```
 
-If array length changed:
+The C# runtime is Unity-compatible, and supports both codegen and runtime modes.
 
-```
-[newLength: varint][itemDiffs for min(oldLen, newLen)][newItems]
-```
+**Codegen:**
 
-Array item diffs:
+```csharp
+var prev = Position.Default();
+var current = Position.Clone(prev);
+current.X = 1.5f;
 
-```
-[itemChanged: bit][itemDiff: recursive (if changed)]
-```
+// Snapshot
+byte[] snapshotBytes = Position.Encode(current);
+Position decoded = Position.Decode(snapshotBytes);
+Position.Equals(decoded, current); // true
 
-**Maps:**
-
-```
-[changed: bit][deletions][updates][additions]
-```
-
-Map diff format:
-
-```
-[numDeletions: varint][deletionIndices: varint...]
-[numUpdates: varint][updateIndices: varint...][updateDiffs...]
-[numAdditions: varint][newKeyValuePairs...]
+// Delta
+byte[] diffBytes = Position.EncodeDiff(prev, current);
+Position patched = Position.DecodeDiff(prev, diffBytes);
+Position.Equals(patched, current); // true
 ```
 
-### Optimization Strategies
+**Runtime** -- build schemas from C# classes:
 
-1. **Unchanged Detection**: If entire object unchanged, single `0` bit
-2. **Primitive Diffs**: Only encode new value if changed
-3. **Array Element Diffs**: Track which elements changed
-4. **Map Diffs**: Separate deletions, updates, and additions
-5. **String Reuse**: Dictionary applies across old and new state
+```csharp
+class Position {
+    [DeltaPackPrecision(0.1)]
+    public float X { get; set; }
+    [DeltaPackPrecision(0.1)]
+    public float Y { get; set; }
+}
 
-### Example Diff
-
-```
-Old: { name: "Alice", age: 30, scores: [100, 200], active: true }
-New: { name: "Alice", age: 31, scores: [100, 250], active: true }
-
-Encoding:
-- Metadata: [objectChanged: 1]
-- name: [changed: 0]           // No change, 1 bit
-- age: [changed: 1][31]        // Changed, 1 bit + varint
-- scores: [changed: 1]         // Array changed
-  [lengthChanged: 0]          // Same length
-  [item0Changed: 0]           // First element unchanged
-  [item1Changed: 1][250]      // Second element changed
-- active: [changed: 0]         // No change, 1 bit
-
-Result: ~5 bytes vs ~25 bytes for full encoding
+var api = new DeltaPackCodec<Position>();
+byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
 ```
 
-## Performance Characteristics
+### [Rust](rust/)
 
-### Bandwidth Comparison
+Install:
 
-Typical savings for incremental updates:
+```bash
+cargo add delta-pack
+```
 
-| Scenario                | Full Encoding | Diff Encoding | Savings |
-| ----------------------- | ------------- | ------------- | ------- |
-| Single field changed    | 100 bytes     | 5 bytes       | 95%     |
-| Multiple fields changed | 100 bytes     | 15 bytes      | 85%     |
-| Array element changed   | 200 bytes     | 10 bytes      | 95%     |
-| No changes              | 100 bytes     | 2 bytes       | 98%     |
+Rust uses codegen exclusively:
 
-### Use Cases
+```rust
+use generated::Position;
 
-**Optimal for:**
+let prev = Position::default();
+let current = Position { x: 1.5, ..prev.clone() };
 
-- Real-time multiplayer games (player state sync)
-- Collaborative applications (document sync)
-- Live dashboards (metric updates)
-- IoT sensor data (periodic readings)
+// Snapshot
+let snapshot_bytes = current.encode();
+let decoded = Position::decode(&snapshot_bytes);
+current.equals(&decoded); // true
 
-**Not optimal for:**
+// Delta
+let diff_bytes = Position::encode_diff(&prev, &current);
+let patched = Position::decode_diff(&prev, &diff_bytes);
+current.equals(&patched); // true
+```
 
-- Completely random state changes
-- First-time state synchronization (use full encoding)
-- Very small objects (overhead may exceed full encoding)
+### [CLI](cli/)
 
-## Examples
+The `delta-pack` CLI handles [code generation](#code-generation-recommended) and data conversion:
 
-See the `examples/` directory for complete schema examples:
+```bash
+# Encode JSON to binary
+delta-pack encode schema.yml -t Player -i state.json -o state.bin
 
-- `examples/primitives/` - Basic primitive types
-- `examples/allTypes/` - Comprehensive type showcase
+# Decode binary to JSON
+delta-pack decode schema.yml -t Player -i state.bin -o state.json
 
-Each example includes:
+# Create a binary diff
+delta-pack encode-diff schema.yml -t Player --old prev.json --new next.json -o diff.bin
 
-- `schema.yml` - Schema definition
-- `state1.json` - Initial state
-- `state2.json` - Updated state for diff demonstration
+# Apply a binary diff
+delta-pack decode-diff schema.yml -t Player --old prev.json --diff diff.bin -o next.json
+```
