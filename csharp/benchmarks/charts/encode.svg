@@ -1,111 +1,124 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="680" height="1108" viewBox="0 0 680 1108">
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="1240" viewBox="0 0 680 1240">
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   </style>
-  <rect width="680" height="1108" fill="white" rx="8"/>
+  <rect width="680" height="1240" fill="white" rx="8"/>
   <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#111827">Encoding Speed (ops/s)</text>
   <text x="12" y="56" font-size="13" font-weight="600" fill="#374151">GameState State1</text>
   <text x="126" y="78" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="64" width="99" height="20" fill="#f59e0b" rx="3"/>
-  <text x="235" y="78" font-size="11" fill="#374151" font-weight="500">275.8K</text>
+  <rect x="130" y="64" width="96" height="20" fill="#f59e0b" rx="3"/>
+  <text x="232" y="78" font-size="11" fill="#374151" font-weight="500">265.8K</text>
   <text x="126" y="102" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="88" width="159" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="295" y="102" font-size="11" fill="#374151" font-weight="500">442.8K</text>
+  <rect x="130" y="88" width="157" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="293" y="102" font-size="11" fill="#374151" font-weight="500">433.9K</text>
   <text x="126" y="126" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="112" width="159" height="20" fill="#3b82f6" rx="3"/>
-  <text x="295" y="126" font-size="11" fill="#374151" font-weight="500">442.4K</text>
+  <rect x="130" y="112" width="160" height="20" fill="#3b82f6" rx="3"/>
+  <text x="296" y="126" font-size="11" fill="#374151" font-weight="500">440.6K</text>
   <text x="126" y="150" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="136" width="456" height="20" fill="#10b981" rx="3"/>
   <text x="592" y="150" font-size="11" fill="#374151" font-weight="500">1.3M</text>
   <text x="12" y="188" font-size="13" font-weight="600" fill="#374151">GameState State2</text>
   <text x="126" y="210" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="196" width="151" height="20" fill="#f59e0b" rx="3"/>
-  <text x="287" y="210" font-size="11" fill="#374151" font-weight="500">143.0K</text>
+  <rect x="130" y="196" width="147" height="20" fill="#f59e0b" rx="3"/>
+  <text x="283" y="210" font-size="11" fill="#374151" font-weight="500">137.6K</text>
   <text x="126" y="234" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="220" width="225" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="361" y="234" font-size="11" fill="#374151" font-weight="500">212.1K</text>
+  <rect x="130" y="220" width="226" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="362" y="234" font-size="11" fill="#374151" font-weight="500">211.0K</text>
   <text x="126" y="258" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="244" width="348" height="20" fill="#3b82f6" rx="3"/>
-  <text x="484" y="258" font-size="11" fill="#374151" font-weight="500">328.4K</text>
+  <rect x="130" y="244" width="347" height="20" fill="#3b82f6" rx="3"/>
+  <text x="483" y="258" font-size="11" fill="#374151" font-weight="500">324.2K</text>
   <text x="126" y="282" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="268" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="282" font-size="11" fill="#374151" font-weight="500">430.9K</text>
+  <text x="592" y="282" font-size="11" fill="#374151" font-weight="500">426.6K</text>
   <text x="12" y="320" font-size="13" font-weight="600" fill="#374151">GameState State3</text>
   <text x="126" y="342" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="328" width="152" height="20" fill="#f59e0b" rx="3"/>
-  <text x="288" y="342" font-size="11" fill="#374151" font-weight="500">143.5K</text>
+  <rect x="130" y="328" width="148" height="20" fill="#f59e0b" rx="3"/>
+  <text x="284" y="342" font-size="11" fill="#374151" font-weight="500">137.5K</text>
   <text x="126" y="366" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
   <rect x="130" y="352" width="226" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="362" y="366" font-size="11" fill="#374151" font-weight="500">213.6K</text>
+  <text x="362" y="366" font-size="11" fill="#374151" font-weight="500">209.6K</text>
   <text x="126" y="390" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="376" width="347" height="20" fill="#3b82f6" rx="3"/>
-  <text x="483" y="390" font-size="11" fill="#374151" font-weight="500">327.3K</text>
+  <rect x="130" y="376" width="352" height="20" fill="#3b82f6" rx="3"/>
+  <text x="488" y="390" font-size="11" fill="#374151" font-weight="500">326.4K</text>
   <text x="126" y="414" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="400" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="414" font-size="11" fill="#374151" font-weight="500">430.3K</text>
+  <text x="592" y="414" font-size="11" fill="#374151" font-weight="500">423.4K</text>
   <text x="12" y="452" font-size="13" font-weight="600" fill="#374151">Primitives State1</text>
   <text x="126" y="474" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="460" width="137" height="20" fill="#f59e0b" rx="3"/>
-  <text x="273" y="474" font-size="11" fill="#374151" font-weight="500">7.5M</text>
+  <rect x="130" y="460" width="127" height="20" fill="#f59e0b" rx="3"/>
+  <text x="263" y="474" font-size="11" fill="#374151" font-weight="500">6.8M</text>
   <text x="126" y="498" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="484" width="122" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="258" y="498" font-size="11" fill="#374151" font-weight="500">6.7M</text>
+  <rect x="130" y="484" width="130" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="266" y="498" font-size="11" fill="#374151" font-weight="500">7.0M</text>
   <text x="126" y="522" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="508" width="419" height="20" fill="#3b82f6" rx="3"/>
-  <text x="555" y="522" font-size="11" fill="#374151" font-weight="500">23.0M</text>
+  <rect x="130" y="508" width="413" height="20" fill="#3b82f6" rx="3"/>
+  <text x="549" y="522" font-size="11" fill="#374151" font-weight="500">22.2M</text>
   <text x="126" y="546" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="532" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="546" font-size="11" fill="#374151" font-weight="500">25.0M</text>
+  <text x="592" y="546" font-size="11" fill="#374151" font-weight="500">24.5M</text>
   <text x="12" y="584" font-size="13" font-weight="600" fill="#374151">Primitives State2</text>
   <text x="126" y="606" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="592" width="137" height="20" fill="#f59e0b" rx="3"/>
-  <text x="273" y="606" font-size="11" fill="#374151" font-weight="500">7.6M</text>
+  <rect x="130" y="592" width="128" height="20" fill="#f59e0b" rx="3"/>
+  <text x="264" y="606" font-size="11" fill="#374151" font-weight="500">6.9M</text>
   <text x="126" y="630" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="616" width="128" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="264" y="630" font-size="11" fill="#374151" font-weight="500">7.0M</text>
+  <rect x="130" y="616" width="131" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="267" y="630" font-size="11" fill="#374151" font-weight="500">7.1M</text>
   <text x="126" y="654" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
   <rect x="130" y="640" width="456" height="20" fill="#3b82f6" rx="3"/>
-  <text x="592" y="654" font-size="11" fill="#374151" font-weight="500">25.2M</text>
+  <text x="592" y="654" font-size="11" fill="#374151" font-weight="500">24.6M</text>
   <text x="126" y="678" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
-  <rect x="130" y="664" width="445" height="20" fill="#10b981" rx="3"/>
-  <text x="581" y="678" font-size="11" fill="#374151" font-weight="500">24.6M</text>
+  <rect x="130" y="664" width="449" height="20" fill="#10b981" rx="3"/>
+  <text x="585" y="678" font-size="11" fill="#374151" font-weight="500">24.2M</text>
   <text x="12" y="716" font-size="13" font-weight="600" fill="#374151">Test State1</text>
   <text x="126" y="738" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="724" width="142" height="20" fill="#f59e0b" rx="3"/>
-  <text x="278" y="738" font-size="11" fill="#374151" font-weight="500">3.8M</text>
+  <rect x="130" y="724" width="139" height="20" fill="#f59e0b" rx="3"/>
+  <text x="275" y="738" font-size="11" fill="#374151" font-weight="500">3.7M</text>
   <text x="126" y="762" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="748" width="184" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="320" y="762" font-size="11" fill="#374151" font-weight="500">4.9M</text>
+  <rect x="130" y="748" width="182" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="318" y="762" font-size="11" fill="#374151" font-weight="500">4.8M</text>
   <text x="126" y="786" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="772" width="296" height="20" fill="#3b82f6" rx="3"/>
-  <text x="432" y="786" font-size="11" fill="#374151" font-weight="500">7.9M</text>
+  <rect x="130" y="772" width="315" height="20" fill="#3b82f6" rx="3"/>
+  <text x="451" y="786" font-size="11" fill="#374151" font-weight="500">8.4M</text>
   <text x="126" y="810" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="796" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="810" font-size="11" fill="#374151" font-weight="500">12.2M</text>
-  <text x="12" y="848" font-size="13" font-weight="600" fill="#374151">User State1</text>
+  <text x="592" y="810" font-size="11" fill="#374151" font-weight="500">12.1M</text>
+  <text x="12" y="848" font-size="13" font-weight="600" fill="#374151">Test State2</text>
   <text x="126" y="870" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="856" width="269" height="20" fill="#f59e0b" rx="3"/>
-  <text x="405" y="870" font-size="11" fill="#374151" font-weight="500">1.8M</text>
+  <rect x="130" y="856" width="142" height="20" fill="#f59e0b" rx="3"/>
+  <text x="278" y="870" font-size="11" fill="#374151" font-weight="500">3.7M</text>
   <text x="126" y="894" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="880" width="225" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="361" y="894" font-size="11" fill="#374151" font-weight="500">1.5M</text>
+  <rect x="130" y="880" width="185" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="321" y="894" font-size="11" fill="#374151" font-weight="500">4.8M</text>
   <text x="126" y="918" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="904" width="456" height="20" fill="#3b82f6" rx="3"/>
-  <text x="592" y="918" font-size="11" fill="#374151" font-weight="500">3.0M</text>
+  <rect x="130" y="904" width="317" height="20" fill="#3b82f6" rx="3"/>
+  <text x="453" y="918" font-size="11" fill="#374151" font-weight="500">8.3M</text>
   <text x="126" y="942" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
-  <rect x="130" y="928" width="423" height="20" fill="#10b981" rx="3"/>
-  <text x="559" y="942" font-size="11" fill="#374151" font-weight="500">2.8M</text>
-  <text x="12" y="980" font-size="13" font-weight="600" fill="#374151">User State2</text>
+  <rect x="130" y="928" width="456" height="20" fill="#10b981" rx="3"/>
+  <text x="592" y="942" font-size="11" fill="#374151" font-weight="500">11.9M</text>
+  <text x="12" y="980" font-size="13" font-weight="600" fill="#374151">User State1</text>
   <text x="126" y="1002" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="988" width="245" height="20" fill="#f59e0b" rx="3"/>
-  <text x="381" y="1002" font-size="11" fill="#374151" font-weight="500">1.2M</text>
+  <rect x="130" y="988" width="255" height="20" fill="#f59e0b" rx="3"/>
+  <text x="391" y="1002" font-size="11" fill="#374151" font-weight="500">1.7M</text>
   <text x="126" y="1026" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="1012" width="207" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="343" y="1026" font-size="11" fill="#374151" font-weight="500">986.4K</text>
+  <rect x="130" y="1012" width="220" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="356" y="1026" font-size="11" fill="#374151" font-weight="500">1.5M</text>
   <text x="126" y="1050" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
   <rect x="130" y="1036" width="456" height="20" fill="#3b82f6" rx="3"/>
-  <text x="592" y="1050" font-size="11" fill="#374151" font-weight="500">2.2M</text>
+  <text x="592" y="1050" font-size="11" fill="#374151" font-weight="500">3.1M</text>
   <text x="126" y="1074" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
-  <rect x="130" y="1060" width="358" height="20" fill="#10b981" rx="3"/>
-  <text x="494" y="1074" font-size="11" fill="#374151" font-weight="500">1.7M</text>
+  <rect x="130" y="1060" width="416" height="20" fill="#10b981" rx="3"/>
+  <text x="552" y="1074" font-size="11" fill="#374151" font-weight="500">2.8M</text>
+  <text x="12" y="1112" font-size="13" font-weight="600" fill="#374151">User State2</text>
+  <text x="126" y="1134" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
+  <rect x="130" y="1120" width="232" height="20" fill="#f59e0b" rx="3"/>
+  <text x="368" y="1134" font-size="11" fill="#374151" font-weight="500">1.1M</text>
+  <text x="126" y="1158" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
+  <rect x="130" y="1144" width="201" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="337" y="1158" font-size="11" fill="#374151" font-weight="500">971.6K</text>
+  <text x="126" y="1182" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
+  <rect x="130" y="1168" width="456" height="20" fill="#3b82f6" rx="3"/>
+  <text x="592" y="1182" font-size="11" fill="#374151" font-weight="500">2.2M</text>
+  <text x="126" y="1206" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
+  <rect x="130" y="1192" width="356" height="20" fill="#10b981" rx="3"/>
+  <text x="492" y="1206" font-size="11" fill="#374151" font-weight="500">1.7M</text>
 </svg>

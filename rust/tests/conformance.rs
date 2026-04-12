@@ -145,7 +145,7 @@ conformance_tests!(
     "Primitives",
     vec!["state1", "state2"]
 );
-conformance_tests!(test, Test, "Test", vec!["state1"]);
+conformance_tests!(test, Test, "Test", vec!["state1", "state2"]);
 conformance_tests!(user, User, "User", vec!["state1", "state2"]);
 conformance_tests!(
     game_state,

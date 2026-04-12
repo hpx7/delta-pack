@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="680" height="580" viewBox="0 0 680 580">
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="712" viewBox="0 0 680 712">
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   </style>
-  <rect width="680" height="580" fill="white" rx="8"/>
+  <rect width="680" height="712" fill="white" rx="8"/>
   <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#111827">Delta Encoding Size (bytes)</text>
   <text x="12" y="56" font-size="13" font-weight="600" fill="#374151">GameState State1→2</text>
   <text x="126" y="78" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
@@ -43,17 +43,30 @@
   <text x="126" y="414" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
   <rect x="130" y="400" width="32.86486486486486" height="20" fill="#10b981" rx="3"/>
   <text x="168.86486486486487" y="414" font-size="11" fill="#374151" font-weight="500">24B</text>
-  <text x="12" y="452" font-size="13" font-weight="600" fill="#374151">User State1→2</text>
+  <text x="12" y="452" font-size="13" font-weight="600" fill="#374151">Test State1→2</text>
   <text x="126" y="474" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
-  <rect x="130" y="460" width="364.2758620689655" height="20" fill="#f59e0b" rx="3"/>
-  <text x="500.2758620689655" y="474" font-size="11" fill="#374151" font-weight="500">973B</text>
+  <rect x="130" y="460" width="372.21201413427565" height="20" fill="#f59e0b" rx="3"/>
+  <text x="508.21201413427565" y="474" font-size="11" fill="#374151" font-weight="500">231B</text>
   <text x="126" y="498" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
   <rect x="130" y="484" width="456" height="20" fill="#ef4444" rx="3"/>
-  <text x="592" y="498" font-size="11" fill="#374151" font-weight="500">1218B</text>
+  <text x="592" y="498" font-size="11" fill="#374151" font-weight="500">283B</text>
   <text x="126" y="522" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
-  <rect x="130" y="508" width="89.10344827586208" height="20" fill="#3b82f6" rx="3"/>
-  <text x="225.1034482758621" y="522" font-size="11" fill="#374151" font-weight="500">238B</text>
+  <rect x="130" y="508" width="90.23321554770318" height="20" fill="#3b82f6" rx="3"/>
+  <text x="226.2332155477032" y="522" font-size="11" fill="#374151" font-weight="500">56B</text>
   <text x="126" y="546" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
-  <rect x="130" y="532" width="61.77339901477833" height="20" fill="#10b981" rx="3"/>
-  <text x="197.77339901477833" y="546" font-size="11" fill="#374151" font-weight="500">165B</text>
+  <rect x="130" y="532" width="32.226148409893995" height="20" fill="#10b981" rx="3"/>
+  <text x="168.226148409894" y="546" font-size="11" fill="#374151" font-weight="500">20B</text>
+  <text x="12" y="584" font-size="13" font-weight="600" fill="#374151">User State1→2</text>
+  <text x="126" y="606" text-anchor="end" font-size="11" fill="#6b7280">JSON (full)</text>
+  <rect x="130" y="592" width="364.2758620689655" height="20" fill="#f59e0b" rx="3"/>
+  <text x="500.2758620689655" y="606" font-size="11" fill="#374151" font-weight="500">973B</text>
+  <text x="126" y="630" text-anchor="end" font-size="11" fill="#6b7280">JSON Patch</text>
+  <rect x="130" y="616" width="456" height="20" fill="#ef4444" rx="3"/>
+  <text x="592" y="630" font-size="11" fill="#374151" font-weight="500">1218B</text>
+  <text x="126" y="654" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Full</text>
+  <rect x="130" y="640" width="89.10344827586208" height="20" fill="#3b82f6" rx="3"/>
+  <text x="225.1034482758621" y="654" font-size="11" fill="#374151" font-weight="500">238B</text>
+  <text x="126" y="678" text-anchor="end" font-size="11" fill="#6b7280">Delta-Pack Diff</text>
+  <rect x="130" y="664" width="61.77339901477833" height="20" fill="#10b981" rx="3"/>
+  <text x="197.77339901477833" y="678" font-size="11" fill="#374151" font-weight="500">165B</text>
 </svg>

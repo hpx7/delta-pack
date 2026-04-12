@@ -54,6 +54,6 @@ generate_example() {
 generate_example "Primitives" "state1" "state2"
 generate_example "User" "state1" "state2"
 generate_example "GameState" "state1" "state2" "state3"
-generate_example "Test" "state1"
+generate_example "Test" "state1" "state2"
 
 echo "Golden bytes generated successfully!"
