@@ -8,9 +8,20 @@
 [![NuGet](https://img.shields.io/nuget/v/DeltaPack)](https://www.nuget.org/packages/DeltaPack)
 [![crates.io](https://img.shields.io/crates/v/delta-pack)](https://crates.io/crates/delta-pack)
 
-Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and real-time systems. Implementations available for TypeScript, C#, and Rust.
+Ultra-compact serialization format, designed to power state synchronization for multiplayer games, collaborative apps, and other real-time systems. Implementations available for [TypeScript](typescript/), [C#](csharp/), and [Rust](rust/).
 
-Delta-Pack combines the schema-based binary encoding of formats like [Protobuf](https://protobuf.dev/) with the delta encoding of formats like [JSON Patch](https://jsonpatch.com/) — define a schema once, then efficiently encode snapshots and diffs across languages.
+## Overview
+
+State synchronization over a network involves repeatedly transmitting the same shape of state with small changes between frames. To optimize bandwidth, it's important to have an efficient encoding scheme for the wire format.
+
+Delta-Pack achieves ultra-compact encodings by combining two core concepts:
+
+- **Schema-driven binary encoding**, like [Protobuf](https://protobuf.dev/). Both client and server have a shared schema. They already know the field names, types, and structure, allowing the wire format to carry only values.
+- **Structural delta encoding**, like [JSON Patch](https://jsonpatch.com/). Only changed data is serialized, with as few bits as possible.
+
+The result is wire sizes that are smaller than Protobuf for snapshots, and oders of magnitude smaller than JSON Patch for diffs — see [Benchmarks](#benchmarks).
+
+### Example
 
 Define your data schema using the supported [data types](#data-types), either programmatically with [language-native APIs](#usage) or with YAML:
 
@@ -32,49 +43,43 @@ Player:
   team: Team?
 ```
 
-Given two snapshots of a Player, where position and health have changed:
+Given two snapshots of a `Player`, where position and health have changed:
 
 ```jsonc
-// state1.json
-{
-  "name": "Alice",
-  "position": { "x": 1.0, "y": 3.5 },
-  "health": 100,
-  "team": "RED"
-}
+// state1.json — 71 bytes as compact JSON
+{"name":"Alice","position":{"x":1.0,"y":3.5},"health":100,"team":"RED"}
 
-// state2.json
-{
-  "name": "Alice",
-  "position": { "x": 2.3, "y": 3.5 },  // was 1.0
-  "health": 82,                        // was 100
-  "team": "RED"
-}
+// state2.json — x moved, health dropped
+{"name":"Alice","position":{"x":2.3,"y":3.5},"health":82,"team":"RED"}
 ```
 
-Delta-Pack can compactly encode the full snapshot as well as the diff:
+Delta-Pack compactly encodes snapshot and diff forms:
 
 ```bash
 $ delta-pack encode schema.yml --type Player --input state1.json
-# → 11 bytes
+# → 11 bytes (snapshot)
 
 $ delta-pack encode-diff schema.yml --type Player --old state1.json --new state2.json
-# → 5 bytes
+# → 5 bytes (diff)
 ```
 
 ## Benchmarks
 
-Encoding size comparisons using the example schemas in [`examples/`](examples/).
+Benchmarks use the example schemas in [`examples/`](examples/). Each example contains:
 
-### Snapshot Encoding
+- a delta-pack schema (`schema.yml`)
+- a protobuf schema (`schema.proto`)
+- 2 or more data snapshots (`schema1.json`, ..., `schemaN.json`)
 
-JSON, MessagePack, Protobuf, and Delta-Pack compared for snapshot encoding. Lower is better.
+### Snapshot Encoding Size
+
+[JSON](https://www.json.org/), [MessagePack](https://msgpack.org/), [Protobuf](https://protobuf.dev/), and Delta-Pack compared for snapshot encoding. Lower is better.
 
 <img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/full-encode.svg" alt="Snapshot encoding size comparison" />
 
-### Delta Encoding
+### Delta Encoding Size
 
-Delta-Pack diffs vs JSON Patch (RFC 6902) for delta encoding. Lower is better.
+Delta-Pack diffs vs [JSON Patch (RFC 6902)](https://jsonpatch.com/) for delta encoding. Lower is better.
 
 <img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/delta-encode.svg" alt="Delta encoding size comparison" />
 
@@ -82,56 +87,81 @@ Delta-Pack diffs vs JSON Patch (RFC 6902) for delta encoding. Lower is better.
 
 Per-language encoding/decoding speed benchmarks:
 
-- [TypeScript](typescript/benchmark/) (vs JSON, MessagePack, Protobuf)
-- [C#](csharp/benchmarks/) (vs System.Text.Json, MessagePack-CSharp)
-- [Rust](rust/benchmarks/) (vs JSON, MessagePack)
+- [TypeScript](typescript/benchmark/) (vs JSON, msgpackr, protobufjs)
+- [C#](csharp/benchmarks/) (vs System.Text.Json, MessagePack-CSharp, Google.Protobuf)
+- [Rust](rust/benchmarks/) (vs JSON, rmp-serde, prost)
 
 ## Data Types
 
-All types are available across TypeScript, C#, and Rust. The examples below use the YAML schema syntax. The **Encode** column describes snapshot encoding; the **Diff** column describes delta encoding between two values of the same type.
+Delta-Pack schemas are built from a fixed set of data types, each with a defined snapshot encoding, diff encoding, and parsing rules. Every type is available across all language implementations.
+
+Types fall into three groups — **primitives**, **containers**, and **named types** — described below.
 
 ### Primitives
 
-| Type              | YAML Schema             | JSON Example | Encode                                        | Diff                                           |
+Primitives represent the basic scalar values:
+
+| Type              | YAML Syntax             | JSON Example | Encode                                        | Diff                                           |
 | ----------------- | ----------------------- | ------------ | --------------------------------------------- | ---------------------------------------------- |
 | String            | `string`                | `"hello"`    | UTF-8 with per-message dictionary compression | New value (old value pre-loaded in dictionary) |
 | Int               | `int`                   | `42`, `-7`   | ZigZag varint                                 | New value                                      |
-| Int (bounded)     | `int(min=0, max=100)`   | `50`         | Bit-packed in ⌈log₂(max − min + 1)⌉ bits      | New value                                      |
-| Uint              | `uint`                  | `42`         | Varint (shorthand for `int` with min=0)       | New value                                      |
+| Int (bounded)     | `int(min=0, max=100)`   | `50`         | Bit-packed in `log₂(max − min + 1)` bits      | New value                                      |
+| Uint              | `uint`                  | `42`         | Varint (shorthand for `int(min=0)`)           | New value                                      |
 | Float             | `float`                 | `3.14`       | IEEE 754 32-bit                               | New value                                      |
-| Float (quantized) | `float(precision=0.01)` | `3.14`       | round(value / precision) as ZigZag varint     | New value                                      |
+| Float (quantized) | `float(precision=0.01)` | `3.14`       | `round(value / precision)` as ZigZag varint   | New value                                      |
 | Boolean           | `boolean`               | `true`       | Single bit (RLE-compressed)                   | Change bit (decoder flips old value)           |
 
 ### Containers
 
+Containers wrap other types:
+
 | Type     | YAML Schema     | JSON Example        | Encode                               | Diff                                                                           |
 | -------- | --------------- | ------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
 | Array    | `int[]`         | `[1, 2, 3]`         | Length prefix + elements in sequence | New length + sparse updates (index + element diff) + appended elements         |
-| Optional | `string?`       | `"value"` or `null` | Presence bit + value if present      | Was null: new value directly; was non-null: presence bit + value diff          |
 | Map      | `<string, int>` | `{"a": 1, "b": 2}`  | Length prefix + key-value pairs      | Positional deletions + positional updates (with value diffs) + keyed additions |
-
-Map keys must be `string` or `int`.
+| Optional | `string?`       | `"value"` or `null` | Presence bit + value if present      | Was null: new value directly; was non-null: presence bit + value diff          |
 
 ### Named Types
+
+Named types are the only types that can be directly encoded/decoded or used as the codegen `--type`:
 
 | Type       | YAML Schema                                                                     | JSON Example                         | Encode                        | Diff                                                             |
 | ---------- | ------------------------------------------------------------------------------- | ------------------------------------ | ----------------------------- | ---------------------------------------------------------------- |
 | Object     | `Position:`<br>&nbsp;&nbsp;`x: float`<br>&nbsp;&nbsp;`y: float`                 | `{"x": 1.5, "y": 2.0}`               | Fields in declaration order   | Change bit + per-field change bits with diffs                    |
-| Enum       | `Team:`<br>&nbsp;&nbsp;`- RED`<br>&nbsp;&nbsp;`- BLUE`<br>&nbsp;&nbsp;`- GREEN` | `"RED"`                              | ⌈log₂(variant count)⌉ bits    | New value                                                        |
+| Enum       | `Team:`<br>&nbsp;&nbsp;`- RED`<br>&nbsp;&nbsp;`- BLUE`<br>&nbsp;&nbsp;`- GREEN` | `"RED"`                              | `log₂(variant count)` bits    | New value                                                        |
 | Union      | `Contact:`<br>&nbsp;&nbsp;`- EmailContact`<br>&nbsp;&nbsp;`- PhoneContact`      | `{"EmailContact": {"email": "..."}}` | Variant bits + variant fields | Same type: per-field diffs; new type: variant bits + full encode |
 | Type alias | `UserId: string`                                                                | `"abc123"`                           | Resolved to underlying type   | Resolved to underlying type                                      |
 
+### Language bindings
+
+How each schema type is represented in TypeScript, C#, and Rust:
+
+| Schema type           | TypeScript                    | C#                                  | Rust                        |
+| --------------------- | ----------------------------- | ----------------------------------- | --------------------------- |
+| `string`              | `string`                      | `string`                            | `String`                    |
+| `int`, `int(min,max)` | `number`                      | `long`                              | `i64`                       |
+| `uint`                | `number`                      | `long`                              | `u64`                       |
+| `float`, `float(p)`   | `number`                      | `float`                             | `f32`                       |
+| `boolean`             | `boolean`                     | `bool`                              | `bool`                      |
+| `T[]`                 | `T[]`                         | `List<T>`                           | `Vec<T>`                    |
+| `T?`                  | `T \| undefined`              | `T?`                                | `Option<T>`                 |
+| `<K, V>`              | `Map<K, V>`                   | `OrderedDictionary<K, V>`           | `IndexMap<K, V>`            |
+| Object                | `type` (structural)           | `class`                             | `struct`                    |
+| Enum                  | string literal union          | `enum`                              | `enum`                      |
+| Union                 | discriminated union (`_type`) | abstract class + variant subclasses | `enum` (tagged)             |
+| Type alias            | resolved to underlying type   | resolved to underlying type         | resolved to underlying type |
+
 ### Binary layout
 
-All encoded messages share the same binary structure:
+Every encoded message shares the same structure:
 
 ```
 [data section][RLE bits][bit count (reverse varint)]
 ```
 
-The **data section** contains sequential varints, strings, and floats. The **RLE section** contains run-length encoded bits — booleans, enums, bounded integers, and diff change flags are all packed here. The bit count at the end allows the decoder to locate the boundary between the two sections.
+The **data section** holds whole-byte values (strings, varints, floats). The **RLE section** holds packed bits (booleans, enums, bounded integers, and change flags). The bit count at the end lets the decoder find the boundary.
 
-In object and union diffs, unchanged fields are skipped entirely via **change bits** — if a field's change bit is `0`, no data follows for that field. For boolean fields, the change bit _is_ the diff (the decoder flips the old value). Array and map diffs are sparse: only changed elements are encoded, identified by index (arrays) or positional key index (maps).
+Diff compactness comes from **change bits**: inside objects, unions, arrays, and maps, each field or element is preceded by a single bit in the RLE section. If it's `0`, nothing else is encoded for that field — the decoder keeps the old value.
 
 ## API
 
@@ -184,7 +214,7 @@ Install:
 npm install @hpx7/delta-pack
 ```
 
-Typescript supports codegen mode as well a dynamic runtime mode.
+TypeScript supports codegen mode as well as a dynamic runtime mode.
 
 **Codegen:**
 
