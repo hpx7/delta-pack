@@ -12,6 +12,8 @@ Ultra-compact serialization format, designed to power state synchronization for 
 
 ## Overview
 
+<!-- #region overview -->
+
 State synchronization over a network involves repeatedly transmitting the same shape of state with small changes between frames. To optimize bandwidth, it's important to have an efficient encoding scheme for the wire format.
 
 Delta-Pack achieves ultra-compact encodings by combining two core concepts:
@@ -63,7 +65,11 @@ $ delta-pack encode-diff schema.yml --type Player --old state1.json --new state2
 # → 5 bytes (diff)
 ```
 
+<!-- #endregion overview -->
+
 ## Benchmarks
+
+<!-- #region benchmarks -->
 
 Benchmarks use the example schemas in [`examples/`](examples/). Each example contains:
 
@@ -91,7 +97,11 @@ Per-language encoding/decoding speed benchmarks:
 - [C#](csharp/benchmarks/) (vs System.Text.Json, MessagePack-CSharp, Google.Protobuf)
 - [Rust](rust/benchmarks/) (vs JSON, rmp-serde, prost)
 
+<!-- #endregion benchmarks -->
+
 ## Data Types
+
+<!-- #region data-types -->
 
 Delta-Pack schemas are built from a fixed set of data types, each with a defined snapshot encoding, diff encoding, and parsing rules. Every type is available across all language implementations.
 
@@ -163,7 +173,11 @@ The **data section** holds whole-byte values (strings, varints, floats). The **R
 
 Diff compactness comes from **change bits**: inside objects, unions, arrays, and maps, each field or element is preceded by a single bit in the RLE section. If it's `0`, nothing else is encoded for that field — the decoder keeps the old value.
 
+<!-- #endregion data-types -->
+
 ## API
+
+<!-- #region api -->
 
 Every object and union type provides the following functions:
 
@@ -192,7 +206,11 @@ Every object and union type provides the following functions:
 
 The server sends a full `encode` snapshot when a client first connects, then sends `encodeDiff` deltas for subsequent state changes. The client applies each delta to its local copy using `decodeDiff`.
 
+<!-- #endregion api -->
+
 ## Usage
+
+<!-- #region usage -->
 
 Delta-Pack supports TypeScript, C#, and Rust. All three share the same schema format and binary encoding, so a TypeScript server can communicate with a Rust or C# client.
 
@@ -355,3 +373,5 @@ delta-pack encode-diff schema.yml -t Player --old prev.json --new next.json -o d
 # Apply a binary diff
 delta-pack decode-diff schema.yml -t Player --old prev.json --diff diff.bin -o next.json
 ```
+
+<!-- #endregion usage -->
