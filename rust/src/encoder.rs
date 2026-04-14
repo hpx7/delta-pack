@@ -79,6 +79,7 @@ impl Encoder {
 
     #[inline]
     pub fn push_bounded_int(&mut self, val: i64, min: i64) {
+        assert!(val >= min, "int {} below minimum {}", val, min);
         self.push_uint((val - min) as u64);
     }
 
@@ -94,6 +95,7 @@ impl Encoder {
 
     #[inline]
     pub fn push_float_quantized(&mut self, val: f32, precision: f32) {
+        assert!(val.is_finite(), "invalid quantized float: {}", val);
         self.push_int((val / precision).round() as i64);
     }
 
@@ -104,7 +106,25 @@ impl Encoder {
 
     #[inline]
     pub fn push_enum(&mut self, val: u32, num_bits: u8) {
+        assert!(
+            (val as u64) < (1u64 << num_bits),
+            "value {} out of range for {} bits",
+            val,
+            num_bits
+        );
         self.rle.push_bits(val, num_bits);
+    }
+
+    #[inline]
+    pub fn push_bit_packed_int(&mut self, val: i64, min: i64, max: i64, num_bits: u8) {
+        assert!(
+            val >= min && val <= max,
+            "int {} outside [{}, {}]",
+            val,
+            min,
+            max
+        );
+        self.rle.push_bits((val - min) as u32, num_bits);
     }
 
     // Diff methods (value-only - caller handles change bit for object fields)
@@ -153,6 +173,11 @@ impl Encoder {
     #[inline]
     pub fn push_enum_diff(&mut self, _a: u32, b: u32, num_bits: u8) {
         self.push_enum(b, num_bits);
+    }
+
+    #[inline]
+    pub fn push_bit_packed_int_diff(&mut self, _a: i64, b: i64, min: i64, max: i64, num_bits: u8) {
+        self.push_bit_packed_int(b, min, max, num_bits);
     }
 
     // Object diff helper (wrap object encoding with change bit)

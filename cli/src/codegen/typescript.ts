@@ -471,7 +471,7 @@ function renderEncode(ctx: GeneratorContext, type: Type, key: string): string {
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `encoder.pushEnum(${intOffset(key, s.offset)}, ${s.numBits})`;
+        return `encoder.pushBitPackedInt(${key}, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return `encoder.pushBoundedInt(${key}, ${s.min})`;
@@ -573,7 +573,7 @@ function renderEncodeDiff(
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `encoder.pushEnumDiff(${intOffset(a, s.offset)}, ${intOffset(b, s.offset)}, ${s.numBits})`;
+        return `encoder.pushBitPackedIntDiff(${a}, ${b}, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return `encoder.pushBoundedIntDiff(${a}, ${b}, ${s.min})`;

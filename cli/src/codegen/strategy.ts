@@ -4,7 +4,9 @@ import { IntType, FloatType } from "@hpx7/delta-pack";
  * How an int value is packed into the binary stream.
  *
  * - `packed`:   value fits in `numBits` after subtracting `offset` (a.k.a. `min`).
- *               Emitted via `pushEnum` / `nextEnum`.
+ *               Emitted via `pushBitPackedInt` / `nextEnum` (the encoder validates
+ *               bounds; decoder reuses `nextEnum` since the bits on the wire are
+ *               identical).
  * - `unsigned`: `min >= 0` so the value is encoded as an unsigned varint, offset
  *               by `min`. Emitted via `pushBoundedInt` / `nextBoundedInt` (or, in
  *               Rust, `push_uint` / `next_uint` after manual offsetting).
@@ -14,13 +16,13 @@ import { IntType, FloatType } from "@hpx7/delta-pack";
  * the policy choice above is shared.
  */
 export type IntStrategy =
-  | { kind: "packed"; offset: number; numBits: number }
+  | { kind: "packed"; offset: number; max: number; numBits: number }
   | { kind: "unsigned"; min: number }
   | { kind: "signed" };
 
 export function intStrategy(t: IntType): IntStrategy {
   if (t.numBits != null) {
-    return { kind: "packed", offset: t.min!, numBits: t.numBits };
+    return { kind: "packed", offset: t.min!, max: t.max!, numBits: t.numBits };
   }
   if (t.min != null && t.min >= 0) {
     return { kind: "unsigned", min: t.min };

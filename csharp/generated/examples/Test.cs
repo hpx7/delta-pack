@@ -325,6 +325,7 @@ namespace Generated.Examples
         public long Uint32 { get; set; }
         public Inner Inner { get; set; } = Inner.Default();
         public float Float { get; set; }
+        public long BoundedInt { get; set; }
 
         public static Test Default() => new();
 
@@ -336,6 +337,7 @@ namespace Generated.Examples
                 Uint32 = json.GetProperty("uint32").GetInt64(),
                 Inner = Inner.FromJson(json.GetProperty("inner")),
                 Float = json.GetProperty("float").GetSingle(),
+                BoundedInt = json.GetProperty("boundedInt").GetInt64(),
             };
         }
 
@@ -346,6 +348,7 @@ namespace Generated.Examples
             result["uint32"] = obj.Uint32;
             result["inner"] = Inner.ToJson(obj.Inner);
             result["float"] = obj.Float;
+            result["boundedInt"] = obj.BoundedInt;
             return result;
         }
 
@@ -357,6 +360,7 @@ namespace Generated.Examples
                 Uint32 = obj.Uint32,
                 Inner = Inner.Clone(obj.Inner),
                 Float = obj.Float,
+                BoundedInt = obj.BoundedInt,
             };
         }
 
@@ -365,7 +369,8 @@ namespace Generated.Examples
             return a.String == b.String &&
                 a.Uint32 == b.Uint32 &&
                 Inner.Equals(a.Inner, b.Inner) &&
-                DeltaPack.EqualityHelpers.EqualsFloat(a.Float, b.Float);
+                DeltaPack.EqualityHelpers.EqualsFloat(a.Float, b.Float) &&
+                a.BoundedInt == b.BoundedInt;
         }
 
         public static byte[] Encode(Test obj)
@@ -381,6 +386,7 @@ namespace Generated.Examples
             encoder.PushInt(obj.Uint32);
             Inner.Encode_(obj.Inner, encoder);
             encoder.PushFloat(obj.Float);
+            encoder.PushBitPackedInt(obj.BoundedInt, 0, 5, 3);
         }
 
         public static byte[] EncodeDiff(Test a, Test b)
@@ -396,6 +402,7 @@ namespace Generated.Examples
             encoder.PushFieldDiff<long>(a.Uint32, b.Uint32, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
             encoder.PushFieldDiff<Inner>(a.Inner, b.Inner, (x, y) => Generated.Examples.Inner.Equals(x, y), (x, y) => Generated.Examples.Inner.EncodeDiff_(x, y, encoder));
             encoder.PushFieldDiff<float>(a.Float, b.Float, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
+            encoder.PushFieldDiff<long>(a.BoundedInt, b.BoundedInt, (x, y) => x == y, (x, y) => encoder.PushBitPackedIntDiff(x, y, 0, 5, 3));
         }
 
         public static Test Decode(byte[] buf)
@@ -412,6 +419,7 @@ namespace Generated.Examples
                 Uint32 = decoder.NextInt(),
                 Inner = Inner.Decode_(decoder),
                 Float = decoder.NextFloat(),
+                BoundedInt = (long)decoder.NextEnum(3),
             };
         }
 
@@ -429,6 +437,7 @@ namespace Generated.Examples
                 Uint32 = decoder.NextFieldDiff(obj.Uint32, x => decoder.NextIntDiff(x)),
                 Inner = decoder.NextFieldDiff(obj.Inner, x => Generated.Examples.Inner.DecodeDiff_(x, decoder)),
                 Float = decoder.NextFieldDiff(obj.Float, x => decoder.NextFloatDiff(x)),
+                BoundedInt = decoder.NextFieldDiff(obj.BoundedInt, x => (long)decoder.NextEnumDiff((int)x, 3)),
             };
         }
     }

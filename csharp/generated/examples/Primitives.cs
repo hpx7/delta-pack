@@ -75,7 +75,7 @@ namespace Generated.Examples
             encoder.PushString(obj.StringField);
             encoder.PushInt(obj.SignedIntField);
             encoder.PushBoundedInt(obj.UnsignedIntField, 0);
-            encoder.PushEnum((int)(obj.BoundedIntField - -10), 5);
+            encoder.PushBitPackedInt(obj.BoundedIntField, -10, 10, 5);
             encoder.PushFloat(obj.FloatField);
             encoder.PushBoolean(obj.BooleanField);
         }
@@ -92,7 +92,7 @@ namespace Generated.Examples
             encoder.PushFieldDiff<string>(a.StringField, b.StringField, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
             encoder.PushFieldDiff<long>(a.SignedIntField, b.SignedIntField, (x, y) => x == y, (x, y) => encoder.PushIntDiff(x, y));
             encoder.PushFieldDiff<long>(a.UnsignedIntField, b.UnsignedIntField, (x, y) => x == y, (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
-            encoder.PushFieldDiff<long>(a.BoundedIntField, b.BoundedIntField, (x, y) => x == y, (x, y) => encoder.PushEnumDiff((int)(x - -10), (int)(y - -10), 5));
+            encoder.PushFieldDiff<long>(a.BoundedIntField, b.BoundedIntField, (x, y) => x == y, (x, y) => encoder.PushBitPackedIntDiff(x, y, -10, 10, 5));
             encoder.PushFieldDiff<float>(a.FloatField, b.FloatField, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
             encoder.PushBooleanDiff(a.BooleanField, b.BooleanField);
         }

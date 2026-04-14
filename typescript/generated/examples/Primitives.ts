@@ -79,7 +79,7 @@ export const Primitives = {
     encoder.pushString(obj.stringField);
     encoder.pushInt(obj.signedIntField);
     encoder.pushBoundedInt(obj.unsignedIntField, 0);
-    encoder.pushEnum((obj.boundedIntField - -10), 5);
+    encoder.pushBitPackedInt(obj.boundedIntField, -10, 10, 5);
     encoder.pushFloat(obj.floatField);
     encoder.pushBoolean(obj.booleanField);
   },
@@ -115,7 +115,7 @@ export const Primitives = {
       b,
       "boundedIntField",
       (x, y) => x === y,
-      (x, y) => encoder.pushEnumDiff((x - -10), (y - -10), 5),
+      (x, y) => encoder.pushBitPackedIntDiff(x, y, -10, 10, 5),
     );
     encoder.pushFieldDiff(
       a,

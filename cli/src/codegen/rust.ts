@@ -651,7 +651,7 @@ function renderEncodeCallback(ctx: GeneratorContext, type: Type): string {
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `|enc, &item| enc.push_enum(${intBitOffsetRs("item", s.offset)}, ${s.numBits})`;
+        return `|enc, &item| enc.push_bit_packed_int(item as i64, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return s.min === 0
@@ -693,7 +693,7 @@ function renderEncode(ctx: GeneratorContext, type: Type, key: string): string {
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `encoder.push_enum(${intBitOffsetRs(key, s.offset)}, ${s.numBits})`;
+        return `encoder.push_bit_packed_int(${key} as i64, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return s.min === 0
@@ -796,7 +796,7 @@ function encodeDiffBody(
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `${enc}.push_enum_diff(${intBitOffsetRs(a, s.offset)}, ${intBitOffsetRs(b, s.offset)}, ${s.numBits})`;
+        return `${enc}.push_bit_packed_int_diff(${a} as i64, ${b} as i64, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return s.min === 0

@@ -131,7 +131,7 @@ public static class Interpreter
                 case IntType it:
                     var intVal = Convert.ToInt64(obj);
                     if (it.NumBits.HasValue)
-                        encoder.PushEnum((int)(intVal - it.Min!.Value), it.NumBits.Value);
+                        encoder.PushBitPackedInt(intVal, it.Min!.Value, it.Max!.Value, it.NumBits.Value);
                     else if (it.Min.HasValue && it.Min.Value >= 0)
                         encoder.PushBoundedInt(intVal, it.Min.Value);
                     else
@@ -389,7 +389,7 @@ public static class Interpreter
                     var intA = Convert.ToInt64(a);
                     var intB = Convert.ToInt64(b);
                     if (it.NumBits.HasValue)
-                        encoder.PushEnumDiff((int)(intA - it.Min!.Value), (int)(intB - it.Min.Value), it.NumBits.Value);
+                        encoder.PushBitPackedIntDiff(intA, intB, it.Min!.Value, it.Max!.Value, it.NumBits.Value);
                     else if (it.Min.HasValue && it.Min.Value >= 0)
                         encoder.PushBoundedIntDiff(intA, intB, it.Min.Value);
                     else

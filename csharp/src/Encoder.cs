@@ -75,6 +75,8 @@ public class Encoder
 
     public void PushBoundedInt(long val, long min)
     {
+        if (val < min)
+            throw new ArgumentOutOfRangeException(nameof(val));
         EnsureCapacity(10);
         Varint.WriteUVarint(_buffer, ref _pos, (ulong)(val - min));
     }
@@ -92,14 +94,29 @@ public class Encoder
         _pos += 4;
     }
 
-    public void PushFloatQuantized(float val, float precision) =>
+    public void PushFloatQuantized(float val, float precision)
+    {
+        if (!float.IsFinite(val))
+            throw new ArgumentException("Quantized float must be finite", nameof(val));
         PushInt((long)Math.Round(val / precision));
+    }
 
     public void PushBoolean(bool val) =>
         _rle.PushBit(val);
 
-    public void PushEnum(int val, int numBits) =>
+    public void PushEnum(int val, int numBits)
+    {
+        if (val < 0 || val >= (1L << numBits))
+            throw new ArgumentOutOfRangeException(nameof(val));
         _rle.PushBits(val, numBits);
+    }
+
+    public void PushBitPackedInt(long val, long min, long max, int numBits)
+    {
+        if (val < min || val > max)
+            throw new ArgumentOutOfRangeException(nameof(val));
+        _rle.PushBits((int)(val - min), numBits);
+    }
 
     // Container methods
 
@@ -159,6 +176,9 @@ public class Encoder
 
     public void PushEnumDiff(int a, int b, int numBits) =>
         PushEnum(b, numBits);
+
+    public void PushBitPackedIntDiff(long a, long b, long min, long max, int numBits) =>
+        PushBitPackedInt(b, min, max, numBits);
 
     // Object diff helper (wrap object encoding with change bit)
 

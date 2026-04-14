@@ -26,3 +26,4 @@ Test:
   uint32: int
   inner: Inner
   float: float
+  boundedInt: int(min=0, max=5)

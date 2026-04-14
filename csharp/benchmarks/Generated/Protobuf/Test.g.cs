@@ -24,19 +24,20 @@ namespace Test {
     static SchemaReflection() {
       byte[] descriptorData = global::System.Convert.FromBase64String(
           string.Concat(
-            "CgxzY2hlbWEucHJvdG8SBHRlc3QiwAIKBFRlc3QSDgoGc3RyaW5nGAEgASgJ",
+            "CgxzY2hlbWEucHJvdG8SBHRlc3Qi1AIKBFRlc3QSDgoGc3RyaW5nGAEgASgJ",
             "Eg4KBnVpbnQzMhgCIAEoDRIfCgVpbm5lchgDIAEoCzIQLnRlc3QuVGVzdC5J",
-            "bm5lchINCgVmbG9hdBgEIAEoAhquAQoFSW5uZXISDQoFaW50MzIYASABKAUS",
-            "LwoKaW5uZXJJbm5lchgCIAEoCzIbLnRlc3QuVGVzdC5Jbm5lci5Jbm5lcklu",
-            "bmVyEhoKBW91dGVyGAMgASgLMgsudGVzdC5PdXRlchpJCgpJbm5lcklubmVy",
-            "EgwKBGxvbmcYASABKAMSHQoEZW51bRgCIAEoDjIPLnRlc3QuVGVzdC5FbnVt",
-            "Eg4KBnNpbnQzMhgDIAEoESI3CgRFbnVtEgcKA09ORRAAEgcKA1RXTxABEgkK",
-            "BVRIUkVFEAISCAoERk9VUhADEggKBEZJVkUQBCIlCgVPdXRlchIMCgRib29s",
-            "GAEgAygIEg4KBmRvdWJsZRgCIAEoAWIGcHJvdG8z"));
+            "bm5lchINCgVmbG9hdBgEIAEoAhISCgpib3VuZGVkSW50GAUgASgNGq4BCgVJ",
+            "bm5lchINCgVpbnQzMhgBIAEoBRIvCgppbm5lcklubmVyGAIgASgLMhsudGVz",
+            "dC5UZXN0LklubmVyLklubmVySW5uZXISGgoFb3V0ZXIYAyABKAsyCy50ZXN0",
+            "Lk91dGVyGkkKCklubmVySW5uZXISDAoEbG9uZxgBIAEoAxIdCgRlbnVtGAIg",
+            "ASgOMg8udGVzdC5UZXN0LkVudW0SDgoGc2ludDMyGAMgASgRIjcKBEVudW0S",
+            "BwoDT05FEAASBwoDVFdPEAESCQoFVEhSRUUQAhIICgRGT1VSEAMSCAoERklW",
+            "RRAEIiUKBU91dGVyEgwKBGJvb2wYASADKAgSDgoGZG91YmxlGAIgASgBYgZw",
+            "cm90bzM="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(null, null, new pbr::GeneratedClrTypeInfo[] {
-            new pbr::GeneratedClrTypeInfo(typeof(global::Test.Test), global::Test.Test.Parser, new[]{ "String", "Uint32", "Inner", "Float" }, null, new[]{ typeof(global::Test.Test.Types.Enum) }, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Test.Test.Types.Inner), global::Test.Test.Types.Inner.Parser, new[]{ "Int32", "InnerInner", "Outer" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Test.Test.Types.Inner.Types.InnerInner), global::Test.Test.Types.Inner.Types.InnerInner.Parser, new[]{ "Long", "Enum", "Sint32" }, null, null, null, null)})}),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Test.Test), global::Test.Test.Parser, new[]{ "String", "Uint32", "Inner", "Float", "BoundedInt" }, null, new[]{ typeof(global::Test.Test.Types.Enum) }, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Test.Test.Types.Inner), global::Test.Test.Types.Inner.Parser, new[]{ "Int32", "InnerInner", "Outer" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { new pbr::GeneratedClrTypeInfo(typeof(global::Test.Test.Types.Inner.Types.InnerInner), global::Test.Test.Types.Inner.Types.InnerInner.Parser, new[]{ "Long", "Enum", "Sint32" }, null, null, null, null)})}),
             new pbr::GeneratedClrTypeInfo(typeof(global::Test.Outer), global::Test.Outer.Parser, new[]{ "Bool", "Double" }, null, null, null, null)
           }));
     }
@@ -83,6 +84,7 @@ namespace Test {
       uint32_ = other.uint32_;
       inner_ = other.inner_ != null ? other.inner_.Clone() : null;
       float_ = other.float_;
+      boundedInt_ = other.boundedInt_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -140,6 +142,18 @@ namespace Test {
       }
     }
 
+    /// <summary>Field number for the "boundedInt" field.</summary>
+    public const int BoundedIntFieldNumber = 5;
+    private uint boundedInt_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint BoundedInt {
+      get { return boundedInt_; }
+      set {
+        boundedInt_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -159,6 +173,7 @@ namespace Test {
       if (Uint32 != other.Uint32) return false;
       if (!object.Equals(Inner, other.Inner)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(Float, other.Float)) return false;
+      if (BoundedInt != other.BoundedInt) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -170,6 +185,7 @@ namespace Test {
       if (Uint32 != 0) hash ^= Uint32.GetHashCode();
       if (inner_ != null) hash ^= Inner.GetHashCode();
       if (Float != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(Float);
+      if (BoundedInt != 0) hash ^= BoundedInt.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -204,6 +220,10 @@ namespace Test {
         output.WriteRawTag(37);
         output.WriteFloat(Float);
       }
+      if (BoundedInt != 0) {
+        output.WriteRawTag(40);
+        output.WriteUInt32(BoundedInt);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -230,6 +250,10 @@ namespace Test {
         output.WriteRawTag(37);
         output.WriteFloat(Float);
       }
+      if (BoundedInt != 0) {
+        output.WriteRawTag(40);
+        output.WriteUInt32(BoundedInt);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -251,6 +275,9 @@ namespace Test {
       }
       if (Float != 0F) {
         size += 1 + 4;
+      }
+      if (BoundedInt != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(BoundedInt);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -278,6 +305,9 @@ namespace Test {
       }
       if (other.Float != 0F) {
         Float = other.Float;
+      }
+      if (other.BoundedInt != 0) {
+        BoundedInt = other.BoundedInt;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -317,6 +347,10 @@ namespace Test {
             Float = input.ReadFloat();
             break;
           }
+          case 40: {
+            BoundedInt = input.ReadUInt32();
+            break;
+          }
         }
       }
     #endif
@@ -353,6 +387,10 @@ namespace Test {
           }
           case 37: {
             Float = input.ReadFloat();
+            break;
+          }
+          case 40: {
+            BoundedInt = input.ReadUInt32();
             break;
           }
         }

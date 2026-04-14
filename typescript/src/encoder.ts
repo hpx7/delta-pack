@@ -51,10 +51,19 @@ export class Encoder {
   }
 
   pushInt(val: number) {
+    if (!Number.isInteger(val)) {
+      throw new RangeError(`Invalid int: ${val}`);
+    }
     this.writeVarint(val);
   }
 
   pushBoundedInt(val: number, min: number) {
+    if (!Number.isInteger(val)) {
+      throw new RangeError(`Invalid int: ${val}`);
+    }
+    if (val < min) {
+      throw new RangeError(`Int ${val} below minimum ${min}`);
+    }
     this.writeUVarint(val - min);
   }
 
@@ -63,6 +72,9 @@ export class Encoder {
   }
 
   pushFloatQuantized(val: number, precision: number) {
+    if (!Number.isFinite(val)) {
+      throw new RangeError(`Invalid quantized float: ${val}`);
+    }
     this.pushInt(Math.round(val / precision));
   }
 
@@ -71,7 +83,17 @@ export class Encoder {
   }
 
   pushEnum(val: number, numBits: number) {
+    if (val < 0 || val >= 2 ** numBits) {
+      throw new RangeError(`Value ${val} out of range for ${numBits} bits`);
+    }
     this.rle.pushBits(val, numBits);
+  }
+
+  pushBitPackedInt(val: number, min: number, max: number, numBits: number) {
+    if (!Number.isInteger(val) || val < min || val > max) {
+      throw new RangeError(`Int ${val} outside [${min}, ${max}]`);
+    }
+    this.rle.pushBits(val - min, numBits);
   }
 
   pushOptional<T>(val: T | undefined, innerWrite: (x: T) => void) {
@@ -214,6 +236,10 @@ export class DiffEncoder extends Encoder {
 
   pushEnumDiff(_a: number, b: number, numBits: number) {
     this.pushEnum(b, numBits);
+  }
+
+  pushBitPackedIntDiff(_a: number, b: number, min: number, max: number, numBits: number) {
+    this.pushBitPackedInt(b, min, max, numBits);
   }
 
   // Object diff - handles dirty tracking and change bit

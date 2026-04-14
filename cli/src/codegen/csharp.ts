@@ -677,7 +677,7 @@ function renderEncode(
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `encoder.PushEnum(${intOffsetCs(key, s.offset)}, ${s.numBits})`;
+        return `encoder.PushBitPackedInt(${key}, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return `encoder.PushBoundedInt(${key}, ${s.min})`;
@@ -791,7 +791,7 @@ function renderEncodeDiff(
     int: (t) => {
       const s = intStrategy(t);
       if (s.kind === "packed") {
-        return `encoder.PushEnumDiff(${intOffsetCs(a, s.offset)}, ${intOffsetCs(b, s.offset)}, ${s.numBits})`;
+        return `encoder.PushBitPackedIntDiff(${a}, ${b}, ${s.offset}, ${s.max}, ${s.numBits})`;
       }
       if (s.kind === "unsigned") {
         return `encoder.PushBoundedIntDiff(${a}, ${b}, ${s.min})`;

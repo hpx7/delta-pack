@@ -13,5 +13,6 @@
       "double": 204.8
     }
   },
-  "float": 0.25
+  "float": 0.25,
+  "boundedInt": 2
 }

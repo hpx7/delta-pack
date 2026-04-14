@@ -350,6 +350,8 @@ pub struct Test {
     pub uint32: i64,
     pub inner: Inner,
     pub float: f32,
+    #[serde(rename = "boundedInt")]
+    pub bounded_int: u64,
 }
 
 impl Default for Test {
@@ -359,6 +361,7 @@ impl Default for Test {
             uint32: 0,
             inner: Inner::default(),
             float: 0.0,
+            bounded_int: 0,
         }
     }
 }
@@ -369,6 +372,7 @@ impl Test {
             && self.uint32 == other.uint32
             && self.inner.equals(&other.inner)
             && delta_pack::equals_float(self.float, other.float)
+            && self.bounded_int == other.bounded_int
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -383,6 +387,7 @@ impl Test {
         encoder.push_int(self.uint32);
         self.inner.encode_into(encoder);
         encoder.push_float(self.float);
+        encoder.push_bit_packed_int(self.bounded_int as i64, 0, 5, 3);
     }
 
     pub fn encode_diff(a: &Self, b: &Self) -> Vec<u8> {
@@ -424,6 +429,12 @@ impl Test {
             |x, y| delta_pack::equals_float(*x, *y),
             |enc, &a, &b| enc.push_float_diff(a, b),
         );
+        encoder.push_field_diff(
+            &a.bounded_int,
+            &b.bounded_int,
+            |x, y| x == y,
+            |enc, &a, &b| enc.push_bit_packed_int_diff(a as i64, b as i64, 0, 5, 3),
+        );
     }
 
     pub fn decode(buf: &[u8]) -> Self {
@@ -436,6 +447,7 @@ impl Test {
             uint32: decoder.next_int(),
             inner: Inner::decode_from(decoder),
             float: decoder.next_float(),
+            bounded_int: decoder.next_enum(3) as u64,
         }
     }
 
@@ -451,6 +463,9 @@ impl Test {
             uint32: decoder.next_field_diff(&obj.uint32, |dec, &a| dec.next_int_diff(a)),
             inner: decoder.next_field_diff(&obj.inner, |dec, a| Inner::decode_diff_from(a, dec)),
             float: decoder.next_field_diff(&obj.float, |dec, &a| dec.next_float_diff(a)),
+            bounded_int: decoder.next_field_diff(&obj.bounded_int, |dec, &a| {
+                dec.next_enum_diff(a as u32, 3) as u64
+            }),
         }
     }
 }

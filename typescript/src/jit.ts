@@ -124,7 +124,7 @@ class JitCompiler {
         return `encoder.pushString(${expr});`;
       case "int":
         if (type.numBits != null) {
-          return `encoder.pushEnum(${this.intOffset(expr, type.min!)}, ${type.numBits});`;
+          return `encoder.pushBitPackedInt(${expr}, ${type.min}, ${type.max}, ${type.numBits});`;
         }
         if (type.min != null && type.min >= 0) {
           return `encoder.pushBoundedInt(${expr}, ${type.min});`;
@@ -326,7 +326,7 @@ class JitCompiler {
         return `encoder.pushStringDiff(${a}, ${b})`;
       case "int":
         if (type.numBits != null) {
-          return `encoder.pushEnumDiff(${this.intOffset(a, type.min!)}, ${this.intOffset(b, type.min!)}, ${type.numBits})`;
+          return `encoder.pushBitPackedIntDiff(${a}, ${b}, ${type.min}, ${type.max}, ${type.numBits})`;
         }
         if (type.min != null && type.min >= 0) {
           return `encoder.pushBoundedIntDiff(${a}, ${b}, ${type.min})`;

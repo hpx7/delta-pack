@@ -3,10 +3,11 @@ package test;
 
 message Test {
 
-    string  string = 1;
-    uint32  uint32 = 2;
-    Inner   inner  = 3;
-    float   float  = 4;
+    string  string     = 1;
+    uint32  uint32     = 2;
+    Inner   inner      = 3;
+    float   float      = 4;
+    uint32  boundedInt = 5;
 
     message Inner {
 

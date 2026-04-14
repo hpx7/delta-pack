@@ -55,7 +55,7 @@ impl Primitives {
         encoder.push_string(&self.string_field);
         encoder.push_int(self.signed_int_field);
         encoder.push_uint(self.unsigned_int_field);
-        encoder.push_enum((self.bounded_int_field - (-10)) as u32, 5);
+        encoder.push_bit_packed_int(self.bounded_int_field as i64, -10, 10, 5);
         encoder.push_float(self.float_field);
         encoder.push_boolean(self.boolean_field);
     }
@@ -97,7 +97,7 @@ impl Primitives {
             &a.bounded_int_field,
             &b.bounded_int_field,
             |x, y| x == y,
-            |enc, &a, &b| enc.push_enum_diff((a - (-10)) as u32, (b - (-10)) as u32, 5),
+            |enc, &a, &b| enc.push_bit_packed_int_diff(a as i64, b as i64, -10, 10, 5),
         );
         encoder.push_field_diff(
             &a.float_field,

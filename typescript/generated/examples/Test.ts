@@ -24,6 +24,7 @@ export type Test = {
   uint32: number;
   inner: Inner;
   float: number;
+  boundedInt: number;
 };
 
 
@@ -374,6 +375,7 @@ export const Test = {
       uint32: 0,
       inner: Inner.default(),
       float: 0.0,
+      boundedInt: 0,
     };
   },
   fromJson(obj: object): Test {
@@ -386,6 +388,7 @@ export const Test = {
       uint32: _.tryParseField(() => _.parseInt(o["uint32"]), "Test.uint32"),
       inner: _.tryParseField(() => Inner.fromJson(o["inner"] as Inner), "Test.inner"),
       float: _.tryParseField(() => _.parseFloat(o["float"]), "Test.float"),
+      boundedInt: _.tryParseField(() => _.parseInt(o["boundedInt"], 0, 5), "Test.boundedInt"),
     };
   },
   toJson(obj: Test): Record<string, unknown> {
@@ -394,6 +397,7 @@ export const Test = {
     result["uint32"] = obj.uint32;
     result["inner"] = Inner.toJson(obj.inner);
     result["float"] = obj.float;
+    result["boundedInt"] = obj.boundedInt;
     return result;
   },
   clone(obj: Test): Test {
@@ -407,6 +411,7 @@ export const Test = {
       uint32: obj.uint32,
       inner: Inner._clone(obj.inner),
       float: obj.float,
+      boundedInt: obj.boundedInt,
     };
   },
   equals(a: Test, b: Test): boolean {
@@ -414,7 +419,8 @@ export const Test = {
       a.string === b.string &&
       a.uint32 === b.uint32 &&
       Inner.equals(a.inner, b.inner) &&
-      _.equalsFloat(a.float, b.float)
+      _.equalsFloat(a.float, b.float) &&
+      a.boundedInt === b.boundedInt
     );
   },
   encode(obj: Test): Uint8Array {
@@ -427,6 +433,7 @@ export const Test = {
     encoder.pushInt(obj.uint32);
     Inner._encode(obj.inner, encoder);
     encoder.pushFloat(obj.float);
+    encoder.pushBitPackedInt(obj.boundedInt, 0, 5, 3);
   },
   encodeDiff(a: Test, b: Test): Uint8Array {
     const encoder = _.DiffEncoder.create();
@@ -462,6 +469,13 @@ export const Test = {
       (x, y) => _.equalsFloat(x, y),
       (x, y) => encoder.pushFloatDiff(x, y),
     );
+    encoder.pushFieldDiff(
+      a,
+      b,
+      "boundedInt",
+      (x, y) => x === y,
+      (x, y) => encoder.pushBitPackedIntDiff(x, y, 0, 5, 3),
+    );
   },
   decode(input: Uint8Array): Test {
     return Test._decode(_.Decoder.create(input));
@@ -472,6 +486,7 @@ export const Test = {
       uint32: decoder.nextInt(),
       inner: Inner._decode(decoder),
       float: decoder.nextFloat(),
+      boundedInt: decoder.nextEnum(3),
     };
   },
   decodeDiff(obj: Test, input: Uint8Array): Test {
@@ -495,6 +510,10 @@ export const Test = {
       float: decoder.nextFieldDiff(
         obj.float,
         (x) => decoder.nextFloatDiff(x),
+      ),
+      boundedInt: decoder.nextFieldDiff(
+        obj.boundedInt,
+        (x) => decoder.nextEnumDiff(x, 3),
       ),
     };
   },

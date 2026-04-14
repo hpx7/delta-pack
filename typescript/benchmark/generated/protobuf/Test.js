@@ -26,6 +26,7 @@ export const test = $root.test = (() => {
          * @property {number|null} [uint32] Test uint32
          * @property {test.Test.IInner|null} [inner] Test inner
          * @property {number|null} [float] Test float
+         * @property {number|null} [boundedInt] Test boundedInt
          */
 
         /**
@@ -76,6 +77,14 @@ export const test = $root.test = (() => {
         Test.prototype.float = 0;
 
         /**
+         * Test boundedInt.
+         * @member {number} boundedInt
+         * @memberof test.Test
+         * @instance
+         */
+        Test.prototype.boundedInt = 0;
+
+        /**
          * Creates a new Test instance using the specified properties.
          * @function create
          * @memberof test.Test
@@ -107,6 +116,8 @@ export const test = $root.test = (() => {
                 $root.test.Test.Inner.encode(message.inner, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             if (message.float != null && Object.hasOwnProperty.call(message, "float"))
                 writer.uint32(/* id 4, wireType 5 =*/37).float(message.float);
+            if (message.boundedInt != null && Object.hasOwnProperty.call(message, "boundedInt"))
+                writer.uint32(/* id 5, wireType 0 =*/40).uint32(message.boundedInt);
             return writer;
         };
 
@@ -159,6 +170,10 @@ export const test = $root.test = (() => {
                         message.float = reader.float();
                         break;
                     }
+                case 5: {
+                        message.boundedInt = reader.uint32();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -208,6 +223,9 @@ export const test = $root.test = (() => {
             if (message.float != null && message.hasOwnProperty("float"))
                 if (typeof message.float !== "number")
                     return "float: number expected";
+            if (message.boundedInt != null && message.hasOwnProperty("boundedInt"))
+                if (!$util.isInteger(message.boundedInt))
+                    return "boundedInt: integer expected";
             return null;
         };
 
@@ -234,6 +252,8 @@ export const test = $root.test = (() => {
             }
             if (object.float != null)
                 message.float = Number(object.float);
+            if (object.boundedInt != null)
+                message.boundedInt = object.boundedInt >>> 0;
             return message;
         };
 
@@ -255,6 +275,7 @@ export const test = $root.test = (() => {
                 object.uint32 = 0;
                 object.inner = null;
                 object.float = 0;
+                object.boundedInt = 0;
             }
             if (message.string != null && message.hasOwnProperty("string"))
                 object.string = message.string;
@@ -264,6 +285,8 @@ export const test = $root.test = (() => {
                 object.inner = $root.test.Test.Inner.toObject(message.inner, options);
             if (message.float != null && message.hasOwnProperty("float"))
                 object.float = options.json && !isFinite(message.float) ? String(message.float) : message.float;
+            if (message.boundedInt != null && message.hasOwnProperty("boundedInt"))
+                object.boundedInt = message.boundedInt;
             return object;
         };
 
