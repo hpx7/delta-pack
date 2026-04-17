@@ -8,6 +8,11 @@ declare module "*.proto" {
   export default content;
 }
 
+declare module "*.avsc" {
+  const content: string;
+  export default content;
+}
+
 declare module "./generated/protobuf/*.js" {
   const module: Record<string, unknown>;
   export = module;

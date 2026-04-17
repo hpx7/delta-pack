@@ -1,6 +1,6 @@
 # TypeScript Performance Benchmarks
 
-Performance comparison of DeltaPack against JSON, MessagePack, and Protobuf.
+Performance comparison of DeltaPack against JSON, MessagePack, Protobuf, and Avro.
 
 ## Running
 

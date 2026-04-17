@@ -4,12 +4,14 @@ import * as msgpack from "msgpackr";
 import * as rfc6902 from "rfc6902";
 import { load, parseSchemaYml, type DeltaPackApi } from "@hpx7/delta-pack";
 import protobuf from "protobufjs";
+import avsc from "avsc";
 
 const examplesDir = "../examples";
 
 // Cache for loaded schemas
 const deltaPackCache = new Map<string, DeltaPackApi<any>>();
 const protobufCache = new Map<string, protobuf.Type>();
+const avroCache = new Map<string, avsc.Type>();
 
 function getDeltaPackApi(example: string): DeltaPackApi<any> {
   if (!deltaPackCache.has(example)) {
@@ -28,6 +30,15 @@ function getProtobufType(example: string): protobuf.Type {
     protobufCache.set(example, root.lookupType(example));
   }
   return protobufCache.get(example)!;
+}
+
+function getAvroType(example: string): avsc.Type {
+  if (!avroCache.has(example)) {
+    const schemaPath = `${examplesDir}/${example}/schema.avsc`;
+    const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+    avroCache.set(example, avsc.Type.forSchema(schema, { wrapUnions: "auto" }));
+  }
+  return avroCache.get(example)!;
 }
 
 // Deep equality check with float tolerance
@@ -76,7 +87,7 @@ function main() {
     if (!result) continue;
 
     const minSizes = result.json.map((_, i) =>
-      Math.min(result.json[i]!, result.msgpack[i]!, result.protobuf[i]!, result.deltaPack[i]!)
+      Math.min(result.json[i]!, result.msgpack[i]!, result.protobuf[i]!, result.avro[i]!, result.deltaPack[i]!)
     );
 
     console.log(`### ${example}\n`);
@@ -85,6 +96,7 @@ function main() {
       ["JSON", ...result.json.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
       ["MessagePack", ...result.msgpack.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
       ["Protobuf", ...result.protobuf.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
+      ["Avro", ...result.avro.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
       ["Delta-Pack", ...result.deltaPack.map((size, i) => `${size}B (${(size / minSizes[i]!).toFixed(1)}x)`)],
     ];
     const headers = ["Format", ...result.json.map((_, i) => `State${i + 1}`)];
@@ -99,6 +111,7 @@ function main() {
           { label: "JSON", value: result.json[i]!, color: COLORS.json },
           { label: "MessagePack", value: result.msgpack[i]!, color: COLORS.msgpack },
           { label: "Protobuf", value: result.protobuf[i]!, color: COLORS.protobuf },
+          { label: "Avro", value: result.avro[i]!, color: COLORS.avro },
           { label: "Delta-Pack", value: result.deltaPack[i]!, color: COLORS.deltaPack },
         ],
       });
@@ -176,6 +189,7 @@ function benchmarkFullEncode(example: string) {
     json: encodeJson(states),
     msgpack: encodeMsgpack(states),
     protobuf: encodeProtobuf(states, example),
+    avro: encodeAvro(states, example),
     deltaPack: encodeDeltaPack(states, example),
   };
 }
@@ -278,6 +292,18 @@ function encodeProtobuf(states: any[], example: string): number[] {
   });
 }
 
+function encodeAvro(states: any[], example: string): number[] {
+  const type = getAvroType(example);
+
+  return states.map((state, i) => {
+    const avroInput = type.clone(state, { qualifyNames: true });
+    const encoded = type.toBuffer(avroInput);
+    const decoded = type.fromBuffer(encoded);
+    assert(deepEquals(decoded, avroInput), `Avro state${i + 1} round-trip mismatch`);
+    return encoded.length;
+  });
+}
+
 function encodeDeltaPack(states: any[], example: string): number[] {
   const State = getDeltaPackApi(example);
 
@@ -293,6 +319,7 @@ const COLORS = {
   json: "#f59e0b",
   msgpack: "#8b5cf6",
   protobuf: "#3b82f6",
+  avro: "#ec4899",
   deltaPack: "#10b981",
   jsonPatch: "#ef4444",
 };

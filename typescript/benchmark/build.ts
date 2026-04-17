@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as url from "node:url";
 import * as esbuild from "esbuild";
+import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import * as pbjs from "protobufjs-cli/pbjs.js";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -51,6 +52,7 @@ async function main() {
     loader: {
       ".yml": "text",
       ".proto": "text",
+      ".avsc": "text",
     },
   };
 
@@ -70,6 +72,7 @@ async function main() {
     entryPoints: [path.join(__dirname, "run-browser.ts")],
     outfile: path.join(__dirname, "dist/run-browser.js"),
     platform: "browser",
+    plugins: [polyfillNode()],
   });
   console.log("Built benchmark/dist/run-browser.js");
 }
@@ -122,6 +125,12 @@ function generateData(examples: string[]) {
   }
   lines.push("");
 
+  // Import avsc files
+  for (const example of examples) {
+    lines.push(`import ${example}_avsc from "../../../examples/${example}/schema.avsc";`);
+  }
+  lines.push("");
+
   // Export exampleData
   lines.push("export const exampleData: Record<string, object[]> = {");
   for (const example of examples) {
@@ -131,8 +140,8 @@ function generateData(examples: string[]) {
   lines.push("};");
   lines.push("");
 
-  // Export schemas
-  lines.push("export const schemas: Record<string, string> = {");
+  // Export delta-pack schemas
+  lines.push("export const deltapackSchemas: Record<string, string> = {");
   for (const example of examples) {
     lines.push(`  ${example}: ${example}_schema,`);
   }
@@ -143,6 +152,14 @@ function generateData(examples: string[]) {
   lines.push("export const protos: Record<string, string> = {");
   for (const example of examples) {
     lines.push(`  ${example}: ${example}_proto,`);
+  }
+  lines.push("};");
+  lines.push("");
+
+  // Export avroSchemas
+  lines.push("export const avroSchemas: Record<string, string> = {");
+  for (const example of examples) {
+    lines.push(`  ${example}: ${example}_avsc,`);
   }
   lines.push("};");
   lines.push("");

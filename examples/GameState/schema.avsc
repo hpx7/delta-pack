@@ -1,0 +1,704 @@
+{
+  "type": "record",
+  "name": "GameState",
+  "namespace": "Avro.GameState",
+  "fields": [
+    {
+      "name": "gameId",
+      "type": "string"
+    },
+    {
+      "name": "serverTime",
+      "type": "float"
+    },
+    {
+      "name": "tickNumber",
+      "type": "long"
+    },
+    {
+      "name": "round",
+      "type": "long"
+    },
+    {
+      "name": "phase",
+      "type": "string"
+    },
+    {
+      "name": "timeRemaining",
+      "type": "float"
+    },
+    {
+      "name": "players",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "record",
+          "name": "Player",
+          "fields": [
+            {
+              "name": "playerId",
+              "type": "string"
+            },
+            {
+              "name": "username",
+              "type": "string"
+            },
+            {
+              "name": "team",
+              "type": [
+                "null",
+                {
+                  "type": "enum",
+                  "name": "Team",
+                  "symbols": [
+                    "RED",
+                    "BLUE",
+                    "GREEN",
+                    "YELLOW"
+                  ]
+                }
+              ],
+              "default": null
+            },
+            {
+              "name": "status",
+              "type": {
+                "type": "enum",
+                "name": "PlayerStatus",
+                "symbols": [
+                  "ALIVE",
+                  "DEAD",
+                  "SPECTATING",
+                  "DISCONNECTED"
+                ]
+              }
+            },
+            {
+              "name": "position",
+              "type": {
+                "type": "record",
+                "name": "Position",
+                "fields": [
+                  {
+                    "name": "x",
+                    "type": "float"
+                  },
+                  {
+                    "name": "y",
+                    "type": "float"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "velocity",
+              "type": {
+                "type": "record",
+                "name": "Velocity",
+                "fields": [
+                  {
+                    "name": "vx",
+                    "type": "float"
+                  },
+                  {
+                    "name": "vy",
+                    "type": "float"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "rotation",
+              "type": "float"
+            },
+            {
+              "name": "stats",
+              "type": {
+                "type": "record",
+                "name": "PlayerStats",
+                "fields": [
+                  {
+                    "name": "health",
+                    "type": "long"
+                  },
+                  {
+                    "name": "maxHealth",
+                    "type": "long"
+                  },
+                  {
+                    "name": "mana",
+                    "type": "long"
+                  },
+                  {
+                    "name": "maxMana",
+                    "type": "long"
+                  },
+                  {
+                    "name": "stamina",
+                    "type": "long"
+                  },
+                  {
+                    "name": "maxStamina",
+                    "type": "long"
+                  },
+                  {
+                    "name": "level",
+                    "type": "long"
+                  },
+                  {
+                    "name": "experience",
+                    "type": "long"
+                  },
+                  {
+                    "name": "strength",
+                    "type": "long"
+                  },
+                  {
+                    "name": "agility",
+                    "type": "long"
+                  },
+                  {
+                    "name": "intelligence",
+                    "type": "long"
+                  },
+                  {
+                    "name": "defense",
+                    "type": "long"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "inventory",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "InventoryItem",
+                  "fields": [
+                    {
+                      "name": "itemId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "name",
+                      "type": "string"
+                    },
+                    {
+                      "name": "quantity",
+                      "type": "long"
+                    },
+                    {
+                      "name": "rarity",
+                      "type": {
+                        "type": "enum",
+                        "name": "ItemRarity",
+                        "symbols": [
+                          "COMMON",
+                          "UNCOMMON",
+                          "RARE",
+                          "EPIC",
+                          "LEGENDARY"
+                        ]
+                      }
+                    },
+                    {
+                      "name": "durability",
+                      "type": [
+                        "null",
+                        "long"
+                      ],
+                      "default": null
+                    },
+                    {
+                      "name": "enchantmentLevel",
+                      "type": [
+                        "null",
+                        "long"
+                      ],
+                      "default": null
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "equipment",
+              "type": {
+                "type": "record",
+                "name": "Equipment",
+                "fields": [
+                  {
+                    "name": "weapon",
+                    "type": [
+                      "null",
+                      {
+                        "type": "enum",
+                        "name": "WeaponType",
+                        "symbols": [
+                          "SWORD",
+                          "BOW",
+                          "STAFF",
+                          "DAGGER",
+                          "AXE"
+                        ]
+                      }
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "armor",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "accessory1",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  },
+                  {
+                    "name": "accessory2",
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "default": null
+                  }
+                ]
+              }
+            },
+            {
+              "name": "activeEffects",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "ActiveEffect",
+                  "fields": [
+                    {
+                      "name": "effectType",
+                      "type": {
+                        "type": "enum",
+                        "name": "EffectType",
+                        "symbols": [
+                          "POISON",
+                          "BURN",
+                          "FREEZE",
+                          "STUN",
+                          "REGEN",
+                          "HASTE"
+                        ]
+                      }
+                    },
+                    {
+                      "name": "duration",
+                      "type": "float"
+                    },
+                    {
+                      "name": "strength",
+                      "type": "long"
+                    },
+                    {
+                      "name": "stackCount",
+                      "type": "long"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "abilityCooldowns",
+              "type": {
+                "type": "array",
+                "items": {
+                  "type": "record",
+                  "name": "AbilityCooldown",
+                  "fields": [
+                    {
+                      "name": "abilityId",
+                      "type": "string"
+                    },
+                    {
+                      "name": "abilityType",
+                      "type": {
+                        "type": "enum",
+                        "name": "AbilityType",
+                        "symbols": [
+                          "HEAL",
+                          "DAMAGE",
+                          "SHIELD",
+                          "BUFF",
+                          "DEBUFF",
+                          "TELEPORT"
+                        ]
+                      }
+                    },
+                    {
+                      "name": "remainingCooldown",
+                      "type": "float"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "kills",
+              "type": "long"
+            },
+            {
+              "name": "deaths",
+              "type": "long"
+            },
+            {
+              "name": "assists",
+              "type": "long"
+            },
+            {
+              "name": "gold",
+              "type": "long"
+            },
+            {
+              "name": "score",
+              "type": "long"
+            },
+            {
+              "name": "ping",
+              "type": "long"
+            },
+            {
+              "name": "isJumping",
+              "type": "boolean"
+            },
+            {
+              "name": "isCrouching",
+              "type": "boolean"
+            },
+            {
+              "name": "isAiming",
+              "type": "boolean"
+            },
+            {
+              "name": "lastDamageTime",
+              "type": [
+                "null",
+                "float"
+              ],
+              "default": null
+            },
+            {
+              "name": "respawnTime",
+              "type": [
+                "null",
+                "float"
+              ],
+              "default": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "enemies",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "record",
+          "name": "Enemy",
+          "fields": [
+            {
+              "name": "enemyId",
+              "type": "string"
+            },
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "position",
+              "type": "Position"
+            },
+            {
+              "name": "velocity",
+              "type": "Velocity"
+            },
+            {
+              "name": "health",
+              "type": "long"
+            },
+            {
+              "name": "maxHealth",
+              "type": "long"
+            },
+            {
+              "name": "level",
+              "type": "long"
+            },
+            {
+              "name": "isAggro",
+              "type": "boolean"
+            },
+            {
+              "name": "targetPlayerId",
+              "type": [
+                "null",
+                "string"
+              ],
+              "default": null
+            },
+            {
+              "name": "lastAttackTime",
+              "type": "float"
+            },
+            {
+              "name": "lootTableId",
+              "type": [
+                "null",
+                "string"
+              ],
+              "default": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "projectiles",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "record",
+          "name": "Projectile",
+          "fields": [
+            {
+              "name": "projectileId",
+              "type": "string"
+            },
+            {
+              "name": "ownerId",
+              "type": "string"
+            },
+            {
+              "name": "position",
+              "type": "Position"
+            },
+            {
+              "name": "velocity",
+              "type": "Velocity"
+            },
+            {
+              "name": "damage",
+              "type": "long"
+            },
+            {
+              "name": "penetration",
+              "type": "long"
+            },
+            {
+              "name": "timeToLive",
+              "type": "float"
+            },
+            {
+              "name": "hitPlayers",
+              "type": {
+                "type": "array",
+                "items": "string"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "droppedLoot",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "record",
+          "name": "DroppedLoot",
+          "fields": [
+            {
+              "name": "lootId",
+              "type": "string"
+            },
+            {
+              "name": "position",
+              "type": "Position"
+            },
+            {
+              "name": "item",
+              "type": "InventoryItem"
+            },
+            {
+              "name": "despawnTime",
+              "type": "float"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "worldObjects",
+      "type": {
+        "type": "map",
+        "values": {
+          "type": "record",
+          "name": "WorldObject",
+          "fields": [
+            {
+              "name": "objectId",
+              "type": "string"
+            },
+            {
+              "name": "objectType",
+              "type": "string"
+            },
+            {
+              "name": "position",
+              "type": "Position"
+            },
+            {
+              "name": "health",
+              "type": [
+                "null",
+                "long"
+              ],
+              "default": null
+            },
+            {
+              "name": "isDestroyed",
+              "type": "boolean"
+            },
+            {
+              "name": "isInteractable",
+              "type": "boolean"
+            },
+            {
+              "name": "interactedBy",
+              "type": [
+                "null",
+                "string"
+              ],
+              "default": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "teamScores",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "TeamScore",
+          "fields": [
+            {
+              "name": "team",
+              "type": "Team"
+            },
+            {
+              "name": "score",
+              "type": "long"
+            },
+            {
+              "name": "kills",
+              "type": "long"
+            },
+            {
+              "name": "objectivesCaptured",
+              "type": "long"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "matchStats",
+      "type": {
+        "type": "record",
+        "name": "MatchStats",
+        "fields": [
+          {
+            "name": "totalKills",
+            "type": "long"
+          },
+          {
+            "name": "totalDeaths",
+            "type": "long"
+          },
+          {
+            "name": "totalDamageDealt",
+            "type": "long"
+          },
+          {
+            "name": "totalHealingDone",
+            "type": "long"
+          },
+          {
+            "name": "longestKillStreak",
+            "type": "long"
+          },
+          {
+            "name": "matchDuration",
+            "type": "float"
+          }
+        ]
+      }
+    },
+    {
+      "name": "settings",
+      "type": {
+        "type": "record",
+        "name": "GameSettings",
+        "fields": [
+          {
+            "name": "maxPlayers",
+            "type": "long"
+          },
+          {
+            "name": "friendlyFire",
+            "type": "boolean"
+          },
+          {
+            "name": "respawnDelay",
+            "type": "float"
+          },
+          {
+            "name": "roundTimeLimit",
+            "type": "long"
+          },
+          {
+            "name": "startingGold",
+            "type": "long"
+          },
+          {
+            "name": "gravityMultiplier",
+            "type": "float"
+          }
+        ]
+      }
+    },
+    {
+      "name": "winningTeam",
+      "type": [
+        "null",
+        "Team"
+      ],
+      "default": null
+    },
+    {
+      "name": "mapName",
+      "type": "string"
+    },
+    {
+      "name": "weatherIntensity",
+      "type": "float"
+    }
+  ]
+}

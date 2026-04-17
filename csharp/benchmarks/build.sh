@@ -26,3 +26,23 @@ for example_dir in "$EXAMPLES_DIR"/*/; do
 done
 
 echo "Generated protobuf files in $GENERATED_DIR/Protobuf"
+
+# Generate Avro code via Apache.Avro's avrogen
+rm -rf "$GENERATED_DIR/Avro"
+mkdir -p "$GENERATED_DIR/Avro"
+
+# Ensure the local tool manifest is restored
+(cd "$SCRIPT_DIR" && dotnet tool restore > /dev/null)
+
+for example_dir in "$EXAMPLES_DIR"/*/; do
+    example_name=$(basename "$example_dir")
+    schema_avsc="$example_dir/schema.avsc"
+
+    if [ -f "$schema_avsc" ]; then
+        echo "Generating Avro $example_name..."
+        mkdir -p "$GENERATED_DIR/Avro/$example_name"
+        (cd "$SCRIPT_DIR" && dotnet avrogen -s "$schema_avsc" "$GENERATED_DIR/Avro/$example_name" --skip-directories)
+    fi
+done
+
+echo "Generated Avro files in $GENERATED_DIR/Avro"

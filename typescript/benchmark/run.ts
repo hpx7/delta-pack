@@ -1,9 +1,10 @@
 import * as msgpack from "msgpackr";
 import protobuf from "protobufjs";
+import avsc from "avsc";
 import { load, parseSchemaYml, type DeltaPackApi } from "@hpx7/delta-pack";
 import * as deltapackGenerated from "../generated/examples/index.js";
 import * as protobufGenerated from "./generated/protobuf/index.js";
-import { exampleData, schemas, protos } from "./generated/data.js";
+import { exampleData, deltapackSchemas, protos, avroSchemas } from "./generated/data.js";
 
 const WARMUP_ITERATIONS = 1000;
 const BENCHMARK_DURATION_MS = 500;
@@ -20,12 +21,15 @@ interface StateData {
   jsonInput: unknown;
   deltaPackInput: unknown;
   protobufInput: unknown;
+  avroInput: unknown;
   jsonEncoded: Uint8Array;
   msgpackEncoded: Uint8Array;
   deltaPackEncoded: Uint8Array;
   protobufEncoded: Uint8Array;
+  avroEncoded: Buffer;
   deltaPackApi: DeltaPackApi<unknown>;
   protobufApi: ProtobufType;
+  avroApi: avsc.Type;
 }
 
 interface ProtobufType {
@@ -43,13 +47,14 @@ export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]
   const deltaPack =
     mode === "codegen"
       ? (deltapackGenerated as Record<string, DeltaPackApi<unknown>>)
-      : loadDeltaPackFromSchemas(schemas);
+      : loadDeltaPackFromSchemas(deltapackSchemas);
   const protobuf =
     mode === "codegen"
       ? extractProtobufFromGenerated(protobufGenerated as Record<string, Record<string, unknown>>)
       : loadProtobufFromProtos(protos);
+  const avro = loadAvroTypes(avroSchemas);
 
-  let examples = loadExamples(exampleData, deltaPack, protobuf);
+  let examples = loadExamples(exampleData, deltaPack, protobuf, avro);
 
   if (filter?.length) {
     examples = examples.filter((e) => filter.some((f) => e.name.toLowerCase().includes(f.toLowerCase())));
@@ -71,6 +76,7 @@ export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]
     JSON: () => textEncoder.encode(JSON.stringify(state.jsonInput)),
     MessagePack: () => msgpack.pack(state.jsonInput),
     Protobuf: () => state.protobufApi.encode(state.protobufInput).finish(),
+    Avro: () => state.avroApi.toBuffer(state.avroInput),
     DeltaPack: () => state.deltaPackApi.encode(state.deltaPackInput),
   }));
 
@@ -80,6 +86,7 @@ export function runBenchmarks(mode: "codegen" | "interpreter", filter?: string[]
     JSON: () => JSON.parse(textDecoder.decode(state.jsonEncoded)),
     MessagePack: () => msgpack.unpack(state.msgpackEncoded),
     Protobuf: () => state.protobufApi.decode(state.protobufEncoded),
+    Avro: () => state.avroApi.fromBuffer(state.avroEncoded!),
     DeltaPack: () => state.deltaPackApi.decode(state.deltaPackEncoded),
   }));
 
@@ -94,6 +101,7 @@ function globalWarmup(examples: Example[]) {
         textEncoder.encode(JSON.stringify(state.jsonInput));
         msgpack.pack(state.jsonInput);
         state.protobufApi.encode(state.protobufInput).finish();
+        state.avroApi.toBuffer(state.avroInput);
         state.deltaPackApi.encode(state.deltaPackInput);
       }
       // Warmup decode
@@ -101,6 +109,7 @@ function globalWarmup(examples: Example[]) {
         JSON.parse(textDecoder.decode(state.jsonEncoded));
         msgpack.unpack(state.msgpackEncoded);
         state.protobufApi.decode(state.protobufEncoded);
+        state.avroApi.fromBuffer(state.avroEncoded);
         state.deltaPackApi.decode(state.deltaPackEncoded);
       }
     }
@@ -199,6 +208,7 @@ const FORMAT_COLORS: Record<string, string> = {
   JSON: "#f59e0b",
   MessagePack: "#8b5cf6",
   Protobuf: "#3b82f6",
+  Avro: "#ec4899",
   DeltaPack: "#10b981",
 };
 
@@ -281,29 +291,38 @@ export function generateBarChartSvg(title: string, groups: ChartGroup[]): string
 function loadExamples(
   exampleData: Record<string, object[]>,
   deltaPack: Record<string, DeltaPackApi<unknown>>,
-  protobuf: Record<string, ProtobufType>
+  protobuf: Record<string, ProtobufType>,
+  avro: Record<string, avsc.Type>
 ): Example[] {
   const examples: Example[] = [];
 
   for (const [name, stateJsons] of Object.entries(exampleData)) {
     const deltaPackApi = deltaPack[name]!;
     const protobufApi = protobuf[name]!;
+    const avroApi = avro[name]!;
 
     const states: StateData[] = [];
     for (const jsonInput of stateJsons) {
       const deltaPackInput = deltaPackApi.fromJson(jsonInput);
       const protobufInput = protobufApi.fromObject(jsonInput);
+      // `qualifyNames: true` rewrites our short-name-tagged unions
+      // (`{EmailContact: ...}`) into the fullname form avsc's WrappedUnion
+      // expects on write (`{"Avro.User.EmailContact": ...}`).
+      const avroInput = avroApi.clone(jsonInput, { qualifyNames: true });
 
       states.push({
         jsonInput,
         deltaPackInput,
         protobufInput,
+        avroInput,
         jsonEncoded: textEncoder.encode(JSON.stringify(jsonInput)),
         msgpackEncoded: msgpack.pack(jsonInput),
         deltaPackEncoded: deltaPackApi.encode(deltaPackInput),
         protobufEncoded: protobufApi.encode(protobufInput).finish(),
+        avroEncoded: avroApi.toBuffer(avroInput),
         deltaPackApi,
         protobufApi,
+        avroApi,
       });
     }
 
@@ -313,6 +332,14 @@ function loadExamples(
   }
 
   return examples;
+}
+
+function loadAvroTypes(schemas: Record<string, string>): Record<string, avsc.Type> {
+  const types: Record<string, avsc.Type> = {};
+  for (const [name, content] of Object.entries(schemas)) {
+    types[name] = avsc.Type.forSchema(JSON.parse(content), { wrapUnions: "auto" });
+  }
+  return types;
 }
 
 function loadDeltaPackFromSchemas(schemas: Record<string, string>): Record<string, DeltaPackApi<unknown>> {

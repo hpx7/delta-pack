@@ -18,6 +18,11 @@ import Primitives_proto from "../../../examples/Primitives/schema.proto";
 import Test_proto from "../../../examples/Test/schema.proto";
 import User_proto from "../../../examples/User/schema.proto";
 
+import GameState_avsc from "../../../examples/GameState/schema.avsc";
+import Primitives_avsc from "../../../examples/Primitives/schema.avsc";
+import Test_avsc from "../../../examples/Test/schema.avsc";
+import User_avsc from "../../../examples/User/schema.avsc";
+
 export const exampleData: Record<string, object[]> = {
   GameState: [GameState_state1, GameState_state2, GameState_state3],
   Primitives: [Primitives_state1, Primitives_state2],
@@ -25,7 +30,7 @@ export const exampleData: Record<string, object[]> = {
   User: [User_state1, User_state2],
 };
 
-export const schemas: Record<string, string> = {
+export const deltapackSchemas: Record<string, string> = {
   GameState: GameState_schema,
   Primitives: Primitives_schema,
   Test: Test_schema,
@@ -37,4 +42,11 @@ export const protos: Record<string, string> = {
   Primitives: Primitives_proto,
   Test: Test_proto,
   User: User_proto,
+};
+
+export const avroSchemas: Record<string, string> = {
+  GameState: GameState_avsc,
+  Primitives: Primitives_avsc,
+  Test: Test_avsc,
+  User: User_avsc,
 };

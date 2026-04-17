@@ -1,0 +1,87 @@
+{
+  "type": "record",
+  "name": "Test",
+  "namespace": "Avro.Test",
+  "fields": [
+    {
+      "name": "string",
+      "type": "string"
+    },
+    {
+      "name": "uint32",
+      "type": "long"
+    },
+    {
+      "name": "inner",
+      "type": {
+        "type": "record",
+        "name": "Inner",
+        "fields": [
+          {
+            "name": "int32",
+            "type": "long"
+          },
+          {
+            "name": "innerInner",
+            "type": {
+              "type": "record",
+              "name": "InnerInner",
+              "fields": [
+                {
+                  "name": "long",
+                  "type": "long"
+                },
+                {
+                  "name": "enum",
+                  "type": {
+                    "type": "enum",
+                    "name": "Enum",
+                    "symbols": [
+                      "ONE",
+                      "TWO",
+                      "THREE",
+                      "FOUR",
+                      "FIVE"
+                    ]
+                  }
+                },
+                {
+                  "name": "sint32",
+                  "type": "long"
+                }
+              ]
+            }
+          },
+          {
+            "name": "outer",
+            "type": {
+              "type": "record",
+              "name": "Outer",
+              "fields": [
+                {
+                  "name": "bool",
+                  "type": {
+                    "type": "array",
+                    "items": "boolean"
+                  }
+                },
+                {
+                  "name": "double",
+                  "type": "float"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "float",
+      "type": "float"
+    },
+    {
+      "name": "boundedInt",
+      "type": "long"
+    }
+  ]
+}

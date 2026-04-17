@@ -75,11 +75,12 @@ Benchmarks use the example schemas in [`examples/`](examples/). Each example con
 
 - a delta-pack schema (`schema.yml`)
 - a protobuf schema (`schema.proto`)
+- an avro schema (`schema.avsc`)
 - 2 or more data snapshots (`schema1.json`, ..., `schemaN.json`)
 
 ### Snapshot Encoding Size
 
-[JSON](https://www.json.org/), [MessagePack](https://msgpack.org/), [Protobuf](https://protobuf.dev/), and Delta-Pack compared for snapshot encoding. Lower is better.
+[JSON](https://www.json.org/), [MessagePack](https://msgpack.org/), [Protobuf](https://protobuf.dev/), [Avro](https://avro.apache.org/), and Delta-Pack compared for snapshot encoding. Lower is better.
 
 <img src="https://raw.githubusercontent.com/hpx7/delta-pack/main/benchmark/charts/full-encode.svg" alt="Snapshot encoding size comparison" />
 

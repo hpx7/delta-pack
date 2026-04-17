@@ -1,9 +1,13 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using DeltaPack;
 using Google.Protobuf;
 using MessagePack;
+using Avro.IO;
+using Avro.Specific;
+using AvroSchema = Avro.Schema;
 
 namespace DeltaPack.Benchmarks;
 
@@ -47,12 +51,16 @@ public class Program
         MeasureOpsPerSecond(() => JsonSerializer.SerializeToUtf8Bytes(burnIn.JsonState));
         Warmup(() => MessagePackSerializer.Typeless.Serialize(burnIn.TypedState));
         MeasureOpsPerSecond(() => MessagePackSerializer.Typeless.Serialize(burnIn.TypedState));
+        Warmup(() => burnIn.AvroEncode(burnIn.AvroState));
+        MeasureOpsPerSecond(() => burnIn.AvroEncode(burnIn.AvroState));
         Warmup(() => burnIn.DeltaPackEncode(burnIn.TypedState));
         MeasureOpsPerSecond(() => burnIn.DeltaPackEncode(burnIn.TypedState));
         Warmup(() => JsonDocument.Parse(burnIn.JsonEncoded));
         MeasureOpsPerSecond(() => JsonDocument.Parse(burnIn.JsonEncoded));
         Warmup(() => MessagePackSerializer.Typeless.Deserialize(burnIn.MsgPackEncoded));
         MeasureOpsPerSecond(() => MessagePackSerializer.Typeless.Deserialize(burnIn.MsgPackEncoded));
+        Warmup(() => burnIn.AvroDecode(burnIn.AvroEncoded));
+        MeasureOpsPerSecond(() => burnIn.AvroDecode(burnIn.AvroEncoded));
         Warmup(() => burnIn.DeltaPackDecode(burnIn.DeltaPackEncoded));
         MeasureOpsPerSecond(() => burnIn.DeltaPackDecode(burnIn.DeltaPackEncoded));
 
@@ -87,6 +95,7 @@ public class Program
                 ["JSON"] = new(),
                 ["MessagePack"] = new(),
                 ["Protobuf"] = new(),
+                ["Avro"] = new(),
                 ["DeltaPack"] = new()
             };
 
@@ -104,6 +113,11 @@ public class Program
             {
                 Warmup(() => state.ProtobufMessage.ToByteArray());
                 results["Protobuf"].Add(MeasureOpsPerSecond(() => state.ProtobufMessage.ToByteArray()));
+            }
+            foreach (var state in example.States)
+            {
+                Warmup(() => state.AvroEncode(state.AvroState));
+                results["Avro"].Add(MeasureOpsPerSecond(() => state.AvroEncode(state.AvroState)));
             }
             foreach (var state in example.States)
             {
@@ -133,6 +147,7 @@ public class Program
                 ["JSON"] = new(),
                 ["MessagePack"] = new(),
                 ["Protobuf"] = new(),
+                ["Avro"] = new(),
                 ["DeltaPack"] = new()
             };
 
@@ -150,6 +165,11 @@ public class Program
             {
                 Warmup(() => state.ProtobufDecode(state.ProtobufEncoded));
                 results["Protobuf"].Add(MeasureOpsPerSecond(() => state.ProtobufDecode(state.ProtobufEncoded)));
+            }
+            foreach (var state in example.States)
+            {
+                Warmup(() => state.AvroDecode(state.AvroEncoded));
+                results["Avro"].Add(MeasureOpsPerSecond(() => state.AvroDecode(state.AvroEncoded)));
             }
             foreach (var state in example.States)
             {
@@ -256,6 +276,7 @@ public class Program
         ["JSON"] = "#f59e0b",
         ["MessagePack"] = "#8b5cf6",
         ["Protobuf"] = "#3b82f6",
+        ["Avro"] = "#ec4899",
         ["DeltaPack"] = "#10b981",
     };
 
@@ -388,6 +409,38 @@ public class Program
         };
     }
 
+    static AvroInfo BuildAvroInfo(string name)
+    {
+        // The root type for each example lives at Avro.{Name}.{Name}.
+        // Its _SCHEMA static field carries the full parsed schema tree.
+        var rootType = typeof(Program).Assembly.GetType($"Avro.{name}.{name}")
+            ?? throw new InvalidOperationException($"No Avro type for example {name}");
+        var schema = (AvroSchema)rootType.GetField("_SCHEMA", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;
+        var writer = new SpecificDatumWriter<ISpecificRecord>(schema);
+        var reader = new SpecificDatumReader<ISpecificRecord>(schema, schema);
+
+        // Reuse MemoryStream + BinaryEncoder across calls to match the internal
+        // buffer pooling in DeltaPack's Encoder and Google.Protobuf's writer.
+        var encStream = new MemoryStream(capacity: 4096);
+        var encoder = new BinaryEncoder(encStream);
+        byte[] Encode(ISpecificRecord record)
+        {
+            encStream.SetLength(0);
+            writer.Write(record, encoder);
+            return encStream.ToArray();
+        }
+
+        ISpecificRecord Decode(byte[] bytes)
+        {
+            // MemoryStream(byte[]) shares the buffer (no copy), so per-call
+            // overhead is just the stream + decoder object allocation.
+            var ms = new MemoryStream(bytes);
+            return reader.Read(null!, new BinaryDecoder(ms));
+        }
+
+        return new AvroInfo(schema, Encode, Decode);
+    }
+
     static List<Example> LoadExamples(string examplesDir, Dictionary<string, DeltaPackOps> deltaPackOps, bool interpreterMode)
     {
         var examples = new List<Example>();
@@ -396,7 +449,8 @@ public class Program
         foreach (var (name, ops) in deltaPackOps)
         {
             var protoInfo = GetProtoParser(name);
-            examples.Add(LoadExample(name, examplesDir, jsonParser, ops, protoInfo, interpreterMode));
+            var avroInfo = BuildAvroInfo(name);
+            examples.Add(LoadExample(name, examplesDir, jsonParser, ops, protoInfo, avroInfo, interpreterMode));
         }
 
         return examples;
@@ -408,6 +462,7 @@ public class Program
         JsonParser jsonParser,
         DeltaPackOps ops,
         (Func<JsonParser, string, IMessage> parseJson, Func<byte[], IMessage> decode)? protoInfo,
+        AvroInfo avroInfo,
         bool interpreterMode)
     {
         var exampleDir = Path.Combine(examplesDir, name);
@@ -459,6 +514,16 @@ public class Program
                 protoDecode = protoInfo.Value.decode;
             }
 
+            // Build Avro state + encoded bytes; round-trip is verified by
+            // re-encoding the decode output and comparing bytes.
+            var avroState = (ISpecificRecord)AvroHelpers.FromJson(doc.RootElement, avroInfo.Schema)!;
+            var avroEncoded = avroInfo.Encode(avroState);
+            var avroRoundTripped = avroInfo.Encode(avroInfo.Decode(avroEncoded));
+            if (!avroEncoded.SequenceEqual(avroRoundTripped))
+            {
+                throw new Exception($"Avro round-trip failed for {name}: {Path.GetFileName(file)}");
+            }
+
             states.Add(new StateData(
                 TypedState: typed!,
                 JsonState: jsonState,
@@ -466,10 +531,14 @@ public class Program
                 MsgPackEncoded: msgPackEncoded,
                 ProtobufEncoded: protoEncoded,
                 DeltaPackEncoded: deltaPackEncoded,
+                AvroEncoded: avroEncoded,
                 DeltaPackEncode: ops.Encode,
                 DeltaPackDecode: buf => ops.Decode(buf)!,
                 ProtobufMessage: protoMessage!,
-                ProtobufDecode: protoDecode ?? (bytes => null!)));
+                ProtobufDecode: protoDecode ?? (bytes => null!),
+                AvroState: avroState,
+                AvroEncode: avroInfo.Encode,
+                AvroDecode: avroInfo.Decode));
         }
 
         return new Example(name, states);
@@ -485,10 +554,14 @@ record StateData(
     byte[] MsgPackEncoded,
     byte[] ProtobufEncoded,
     byte[] DeltaPackEncoded,
+    byte[] AvroEncoded,
     Func<object, byte[]> DeltaPackEncode,
     Func<byte[], object> DeltaPackDecode,
     IMessage ProtobufMessage,
-    Func<byte[], IMessage> ProtobufDecode);
+    Func<byte[], IMessage> ProtobufDecode,
+    ISpecificRecord AvroState,
+    Func<ISpecificRecord, byte[]> AvroEncode,
+    Func<byte[], ISpecificRecord> AvroDecode);
 
 record DeltaPackOps(
     Func<JsonElement, object?> FromJson,
@@ -496,6 +569,11 @@ record DeltaPackOps(
     Func<object?, byte[]> Encode,
     Func<byte[], object?> Decode,
     Func<object?, object?, bool> AreEqual);
+
+record AvroInfo(
+    AvroSchema Schema,
+    Func<ISpecificRecord, byte[]> Encode,
+    Func<byte[], ISpecificRecord> Decode);
 
 record ChartBar(string Label, double Value, string Color);
 record ChartGroup(string Label, List<ChartBar> Bars);

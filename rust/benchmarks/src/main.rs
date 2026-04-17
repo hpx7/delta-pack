@@ -27,7 +27,28 @@ mod protobuf {
     }
 }
 
+#[allow(warnings)]
+mod avro {
+    pub mod primitives {
+        include!(concat!(env!("OUT_DIR"), "/avro_primitives.rs"));
+    }
+    pub mod test {
+        include!(concat!(env!("OUT_DIR"), "/avro_test.rs"));
+    }
+    pub mod user {
+        include!(concat!(env!("OUT_DIR"), "/avro_user.rs"));
+    }
+    pub mod gamestate {
+        include!(concat!(env!("OUT_DIR"), "/avro_gamestate.rs"));
+    }
+}
+
 use prost::Message;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_avro_fast::{
+    from_datum_slice, ser::SerializerConfig, to_datum_vec, Schema as AvroSchema,
+};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -106,6 +127,7 @@ fn global_warmup(examples: &[Example]) {
                 let _ = serde_json::to_vec(&state.json_value);
                 let _ = rmp_serde::to_vec(&state.json_value);
                 let _ = (state.protobuf_encode)();
+                let _ = (state.avro_encode)();
                 let _ = (state.deltapack_encode)();
             }
             // Warmup decode
@@ -113,6 +135,7 @@ fn global_warmup(examples: &[Example]) {
                 let _: serde_json::Value = serde_json::from_slice(&state.json_encoded).unwrap();
                 let _: serde_json::Value = rmp_serde::from_slice(&state.msgpack_encoded).unwrap();
                 let _ = (state.protobuf_decode)();
+                let _ = (state.avro_decode)();
                 let _ = (state.deltapack_decode)();
             }
         }
@@ -129,6 +152,7 @@ fn run_encode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
         results.insert("JSON", Vec::new());
         results.insert("MessagePack", Vec::new());
         results.insert("Protobuf", Vec::new());
+        results.insert("Avro", Vec::new());
         results.insert("DeltaPack", Vec::new());
 
         for state in &example.states {
@@ -153,6 +177,15 @@ fn run_encode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
             let encode_fn = &state.protobuf_encode;
             results
                 .get_mut("Protobuf")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = encode_fn();
+                }));
+        }
+        for state in &example.states {
+            let encode_fn = &state.avro_encode;
+            results
+                .get_mut("Avro")
                 .unwrap()
                 .push(measure_ops_per_second(|| {
                     let _ = encode_fn();
@@ -186,6 +219,7 @@ fn run_decode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
         results.insert("JSON", Vec::new());
         results.insert("MessagePack", Vec::new());
         results.insert("Protobuf", Vec::new());
+        results.insert("Avro", Vec::new());
         results.insert("DeltaPack", Vec::new());
 
         for state in &example.states {
@@ -210,6 +244,15 @@ fn run_decode_benchmarks(examples: &[Example]) -> Vec<ChartGroup> {
             let decode_fn = &state.protobuf_decode;
             results
                 .get_mut("Protobuf")
+                .unwrap()
+                .push(measure_ops_per_second(|| {
+                    let _ = decode_fn();
+                }));
+        }
+        for state in &example.states {
+            let decode_fn = &state.avro_decode;
+            results
+                .get_mut("Avro")
                 .unwrap()
                 .push(measure_ops_per_second(|| {
                     let _ = decode_fn();
@@ -320,7 +363,7 @@ fn format_ops(ops: f64) -> String {
 
 // ============ Chart Generation ============
 
-const FORMAT_ORDER: &[&str] = &["JSON", "MessagePack", "Protobuf", "DeltaPack"];
+const FORMAT_ORDER: &[&str] = &["JSON", "MessagePack", "Protobuf", "Avro", "DeltaPack"];
 
 fn collect_chart_groups(
     groups: &mut Vec<ChartGroup>,
@@ -351,6 +394,7 @@ fn format_color(name: &str) -> &'static str {
         "JSON" => "#f59e0b",
         "MessagePack" => "#8b5cf6",
         "Protobuf" => "#3b82f6",
+        "Avro" => "#ec4899",
         "DeltaPack" => "#10b981",
         _ => "#999999",
     }
@@ -482,6 +526,8 @@ struct StateData {
     deltapack_decode: Box<dyn Fn()>,
     protobuf_encode: Box<dyn Fn() -> Vec<u8>>,
     protobuf_decode: Box<dyn Fn()>,
+    avro_encode: Box<dyn Fn() -> Vec<u8>>,
+    avro_decode: Box<dyn Fn()>,
 }
 
 fn load_examples(examples_dir: &PathBuf) -> Vec<Example> {
@@ -505,6 +551,65 @@ fn load_examples(examples_dir: &PathBuf) -> Vec<Example> {
     }
 
     examples
+}
+
+// Builds per-state Avro encode/decode closures using serde_avro_fast against
+// the rsgen-avro-generated typed struct. No Value tree, no clone tax —
+// serde-driven, ref-resolving, and roughly matches Protobuf's prost path
+// architecturally.
+fn build_avro_typed<T>(
+    examples_dir: &PathBuf,
+    example_name: &str,
+    json_values: &[serde_json::Value],
+) -> Vec<(Box<dyn Fn() -> Vec<u8>>, Box<dyn Fn()>)>
+where
+    T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + 'static,
+{
+    let schema_path = examples_dir.join(example_name).join("schema.avsc");
+    let schema_json = fs::read_to_string(&schema_path).expect("read avro schema");
+    // Leak the schema to get a 'static reference. SerializerConfig borrows
+    // from Schema; leaking lets us put it in a 'static closure without
+    // self-referential struct gymnastics. The benchmark process is short
+    // and schemas are fixed, so the "leak" is bounded.
+    let schema: &'static AvroSchema =
+        Box::leak(Box::new(schema_json.parse().expect("parse avro schema")));
+
+    json_values
+        .iter()
+        .map(|json| {
+            let typed: T = serde_json::from_value(json.clone()).expect("json → typed avro");
+            let mut ser_cfg = SerializerConfig::new(schema);
+            let bytes = to_datum_vec(&typed, &mut ser_cfg).expect("avro encode");
+
+            // Round-trip: decode back to T and compare. T's PartialEq is
+            // order-independent for HashMap fields, so differences in map
+            // iteration order don't cause spurious failures.
+            let decoded: T = from_datum_slice(&bytes, schema).expect("avro decode");
+            assert_eq!(
+                typed, decoded,
+                "Avro round-trip failed for {}",
+                example_name
+            );
+
+            // SerializerConfig holds internal buffers worth reusing across
+            // calls. RefCell gives the Fn closure interior-mutable access
+            // without the atomic lock/unlock overhead of Mutex; the
+            // benchmark loop is single-threaded.
+            let encode_typed = typed;
+            let ser_cfg = RefCell::new(SerializerConfig::new(schema));
+            let encode: Box<dyn Fn() -> Vec<u8>> = Box::new(move || {
+                let mut cfg = ser_cfg.borrow_mut();
+                to_datum_vec(&encode_typed, &mut cfg).unwrap()
+            });
+
+            let decode_bytes = bytes;
+            let decode: Box<dyn Fn()> = Box::new(move || {
+                let _: T = from_datum_slice(&decode_bytes, schema).unwrap();
+            });
+
+            (encode, decode)
+        })
+        .collect()
 }
 
 fn load_state_files(examples_dir: &PathBuf, name: &str) -> Vec<String> {
@@ -555,10 +660,18 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
         return None;
     }
 
+    let json_values: Vec<serde_json::Value> = jsons
+        .iter()
+        .map(|s| serde_json::from_str(s).unwrap())
+        .collect();
+    let avro_parts =
+        build_avro_typed::<avro::primitives::Primitives>(examples_dir, "Primitives", &json_values);
+
     let states: Vec<StateData> = jsons
         .into_iter()
-        .map(|json| {
-            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        .zip(json_values.into_iter())
+        .zip(avro_parts.into_iter())
+        .map(|((json, json_value), (avro_encode, avro_decode))| {
             let typed: Primitives = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
@@ -597,6 +710,8 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
                     protobuf::primitives::Primitives::decode(proto_encoded_for_decode.as_slice())
                         .unwrap();
                 }),
+                avro_encode,
+                avro_decode,
             }
         })
         .collect();
@@ -615,10 +730,17 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
         return None;
     }
 
+    let json_values: Vec<serde_json::Value> = jsons
+        .iter()
+        .map(|s| serde_json::from_str(s).unwrap())
+        .collect();
+    let avro_parts = build_avro_typed::<avro::test::Test>(examples_dir, "Test", &json_values);
+
     let states: Vec<StateData> = jsons
         .into_iter()
-        .map(|json| {
-            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        .zip(json_values.into_iter())
+        .zip(avro_parts.into_iter())
+        .map(|((json, json_value), (avro_encode, avro_decode))| {
             let typed: Test = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
@@ -652,6 +774,8 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
                 protobuf_decode: Box::new(move || {
                     protobuf::test::Test::decode(proto_encoded_for_decode.as_slice()).unwrap();
                 }),
+                avro_encode,
+                avro_decode,
             }
         })
         .collect();
@@ -670,10 +794,17 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
         return None;
     }
 
+    let json_values: Vec<serde_json::Value> = jsons
+        .iter()
+        .map(|s| serde_json::from_str(s).unwrap())
+        .collect();
+    let avro_parts = build_avro_typed::<avro::user::User>(examples_dir, "User", &json_values);
+
     let states: Vec<StateData> = jsons
         .into_iter()
-        .map(|json| {
-            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        .zip(json_values.into_iter())
+        .zip(avro_parts.into_iter())
+        .map(|((json, json_value), (avro_encode, avro_decode))| {
             let typed: User = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
@@ -707,6 +838,8 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
                 protobuf_decode: Box::new(move || {
                     protobuf::user::User::decode(proto_encoded_for_decode.as_slice()).unwrap();
                 }),
+                avro_encode,
+                avro_decode,
             }
         })
         .collect();
@@ -725,10 +858,18 @@ fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
         return None;
     }
 
+    let json_values: Vec<serde_json::Value> = jsons
+        .iter()
+        .map(|s| serde_json::from_str(s).unwrap())
+        .collect();
+    let avro_parts =
+        build_avro_typed::<avro::gamestate::GameState>(examples_dir, "GameState", &json_values);
+
     let states: Vec<StateData> = jsons
         .into_iter()
-        .map(|json| {
-            let json_value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        .zip(json_values.into_iter())
+        .zip(avro_parts.into_iter())
+        .map(|((json, json_value), (avro_encode, avro_decode))| {
             let typed: GameState = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
@@ -767,6 +908,8 @@ fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
                     protobuf::gamestate::GameState::decode(proto_encoded_for_decode.as_slice())
                         .unwrap();
                 }),
+                avro_encode,
+                avro_decode,
             }
         })
         .collect();

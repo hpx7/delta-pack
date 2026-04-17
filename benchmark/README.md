@@ -2,7 +2,7 @@
 
 Language-agnostic comparison of serialization formats by encoded size.
 
-Compares full encoding sizes across JSON, MessagePack, Protobuf, and Delta-Pack, then compares delta encoding sizes between JSON Patch (RFC 6902) and Delta-Pack diffs.
+Compares full encoding sizes across JSON, MessagePack, Protobuf, Avro, and Delta-Pack, then compares delta encoding sizes between JSON Patch (RFC 6902) and Delta-Pack diffs.
 
 For performance benchmarks, see:
 

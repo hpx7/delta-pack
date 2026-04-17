@@ -1,6 +1,6 @@
 # C# Performance Benchmarks
 
-Performance comparison of DeltaPack against System.Text.Json, MessagePack-CSharp, and Protobuf.
+Performance comparison of DeltaPack against System.Text.Json, MessagePack-CSharp, Protobuf, and Apache.Avro.
 
 ## Running
 
