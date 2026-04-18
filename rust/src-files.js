@@ -1,2 +1,2 @@
-createSrcSidebar('[["delta_pack",["",[],["decoder.rs","encoder.rs","helpers.rs","lib.rs","rle.rs","varint.rs"]]]]');
-//{"start":19,"fragment_lengths":[93]}
+createSrcSidebar('[["delta_pack",["",[],["__private.rs","decoder.rs","delta_pack.rs","encoder.rs","helpers.rs","lib.rs","rle.rs","varint.rs"]]]]');
+//{"start":19,"fragment_lengths":[124]}

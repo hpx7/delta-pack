@@ -1,5 +1,5 @@
 (function() {
-    const implementors = Object.fromEntries([["delta_pack",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.94.1/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"struct\" href=\"delta_pack/struct.Encoder.html\" title=\"struct delta_pack::Encoder\">Encoder</a>",0]]]]);
+    const implementors = Object.fromEntries([["delta_pack",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.95.0/core/default/trait.Default.html\" title=\"trait core::default::Default\">Default</a> for <a class=\"struct\" href=\"delta_pack/struct.Encoder.html\" title=\"struct delta_pack::Encoder\">Encoder</a>",0]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
