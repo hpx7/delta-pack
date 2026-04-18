@@ -338,9 +338,12 @@ Install:
 cargo add delta-pack
 ```
 
-Rust uses codegen exclusively:
+Rust supports both codegen mode and a `#[derive(DeltaPack)]` mode. Both expand through the same proc-macro and produce byte-identical output, so the choice is about workflow: derive mode needs no CLI install and no committed generated files, while codegen mode shares the schema with TypeScript or C# peers.
+
+**Codegen:**
 
 ```rust
+use delta_pack::DeltaPack;
 use generated::Position;
 
 let prev = Position::default();
@@ -355,6 +358,22 @@ current.equals(&decoded); // true
 let diff_bytes = Position::encode_diff(&prev, &current);
 let patched = Position::decode_diff(&prev, &diff_bytes);
 current.equals(&patched); // true
+```
+
+**Derive** -- define schemas as native Rust types, no build step needed:
+
+```rust
+use delta_pack::DeltaPack;
+
+#[derive(Clone, Debug, DeltaPack)]
+pub struct Position {
+    #[delta_pack(precision = 0.1)]
+    pub x: f32,
+    #[delta_pack(precision = 0.1)]
+    pub y: f32,
+}
+
+let bytes = Position { x: 1.5, y: 2.0 }.encode();
 ```
 
 ### [CLI](cli/)

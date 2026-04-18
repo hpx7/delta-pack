@@ -316,6 +316,7 @@ dependencies = [
 name = "delta-pack"
 version = "0.2.1"
 dependencies = [
+ "delta-pack-derive",
  "indexmap",
  "serde",
  "serde_json",
@@ -336,6 +337,15 @@ dependencies = [
  "serde",
  "serde_avro_fast",
  "serde_json",
+]
+
+[[package]]
+name = "delta-pack-derive"
+version = "0.2.1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

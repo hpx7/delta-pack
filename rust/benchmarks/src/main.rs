@@ -5,7 +5,10 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
+mod derived;
 mod generated;
+
+use delta_pack::DeltaPack;
 
 #[allow(warnings)]
 mod protobuf {
@@ -60,6 +63,7 @@ const BENCHMARK_DURATION_MS: u64 = 500;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let save = args.iter().any(|a| a == "--save");
+    let use_derive = args.iter().any(|a| a == "--derive");
     let filter: Vec<&str> = args
         .iter()
         .skip(1)
@@ -74,7 +78,14 @@ fn main() {
         .unwrap()
         .join("examples");
 
-    let mut examples = load_examples(&examples_dir);
+    let mode_label = if use_derive { "derive" } else { "codegen" };
+    println!("Mode: {}", mode_label);
+
+    let mut examples = if use_derive {
+        load_examples_derive(&examples_dir)
+    } else {
+        load_examples_codegen(&examples_dir)
+    };
 
     if !filter.is_empty() {
         examples.retain(|e| {
@@ -530,26 +541,37 @@ struct StateData {
     avro_decode: Box<dyn Fn()>,
 }
 
-fn load_examples(examples_dir: &PathBuf) -> Vec<Example> {
+fn load_examples_codegen(examples_dir: &PathBuf) -> Vec<Example> {
     let mut examples = Vec::new();
-
-    // Load in same order as TS/C# benchmarks
-    if let Some(example) = load_game_state_example(examples_dir) {
-        examples.push(example);
+    if let Some(e) = load_game_state_example::<generated::game_state::GameState>(examples_dir) {
+        examples.push(e);
     }
-
-    if let Some(example) = load_primitives_example(examples_dir) {
-        examples.push(example);
+    if let Some(e) = load_primitives_example::<generated::primitives::Primitives>(examples_dir) {
+        examples.push(e);
     }
-
-    if let Some(example) = load_test_example(examples_dir) {
-        examples.push(example);
+    if let Some(e) = load_test_example::<generated::test::Test>(examples_dir) {
+        examples.push(e);
     }
-
-    if let Some(example) = load_user_example(examples_dir) {
-        examples.push(example);
+    if let Some(e) = load_user_example::<generated::user::User>(examples_dir) {
+        examples.push(e);
     }
+    examples
+}
 
+fn load_examples_derive(examples_dir: &PathBuf) -> Vec<Example> {
+    let mut examples = Vec::new();
+    if let Some(e) = load_game_state_example::<derived::game_state::GameState>(examples_dir) {
+        examples.push(e);
+    }
+    if let Some(e) = load_primitives_example::<derived::primitives::Primitives>(examples_dir) {
+        examples.push(e);
+    }
+    if let Some(e) = load_test_example::<derived::test::Test>(examples_dir) {
+        examples.push(e);
+    }
+    if let Some(e) = load_user_example::<derived::user::User>(examples_dir) {
+        examples.push(e);
+    }
     examples
 }
 
@@ -652,9 +674,10 @@ fn load_state_files(examples_dir: &PathBuf, name: &str) -> Vec<String> {
         .collect()
 }
 
-fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
-    use generated::primitives::Primitives;
-
+fn load_primitives_example<T>(examples_dir: &PathBuf) -> Option<Example>
+where
+    T: DeltaPack + Serialize + DeserializeOwned + Clone + 'static,
+{
     let jsons = load_state_files(examples_dir, "Primitives");
     if jsons.is_empty() {
         return None;
@@ -672,13 +695,13 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
         .zip(json_values.into_iter())
         .zip(avro_parts.into_iter())
         .map(|((json, json_value), (avro_encode, avro_decode))| {
-            let typed: Primitives = serde_json::from_str(&json).unwrap();
+            let typed: T = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
             // Verify DeltaPack round-trip
-            let decoded = Primitives::decode(&deltapack_encoded);
+            let decoded = T::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for Primitives"
@@ -703,7 +726,7 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    Primitives::decode(&deltapack_encoded);
+                    T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
@@ -722,9 +745,10 @@ fn load_primitives_example(examples_dir: &PathBuf) -> Option<Example> {
     })
 }
 
-fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
-    use generated::test::Test;
-
+fn load_test_example<T>(examples_dir: &PathBuf) -> Option<Example>
+where
+    T: DeltaPack + Serialize + DeserializeOwned + Clone + 'static,
+{
     let jsons = load_state_files(examples_dir, "Test");
     if jsons.is_empty() {
         return None;
@@ -741,13 +765,13 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
         .zip(json_values.into_iter())
         .zip(avro_parts.into_iter())
         .map(|((json, json_value), (avro_encode, avro_decode))| {
-            let typed: Test = serde_json::from_str(&json).unwrap();
+            let typed: T = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
             // Verify DeltaPack round-trip
-            let decoded = Test::decode(&deltapack_encoded);
+            let decoded = T::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for Test"
@@ -768,7 +792,7 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    Test::decode(&deltapack_encoded);
+                    T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
@@ -786,9 +810,10 @@ fn load_test_example(examples_dir: &PathBuf) -> Option<Example> {
     })
 }
 
-fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
-    use generated::user::User;
-
+fn load_user_example<T>(examples_dir: &PathBuf) -> Option<Example>
+where
+    T: DeltaPack + Serialize + DeserializeOwned + Clone + 'static,
+{
     let jsons = load_state_files(examples_dir, "User");
     if jsons.is_empty() {
         return None;
@@ -805,13 +830,13 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
         .zip(json_values.into_iter())
         .zip(avro_parts.into_iter())
         .map(|((json, json_value), (avro_encode, avro_decode))| {
-            let typed: User = serde_json::from_str(&json).unwrap();
+            let typed: T = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
             // Verify DeltaPack round-trip
-            let decoded = User::decode(&deltapack_encoded);
+            let decoded = T::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for User"
@@ -832,7 +857,7 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    User::decode(&deltapack_encoded);
+                    T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
@@ -850,9 +875,10 @@ fn load_user_example(examples_dir: &PathBuf) -> Option<Example> {
     })
 }
 
-fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
-    use generated::game_state::GameState;
-
+fn load_game_state_example<T>(examples_dir: &PathBuf) -> Option<Example>
+where
+    T: DeltaPack + Serialize + DeserializeOwned + Clone + 'static,
+{
     let jsons = load_state_files(examples_dir, "GameState");
     if jsons.is_empty() {
         return None;
@@ -870,13 +896,13 @@ fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
         .zip(json_values.into_iter())
         .zip(avro_parts.into_iter())
         .map(|((json, json_value), (avro_encode, avro_decode))| {
-            let typed: GameState = serde_json::from_str(&json).unwrap();
+            let typed: T = serde_json::from_str(&json).unwrap();
             let json_encoded = serde_json::to_vec(&json_value).unwrap();
             let msgpack_encoded = rmp_serde::to_vec(&json_value).unwrap();
             let deltapack_encoded = typed.encode();
 
             // Verify DeltaPack round-trip
-            let decoded = GameState::decode(&deltapack_encoded);
+            let decoded = T::decode(&deltapack_encoded);
             assert!(
                 typed.equals(&decoded),
                 "DeltaPack round-trip failed for GameState"
@@ -901,7 +927,7 @@ fn load_game_state_example(examples_dir: &PathBuf) -> Option<Example> {
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    GameState::decode(&deltapack_encoded);
+                    T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {

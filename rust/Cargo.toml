@@ -1,19 +1,29 @@
 [package]
 name = "delta-pack"
-version = "0.2.1"
-edition = "2021"
 description = "Binary serialization with delta compression for real-time state synchronization"
-license = "MIT"
-repository = "https://github.com/hpx7/delta-pack"
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 keywords = ["serialization", "binary", "delta", "compression", "networking"]
 categories = ["encoding", "game-development", "network-programming"]
 
 [workspace]
-members = [".", "benchmarks"]
+members = [".", "benchmarks", "delta-pack-derive"]
+
+[workspace.package]
+version = "0.2.1"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+repository = "https://github.com/hpx7/delta-pack"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
 indexmap = { version = "2", features = ["serde"] }
+delta-pack-derive = { path = "delta-pack-derive", version = "0.2.1" }
 
 [dev-dependencies]
+serde_json = "1"

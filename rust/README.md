@@ -10,7 +10,7 @@ Delta-Pack is a cross-language serialization framework optimized for networked a
 - **Delta compression** - Encode only the differences between two states
 - **Cross-language** - Compatible with TypeScript and C# implementations
 - **Zero-copy strings** - String dictionary deduplication within each message
-- **Serde integration** - Generated types derive `Serialize`/`Deserialize`
+- **Serde integration** - Types work with `Serialize`/`Deserialize` for JSON interop
 
 ## Installation
 
@@ -23,9 +23,54 @@ delta-pack = "0.1"
 
 ## Usage
 
-Delta-Pack uses code generation from YAML schemas. Define your schema, generate Rust code, and use the generated types.
+There are two ways to define a schema: as a `#[derive(DeltaPack)]` on native Rust types, or as a YAML file fed through the `delta-pack` CLI. Both paths expand through the same proc-macro and emit byte-identical output, so pick whichever fits your workflow.
 
-### 1. Define a Schema
+- **Derive mode** — schema lives in Rust, no build step, no committed generated files. Recommended for Rust-only projects.
+- **Codegen mode** — schema lives in YAML, shared across Rust / TypeScript / C#. Required when the same schema drives multiple languages.
+
+### Derive mode
+
+Annotate a native Rust type with `#[derive(DeltaPack)]`:
+
+```rust,ignore
+use delta_pack::{DeltaPack, IndexMap};
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+pub enum HairColor {
+    BLACK,
+    BROWN,
+    BLOND,
+    RED,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+pub struct Address {
+    pub street: String,
+    pub city: String,
+    pub zip: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+pub struct User {
+    pub id: String,
+    pub name: String,
+    pub age: u64,
+    #[delta_pack(precision = 0.01)]
+    pub weight: f32,
+    #[serde(rename = "hairColor")]
+    pub hair_color: HairColor,
+    pub address: Option<Address>,
+    pub tags: Vec<String>,
+    pub metadata: IndexMap<String, String>,
+}
+```
+
+Field names are snake_case in Rust and camelCase in the schema — the derive reverses one to the other automatically. Use `#[serde(rename = "…")]` to keep the camelCase shape in JSON when you also want serde interop.
+
+### Codegen mode
+
+Define the schema in YAML:
 
 ```yaml
 # schema.yml
@@ -51,61 +96,46 @@ User:
   metadata: <string, string>
 ```
 
-### 2. Generate Rust Code
+Then generate Rust:
 
 ```bash
 delta-pack generate schema.yml -l rust > src/generated.rs
 ```
 
-### 3. Use the Generated Types
+The CLI emits struct and enum skeletons with `#[derive(DeltaPack)]` — not hand-rolled impls — so everything below applies identically to both modes.
+
+### Encode / decode / diff
 
 ```rust,ignore
-use crate::generated::{User, Address, HairColor};
+use delta_pack::DeltaPack;  // trait must be in scope
 
-fn main() {
-    // Create a user
-    let user1 = User {
-        id: "user-123".into(),
-        name: "Alice".into(),
-        age: 30,
-        weight: 65.5,
-        hair_color: HairColor::Brown,
-        address: Some(Address {
-            street: "123 Main St".into(),
-            city: "Springfield".into(),
-            zip: "12345".into(),
-        }),
-        tags: vec!["admin".into(), "verified".into()],
-        metadata: [("level".into(), "5".into())].into(),
-    };
+let user1 = User { /* ... */ };
 
-    // Full encode/decode
-    let bytes = user1.encode();
-    let decoded = User::decode(&bytes);
-    assert!(user1.equals(&decoded));
+// Full encode / decode
+let bytes = user1.encode();
+let decoded = User::decode(&bytes);
+assert!(user1.equals(&decoded));
 
-    // Delta encoding - only send what changed
-    let user2 = User {
-        age: 31,  // birthday!
-        ..user1.clone()
-    };
-
-    let full_size = user2.encode().len();
-    let diff = User::encode_diff(&user1, &user2);
-    let diff_size = diff.len();
-
-    println!("Full: {} bytes, Diff: {} bytes", full_size, diff_size);
-    // Full: 58 bytes, Diff: 3 bytes
-
-    // Apply the diff to reconstruct user2
-    let reconstructed = User::decode_diff(&user1, &diff);
-    assert!(user2.equals(&reconstructed));
-}
+// Delta encoding — only send what changed
+let user2 = User { age: 31, ..user1.clone() };
+let diff = User::encode_diff(&user1, &user2);
+let reconstructed = User::decode_diff(&user1, &diff);
+assert!(user2.equals(&reconstructed));
 ```
 
-## Generated API
+### Attributes
 
-Every generated type provides these methods:
+`#[delta_pack(...)]` on a field accepts:
+
+| Attribute                       | Target         | Effect                                                         |
+| ------------------------------- | -------------- | -------------------------------------------------------------- |
+| `range(min = N, max = M)`       | integer field  | bit-packs into `ceil(log2(M-N+1))` bits when `≤ 8` bits        |
+| `range(min = N)` / `range(max = M)` | integer field | sets one bound only                                        |
+| `precision = X`                 | `f32` field    | quantizes to multiples of `X`, encoded as a bit-packed integer |
+
+## API
+
+Every type implementing `DeltaPack` provides:
 
 | Method                                       | Description                                 |
 | -------------------------------------------- | ------------------------------------------- |
@@ -115,11 +145,7 @@ Every generated type provides these methods:
 | `decode_diff(a: &Self, diff: &[u8]) -> Self` | Apply a diff to `a` to produce `b`          |
 | `equals(&self, other: &Self) -> bool`        | Deep equality (respects float precision)    |
 
-Generated types also derive:
-
-- `Clone`, `Debug` - Standard traits
-- `Default` - All fields initialized to zero/empty values
-- `Serialize`, `Deserialize` - Serde support for JSON interop
+Types also get a derived `impl Default`. The user is responsible for `Clone`, `Debug`, `Serialize`, `Deserialize` (CLI-generated code derives them; derive-mode users add whichever they need).
 
 ## Schema Types
 
@@ -168,12 +194,20 @@ Message:
 
 ### Self-References
 
-Recursive types are supported and generate `Box<T>`:
+Recursive types are supported. In YAML they're implicit; in derive mode wrap the inner type in `Box<Self>`:
 
 ```yaml
 TreeNode:
   value: int
   children: TreeNode[] # Generates Vec<Box<TreeNode>>
+```
+
+```rust,ignore
+#[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+pub struct TreeNode {
+    pub value: i64,
+    pub children: Vec<Box<Self>>,
+}
 ```
 
 ## Binary Format

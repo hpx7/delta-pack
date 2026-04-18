@@ -1,0 +1,431 @@
+//! Schemas defined via `#[derive(DeltaPack)]`, mirroring the CLI-generated
+//! `generated` module. Used when `--derive` is passed on the bench CLI.
+
+#![allow(non_camel_case_types, dead_code)]
+
+use delta_pack::{DeltaPack, IndexMap};
+use serde::{Deserialize, Serialize};
+
+pub mod primitives {
+    use super::*;
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Primitives {
+        #[serde(rename = "stringField")]
+        pub string_field: String,
+        #[serde(rename = "signedIntField")]
+        pub signed_int_field: i64,
+        #[serde(rename = "unsignedIntField")]
+        pub unsigned_int_field: u64,
+        #[serde(rename = "boundedIntField")]
+        #[delta_pack(range(min = -10, max = 10))]
+        pub bounded_int_field: i64,
+        #[serde(rename = "floatField")]
+        pub float_field: f32,
+        #[serde(rename = "booleanField")]
+        pub boolean_field: bool,
+    }
+}
+
+pub mod test {
+    use super::*;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum Enum {
+        ONE,
+        TWO,
+        THREE,
+        FOUR,
+        FIVE,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct InnerInner {
+        pub long: i64,
+        #[serde(rename = "enum")]
+        pub enum_: Enum,
+        pub sint32: i64,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Outer {
+        #[serde(rename = "bool")]
+        pub bool_: Vec<bool>,
+        pub double: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Inner {
+        pub int32: i64,
+        #[serde(rename = "innerInner")]
+        pub inner_inner: InnerInner,
+        pub outer: Outer,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Test {
+        pub string: String,
+        pub uint32: i64,
+        pub inner: Inner,
+        pub float: f32,
+        #[serde(rename = "boundedInt")]
+        #[delta_pack(range(min = 0, max = 5))]
+        pub bounded_int: u64,
+    }
+}
+
+pub mod user {
+    use super::*;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum HairColor {
+        BLACK,
+        BROWN,
+        BLOND,
+        RED,
+        WHITE,
+        OTHER,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Address {
+        pub street: String,
+        pub zip: String,
+        pub state: String,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct EmailContact {
+        pub email: String,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct PhoneContact {
+        pub phone: String,
+        pub extension: Option<u64>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub enum Contact {
+        EmailContact(EmailContact),
+        PhoneContact(PhoneContact),
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct User {
+        pub id: String,
+        pub name: String,
+        pub age: u64,
+        pub weight: f32,
+        pub married: bool,
+        #[serde(rename = "hairColor")]
+        pub hair_color: HairColor,
+        pub address: Option<Address>,
+        pub children: Vec<Box<User>>,
+        pub metadata: IndexMap<String, String>,
+        #[serde(rename = "preferredContact")]
+        pub preferred_contact: Option<Contact>,
+    }
+}
+
+pub mod game_state {
+    use super::*;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum Team {
+        RED,
+        BLUE,
+        GREEN,
+        YELLOW,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum PlayerStatus {
+        ALIVE,
+        DEAD,
+        SPECTATING,
+        DISCONNECTED,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum WeaponType {
+        SWORD,
+        BOW,
+        STAFF,
+        DAGGER,
+        AXE,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum ItemRarity {
+        COMMON,
+        UNCOMMON,
+        RARE,
+        EPIC,
+        LEGENDARY,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum AbilityType {
+        HEAL,
+        DAMAGE,
+        SHIELD,
+        BUFF,
+        DEBUFF,
+        TELEPORT,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, DeltaPack)]
+    pub enum EffectType {
+        POISON,
+        BURN,
+        FREEZE,
+        STUN,
+        REGEN,
+        HASTE,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Position {
+        #[delta_pack(precision = 0.1)]
+        pub x: f32,
+        #[delta_pack(precision = 0.1)]
+        pub y: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Velocity {
+        pub vx: f32,
+        pub vy: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct InventoryItem {
+        #[serde(rename = "itemId")]
+        pub item_id: String,
+        pub name: String,
+        pub quantity: u64,
+        pub rarity: ItemRarity,
+        pub durability: Option<u64>,
+        #[serde(rename = "enchantmentLevel")]
+        pub enchantment_level: Option<u64>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Equipment {
+        pub weapon: Option<WeaponType>,
+        pub armor: Option<String>,
+        pub accessory1: Option<String>,
+        pub accessory2: Option<String>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct PlayerStats {
+        pub health: u64,
+        #[serde(rename = "maxHealth")]
+        pub max_health: u64,
+        pub mana: u64,
+        #[serde(rename = "maxMana")]
+        pub max_mana: u64,
+        pub stamina: u64,
+        #[serde(rename = "maxStamina")]
+        pub max_stamina: u64,
+        pub level: u64,
+        pub experience: u64,
+        pub strength: u64,
+        pub agility: u64,
+        pub intelligence: u64,
+        pub defense: u64,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct ActiveEffect {
+        #[serde(rename = "effectType")]
+        pub effect_type: EffectType,
+        pub duration: f32,
+        pub strength: u64,
+        #[serde(rename = "stackCount")]
+        pub stack_count: u64,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct AbilityCooldown {
+        #[serde(rename = "abilityId")]
+        pub ability_id: String,
+        #[serde(rename = "abilityType")]
+        pub ability_type: AbilityType,
+        #[serde(rename = "remainingCooldown")]
+        pub remaining_cooldown: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Player {
+        #[serde(rename = "playerId")]
+        pub player_id: String,
+        pub username: String,
+        pub team: Option<Team>,
+        pub status: PlayerStatus,
+        pub position: Position,
+        pub velocity: Velocity,
+        pub rotation: f32,
+        pub stats: PlayerStats,
+        pub inventory: Vec<InventoryItem>,
+        pub equipment: Equipment,
+        #[serde(rename = "activeEffects")]
+        pub active_effects: Vec<ActiveEffect>,
+        #[serde(rename = "abilityCooldowns")]
+        pub ability_cooldowns: Vec<AbilityCooldown>,
+        pub kills: u64,
+        pub deaths: u64,
+        pub assists: u64,
+        pub gold: u64,
+        pub score: i64,
+        pub ping: u64,
+        #[serde(rename = "isJumping")]
+        pub is_jumping: bool,
+        #[serde(rename = "isCrouching")]
+        pub is_crouching: bool,
+        #[serde(rename = "isAiming")]
+        pub is_aiming: bool,
+        #[serde(rename = "lastDamageTime")]
+        pub last_damage_time: Option<f32>,
+        #[serde(rename = "respawnTime")]
+        pub respawn_time: Option<f32>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Enemy {
+        #[serde(rename = "enemyId")]
+        pub enemy_id: String,
+        pub name: String,
+        pub position: Position,
+        pub velocity: Velocity,
+        pub health: u64,
+        #[serde(rename = "maxHealth")]
+        pub max_health: u64,
+        pub level: u64,
+        #[serde(rename = "isAggro")]
+        pub is_aggro: bool,
+        #[serde(rename = "targetPlayerId")]
+        pub target_player_id: Option<String>,
+        #[serde(rename = "lastAttackTime")]
+        pub last_attack_time: f32,
+        #[serde(rename = "lootTableId")]
+        pub loot_table_id: Option<String>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct Projectile {
+        #[serde(rename = "projectileId")]
+        pub projectile_id: String,
+        #[serde(rename = "ownerId")]
+        pub owner_id: String,
+        pub position: Position,
+        pub velocity: Velocity,
+        pub damage: u64,
+        pub penetration: u64,
+        #[serde(rename = "timeToLive")]
+        pub time_to_live: f32,
+        #[serde(rename = "hitPlayers")]
+        pub hit_players: Vec<String>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct DroppedLoot {
+        #[serde(rename = "lootId")]
+        pub loot_id: String,
+        pub position: Position,
+        pub item: InventoryItem,
+        #[serde(rename = "despawnTime")]
+        pub despawn_time: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct WorldObject {
+        #[serde(rename = "objectId")]
+        pub object_id: String,
+        #[serde(rename = "objectType")]
+        pub object_type: String,
+        pub position: Position,
+        pub health: Option<u64>,
+        #[serde(rename = "isDestroyed")]
+        pub is_destroyed: bool,
+        #[serde(rename = "isInteractable")]
+        pub is_interactable: bool,
+        #[serde(rename = "interactedBy")]
+        pub interacted_by: Option<String>,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct MatchStats {
+        #[serde(rename = "totalKills")]
+        pub total_kills: u64,
+        #[serde(rename = "totalDeaths")]
+        pub total_deaths: u64,
+        #[serde(rename = "totalDamageDealt")]
+        pub total_damage_dealt: u64,
+        #[serde(rename = "totalHealingDone")]
+        pub total_healing_done: u64,
+        #[serde(rename = "longestKillStreak")]
+        pub longest_kill_streak: u64,
+        #[serde(rename = "matchDuration")]
+        pub match_duration: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct TeamScore {
+        pub team: Team,
+        pub score: u64,
+        pub kills: u64,
+        #[serde(rename = "objectivesCaptured")]
+        pub objectives_captured: u64,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct GameSettings {
+        #[serde(rename = "maxPlayers")]
+        pub max_players: u64,
+        #[serde(rename = "friendlyFire")]
+        pub friendly_fire: bool,
+        #[serde(rename = "respawnDelay")]
+        pub respawn_delay: f32,
+        #[serde(rename = "roundTimeLimit")]
+        pub round_time_limit: u64,
+        #[serde(rename = "startingGold")]
+        pub starting_gold: u64,
+        #[serde(rename = "gravityMultiplier")]
+        pub gravity_multiplier: f32,
+    }
+
+    #[derive(Clone, Debug, Serialize, Deserialize, DeltaPack)]
+    pub struct GameState {
+        #[serde(rename = "gameId")]
+        pub game_id: String,
+        #[serde(rename = "serverTime")]
+        pub server_time: f32,
+        #[serde(rename = "tickNumber")]
+        pub tick_number: u64,
+        pub round: u64,
+        pub phase: String,
+        #[serde(rename = "timeRemaining")]
+        pub time_remaining: f32,
+        pub players: IndexMap<String, Player>,
+        pub enemies: IndexMap<String, Enemy>,
+        pub projectiles: IndexMap<String, Projectile>,
+        #[serde(rename = "droppedLoot")]
+        pub dropped_loot: IndexMap<String, DroppedLoot>,
+        #[serde(rename = "worldObjects")]
+        pub world_objects: IndexMap<String, WorldObject>,
+        #[serde(rename = "teamScores")]
+        pub team_scores: Vec<TeamScore>,
+        #[serde(rename = "matchStats")]
+        pub match_stats: MatchStats,
+        pub settings: GameSettings,
+        #[serde(rename = "winningTeam")]
+        pub winning_team: Option<Team>,
+        #[serde(rename = "mapName")]
+        pub map_name: String,
+        #[serde(rename = "weatherIntensity")]
+        pub weather_intensity: f32,
+    }
+}
