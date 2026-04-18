@@ -3,10 +3,9 @@
   "compilerOptions": {
     /* Output configuration */
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
-      "@hpx7/delta-pack": ["src/index.ts"],
-      "@hpx7/delta-pack/runtime": ["src/runtime.ts"]
+      "@hpx7/delta-pack": ["./src/index.ts"],
+      "@hpx7/delta-pack/runtime": ["./src/runtime.ts"]
     },
 
     /* Module Resolution */

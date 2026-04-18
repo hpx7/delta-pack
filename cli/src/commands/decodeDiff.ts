@@ -1,41 +1,34 @@
 import { readFile } from "node:fs/promises";
-import { load } from "@hpx7/delta-pack";
-import { loadSchema, getRootType } from "../utils/schema.js";
+import { loadApi } from "../utils/schema.js";
 import { readInput, writeOutput } from "../utils/io.js";
-import { ArgError } from "../utils/errors.js";
-
-export type Flags = Map<string, string | true>;
+import {
+  getString,
+  requireSchemaPath,
+  requireString,
+  type Flags,
+} from "../utils/flags.js";
 
 export async function decodeDiff(
   schemaPath: string | undefined,
   flags: Flags,
 ): Promise<void> {
-  if (!schemaPath) {
-    throw new ArgError("decode-diff: schema file required");
-  }
+  const path = requireSchemaPath(schemaPath, "decode-diff");
+  const typeName = requireString(
+    flags,
+    ["t", "type"],
+    "decode-diff: type required (-t <name>)",
+  );
+  const oldPath = requireString(
+    flags,
+    ["old"],
+    "decode-diff: old state required (--old <file>)",
+  );
 
-  const typeName = flags.get("t") ?? flags.get("type");
-  const oldPath = flags.get("old");
-  const diffPath = flags.get("diff");
-  const output = flags.get("o") ?? flags.get("output");
-
-  if (!typeName || typeName === true) {
-    throw new ArgError("decode-diff: type required (-t <name>)");
-  }
-  if (!oldPath || oldPath === true) {
-    throw new ArgError("decode-diff: old state required (--old <file>)");
-  }
-
-  const schema = await loadSchema(schemaPath);
-  const rootType = getRootType(schema, typeName);
-  const api = load(rootType);
-
-  const oldJson = JSON.parse(await readFile(oldPath, "utf-8"));
-  const oldObj = api.fromJson(oldJson);
-
-  const diffBinary = await readInput(diffPath === true ? undefined : diffPath);
+  const api = await loadApi(path, typeName);
+  const oldObj = api.fromJson(JSON.parse(await readFile(oldPath, "utf-8")));
+  const diffBinary = await readInput(getString(flags, "diff"));
   const newObj = api.decodeDiff(oldObj, diffBinary);
   const json = JSON.stringify(api.toJson(newObj), null, 2);
 
-  await writeOutput(output === true ? undefined : output, json + "\n");
+  await writeOutput(getString(flags, "o", "output"), json + "\n");
 }

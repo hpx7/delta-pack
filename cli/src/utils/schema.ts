@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import {
+  load,
   parseSchemaYml,
+  type DeltaPackApi,
   type NamedType,
   type ObjectType,
   type UnionType,
@@ -27,4 +29,13 @@ export function getRootType(
     );
   }
   return type;
+}
+
+/** Parse the schema file and load a DeltaPackApi for the named root type. */
+export async function loadApi(
+  schemaPath: string,
+  typeName: string,
+): Promise<DeltaPackApi<unknown>> {
+  const schema = await loadSchema(schemaPath);
+  return load<unknown>(getRootType(schema, typeName));
 }

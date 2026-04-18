@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
     "noEmit": true,
-    "baseUrl": ".",
     "paths": {
       "@hpx7/delta-pack": ["../typescript/src"]
     },
+    "types": ["node"],
 
     /* Module Resolution */
     "moduleResolution": "bundler",
