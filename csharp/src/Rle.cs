@@ -5,7 +5,8 @@ namespace DeltaPack;
 /// </summary>
 public class RleWriter
 {
-    private readonly List<byte> _bytes = new(64);
+    private byte[] _bytes = new byte[64];
+    private int _bytesLen;
     private int _currentByte;
     private int _bitPos;
     private int _totalBits;
@@ -14,12 +15,19 @@ public class RleWriter
 
     public void Reset()
     {
-        _bytes.Clear();
+        _bytesLen = 0;
         _currentByte = 0;
         _bitPos = 0;
         _totalBits = 0;
         _runValue = -1;
         _runCount = 0;
+    }
+
+    private void AppendByte(byte b)
+    {
+        if (_bytesLen == _bytes.Length)
+            Array.Resize(ref _bytes, _bytes.Length * 2);
+        _bytes[_bytesLen++] = b;
     }
 
     public void PushBit(bool val)
@@ -62,12 +70,11 @@ public class RleWriter
 
         // Flush remaining bits in current byte
         if (_bitPos > 0)
-            _bytes.Add((byte)_currentByte);
+            AppendByte((byte)_currentByte);
 
         // Copy RLE bytes to output
-        var pos = startPos;
-        foreach (var b in _bytes)
-            output[pos++] = b;
+        Buffer.BlockCopy(_bytes, 0, output, startPos, _bytesLen);
+        var pos = startPos + _bytesLen;
 
         // Write reverse varint for total bits
         return WriteReverseUVarint(output, pos, _totalBits);
@@ -83,7 +90,7 @@ public class RleWriter
 
         if (_bitPos == 8)
         {
-            _bytes.Add((byte)_currentByte);
+            AppendByte((byte)_currentByte);
             _currentByte = 0;
             _bitPos = 0;
         }

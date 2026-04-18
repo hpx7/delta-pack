@@ -80,6 +80,11 @@ export class Decoder {
 
   protected readVarint() {
     const val = this.readUVarint();
+    // Fast path for values fitting in 32 bits (covers the vast majority of ints):
+    // standard zigzag decode using bitwise ops, faster than div/mod.
+    if (val <= 0x7fffffff) {
+      return (val >>> 1) ^ -(val & 1);
+    }
     return val % 2 === 0 ? val / 2 : -(val + 1) / 2;
   }
 

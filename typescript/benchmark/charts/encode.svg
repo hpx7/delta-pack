@@ -6,145 +6,145 @@
   <text x="340" y="28" text-anchor="middle" font-size="15" font-weight="bold" fill="#111827">Encoding Speed (ops/s)</text>
   <text x="12" y="56" font-size="13" font-weight="600" fill="#374151">GameState State1</text>
   <text x="126" y="78" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="64" width="129.16425161953063" height="20" fill="#f59e0b" rx="3"/>
-  <text x="265.16425161953066" y="78" font-size="11" fill="#374151" font-weight="500">165.2K</text>
+  <rect x="130" y="64" width="133.25660481939386" height="20" fill="#f59e0b" rx="3"/>
+  <text x="269.25660481939383" y="78" font-size="11" fill="#374151" font-weight="500">162.0K</text>
   <text x="126" y="102" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="88" width="103.58579178175819" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="239.5857917817582" y="102" font-size="11" fill="#374151" font-weight="500">132.5K</text>
+  <rect x="130" y="88" width="107.93121588181984" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="243.93121588181984" y="102" font-size="11" fill="#374151" font-weight="500">131.2K</text>
   <text x="126" y="126" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="112" width="129.2790491071063" height="20" fill="#3b82f6" rx="3"/>
-  <text x="265.2790491071063" y="126" font-size="11" fill="#374151" font-weight="500">165.3K</text>
+  <rect x="130" y="112" width="136.04687297230544" height="20" fill="#3b82f6" rx="3"/>
+  <text x="272.04687297230544" y="126" font-size="11" fill="#374151" font-weight="500">165.4K</text>
   <text x="126" y="150" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="136" width="302.549294343813" height="20" fill="#ec4899" rx="3"/>
-  <text x="438.549294343813" y="150" font-size="11" fill="#374151" font-weight="500">386.9K</text>
+  <rect x="130" y="136" width="326.7558413633186" height="20" fill="#ec4899" rx="3"/>
+  <text x="462.7558413633186" y="150" font-size="11" fill="#374151" font-weight="500">397.2K</text>
   <text x="126" y="174" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="160" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="174" font-size="11" fill="#374151" font-weight="500">583.2K</text>
+  <text x="592" y="174" font-size="11" fill="#374151" font-weight="500">554.3K</text>
   <text x="12" y="212" font-size="13" font-weight="600" fill="#374151">GameState State2</text>
   <text x="126" y="234" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="220" width="172.55719359735568" height="20" fill="#f59e0b" rx="3"/>
-  <text x="308.55719359735565" y="234" font-size="11" fill="#374151" font-weight="500">85.1K</text>
+  <rect x="130" y="220" width="168.7677056988691" height="20" fill="#f59e0b" rx="3"/>
+  <text x="304.7677056988691" y="234" font-size="11" fill="#374151" font-weight="500">80.4K</text>
   <text x="126" y="258" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="244" width="126.91337324701831" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="262.9133732470183" y="258" font-size="11" fill="#374151" font-weight="500">62.6K</text>
+  <rect x="130" y="244" width="132.0653019690415" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="268.0653019690415" y="258" font-size="11" fill="#374151" font-weight="500">62.9K</text>
   <text x="126" y="282" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="268" width="152.77712665050456" height="20" fill="#3b82f6" rx="3"/>
-  <text x="288.77712665050456" y="282" font-size="11" fill="#374151" font-weight="500">75.4K</text>
+  <rect x="130" y="268" width="152.95215682292573" height="20" fill="#3b82f6" rx="3"/>
+  <text x="288.95215682292576" y="282" font-size="11" fill="#374151" font-weight="500">72.9K</text>
   <text x="126" y="306" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="292" width="176.4371023123618" height="20" fill="#ec4899" rx="3"/>
-  <text x="312.4371023123618" y="306" font-size="11" fill="#374151" font-weight="500">87.0K</text>
+  <rect x="130" y="292" width="191.33262630407992" height="20" fill="#ec4899" rx="3"/>
+  <text x="327.3326263040799" y="306" font-size="11" fill="#374151" font-weight="500">91.2K</text>
   <text x="126" y="330" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="316" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="330" font-size="11" fill="#374151" font-weight="500">224.9K</text>
+  <text x="592" y="330" font-size="11" fill="#374151" font-weight="500">217.3K</text>
   <text x="12" y="368" font-size="13" font-weight="600" fill="#374151">GameState State3</text>
   <text x="126" y="390" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="376" width="171.33766355492511" height="20" fill="#f59e0b" rx="3"/>
-  <text x="307.33766355492514" y="390" font-size="11" fill="#374151" font-weight="500">86.1K</text>
+  <rect x="130" y="376" width="173.65424263059438" height="20" fill="#f59e0b" rx="3"/>
+  <text x="309.65424263059435" y="390" font-size="11" fill="#374151" font-weight="500">82.1K</text>
   <text x="126" y="414" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="400" width="130.43978817477134" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="266.43978817477137" y="414" font-size="11" fill="#374151" font-weight="500">65.5K</text>
+  <rect x="130" y="400" width="122.57493832078794" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="258.57493832078796" y="414" font-size="11" fill="#374151" font-weight="500">58.0K</text>
   <text x="126" y="438" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="424" width="147.14194017966912" height="20" fill="#3b82f6" rx="3"/>
-  <text x="283.1419401796691" y="438" font-size="11" fill="#374151" font-weight="500">73.9K</text>
+  <rect x="130" y="424" width="153.27091899090883" height="20" fill="#3b82f6" rx="3"/>
+  <text x="289.27091899090885" y="438" font-size="11" fill="#374151" font-weight="500">72.5K</text>
   <text x="126" y="462" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="448" width="173.93906444203014" height="20" fill="#ec4899" rx="3"/>
-  <text x="309.93906444203014" y="462" font-size="11" fill="#374151" font-weight="500">87.4K</text>
+  <rect x="130" y="448" width="192.1467201601136" height="20" fill="#ec4899" rx="3"/>
+  <text x="328.1467201601136" y="462" font-size="11" fill="#374151" font-weight="500">90.9K</text>
   <text x="126" y="486" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="472" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="486" font-size="11" fill="#374151" font-weight="500">229.1K</text>
+  <text x="592" y="486" font-size="11" fill="#374151" font-weight="500">215.7K</text>
   <text x="12" y="524" font-size="13" font-weight="600" fill="#374151">Primitives State1</text>
   <text x="126" y="546" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="532" width="186.25665169050572" height="20" fill="#f59e0b" rx="3"/>
-  <text x="322.2566516905057" y="546" font-size="11" fill="#374151" font-weight="500">2.9M</text>
+  <rect x="130" y="532" width="181.48107593201263" height="20" fill="#f59e0b" rx="3"/>
+  <text x="317.48107593201263" y="546" font-size="11" fill="#374151" font-weight="500">2.8M</text>
   <text x="126" y="570" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="556" width="234.5862251616009" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="370.5862251616009" y="570" font-size="11" fill="#374151" font-weight="500">3.7M</text>
+  <rect x="130" y="556" width="222.19582148695466" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="358.1958214869546" y="570" font-size="11" fill="#374151" font-weight="500">3.4M</text>
   <text x="126" y="594" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="580" width="356.0824731734007" height="20" fill="#3b82f6" rx="3"/>
-  <text x="492.0824731734007" y="594" font-size="11" fill="#374151" font-weight="500">5.6M</text>
+  <rect x="130" y="580" width="352.23164471213914" height="20" fill="#3b82f6" rx="3"/>
+  <text x="488.23164471213914" y="594" font-size="11" fill="#374151" font-weight="500">5.4M</text>
   <text x="126" y="618" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="604" width="342.3279288783794" height="20" fill="#ec4899" rx="3"/>
-  <text x="478.3279288783794" y="618" font-size="11" fill="#374151" font-weight="500">5.3M</text>
+  <rect x="130" y="604" width="344.55668653191435" height="20" fill="#ec4899" rx="3"/>
+  <text x="480.55668653191435" y="618" font-size="11" fill="#374151" font-weight="500">5.3M</text>
   <text x="126" y="642" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="628" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="642" font-size="11" fill="#374151" font-weight="500">7.1M</text>
+  <text x="592" y="642" font-size="11" fill="#374151" font-weight="500">6.9M</text>
   <text x="12" y="680" font-size="13" font-weight="600" fill="#374151">Primitives State2</text>
   <text x="126" y="702" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="688" width="180.1845850323737" height="20" fill="#f59e0b" rx="3"/>
-  <text x="316.18458503237366" y="702" font-size="11" fill="#374151" font-weight="500">2.8M</text>
+  <rect x="130" y="688" width="183.68629754422398" height="20" fill="#f59e0b" rx="3"/>
+  <text x="319.686297544224" y="702" font-size="11" fill="#374151" font-weight="500">2.8M</text>
   <text x="126" y="726" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="712" width="227.32856660672175" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="363.3285666067218" y="726" font-size="11" fill="#374151" font-weight="500">3.6M</text>
+  <rect x="130" y="712" width="221.9880716105846" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="357.9880716105846" y="726" font-size="11" fill="#374151" font-weight="500">3.4M</text>
   <text x="126" y="750" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="736" width="347.22710066268274" height="20" fill="#3b82f6" rx="3"/>
-  <text x="483.22710066268274" y="750" font-size="11" fill="#374151" font-weight="500">5.5M</text>
+  <rect x="130" y="736" width="354.1630231984845" height="20" fill="#3b82f6" rx="3"/>
+  <text x="490.1630231984845" y="750" font-size="11" fill="#374151" font-weight="500">5.4M</text>
   <text x="126" y="774" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="760" width="335.7197320921329" height="20" fill="#ec4899" rx="3"/>
-  <text x="471.7197320921329" y="774" font-size="11" fill="#374151" font-weight="500">5.3M</text>
+  <rect x="130" y="760" width="339.56440683395755" height="20" fill="#ec4899" rx="3"/>
+  <text x="475.56440683395755" y="774" font-size="11" fill="#374151" font-weight="500">5.1M</text>
   <text x="126" y="798" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="784" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="798" font-size="11" fill="#374151" font-weight="500">7.2M</text>
+  <text x="592" y="798" font-size="11" fill="#374151" font-weight="500">6.9M</text>
   <text x="12" y="836" font-size="13" font-weight="600" fill="#374151">Test State1</text>
   <text x="126" y="858" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="844" width="181.4107494735315" height="20" fill="#f59e0b" rx="3"/>
-  <text x="317.4107494735315" y="858" font-size="11" fill="#374151" font-weight="500">1.5M</text>
+  <rect x="130" y="844" width="181.83835971121457" height="20" fill="#f59e0b" rx="3"/>
+  <text x="317.8383597112146" y="858" font-size="11" fill="#374151" font-weight="500">1.5M</text>
   <text x="126" y="882" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="868" width="239.9044425175658" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="375.9044425175658" y="882" font-size="11" fill="#374151" font-weight="500">2.0M</text>
+  <rect x="130" y="868" width="238.1817995812951" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="374.1817995812951" y="882" font-size="11" fill="#374151" font-weight="500">1.9M</text>
   <text x="126" y="906" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="892" width="268.94540117035945" height="20" fill="#3b82f6" rx="3"/>
-  <text x="404.94540117035945" y="906" font-size="11" fill="#374151" font-weight="500">2.3M</text>
+  <rect x="130" y="892" width="276.82572762714267" height="20" fill="#3b82f6" rx="3"/>
+  <text x="412.82572762714267" y="906" font-size="11" fill="#374151" font-weight="500">2.2M</text>
   <text x="126" y="930" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="916" width="364.52992322533987" height="20" fill="#ec4899" rx="3"/>
-  <text x="500.52992322533987" y="930" font-size="11" fill="#374151" font-weight="500">3.1M</text>
+  <rect x="130" y="916" width="369.4360800079313" height="20" fill="#ec4899" rx="3"/>
+  <text x="505.4360800079313" y="930" font-size="11" fill="#374151" font-weight="500">3.0M</text>
   <text x="126" y="954" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="940" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="954" font-size="11" fill="#374151" font-weight="500">3.9M</text>
+  <text x="592" y="954" font-size="11" fill="#374151" font-weight="500">3.7M</text>
   <text x="12" y="992" font-size="13" font-weight="600" fill="#374151">Test State2</text>
   <text x="126" y="1014" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="1000" width="180.97813441380458" height="20" fill="#f59e0b" rx="3"/>
-  <text x="316.9781344138046" y="1014" font-size="11" fill="#374151" font-weight="500">1.5M</text>
+  <rect x="130" y="1000" width="183.19960519395713" height="20" fill="#f59e0b" rx="3"/>
+  <text x="319.19960519395715" y="1014" font-size="11" fill="#374151" font-weight="500">1.5M</text>
   <text x="126" y="1038" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="1024" width="244.5673011392502" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="380.56730113925016" y="1038" font-size="11" fill="#374151" font-weight="500">2.0M</text>
+  <rect x="130" y="1024" width="245.6904321945656" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="381.6904321945656" y="1038" font-size="11" fill="#374151" font-weight="500">2.0M</text>
   <text x="126" y="1062" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="1048" width="273.8186671232454" height="20" fill="#3b82f6" rx="3"/>
-  <text x="409.8186671232454" y="1062" font-size="11" fill="#374151" font-weight="500">2.3M</text>
+  <rect x="130" y="1048" width="278.19354784203847" height="20" fill="#3b82f6" rx="3"/>
+  <text x="414.19354784203847" y="1062" font-size="11" fill="#374151" font-weight="500">2.2M</text>
   <text x="126" y="1086" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="1072" width="374.75205147438055" height="20" fill="#ec4899" rx="3"/>
-  <text x="510.75205147438055" y="1086" font-size="11" fill="#374151" font-weight="500">3.1M</text>
+  <rect x="130" y="1072" width="376.3655634480475" height="20" fill="#ec4899" rx="3"/>
+  <text x="512.3655634480475" y="1086" font-size="11" fill="#374151" font-weight="500">3.0M</text>
   <text x="126" y="1110" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="1096" width="456" height="20" fill="#10b981" rx="3"/>
-  <text x="592" y="1110" font-size="11" fill="#374151" font-weight="500">3.8M</text>
+  <text x="592" y="1110" font-size="11" fill="#374151" font-weight="500">3.6M</text>
   <text x="12" y="1148" font-size="13" font-weight="600" fill="#374151">User State1</text>
   <text x="126" y="1170" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="1156" width="234.93462668800544" height="20" fill="#f59e0b" rx="3"/>
-  <text x="370.93462668800544" y="1170" font-size="11" fill="#374151" font-weight="500">869.4K</text>
+  <rect x="130" y="1156" width="225.893630755621" height="20" fill="#f59e0b" rx="3"/>
+  <text x="361.89363075562096" y="1170" font-size="11" fill="#374151" font-weight="500">831.8K</text>
   <text x="126" y="1194" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="1180" width="202.03682979896604" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="338.03682979896604" y="1194" font-size="11" fill="#374151" font-weight="500">747.6K</text>
+  <rect x="130" y="1180" width="188.97070987976142" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="324.97070987976144" y="1194" font-size="11" fill="#374151" font-weight="500">695.8K</text>
   <text x="126" y="1218" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="1204" width="219.9297031306704" height="20" fill="#3b82f6" rx="3"/>
-  <text x="355.9297031306704" y="1218" font-size="11" fill="#374151" font-weight="500">813.9K</text>
+  <rect x="130" y="1204" width="212.73435458096753" height="20" fill="#3b82f6" rx="3"/>
+  <text x="348.73435458096753" y="1218" font-size="11" fill="#374151" font-weight="500">783.3K</text>
   <text x="126" y="1242" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="1228" width="283.7244754701794" height="20" fill="#ec4899" rx="3"/>
-  <text x="419.7244754701794" y="1242" font-size="11" fill="#374151" font-weight="500">1.0M</text>
+  <rect x="130" y="1228" width="276.7693404096902" height="20" fill="#ec4899" rx="3"/>
+  <text x="412.7693404096902" y="1242" font-size="11" fill="#374151" font-weight="500">1.0M</text>
   <text x="126" y="1266" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="1252" width="456" height="20" fill="#10b981" rx="3"/>
   <text x="592" y="1266" font-size="11" fill="#374151" font-weight="500">1.7M</text>
   <text x="12" y="1304" font-size="13" font-weight="600" fill="#374151">User State2</text>
   <text x="126" y="1326" text-anchor="end" font-size="11" fill="#6b7280">JSON</text>
-  <rect x="130" y="1312" width="148.6633543453622" height="20" fill="#f59e0b" rx="3"/>
-  <text x="284.6633543453622" y="1326" font-size="11" fill="#374151" font-weight="500">368.7K</text>
+  <rect x="130" y="1312" width="152.3688602464124" height="20" fill="#f59e0b" rx="3"/>
+  <text x="288.3688602464124" y="1326" font-size="11" fill="#374151" font-weight="500">365.9K</text>
   <text x="126" y="1350" text-anchor="end" font-size="11" fill="#6b7280">MessagePack</text>
-  <rect x="130" y="1336" width="176.28499862279827" height="20" fill="#8b5cf6" rx="3"/>
-  <text x="312.2849986227983" y="1350" font-size="11" fill="#374151" font-weight="500">437.2K</text>
+  <rect x="130" y="1336" width="179.93160323734728" height="20" fill="#8b5cf6" rx="3"/>
+  <text x="315.9316032373473" y="1350" font-size="11" fill="#374151" font-weight="500">432.1K</text>
   <text x="126" y="1374" text-anchor="end" font-size="11" fill="#6b7280">Protobuf</text>
-  <rect x="130" y="1360" width="218.9133257823732" height="20" fill="#3b82f6" rx="3"/>
-  <text x="354.9133257823732" y="1374" font-size="11" fill="#374151" font-weight="500">542.9K</text>
+  <rect x="130" y="1360" width="224.10090901122828" height="20" fill="#3b82f6" rx="3"/>
+  <text x="360.1009090112283" y="1374" font-size="11" fill="#374151" font-weight="500">538.1K</text>
   <text x="126" y="1398" text-anchor="end" font-size="11" fill="#6b7280">Avro</text>
-  <rect x="130" y="1384" width="298.28674259360434" height="20" fill="#ec4899" rx="3"/>
-  <text x="434.28674259360434" y="1398" font-size="11" fill="#374151" font-weight="500">739.8K</text>
+  <rect x="130" y="1384" width="299.94381727623073" height="20" fill="#ec4899" rx="3"/>
+  <text x="435.94381727623073" y="1398" font-size="11" fill="#374151" font-weight="500">720.2K</text>
   <text x="126" y="1422" text-anchor="end" font-size="11" fill="#6b7280">DeltaPack</text>
   <rect x="130" y="1408" width="456" height="20" fill="#10b981" rx="3"/>
   <text x="592" y="1422" font-size="11" fill="#374151" font-weight="500">1.1M</text>

@@ -14,12 +14,12 @@ public class Encoder
     private static RleWriter? _sharedRle;
 
     [ThreadStatic]
-    private static List<string>? _sharedDict;
+    private static StringInterner? _sharedInterner;
 
     private byte[] _buffer;
     private int _pos;
     private readonly RleWriter _rle;
-    private readonly List<string> _dict;
+    private readonly StringInterner _interner;
 
     public Encoder()
     {
@@ -27,8 +27,8 @@ public class Encoder
         _pos = 0;
         _rle = _sharedRle ??= new RleWriter();
         _rle.Reset();
-        _dict = _sharedDict ??= new List<string>();
-        _dict.Clear();
+        _interner = _sharedInterner ??= new StringInterner();
+        _interner.Reset();
     }
 
     // Primitive methods
@@ -40,13 +40,13 @@ public class Encoder
             PushInt(0);
             return;
         }
-        var idx = _dict.IndexOf(val);
+
+        var idx = _interner.Intern(val);
         if (idx >= 0)
         {
             PushInt(-idx - 1);
             return;
         }
-        _dict.Add(val);
 
         // Fast path: strings ≤21 chars have max 63 UTF-8 bytes, fits in 1-byte zigzag varint
         if (val.Length <= 21)
@@ -127,11 +127,41 @@ public class Encoder
             innerWrite(val);
     }
 
+    // Generated code passes concrete List<T>; compile-time overload resolution picks
+    // this version and the JIT emits the non-virtual List<T> indexer. The IList<T>
+    // overload below is the fallback for callers like the interpreter.
+    public void PushArray<T>(List<T> val, Action<T> innerWrite)
+    {
+        var count = val.Count;
+        PushUInt((uint)count);
+        for (var i = 0; i < count; i++)
+            innerWrite(val[i]);
+    }
+
     public void PushArray<T>(IList<T> val, Action<T> innerWrite)
     {
-        PushUInt((uint)val.Count);
-        foreach (var item in val)
-            innerWrite(item);
+        var count = val.Count;
+        PushUInt((uint)count);
+        for (var i = 0; i < count; i++)
+            innerWrite(val[i]);
+    }
+
+    // Same overload-pair pattern as PushArray: the concrete OrderedDictionary version
+    // uses indexed access; IDictionary is the interpreter fallback.
+    public void PushRecord<TKey, TValue>(
+        OrderedDictionary<TKey, TValue> val,
+        Action<TKey> innerKeyWrite,
+        Action<TValue> innerValWrite)
+        where TKey : notnull
+    {
+        var count = val.Count;
+        PushUInt((uint)count);
+        for (var i = 0; i < count; i++)
+        {
+            var key = val.GetKeyAtIndex(i);
+            innerKeyWrite(key);
+            innerValWrite(val[key]);
+        }
     }
 
     public void PushRecord<TKey, TValue>(
@@ -154,8 +184,7 @@ public class Encoder
 
     public void PushStringDiff(string a, string b)
     {
-        if (!_dict.Contains(a))
-            _dict.Add(a);
+        _interner.Intern(a);
         PushString(b);
     }
 
@@ -352,4 +381,5 @@ public class Encoder
         if (newSize <= MaxCachedBufferSize)
             _sharedBuffer = newBuffer;
     }
+
 }
