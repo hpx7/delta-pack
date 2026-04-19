@@ -104,7 +104,11 @@ internal sealed record FieldModel(
     string Name,              // C# PascalCase (property name)
     string JsonName,          // camelCase for consistency with CLI output
     TypeRef Type,
-    bool InitOnly);
+    bool InitOnly,
+    // True when the property was declared with the `partial` modifier in user code.
+    // Outside [DeltaPackTracked], the generator still emits a trivial implementing
+    // declaration so users can adopt partial-property syntax ahead of enabling tracking.
+    bool IsDeclaredPartial = false);
 
 internal enum TypeDefKind { Object, Union, Enum }
 

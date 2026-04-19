@@ -176,6 +176,7 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
 
     private static TypeDef? BuildObjectDef(SourceProductionContext ctx, INamedTypeSymbol sym, Dictionary<string, INamedTypeSymbol> enumSink)
     {
+        var isTracked = TypeMapper.HasTrackedAttribute(sym);
         var fieldsBuilder = ImmutableArray.CreateBuilder<FieldModel>();
         foreach (var m in sym.GetMembers())
         {
@@ -184,11 +185,14 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
                 if (prop.SetMethod is null) continue;
                 if (prop.IsIndexer) continue;
                 if (TypeMapper.HasIgnoreAttribute(prop)) continue;
-                var r = TypeMapper.MapField(prop, prop.Type, prop.Locations.FirstOrDefault() ?? sym.Locations.FirstOrDefault() ?? Location.None);
+                var propLocation = prop.Locations.FirstOrDefault() ?? sym.Locations.FirstOrDefault() ?? Location.None;
+                var r = TypeMapper.MapField(prop, prop.Type, propLocation);
                 if (r.Diagnostic is not null) { ctx.ReportDiagnostic(r.Diagnostic); return null; }
                 if (r.Field is not null)
                 {
-                    fieldsBuilder.Add(r.Field);
+                    var field = r.Field with { IsDeclaredPartial = IsDeclaredPartialProperty(prop) };
+                    if (isTracked) ReportTrackedCollectionMismatch(ctx, sym, prop, field);
+                    fieldsBuilder.Add(field);
                     CollectEnumsFromType(prop.Type, enumSink);
                 }
             }
@@ -216,7 +220,36 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
             EnumMembers: EquatableArray<string>.Empty,
             IsAbstract: sym.IsAbstract,
             IsStruct: sym.IsValueType,
-            IsTracked: TypeMapper.HasTrackedAttribute(sym));
+            IsTracked: isTracked);
+    }
+
+    /// <summary>
+    /// In a [DeltaPackTracked] class, collection-typed properties must be declared using
+    /// TrackedList&lt;T&gt; / TrackedOrderedDict&lt;K, V&gt; so per-element mutations are recorded.
+    /// Using List&lt;T&gt; or OrderedDict&lt;K, V&gt; compiles but silently fails to track inner mutations
+    /// — so we emit a targeted diagnostic (DP012 / DP013) pointing at the type syntax.
+    /// </summary>
+    private static void ReportTrackedCollectionMismatch(
+        SourceProductionContext ctx, INamedTypeSymbol owner, IPropertySymbol prop, FieldModel field)
+    {
+        if (field.Type.IsTracked) return;
+        if (field.Type.Kind != Model.TypeKind.Array && field.Type.Kind != Model.TypeKind.Record) return;
+
+        // Prefer to squiggle the type syntax; fall back to the property location.
+        Location location = prop.Locations.FirstOrDefault() ?? owner.Locations.FirstOrDefault() ?? Location.None;
+        foreach (var decl in prop.DeclaringSyntaxReferences)
+        {
+            if (decl.GetSyntax() is PropertyDeclarationSyntax pds)
+            {
+                location = pds.Type.GetLocation();
+                break;
+            }
+        }
+
+        var descriptor = field.Type.Kind == Model.TypeKind.Array
+            ? Diagnostics.TrackedListRequired
+            : Diagnostics.TrackedOrderedDictRequired;
+        ctx.ReportDiagnostic(Diagnostic.Create(descriptor, location, owner.ToDisplayString(), prop.Name));
     }
 
     private static TypeDef? BuildUnionDef(INamedTypeSymbol sym, ImmutableArray<INamedTypeSymbol> variants)

@@ -93,4 +93,20 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor TrackedListRequired = new(
+        id: "DP012",
+        title: "[DeltaPackTracked] list properties must use TrackedList<T>",
+        messageFormat: "Property '{0}.{1}' is declared as List<T>; change to DeltaPack.TrackedList<T> so collection mutations are tracked",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor TrackedOrderedDictRequired = new(
+        id: "DP013",
+        title: "[DeltaPackTracked] map properties must use TrackedOrderedDict<K, V>",
+        messageFormat: "Property '{0}.{1}' is declared as OrderedDict<K, V>; change to DeltaPack.TrackedOrderedDict<K, V> so collection mutations are tracked",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

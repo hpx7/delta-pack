@@ -14,7 +14,7 @@ namespace DeltaPack.Tests.SourceGenerator;
 public class CodeFixTests
 {
     [Fact]
-    public async Task DP006_AddsPartialModifier()
+    public async Task DP001_AddsPartialModifier()
     {
         const string source = @"
 using DeltaPack;
@@ -24,12 +24,12 @@ namespace N {
         public string X { get; set; } = """";
     }
 }";
-        var fixedSource = await ApplyCodeFixAsync(source);
+        var fixedSource = await ApplyCodeFixAsync(source, "DP001", ForClass);
         Assert.Contains("public partial class Foo", fixedSource);
     }
 
     [Fact]
-    public async Task DP006_PreservesOtherModifiers()
+    public async Task DP001_PreservesOtherModifiers()
     {
         const string source = @"
 using DeltaPack;
@@ -38,11 +38,80 @@ namespace N {
     public abstract class Bar {
     }
 }";
-        var fixedSource = await ApplyCodeFixAsync(source);
+        var fixedSource = await ApplyCodeFixAsync(source, "DP001", ForClass);
         Assert.Contains("public abstract partial class Bar", fixedSource);
     }
 
-    private static async Task<string> ApplyCodeFixAsync(string source)
+    [Fact]
+    public async Task DP011_AddsPartialModifierToProperty()
+    {
+        const string source = @"
+using DeltaPack;
+namespace N {
+    [DeltaPack, DeltaPackTracked]
+    public partial class Foo {
+        public float X { get; set; }
+    }
+}";
+        var fixedSource = await ApplyCodeFixAsync(source, "DP011", ForProperty);
+        Assert.Contains("public partial float X", fixedSource);
+    }
+
+    [Fact]
+    public async Task DP012_SwapsListToTrackedList()
+    {
+        const string source = @"
+using DeltaPack;
+using System.Collections.Generic;
+namespace N {
+    [DeltaPack, DeltaPackTracked]
+    public partial class Foo {
+        public partial List<int> Items { get; set; }
+    }
+}";
+        var fixedSource = await ApplyCodeFixAsync(source, "DP012", ForPropertyType);
+        Assert.Contains("DeltaPack.TrackedList<int> Items", fixedSource);
+        Assert.DoesNotContain("List<int> Items", fixedSource.Replace("DeltaPack.TrackedList<int>", ""));
+    }
+
+    [Fact]
+    public async Task DP013_SwapsOrderedDictToTrackedOrderedDict()
+    {
+        const string source = @"
+using DeltaPack;
+namespace N {
+    [DeltaPack, DeltaPackTracked]
+    public partial class Foo {
+        public partial OrderedDict<string, int> Stats { get; set; }
+    }
+}";
+        var fixedSource = await ApplyCodeFixAsync(source, "DP013", ForPropertyType);
+        Assert.Contains("DeltaPack.TrackedOrderedDict<string, int> Stats", fixedSource);
+    }
+
+    // ===== Helpers =====
+
+    private delegate Location LocationPicker(SyntaxNode root);
+
+    private static Location ForClass(SyntaxNode root)
+    {
+        var classDecl = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>().First();
+        return Location.Create(root.SyntaxTree, classDecl.Identifier.Span);
+    }
+
+    private static Location ForProperty(SyntaxNode root)
+    {
+        var propDecl = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax>().First();
+        return Location.Create(root.SyntaxTree, propDecl.Identifier.Span);
+    }
+
+    private static Location ForPropertyType(SyntaxNode root)
+    {
+        var propDecl = root.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.PropertyDeclarationSyntax>().First();
+        return Location.Create(root.SyntaxTree, propDecl.Type.Span);
+    }
+
+    private static async Task<string> ApplyCodeFixAsync(string source, string diagnosticId, LocationPicker pickLocation)
     {
         var workspace = new AdhocWorkspace();
         var projectId = ProjectId.CreateNewId();
@@ -60,24 +129,18 @@ namespace N {
         var project = workspace.AddProject(projectInfo);
         var document = workspace.AddDocument(project.Id, "Test.cs", SourceText.From(source));
 
-        // Synthesize a DP006 diagnostic on the class declaration (the code-fix does not
-        // depend on the generator actually running; it only needs a diagnostic span).
+        // Synthesize a diagnostic matching the generator's descriptor so the code-fix
+        // provider can register an action. (Running the real generator here would require
+        // C# 13 LangVersion on the ad-hoc project; synthesizing keeps the test focused.)
         var root = await document.GetSyntaxRootAsync();
-        var classDecl = root!
-            .DescendantNodes()
-            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ClassDeclarationSyntax>()
-            .First();
         var descriptor = new DiagnosticDescriptor(
-            "DP006",
-            "[DeltaPack] types must be declared partial",
-            "{0} missing partial",
+            diagnosticId,
+            "synthetic",
+            "synthetic {0}",
             "DeltaPack",
             DiagnosticSeverity.Error,
             isEnabledByDefault: true);
-        var diagnostic = Diagnostic.Create(
-            descriptor,
-            Location.Create(root.SyntaxTree, classDecl.Identifier.Span),
-            classDecl.Identifier.Text);
+        var diagnostic = Diagnostic.Create(descriptor, pickLocation(root!), "synth");
 
         var provider = new DeltaPackCodeFixProvider();
         CodeAction? action = null;

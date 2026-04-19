@@ -66,6 +66,27 @@ internal static class ObjectEmitter
             w.Line();
             TrackingEmitter.EmitTrackingMembers(w, def, reg);
         }
+        else
+        {
+            // Users may opt into `partial` property syntax without enabling tracking so they
+            // can flip `[DeltaPackTracked]` on later without touching every property. Emit
+            // trivial implementing declarations for each such property.
+            foreach (var f in def.Fields)
+            {
+                if (!f.IsDeclaredPartial) continue;
+                w.Line();
+                EmitTrivialPartialProperty(w, f, reg);
+            }
+        }
+    }
+
+    private static void EmitTrivialPartialProperty(CodeWriter w, FieldModel f, ModelRegistry reg)
+    {
+        var declared = ExpressionRenderer.CSharpType(f.Type, reg);
+        var backing = "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
+        var defaultInit = ExpressionRenderer.DefaultInitializer(f.Type, reg);
+        w.Line($"private {declared} {backing} = {defaultInit};");
+        w.Line($"public partial {declared} {f.Name} {{ get => {backing}; set => {backing} = value; }}");
     }
 
     private static void EmitFromJson(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)

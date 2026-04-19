@@ -189,16 +189,22 @@ byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/enco
 **Constraints:**
 
 - Serialized properties must be declared `partial` (requires `<LangVersion>13</LangVersion>`
-  in the consuming project — C# 13 partial properties).
-- Collection-typed properties should use `TrackedList<T>` and `TrackedOrderedDict<TKey, TValue>`
-  so mutations through the collection (`.Add`, `.RemoveAt`, indexer set, etc.) are also recorded.
-  Plain `List<T>` / `OrderedDict<TKey, TValue>` are accepted but their internal mutations won't
-  be tracked — the encoder falls back to value comparison for those fields.
+  in the consuming project — C# 13 partial properties). Missing `partial` produces
+  diagnostic `DP011` with an alt-enter code fix.
+- Collection-typed properties must use `TrackedList<T>` and `TrackedOrderedDict<TKey, TValue>`
+  so mutations through the collection (`.Add`, `.RemoveAt`, indexer set, etc.) are recorded.
+  Using `List<T>` or `OrderedDict<TKey, TValue>` on a tracked class produces diagnostics
+  `DP012` / `DP013` with code fixes that swap in the tracked variant.
 - `Clone` on a tracked class also calls `DirtyTracking.RegisterSnapshot`, so the returned
   object's `SnapshotVersion` is set to the current global version. Pass it as the `a` argument
   to `EncodeDiff` to scope the diff to mutations after that point.
 - **Unity is currently unsupported** for `[DeltaPackTracked]` classes — Unity's bundled Roslyn
   doesn't support C# 13 partial properties. Untracked `[DeltaPack]` classes work as before.
+
+**Migrating gradually.** The generator accepts `partial` properties on untracked `[DeltaPack]`
+classes too (it emits a trivial implementing declaration with the same IL as an auto-property).
+You can convert an existing class's properties to `partial` ahead of time, then flip
+`[DeltaPackTracked]` on later without touching every property.
 
 ## API Reference
 
