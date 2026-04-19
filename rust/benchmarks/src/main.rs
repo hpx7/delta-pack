@@ -5,7 +5,6 @@
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
-mod derived;
 mod generated;
 
 use delta_pack::DeltaPack;
@@ -63,7 +62,6 @@ const BENCHMARK_DURATION_MS: u64 = 500;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let save = args.iter().any(|a| a == "--save");
-    let use_derive = args.iter().any(|a| a == "--derive");
     let filter: Vec<&str> = args
         .iter()
         .skip(1)
@@ -78,14 +76,7 @@ fn main() {
         .unwrap()
         .join("examples");
 
-    let mode_label = if use_derive { "derive" } else { "codegen" };
-    println!("Mode: {}", mode_label);
-
-    let mut examples = if use_derive {
-        load_examples_derive(&examples_dir)
-    } else {
-        load_examples_codegen(&examples_dir)
-    };
+    let mut examples = load_examples_codegen(&examples_dir);
 
     if !filter.is_empty() {
         examples.retain(|e| {
@@ -553,23 +544,6 @@ fn load_examples_codegen(examples_dir: &PathBuf) -> Vec<Example> {
         examples.push(e);
     }
     if let Some(e) = load_user_example::<generated::user::User>(examples_dir) {
-        examples.push(e);
-    }
-    examples
-}
-
-fn load_examples_derive(examples_dir: &PathBuf) -> Vec<Example> {
-    let mut examples = Vec::new();
-    if let Some(e) = load_game_state_example::<derived::game_state::GameState>(examples_dir) {
-        examples.push(e);
-    }
-    if let Some(e) = load_primitives_example::<derived::primitives::Primitives>(examples_dir) {
-        examples.push(e);
-    }
-    if let Some(e) = load_test_example::<derived::test::Test>(examples_dir) {
-        examples.push(e);
-    }
-    if let Some(e) = load_user_example::<derived::user::User>(examples_dir) {
         examples.push(e);
     }
     examples

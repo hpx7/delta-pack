@@ -49,10 +49,7 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
           const goldenBytes = readGoldenBytes(example, `${stateName}.snapshot.bin`);
           const state = api.fromJson(stateData);
           const tsEncoded = Buffer.from(api.encode(state));
-          // Encoding order may vary, so only check decoded equality
-          const goldenDecoded = api.decode(goldenBytes);
-          const tsDecoded = api.decode(tsEncoded);
-          expect(api.equals(goldenDecoded, tsDecoded)).toBe(true);
+          expect(tsEncoded.equals(goldenBytes)).toBe(true);
         });
 
         it(`${stateName} decode from golden`, () => {
@@ -83,10 +80,7 @@ function runConformanceTests(mode: "interpreter" | "codegen") {
           const oldState = api.fromJson(JSON.parse(readFileSync(oldPath, "utf8")));
           const newState = api.fromJson(JSON.parse(readFileSync(newPath, "utf8")));
           const tsEncoded = Buffer.from(api.encodeDiff(oldState, newState));
-          // Encoding order may vary, so only check decoded equality
-          const goldenDecoded = api.decodeDiff(oldState, goldenDiff);
-          const tsDecoded = api.decodeDiff(oldState, tsEncoded);
-          expect(api.equals(goldenDecoded, tsDecoded)).toBe(true);
+          expect(tsEncoded.equals(goldenDiff)).toBe(true);
         });
 
         it(`diff ${oldName} -> ${newName} decode from golden`, () => {

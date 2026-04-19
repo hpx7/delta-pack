@@ -1,20 +1,10 @@
-//! Conformance tests: verify both schema entry-points produce byte-identical
-//! output against the committed goldens.
-//!
-//! - **codegen mode**: types imported from `rust/generated/examples/` — the
-//!   CLI emits struct/enum skeletons carrying `#[derive(DeltaPack)]`.
-//! - **derive mode**: types imported from `rust/examples_derived.rs` — the
-//!   same schemas written by hand with `#[derive(DeltaPack)]`.
-//!
-//! Both paths expand through the same proc-macro, so the two halves share a
-//! runtime codepath; the value of running them separately is catching drift
-//! between the hand-written schemas and what the CLI emits from YAML.
+//! Conformance tests: verify CLI-generated types produce byte-identical output
+//! against the committed goldens. The CLI emits structs/enums carrying
+//! `#[derive(DeltaPack)]`, so this exercises both the CLI translation and the
+//! proc-macro expansion.
 
 #[path = "../generated/examples/mod.rs"]
 mod codegen;
-
-#[path = "../examples_derived.rs"]
-mod derived;
 
 use delta_pack::DeltaPack;
 use serde::de::DeserializeOwned;
@@ -88,40 +78,22 @@ where
     }
 }
 
-macro_rules! conformance_for {
-    ($suite:ident, $root:path) => {
-        mod $suite {
-            use super::*;
-            use $root as types;
-
-            #[test]
-            fn primitives() {
-                run_conformance::<types::primitives::Primitives>(
-                    "Primitives",
-                    &["state1", "state2"],
-                );
-            }
-
-            #[test]
-            fn test() {
-                run_conformance::<types::test::Test>("Test", &["state1", "state2"]);
-            }
-
-            #[test]
-            fn user() {
-                run_conformance::<types::user::User>("User", &["state1", "state2"]);
-            }
-
-            #[test]
-            fn game_state() {
-                run_conformance::<types::game_state::GameState>(
-                    "GameState",
-                    &["state1", "state2", "state3"],
-                );
-            }
-        }
-    };
+#[test]
+fn primitives() {
+    run_conformance::<codegen::primitives::Primitives>("Primitives", &["state1", "state2"]);
 }
 
-conformance_for!(cli_codegen, crate::codegen);
-conformance_for!(derive_macro, crate::derived);
+#[test]
+fn test() {
+    run_conformance::<codegen::test::Test>("Test", &["state1", "state2"]);
+}
+
+#[test]
+fn user() {
+    run_conformance::<codegen::user::User>("User", &["state1", "state2"]);
+}
+
+#[test]
+fn game_state() {
+    run_conformance::<codegen::game_state::GameState>("GameState", &["state1", "state2", "state3"]);
+}

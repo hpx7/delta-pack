@@ -65,10 +65,7 @@ public class ConformanceTests
         var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
         var csEncoded = EncodeCodegen(example, stateName);
 
-        // Encoding order may vary, so only check decoded equality
-        var (_, goldenEquals) = DecodeAndCompareCodegen(example, stateName, goldenBytes);
-        var (_, csEquals) = DecodeAndCompareCodegen(example, stateName, csEncoded);
-        Assert.True(goldenEquals && csEquals);
+        Assert.Equal(goldenBytes, csEncoded);
     }
 
     [Theory]
@@ -88,10 +85,7 @@ public class ConformanceTests
         var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
         var csEncoded = EncodeDiffCodegen(example, oldName, newName);
 
-        // Encoding order may vary, so only check decoded equality
-        var goldenDecoded = DecodeDiffAndCompareCodegen(example, oldName, newName, goldenDiff);
-        var csDecoded = DecodeDiffAndCompareCodegen(example, oldName, newName, csEncoded);
-        Assert.True(goldenDecoded && csDecoded);
+        Assert.Equal(goldenDiff, csEncoded);
     }
 
     [Theory]

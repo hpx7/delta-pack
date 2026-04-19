@@ -15,17 +15,11 @@ cargo run --release -p delta-pack-benchmarks -- gamestate user
 
 # Save charts to benchmarks/charts/
 cargo run --release -p delta-pack-benchmarks -- --save
-
-# Run with schemas defined via `#[derive(DeltaPack)]` instead of CLI-generated code
-cargo run --release -p delta-pack-benchmarks -- --derive
-cargo run --release -p delta-pack-benchmarks -- --derive gamestate
 ```
 
-The benchmarks support two delta-pack modes:
-- **Codegen mode** (default): schemas pre-generated from YAML via the CLI (`rust/generated/examples/`).
-- **Derive mode** (`--derive`): schemas defined as native Rust structs/enums with `#[derive(DeltaPack)]` — the derive macro expands to equivalent code at compile time, so runtime performance is comparable.
+Schemas are pre-generated from YAML via the CLI (`rust/generated/examples/`).
 
-## Results (codegen)
+## Results
 
 ### Encoding Speed (ops/s)
 
