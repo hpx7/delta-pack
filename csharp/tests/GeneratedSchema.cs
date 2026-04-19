@@ -882,7 +882,7 @@ namespace Generated
         public System.Collections.Generic.List<Player> Players { get; set; } = new System.Collections.Generic.List<Player>();
         public string? CurrentPlayer { get; set; }
         public long Round { get; set; }
-        public DeltaPack.OrderedDictionary<string, string> Metadata { get; set; } = new DeltaPack.OrderedDictionary<string, string>();
+        public DeltaPack.OrderedDict<string, string> Metadata { get; set; } = new DeltaPack.OrderedDict<string, string>();
         public Color? WinningColor { get; set; }
         public GameAction? LastAction { get; set; }
 
@@ -895,7 +895,7 @@ namespace Generated
                 Players = json.GetProperty("players").EnumerateArray().Select(x => Player.FromJson(x)).ToList(),
                 CurrentPlayer = json.TryGetProperty("currentPlayer", out var currentPlayerEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(currentPlayerEl) ? null : DeltaPack.JsonHelpers.ParseString(currentPlayerEl) : null,
                 Round = json.GetProperty("round").GetInt64(),
-                Metadata = json.GetProperty("metadata").EnumerateObject().ToOrderedDictionary(p => p.Name, p => DeltaPack.JsonHelpers.ParseString(p.Value)),
+                Metadata = json.GetProperty("metadata").EnumerateObject().ToOrderedDict(p => p.Name, p => DeltaPack.JsonHelpers.ParseString(p.Value)),
                 WinningColor = json.TryGetProperty("winningColor", out var winningColorEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(winningColorEl) ? null : DeltaPack.JsonHelpers.ParseEnum<Color>(winningColorEl) : null,
                 LastAction = json.TryGetProperty("lastAction", out var lastActionEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(lastActionEl) ? null : GameAction.FromJson(lastActionEl) : null,
             };
@@ -920,7 +920,7 @@ namespace Generated
                 Players = obj.Players.Select(x => Player.Clone(x)).ToList(),
                 CurrentPlayer = obj.CurrentPlayer,
                 Round = obj.Round,
-                Metadata = new DeltaPack.OrderedDictionary<string, string>(obj.Metadata),
+                Metadata = new DeltaPack.OrderedDict<string, string>(obj.Metadata),
                 WinningColor = obj.WinningColor,
                 LastAction = obj.LastAction != null ? GameAction.Clone(obj.LastAction) : null,
             };
@@ -966,7 +966,7 @@ namespace Generated
             encoder.PushFieldDiff<System.Collections.Generic.List<Player>>(a.Players, b.Players, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => Player.Equals(pair.First, pair.Second)), (x, y) => encoder.PushArrayDiff<Player>(x, y, (x, y) => Player.Equals(x, y), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder)));
             encoder.PushFieldDiff<string?>(a.CurrentPlayer, b.CurrentPlayer, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => x == y), (x, y) => encoder.PushOptionalDiff<string>(x, y, x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y)));
             encoder.PushFieldDiff<long>(a.Round, b.Round, (x, y) => x == y, (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, string>>(a.Metadata, b.Metadata, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), (x, y) => encoder.PushRecordDiff<string, string>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, string>>(a.Metadata, b.Metadata, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), (x, y) => encoder.PushRecordDiff<string, string>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y)));
             encoder.PushFieldDiff<Color?>(a.WinningColor, b.WinningColor, (x, y) => DeltaPack.EqualityHelpers.EqualsOptionalValue(x, y, (x, y) => x == y), (x, y) => encoder.PushOptionalDiff<Color>(x, y, x => encoder.PushEnum((int)x, 2), (x, y) => encoder.PushEnumDiff((int)x, (int)y, 2)));
             encoder.PushFieldDiff<GameAction?>(a.LastAction, b.LastAction, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => GameAction.Equals(x, y)), (x, y) => encoder.PushOptionalDiff<GameAction>(x, y, x => GameAction.Encode_(x, encoder), (x, y) => GameAction.EncodeDiff_(x, y, encoder)));
         }
@@ -1012,7 +1012,7 @@ namespace Generated
 
     public class Inventory
     {
-        public System.Collections.Generic.List<DeltaPack.OrderedDictionary<string, long>>? Items { get; set; }
+        public System.Collections.Generic.List<DeltaPack.OrderedDict<string, long>>? Items { get; set; }
 
         public static Inventory Default() => new();
 
@@ -1020,7 +1020,7 @@ namespace Generated
         {
             return new()
             {
-                Items = json.TryGetProperty("items", out var itemsEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(itemsEl) ? null : itemsEl.EnumerateArray().Select(x => x.EnumerateObject().ToOrderedDictionary(p => p.Name, p => p.Value.GetInt64())).ToList() : null,
+                Items = json.TryGetProperty("items", out var itemsEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(itemsEl) ? null : itemsEl.EnumerateArray().Select(x => x.EnumerateObject().ToOrderedDict(p => p.Name, p => p.Value.GetInt64())).ToList() : null,
             };
         }
 
@@ -1035,7 +1035,7 @@ namespace Generated
         {
             return new()
             {
-                Items = obj.Items != null ? obj.Items.Select(x => new DeltaPack.OrderedDictionary<string, long>(x)).ToList() : null,
+                Items = obj.Items != null ? obj.Items.Select(x => new DeltaPack.OrderedDict<string, long>(x)).ToList() : null,
             };
         }
 
@@ -1065,7 +1065,7 @@ namespace Generated
 
         internal static void EncodeDiff_(Inventory a, Inventory b, DeltaPack.Encoder encoder)
         {
-            encoder.PushFieldDiff<System.Collections.Generic.List<DeltaPack.OrderedDictionary<string, long>>?>(a.Items, b.Items, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => pair.First.Count == pair.Second.Count && pair.First.All(kvp => pair.Second.TryGetValue(kvp.Key, out var v) && kvp.Value == v))), (x, y) => encoder.PushOptionalDiff<System.Collections.Generic.List<DeltaPack.OrderedDictionary<string, long>>>(x, y, x => encoder.PushArray(x, x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x))), (x, y) => encoder.PushArrayDiff<DeltaPack.OrderedDictionary<string, long>>(x, y, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x)), (x, y) => encoder.PushRecordDiff<string, long>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushInt(x), (x, y) => encoder.PushIntDiff(x, y)))));
+            encoder.PushFieldDiff<System.Collections.Generic.List<DeltaPack.OrderedDict<string, long>>?>(a.Items, b.Items, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => pair.First.Count == pair.Second.Count && pair.First.All(kvp => pair.Second.TryGetValue(kvp.Key, out var v) && kvp.Value == v))), (x, y) => encoder.PushOptionalDiff<System.Collections.Generic.List<DeltaPack.OrderedDict<string, long>>>(x, y, x => encoder.PushArray(x, x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x))), (x, y) => encoder.PushArrayDiff<DeltaPack.OrderedDict<string, long>>(x, y, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), x => encoder.PushRecord(x, x => encoder.PushString(x), x => encoder.PushInt(x)), (x, y) => encoder.PushRecordDiff<string, long>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushInt(x), (x, y) => encoder.PushIntDiff(x, y)))));
         }
 
         public static Inventory Decode(byte[] buf)
@@ -1092,14 +1092,14 @@ namespace Generated
         {
             return new()
             {
-                Items = decoder.NextFieldDiff(obj.Items, x => decoder.NextOptionalDiff<System.Collections.Generic.List<DeltaPack.OrderedDictionary<string, long>>>(x, () => decoder.NextArray(() => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt())), x => decoder.NextArrayDiff<DeltaPack.OrderedDictionary<string, long>>(x, () => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt()), x => decoder.NextRecordDiff<string, long>(x, () => decoder.NextString(), () => decoder.NextInt(), x => decoder.NextIntDiff(x))))),
+                Items = decoder.NextFieldDiff(obj.Items, x => decoder.NextOptionalDiff<System.Collections.Generic.List<DeltaPack.OrderedDict<string, long>>>(x, () => decoder.NextArray(() => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt())), x => decoder.NextArrayDiff<DeltaPack.OrderedDict<string, long>>(x, () => decoder.NextRecord(() => decoder.NextString(), () => decoder.NextInt()), x => decoder.NextRecordDiff<string, long>(x, () => decoder.NextString(), () => decoder.NextInt(), x => decoder.NextIntDiff(x))))),
             };
         }
     }
 
     public class PlayerRegistry
     {
-        public DeltaPack.OrderedDictionary<string, Player> Players { get; set; } = new DeltaPack.OrderedDictionary<string, Player>();
+        public DeltaPack.OrderedDict<string, Player> Players { get; set; } = new DeltaPack.OrderedDict<string, Player>();
 
         public static PlayerRegistry Default() => new();
 
@@ -1107,7 +1107,7 @@ namespace Generated
         {
             return new()
             {
-                Players = json.GetProperty("players").EnumerateObject().ToOrderedDictionary(p => p.Name, p => Player.FromJson(p.Value)),
+                Players = json.GetProperty("players").EnumerateObject().ToOrderedDict(p => p.Name, p => Player.FromJson(p.Value)),
             };
         }
 
@@ -1122,7 +1122,7 @@ namespace Generated
         {
             return new()
             {
-                Players = obj.Players.ToOrderedDictionary(kvp => kvp.Key, kvp => Player.Clone(kvp.Value)),
+                Players = obj.Players.ToOrderedDict(kvp => kvp.Key, kvp => Player.Clone(kvp.Value)),
             };
         }
 
@@ -1152,7 +1152,7 @@ namespace Generated
 
         internal static void EncodeDiff_(PlayerRegistry a, PlayerRegistry b, DeltaPack.Encoder encoder)
         {
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, Player>>(a.Players, b.Players, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Player.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Player>(x, y, (x, y) => Player.Equals(x, y), x => encoder.PushString(x), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, Player>>(a.Players, b.Players, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Player.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Player>(x, y, (x, y) => Player.Equals(x, y), x => encoder.PushString(x), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder)));
         }
 
         public static PlayerRegistry Decode(byte[] buf)

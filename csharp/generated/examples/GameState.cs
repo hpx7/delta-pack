@@ -2161,11 +2161,11 @@ namespace Generated.Examples
         public long Round { get; set; }
         public string Phase { get; set; } = "";
         public float TimeRemaining { get; set; }
-        public DeltaPack.OrderedDictionary<string, Player> Players { get; set; } = new DeltaPack.OrderedDictionary<string, Player>();
-        public DeltaPack.OrderedDictionary<string, Enemy> Enemies { get; set; } = new DeltaPack.OrderedDictionary<string, Enemy>();
-        public DeltaPack.OrderedDictionary<string, Projectile> Projectiles { get; set; } = new DeltaPack.OrderedDictionary<string, Projectile>();
-        public DeltaPack.OrderedDictionary<string, DroppedLoot> DroppedLoot { get; set; } = new DeltaPack.OrderedDictionary<string, DroppedLoot>();
-        public DeltaPack.OrderedDictionary<string, WorldObject> WorldObjects { get; set; } = new DeltaPack.OrderedDictionary<string, WorldObject>();
+        public DeltaPack.OrderedDict<string, Player> Players { get; set; } = new DeltaPack.OrderedDict<string, Player>();
+        public DeltaPack.OrderedDict<string, Enemy> Enemies { get; set; } = new DeltaPack.OrderedDict<string, Enemy>();
+        public DeltaPack.OrderedDict<string, Projectile> Projectiles { get; set; } = new DeltaPack.OrderedDict<string, Projectile>();
+        public DeltaPack.OrderedDict<string, DroppedLoot> DroppedLoot { get; set; } = new DeltaPack.OrderedDict<string, DroppedLoot>();
+        public DeltaPack.OrderedDict<string, WorldObject> WorldObjects { get; set; } = new DeltaPack.OrderedDict<string, WorldObject>();
         public System.Collections.Generic.List<TeamScore> TeamScores { get; set; } = new System.Collections.Generic.List<TeamScore>();
         public MatchStats MatchStats { get; set; } = MatchStats.Default();
         public GameSettings Settings { get; set; } = GameSettings.Default();
@@ -2185,11 +2185,11 @@ namespace Generated.Examples
                 Round = json.GetProperty("round").GetInt64(),
                 Phase = DeltaPack.JsonHelpers.ParseString(json.GetProperty("phase")),
                 TimeRemaining = json.GetProperty("timeRemaining").GetSingle(),
-                Players = json.GetProperty("players").EnumerateObject().ToOrderedDictionary(p => p.Name, p => Player.FromJson(p.Value)),
-                Enemies = json.GetProperty("enemies").EnumerateObject().ToOrderedDictionary(p => p.Name, p => Enemy.FromJson(p.Value)),
-                Projectiles = json.GetProperty("projectiles").EnumerateObject().ToOrderedDictionary(p => p.Name, p => Projectile.FromJson(p.Value)),
-                DroppedLoot = json.GetProperty("droppedLoot").EnumerateObject().ToOrderedDictionary(p => p.Name, p => Generated.Examples.DroppedLoot.FromJson(p.Value)),
-                WorldObjects = json.GetProperty("worldObjects").EnumerateObject().ToOrderedDictionary(p => p.Name, p => WorldObject.FromJson(p.Value)),
+                Players = json.GetProperty("players").EnumerateObject().ToOrderedDict(p => p.Name, p => Player.FromJson(p.Value)),
+                Enemies = json.GetProperty("enemies").EnumerateObject().ToOrderedDict(p => p.Name, p => Enemy.FromJson(p.Value)),
+                Projectiles = json.GetProperty("projectiles").EnumerateObject().ToOrderedDict(p => p.Name, p => Projectile.FromJson(p.Value)),
+                DroppedLoot = json.GetProperty("droppedLoot").EnumerateObject().ToOrderedDict(p => p.Name, p => Generated.Examples.DroppedLoot.FromJson(p.Value)),
+                WorldObjects = json.GetProperty("worldObjects").EnumerateObject().ToOrderedDict(p => p.Name, p => WorldObject.FromJson(p.Value)),
                 TeamScores = json.GetProperty("teamScores").EnumerateArray().Select(x => TeamScore.FromJson(x)).ToList(),
                 MatchStats = MatchStats.FromJson(json.GetProperty("matchStats")),
                 Settings = GameSettings.FromJson(json.GetProperty("settings")),
@@ -2232,11 +2232,11 @@ namespace Generated.Examples
                 Round = obj.Round,
                 Phase = obj.Phase,
                 TimeRemaining = obj.TimeRemaining,
-                Players = obj.Players.ToOrderedDictionary(kvp => kvp.Key, kvp => Player.Clone(kvp.Value)),
-                Enemies = obj.Enemies.ToOrderedDictionary(kvp => kvp.Key, kvp => Enemy.Clone(kvp.Value)),
-                Projectiles = obj.Projectiles.ToOrderedDictionary(kvp => kvp.Key, kvp => Projectile.Clone(kvp.Value)),
-                DroppedLoot = obj.DroppedLoot.ToOrderedDictionary(kvp => kvp.Key, kvp => Generated.Examples.DroppedLoot.Clone(kvp.Value)),
-                WorldObjects = obj.WorldObjects.ToOrderedDictionary(kvp => kvp.Key, kvp => WorldObject.Clone(kvp.Value)),
+                Players = obj.Players.ToOrderedDict(kvp => kvp.Key, kvp => Player.Clone(kvp.Value)),
+                Enemies = obj.Enemies.ToOrderedDict(kvp => kvp.Key, kvp => Enemy.Clone(kvp.Value)),
+                Projectiles = obj.Projectiles.ToOrderedDict(kvp => kvp.Key, kvp => Projectile.Clone(kvp.Value)),
+                DroppedLoot = obj.DroppedLoot.ToOrderedDict(kvp => kvp.Key, kvp => Generated.Examples.DroppedLoot.Clone(kvp.Value)),
+                WorldObjects = obj.WorldObjects.ToOrderedDict(kvp => kvp.Key, kvp => WorldObject.Clone(kvp.Value)),
                 TeamScores = obj.TeamScores.Select(x => TeamScore.Clone(x)).ToList(),
                 MatchStats = MatchStats.Clone(obj.MatchStats),
                 Settings = GameSettings.Clone(obj.Settings),
@@ -2311,11 +2311,11 @@ namespace Generated.Examples
             encoder.PushFieldDiff<long>(a.Round, b.Round, (x, y) => x == y, (x, y) => encoder.PushBoundedIntDiff(x, y, 0));
             encoder.PushFieldDiff<string>(a.Phase, b.Phase, (x, y) => x == y, (x, y) => encoder.PushStringDiff(x, y));
             encoder.PushFieldDiff<float>(a.TimeRemaining, b.TimeRemaining, (x, y) => DeltaPack.EqualityHelpers.EqualsFloat(x, y), (x, y) => encoder.PushFloatDiff(x, y));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, Player>>(a.Players, b.Players, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Player.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Player>(x, y, (x, y) => Player.Equals(x, y), x => encoder.PushString(x), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder)));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, Enemy>>(a.Enemies, b.Enemies, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Enemy.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Enemy>(x, y, (x, y) => Enemy.Equals(x, y), x => encoder.PushString(x), x => Enemy.Encode_(x, encoder), (x, y) => Enemy.EncodeDiff_(x, y, encoder)));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, Projectile>>(a.Projectiles, b.Projectiles, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Projectile.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Projectile>(x, y, (x, y) => Projectile.Equals(x, y), x => encoder.PushString(x), x => Projectile.Encode_(x, encoder), (x, y) => Projectile.EncodeDiff_(x, y, encoder)));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, DroppedLoot>>(a.DroppedLoot, b.DroppedLoot, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Generated.Examples.DroppedLoot.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, DroppedLoot>(x, y, (x, y) => Generated.Examples.DroppedLoot.Equals(x, y), x => encoder.PushString(x), x => Generated.Examples.DroppedLoot.Encode_(x, encoder), (x, y) => Generated.Examples.DroppedLoot.EncodeDiff_(x, y, encoder)));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, WorldObject>>(a.WorldObjects, b.WorldObjects, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && WorldObject.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, WorldObject>(x, y, (x, y) => WorldObject.Equals(x, y), x => encoder.PushString(x), x => WorldObject.Encode_(x, encoder), (x, y) => WorldObject.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, Player>>(a.Players, b.Players, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Player.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Player>(x, y, (x, y) => Player.Equals(x, y), x => encoder.PushString(x), x => Player.Encode_(x, encoder), (x, y) => Player.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, Enemy>>(a.Enemies, b.Enemies, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Enemy.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Enemy>(x, y, (x, y) => Enemy.Equals(x, y), x => encoder.PushString(x), x => Enemy.Encode_(x, encoder), (x, y) => Enemy.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, Projectile>>(a.Projectiles, b.Projectiles, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Projectile.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, Projectile>(x, y, (x, y) => Projectile.Equals(x, y), x => encoder.PushString(x), x => Projectile.Encode_(x, encoder), (x, y) => Projectile.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, DroppedLoot>>(a.DroppedLoot, b.DroppedLoot, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && Generated.Examples.DroppedLoot.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, DroppedLoot>(x, y, (x, y) => Generated.Examples.DroppedLoot.Equals(x, y), x => encoder.PushString(x), x => Generated.Examples.DroppedLoot.Encode_(x, encoder), (x, y) => Generated.Examples.DroppedLoot.EncodeDiff_(x, y, encoder)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, WorldObject>>(a.WorldObjects, b.WorldObjects, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && WorldObject.Equals(kvp.Value, v)), (x, y) => encoder.PushRecordDiff<string, WorldObject>(x, y, (x, y) => WorldObject.Equals(x, y), x => encoder.PushString(x), x => WorldObject.Encode_(x, encoder), (x, y) => WorldObject.EncodeDiff_(x, y, encoder)));
             encoder.PushFieldDiff<System.Collections.Generic.List<TeamScore>>(a.TeamScores, b.TeamScores, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => TeamScore.Equals(pair.First, pair.Second)), (x, y) => encoder.PushArrayDiff<TeamScore>(x, y, (x, y) => TeamScore.Equals(x, y), x => TeamScore.Encode_(x, encoder), (x, y) => TeamScore.EncodeDiff_(x, y, encoder)));
             encoder.PushFieldDiff<MatchStats>(a.MatchStats, b.MatchStats, (x, y) => Generated.Examples.MatchStats.Equals(x, y), (x, y) => Generated.Examples.MatchStats.EncodeDiff_(x, y, encoder));
             encoder.PushFieldDiff<GameSettings>(a.Settings, b.Settings, (x, y) => GameSettings.Equals(x, y), (x, y) => GameSettings.EncodeDiff_(x, y, encoder));

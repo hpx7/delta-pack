@@ -146,10 +146,10 @@ public class Encoder
             innerWrite(val[i]);
     }
 
-    // Same overload-pair pattern as PushArray: the concrete OrderedDictionary version
+    // Same overload-pair pattern as PushArray: the concrete OrderedDict version
     // uses indexed access; IDictionary is the interpreter fallback.
     public void PushRecord<TKey, TValue>(
-        OrderedDictionary<TKey, TValue> val,
+        OrderedDict<TKey, TValue> val,
         Action<TKey> innerKeyWrite,
         Action<TValue> innerValWrite)
         where TKey : notnull

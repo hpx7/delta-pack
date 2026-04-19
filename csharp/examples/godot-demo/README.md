@@ -1,0 +1,45 @@
+# Godot demo
+
+Godot 4.6 (.NET) client for the `2d-game` delta-pack example.
+
+Demonstrates that a Godot C# client can consume delta-encoded state from an authoritative server over a plain WebSocket, with the **same `Schema.cs` file** compiled into both server and client — no codegen step, no language-specific serializer plumbing.
+
+## Run
+
+Two terminals:
+
+```bash
+# Terminal 1 — the authoritative server
+cd csharp/examples/2d-game && dotnet run
+
+# Terminal 2 — open csharp/examples/godot-demo/ in Godot 4.6 .NET, then press F5
+```
+
+To see delta-pack as a cross-language wire format, start the TypeScript client alongside the Godot client:
+
+```bash
+cd typescript/examples/2d-game && npm install && npm run client
+```
+
+Both clients appear in the same world, talking to the same C# server, decoding the same delta-encoded bytes.
+
+## How it works
+
+- Godot's `WebSocketPeer` connects to `ws://localhost:3000` and exchanges binary frames.
+- Outgoing `JoinMessage` / `InputMessage` are encoded with `DeltaPackCodec<ClientMessage>`.
+- Incoming bytes are the server's first full `Encode` followed by per-tick `EncodeDiff` against the last message sent to each client — the Godot client mirrors this on the decode side (`Decode` once, then `DecodeDiff` thereafter).
+- `Game.cs` renders each `Player` as a colored square at its `(x, y)` and sends WASD/arrow input at 30 Hz.
+
+## Files
+
+| file | purpose |
+| --- | --- |
+| `Game.cs` | The client. One `Node2D` with `_Process` (poll, send input, drain packets) and `_Draw` (render world + HUD). |
+| `Game.tscn` | One-node scene with `Game.cs` attached. |
+| `DeltaPackGodotDemo.csproj` | References `../../src/DeltaPack.csproj` and **compile-links `../2d-game/Schema.cs`** via `<Compile Include=... Link="SharedSchema.cs" />`. Server and client bind to the same file, not to copies. |
+| `project.godot` | Godot project manifest. `run/main_scene` points at `Game.tscn`. |
+
+## Requirements
+
+- Godot 4.6+ (the **.NET** build — `Godot Engine - .NET.app`, not the plain build)
+- .NET SDK 8.0 or newer

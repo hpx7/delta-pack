@@ -7,3 +7,6 @@ obj/
 # DocFX
 _site/
 api/
+
+# Godot editor cache (regenerated on open)
+.godot/

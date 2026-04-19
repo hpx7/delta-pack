@@ -521,7 +521,7 @@ function renderType(ctx: GeneratorContext, type: Type): string {
       `System.Collections.Generic.List<${renderType(ctx, t.value)}>`,
     optional: (t) => `${renderType(ctx, t.value)}?`,
     record: (t) =>
-      `DeltaPack.OrderedDictionary<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>`,
+      `DeltaPack.OrderedDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>`,
     selfReference: () => ctx.currentTypeName,
     object: (t) => t.name,
     // Union is not referenced via renderType in the generated output paths
@@ -541,7 +541,7 @@ function renderDefault(ctx: GeneratorContext, type: Type): string {
       `new System.Collections.Generic.List<${renderType(ctx, t.value)}>()`,
     optional: () => "null",
     record: (t) =>
-      `new DeltaPack.OrderedDictionary<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>()`,
+      `new DeltaPack.OrderedDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>()`,
     selfReference: () => `${ctx.currentTypeName}.Default()`,
     object: (t) => `${t.name}.Default()`,
     union: (t) => `${t.name}.Default()`,
@@ -571,8 +571,8 @@ function renderFromJson(
       `DeltaPack.JsonHelpers.IsNullOrEmpty(${key}) ? null : ${renderFromJson(ctx, t.value, key, inLambda)}`,
     record: (t) =>
       t.key.type === "string"
-        ? `${key}.EnumerateObject().ToOrderedDictionary(p => p.Name, p => ${renderFromJson(ctx, t.value, "p.Value", true)})`
-        : `${key}.EnumerateObject().ToOrderedDictionary(p => long.Parse(p.Name), p => ${renderFromJson(ctx, t.value, "p.Value", true)})`,
+        ? `${key}.EnumerateObject().ToOrderedDict(p => p.Name, p => ${renderFromJson(ctx, t.value, "p.Value", true)})`
+        : `${key}.EnumerateObject().ToOrderedDict(p => long.Parse(p.Name), p => ${renderFromJson(ctx, t.value, "p.Value", true)})`,
     selfReference: () => `${ctx.currentTypeName}.FromJson(${key})`,
     object: (t) => `${qualifiedCall(ctx, t.name, inLambda)}.FromJson(${key})`,
     union: (t) => `${qualifiedCall(ctx, t.name, inLambda)}.FromJson(${key})`,
@@ -626,8 +626,8 @@ function renderClone(
         : `${key} != null ? ${renderClone(ctx, t.value, key, inLambda)} : null`,
     record: (t) =>
       isPrimitiveOrEnum(t.value)
-        ? `new DeltaPack.OrderedDictionary<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>(${key})`
-        : `${key}.ToOrderedDictionary(kvp => kvp.Key, kvp => ${renderClone(ctx, t.value, "kvp.Value", true)})`,
+        ? `new DeltaPack.OrderedDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>(${key})`
+        : `${key}.ToOrderedDict(kvp => kvp.Key, kvp => ${renderClone(ctx, t.value, "kvp.Value", true)})`,
     selfReference: () => `${ctx.currentTypeName}.Clone(${key})`,
     object: (t) => `${qualifiedCall(ctx, t.name, inLambda)}.Clone(${key})`,
     union: (t) => `${qualifiedCall(ctx, t.name, inLambda)}.Clone(${key})`,

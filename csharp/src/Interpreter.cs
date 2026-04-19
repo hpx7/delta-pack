@@ -242,11 +242,11 @@ public static class Interpreter
             return arr;
         }
 
-        private OrderedDictionary<object, object?> DecodeRecord(RecordType rt, Decoder decoder)
+        private OrderedDict<object, object?> DecodeRecord(RecordType rt, Decoder decoder)
         {
             // Inline NextRecord to avoid lambda allocation
             var len = (int)decoder.NextUInt();
-            var dict = new OrderedDictionary<object, object?>(len);
+            var dict = new OrderedDict<object, object?>(len);
             for (var i = 0; i < len; i++)
                 dict[Decode(rt.Key, decoder)!] = Decode(rt.Value, decoder);
             return dict;
@@ -360,10 +360,10 @@ public static class Interpreter
             return arr.Select(item => Clone(item, at.Value)).ToList();
         }
 
-        private OrderedDictionary<object, object?> CloneRecord(object? obj, RecordType rt)
+        private OrderedDict<object, object?> CloneRecord(object? obj, RecordType rt)
         {
             var dict = (IDictionary<object, object?>)obj!;
-            var result = new OrderedDictionary<object, object?>(dict.Count);
+            var result = new OrderedDict<object, object?>(dict.Count);
             foreach (var kvp in dict)
                 result[kvp.Key] = Clone(kvp.Value, rt.Value);
             return result;
@@ -638,9 +638,9 @@ public static class Interpreter
                 () => Decode(at.Value, decoder),
                 item => DecodeDiffValue(item, at.Value, decoder));
 
-        private OrderedDictionary<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder) =>
+        private OrderedDict<object, object?> DecodeDiffRecord(object? a, RecordType rt, Decoder decoder) =>
             decoder.NextRecordDiff(
-                (OrderedDictionary<object, object?>)a!,
+                (OrderedDict<object, object?>)a!,
                 () => Decode(rt.Key, decoder)!,
                 () => Decode(rt.Value, decoder),
                 val => DecodeDiffValue(val, rt.Value, decoder));
@@ -729,9 +729,9 @@ public static class Interpreter
             return result;
         }
 
-        private OrderedDictionary<object, object?> FromJsonRecord(JsonElement json, RecordType rt)
+        private OrderedDict<object, object?> FromJsonRecord(JsonElement json, RecordType rt)
         {
-            var result = new OrderedDictionary<object, object?>();
+            var result = new OrderedDict<object, object?>();
             foreach (var prop in json.EnumerateObject())
             {
                 var key = ParseRecordKey(prop.Name, rt.Key);

@@ -7,25 +7,25 @@ namespace DeltaPack;
 /// A dictionary that preserves insertion order.
 /// Backed by a List for ordered storage and a Dictionary for O(1) key lookup.
 /// </summary>
-public class OrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
+public class OrderedDict<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
     private readonly List<KeyValuePair<TKey, TValue>> _list;
     private readonly Dictionary<TKey, int> _index;
 
-    public OrderedDictionary()
+    public OrderedDict()
     {
         _list = new List<KeyValuePair<TKey, TValue>>();
         _index = new Dictionary<TKey, int>();
     }
 
-    public OrderedDictionary(int capacity)
+    public OrderedDict(int capacity)
     {
         _list = new List<KeyValuePair<TKey, TValue>>(capacity);
         _index = new Dictionary<TKey, int>(capacity);
     }
 
-    public OrderedDictionary(IDictionary<TKey, TValue> source)
+    public OrderedDict(IDictionary<TKey, TValue> source)
     {
         _list = new List<KeyValuePair<TKey, TValue>>(source.Count);
         _index = new Dictionary<TKey, int>(source.Count);
@@ -152,7 +152,7 @@ public class OrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDicti
     private sealed class DictionaryEnumerator : IDictionaryEnumerator
     {
         private readonly IEnumerator<KeyValuePair<TKey, TValue>> _inner;
-        public DictionaryEnumerator(OrderedDictionary<TKey, TValue> dict) => _inner = dict._list.GetEnumerator();
+        public DictionaryEnumerator(OrderedDict<TKey, TValue> dict) => _inner = dict._list.GetEnumerator();
         public DictionaryEntry Entry => new(_inner.Current.Key, _inner.Current.Value);
         public object Key => _inner.Current.Key;
         public object? Value => _inner.Current.Value;
@@ -162,14 +162,14 @@ public class OrderedDictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDicti
     }
 }
 
-public static class OrderedDictionaryExtensions
+public static class OrderedDictExtensions
 {
-    public static OrderedDictionary<TKey, TValue> ToOrderedDictionary<TSource, TKey, TValue>(
+    public static OrderedDict<TKey, TValue> ToOrderedDict<TSource, TKey, TValue>(
         this IEnumerable<TSource> source,
         Func<TSource, TKey> keySelector,
         Func<TSource, TValue> valueSelector) where TKey : notnull
     {
-        var dict = new OrderedDictionary<TKey, TValue>();
+        var dict = new OrderedDict<TKey, TValue>();
         foreach (var item in source)
             dict[keySelector(item)] = valueSelector(item);
         return dict;

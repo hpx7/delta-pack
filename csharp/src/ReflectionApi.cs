@@ -233,9 +233,9 @@ public sealed class DeltaPackCodec<T> where T : class
         return result;
     }
 
-    private OrderedDictionary<object, object?> ToUntypedDictionary(IDictionary dict, DictionaryMapping mapping)
+    private OrderedDict<object, object?> ToUntypedDictionary(IDictionary dict, DictionaryMapping mapping)
     {
-        var result = new OrderedDictionary<object, object?>();
+        var result = new OrderedDict<object, object?>();
         foreach (DictionaryEntry entry in dict)
         {
             // Convert key to interpreter's expected type (long for int types)
@@ -383,7 +383,7 @@ public sealed class DeltaPackCodec<T> where T : class
     {
         var valueType = GetElementType(mapping.Value);
         var typedDict = (IDictionary)Activator.CreateInstance(
-            typeof(OrderedDictionary<,>).MakeGenericType(mapping.KeyType, valueType))!;
+            typeof(OrderedDict<,>).MakeGenericType(mapping.KeyType, valueType))!;
         foreach (var (key, value) in dict)
         {
             var typedKey = ConvertKeyToTyped(key, mapping.KeyType);
@@ -478,15 +478,26 @@ internal sealed class SchemaBuilder
             return new ArrayMapping(BuildMapping(elementType));
         }
 
-        // Dictionaries
-        if (type.IsGenericType && (type.GetGenericTypeDefinition() == typeof(OrderedDictionary<,>)
-            || type.GetGenericTypeDefinition() == typeof(Dictionary<,>)))
+        // Maps
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(OrderedDict<,>))
         {
             var args = type.GetGenericArguments();
             var keyType = args[0];
             if (keyType != typeof(string) && !IsSignedInt(keyType) && !IsUnsignedInt(keyType))
-                throw new ArgumentException($"Dictionary keys must be string, int, uint, long, or ulong, got {keyType.Name}");
+                throw new ArgumentException($"Map keys must be string, int, uint, long, or ulong, got {keyType.Name}");
             return new DictionaryMapping(BuildMapping(keyType), BuildMapping(args[1]), keyType);
+        }
+        if (type.IsGenericType)
+        {
+            var genDef = type.GetGenericTypeDefinition();
+            if (genDef == typeof(Dictionary<,>)
+                || genDef.FullName == "System.Collections.Generic.OrderedDictionary`2")
+            {
+                throw new ArgumentException(
+                    $"Map properties must be declared as DeltaPack.OrderedDict<TKey, TValue> (got '{type}'). " +
+                    $"Dictionary<TKey, TValue> and System.Collections.Generic.OrderedDictionary<TKey, TValue> are not supported: " +
+                    $"delta-pack diffs encode deletions/updates by insertion index, which requires an insertion-ordered map.");
+            }
         }
 
         // Check for union attribute on abstract/interface types

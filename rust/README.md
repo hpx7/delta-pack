@@ -263,7 +263,7 @@ Delta-Pack ensures binary compatibility across Rust, TypeScript, and C#:
 - Conformance tests verify encode/decode compatibility
 - Diff encoding uses sorted keys for deterministic output
 
-All languages use insertion-order-preserving maps (`IndexMap` in Rust, `Map` in TypeScript, `OrderedDictionary` in C#), producing deterministic encoding for the same insertion order.
+All languages use insertion-order-preserving maps (`IndexMap` in Rust, `Map` in TypeScript, `OrderedDict` in C#), producing deterministic encoding for the same insertion order.
 
 ## License
 

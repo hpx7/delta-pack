@@ -461,7 +461,7 @@ namespace Generated.Examples
         public HairColor HairColor { get; set; } = HairColor.BLACK;
         public Address? Address { get; set; }
         public System.Collections.Generic.List<User> Children { get; set; } = new System.Collections.Generic.List<User>();
-        public DeltaPack.OrderedDictionary<string, string> Metadata { get; set; } = new DeltaPack.OrderedDictionary<string, string>();
+        public DeltaPack.OrderedDict<string, string> Metadata { get; set; } = new DeltaPack.OrderedDict<string, string>();
         public Contact? PreferredContact { get; set; }
 
         public static User Default() => new();
@@ -478,7 +478,7 @@ namespace Generated.Examples
                 HairColor = DeltaPack.JsonHelpers.ParseEnum<HairColor>(json.GetProperty("hairColor")),
                 Address = json.TryGetProperty("address", out var addressEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(addressEl) ? null : Address.FromJson(addressEl) : null,
                 Children = json.GetProperty("children").EnumerateArray().Select(x => User.FromJson(x)).ToList(),
-                Metadata = json.GetProperty("metadata").EnumerateObject().ToOrderedDictionary(p => p.Name, p => DeltaPack.JsonHelpers.ParseString(p.Value)),
+                Metadata = json.GetProperty("metadata").EnumerateObject().ToOrderedDict(p => p.Name, p => DeltaPack.JsonHelpers.ParseString(p.Value)),
                 PreferredContact = json.TryGetProperty("preferredContact", out var preferredContactEl) ? DeltaPack.JsonHelpers.IsNullOrEmpty(preferredContactEl) ? null : Contact.FromJson(preferredContactEl) : null,
             };
         }
@@ -511,7 +511,7 @@ namespace Generated.Examples
                 HairColor = obj.HairColor,
                 Address = obj.Address != null ? Address.Clone(obj.Address) : null,
                 Children = obj.Children.Select(x => User.Clone(x)).ToList(),
-                Metadata = new DeltaPack.OrderedDictionary<string, string>(obj.Metadata),
+                Metadata = new DeltaPack.OrderedDict<string, string>(obj.Metadata),
                 PreferredContact = obj.PreferredContact != null ? Contact.Clone(obj.PreferredContact) : null,
             };
         }
@@ -568,7 +568,7 @@ namespace Generated.Examples
             encoder.PushFieldDiff<HairColor>(a.HairColor, b.HairColor, (x, y) => x == y, (x, y) => encoder.PushEnumDiff((int)x, (int)y, 3));
             encoder.PushFieldDiff<Address?>(a.Address, b.Address, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => Generated.Examples.Address.Equals(x, y)), (x, y) => encoder.PushOptionalDiff<Address>(x, y, x => Generated.Examples.Address.Encode_(x, encoder), (x, y) => Generated.Examples.Address.EncodeDiff_(x, y, encoder)));
             encoder.PushFieldDiff<System.Collections.Generic.List<User>>(a.Children, b.Children, (x, y) => x.Count == y.Count && x.Zip(y).All(pair => User.Equals(pair.First, pair.Second)), (x, y) => encoder.PushArrayDiff<User>(x, y, (x, y) => User.Equals(x, y), x => User.Encode_(x, encoder), (x, y) => User.EncodeDiff_(x, y, encoder)));
-            encoder.PushFieldDiff<DeltaPack.OrderedDictionary<string, string>>(a.Metadata, b.Metadata, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), (x, y) => encoder.PushRecordDiff<string, string>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y)));
+            encoder.PushFieldDiff<DeltaPack.OrderedDict<string, string>>(a.Metadata, b.Metadata, (x, y) => x.Count == y.Count && x.All(kvp => y.TryGetValue(kvp.Key, out var v) && kvp.Value == v), (x, y) => encoder.PushRecordDiff<string, string>(x, y, (x, y) => x == y, x => encoder.PushString(x), x => encoder.PushString(x), (x, y) => encoder.PushStringDiff(x, y)));
             encoder.PushFieldDiff<Contact?>(a.PreferredContact, b.PreferredContact, (x, y) => DeltaPack.EqualityHelpers.EqualsOptional(x, y, (x, y) => Contact.Equals(x, y)), (x, y) => encoder.PushOptionalDiff<Contact>(x, y, x => Contact.Encode_(x, encoder), (x, y) => Contact.EncodeDiff_(x, y, encoder)));
         }
 

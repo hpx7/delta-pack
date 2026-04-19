@@ -238,7 +238,7 @@ public class InterpreterTests
 
         var playerScores = new Dictionary<string, object?>
         {
-            ["scores"] = new OrderedDictionary<object, object?>
+            ["scores"] = new OrderedDict<object, object?>
             {
                 [1L] = "Alice",
                 [2L] = "Bob",
@@ -269,7 +269,7 @@ public class InterpreterTests
 
         var a = new Dictionary<string, object?>
         {
-            ["scores"] = new OrderedDictionary<object, object?>
+            ["scores"] = new OrderedDict<object, object?>
             {
                 [1L] = "Alice",
                 [2L] = "Bob"
@@ -278,7 +278,7 @@ public class InterpreterTests
 
         var b = new Dictionary<string, object?>
         {
-            ["scores"] = new OrderedDictionary<object, object?>
+            ["scores"] = new OrderedDict<object, object?>
             {
                 [1L] = "Alicia",  // Changed
                 [3L] = "Charlie" // Added (2 removed)
