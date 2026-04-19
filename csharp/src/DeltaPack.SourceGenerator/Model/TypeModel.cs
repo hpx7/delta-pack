@@ -48,16 +48,20 @@ internal sealed record TypeRef(
     TypeRef? ElementType = null,
     TypeRef? KeyType = null,
     TypeRef? ValueType = null,
-    string? ReferenceName = null)
+    string? ReferenceName = null,
+    // True when an Array/Record was declared using TrackedList<T> / TrackedOrderedDict<K,V>.
+    // Binary format is identical to the untracked variant; this flag only affects the emitted
+    // C# concrete type (TrackedList vs List, TrackedOrderedDict vs OrderedDict).
+    bool IsTracked = false)
 {
     public static TypeRef String() => new(TypeKind.String);
     public static TypeRef Boolean() => new(TypeKind.Boolean);
     public static TypeRef Float(float? precision) => new(TypeKind.Float, FloatPrecision: precision);
     public static TypeRef Int(IntStorage storage, long? min = null, long? max = null, byte? numBits = null)
         => new(TypeKind.Int, IntStorage: storage, IntMin: min, IntMax: max, IntNumBits: numBits);
-    public static TypeRef Array(TypeRef element) => new(TypeKind.Array, ElementType: element);
+    public static TypeRef Array(TypeRef element, bool isTracked = false) => new(TypeKind.Array, ElementType: element, IsTracked: isTracked);
     public static TypeRef Optional(TypeRef inner) => new(TypeKind.Optional, ElementType: inner);
-    public static TypeRef Record(TypeRef key, TypeRef value) => new(TypeKind.Record, KeyType: key, ValueType: value);
+    public static TypeRef Record(TypeRef key, TypeRef value, bool isTracked = false) => new(TypeKind.Record, KeyType: key, ValueType: value, IsTracked: isTracked);
     public static TypeRef Reference(string fullyQualifiedName) => new(TypeKind.Reference, ReferenceName: fullyQualifiedName);
 }
 
@@ -118,4 +122,5 @@ internal sealed record TypeDef(
     EquatableArray<string> UnionVariants,    // fully-qualified variant names (unions only)
     EquatableArray<string> EnumMembers,      // member names in declaration order (enums only)
     bool IsAbstract,
-    bool IsStruct = false);
+    bool IsStruct = false,
+    bool IsTracked = false);          // true if annotated with [DeltaPackTracked]

@@ -127,7 +127,7 @@ public class Encoder
             innerWrite(val);
     }
 
-    public void PushArray<T>(List<T> val, Action<T> innerWrite)
+    public void PushArray<T>(IList<T> val, Action<T> innerWrite)
     {
         var count = val.Count;
         PushUInt((uint)count);
@@ -137,6 +137,27 @@ public class Encoder
 
     public void PushRecord<TKey, TValue>(
         OrderedDict<TKey, TValue> val,
+        Action<TKey> innerKeyWrite,
+        Action<TValue> innerValWrite)
+        where TKey : notnull
+    {
+        var count = val.Count;
+        PushUInt((uint)count);
+        for (var i = 0; i < count; i++)
+        {
+            var key = val.GetKeyAtIndex(i);
+            innerKeyWrite(key);
+            innerValWrite(val[key]);
+        }
+    }
+
+    /// <summary>
+    /// Tracked-container overload — picked by overload resolution when the generated code
+    /// passes a <see cref="TrackedOrderedDict{TKey, TValue}"/>. Same wire format as the
+    /// <see cref="OrderedDict{TKey, TValue}"/> path.
+    /// </summary>
+    public void PushRecord<TKey, TValue>(
+        TrackedOrderedDict<TKey, TValue> val,
         Action<TKey> innerKeyWrite,
         Action<TValue> innerValWrite)
         where TKey : notnull
@@ -186,7 +207,21 @@ public class Encoder
 
     public void PushObjectDiff<T>(T a, T b, Func<T, T, bool> equals, Action encodeDiff)
     {
-        var changed = !equals(a, b);
+        bool changed;
+        if (b is IDirtyTracked tb && tb.DirtyFields is { } dirty)
+        {
+            // Tracked fast path: scan versions instead of walking every field.
+            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
+            changed = false;
+            foreach (var kvp in dirty)
+            {
+                if (kvp.Value > minVersion) { changed = true; break; }
+            }
+        }
+        else
+        {
+            changed = !equals(a, b);
+        }
         PushBoolean(changed);
         if (changed)
             encodeDiff();
@@ -200,6 +235,36 @@ public class Encoder
         PushBoolean(changed);
         if (changed)
             encodeDiff(a, b);
+    }
+
+    /// <summary>
+    /// Tracked-aware field diff. When the parent <paramref name="b"/> carries dirty metadata,
+    /// fields whose recorded version is ≤ the snapshot version are emitted as a false-bit with
+    /// no payload and no equality call. Otherwise falls back to the <paramref name="equals"/> path.
+    /// </summary>
+    public void PushFieldDiff<TParent, T>(
+        TParent a,
+        TParent b,
+        string key,
+        Func<TParent, T> get,
+        Func<T, T, bool> equals,
+        Action<T, T> encodeDiff)
+    {
+        if (b is IDirtyTracked tb && tb.DirtyFields is { } dirty)
+        {
+            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
+            if (!dirty.TryGetValue(key, out var v) || v <= minVersion)
+            {
+                PushBoolean(false);
+                return;
+            }
+        }
+        var aVal = get(a);
+        var bVal = get(b);
+        var changed = !equals(aVal, bVal);
+        PushBoolean(changed);
+        if (changed)
+            encodeDiff(aVal, bVal);
     }
 
     // Optional diff
@@ -251,10 +316,24 @@ public class Encoder
         // Collect changed indices (sparse encoding)
         var updates = new List<int>();
         var minLen = Math.Min(a.Count, b.Count);
-        for (var i = 0; i < minLen; i++)
+
+        if (b is IDirtyTracked tb && tb.DirtyIndices is { } dirty)
         {
-            if (!equals(a[i], b[i]))
-                updates.Add(i);
+            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
+            foreach (var kvp in dirty)
+            {
+                if (kvp.Key < minLen && kvp.Value > minVersion)
+                    updates.Add(kvp.Key);
+            }
+            updates.Sort();
+        }
+        else
+        {
+            for (var i = 0; i < minLen; i++)
+            {
+                if (!equals(a[i], b[i]))
+                    updates.Add(i);
+            }
         }
 
         // Write updates (sparse)
@@ -284,26 +363,72 @@ public class Encoder
         var deletions = new List<int>();
         var additions = new List<(TKey key, TValue val)>();
 
-        // Check all keys, tracking position for index-based encoding
-        var idx = 0;
-        foreach (var (aKey, aVal) in a)
+        if (b is TrackedOrderedDict<TKey, TValue> tb)
         {
-            if (b.TryGetValue(aKey, out var bVal))
-            {
-                if (!valueEquals(aVal, bVal))
-                    updates.Add((idx, aKey));
-            }
-            else
-            {
-                deletions.Add(idx);
-            }
-            idx++;
-        }
+            // Tracked fast path: use per-key change maps instead of scanning both sides.
+            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
 
-        foreach (var (bKey, bVal) in b)
+            // keyToIndex is only needed for deletions and updates, both of which look up keys
+            // in `a`. Skip the dict build when there are no potentially-applicable entries.
+            Dictionary<TKey, int>? keyToIndex = null;
+            if (a.Count > 0 && (tb.DeletedKeys.Count > 0 || tb.DirtyKeys.Count > 0))
+            {
+                keyToIndex = new Dictionary<TKey, int>(a.Count);
+                var pos = 0;
+                foreach (var kvp in a)
+                    keyToIndex[kvp.Key] = pos++;
+            }
+
+            if (keyToIndex is not null)
+            {
+                foreach (var kvp in tb.DeletedKeys)
+                {
+                    if (kvp.Value > minVersion && keyToIndex.TryGetValue(kvp.Key, out var di))
+                        deletions.Add(di);
+                }
+                deletions.Sort();
+
+                foreach (var kvp in tb.DirtyKeys)
+                {
+                    if (kvp.Value > minVersion
+                        && keyToIndex.TryGetValue(kvp.Key, out var ui)
+                        && tb.ContainsKey(kvp.Key))
+                        updates.Add((ui, kvp.Key));
+                }
+                updates.Sort((x, y) => x.idx.CompareTo(y.idx));
+            }
+
+            // Additions: iterate b in insertion order to match the untracked encoder's ordering.
+            foreach (var kvp in tb)
+            {
+                if (tb.CreatedKeys.TryGetValue(kvp.Key, out var v)
+                    && v > minVersion
+                    && !a.ContainsKey(kvp.Key))
+                    additions.Add((kvp.Key, kvp.Value));
+            }
+        }
+        else
         {
-            if (!a.ContainsKey(bKey))
-                additions.Add((bKey, bVal));
+            var idx = 0;
+            foreach (var (aKey, aVal) in a)
+            {
+                if (b.TryGetValue(aKey, out var bVal))
+                {
+                    if (!valueEquals(aVal, bVal))
+                        updates.Add((idx, aKey));
+                }
+                else
+                {
+                    deletions.Add(idx);
+                }
+                idx++;
+            }
+
+            foreach (var (bKey, bVal) in b)
+            {
+                if (!a.ContainsKey(bKey))
+                    additions.Add((bKey, bVal));
+            }
         }
 
         if (a.Count > 0)

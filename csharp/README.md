@@ -159,6 +159,47 @@ public partial class Bow : Weapon
 }
 ```
 
+### `[DeltaPackTracked]`
+
+Opt-in change tracking. The generator emits dirty-marking setters on partial properties so
+`EncodeDiff` skips equality comparisons on fields that haven't been mutated since the
+snapshot was taken — same wire format as the untracked encoder, lower CPU cost.
+
+```csharp
+[DeltaPack, DeltaPackTracked]
+public partial class Player
+{
+    public partial string Name { get; set; }
+    public partial uint Score { get; set; }
+    public partial Position Pos { get; set; }
+    public partial TrackedList<int> Inventory { get; set; }
+    public partial TrackedOrderedDict<string, int> Stats { get; set; }
+}
+
+var live = Player.Default();
+live.Name = "Alice";
+live.Score = 10;
+
+var snapshot = Player.Clone(live);  // captures the current global version
+live.Score = 25;                    // recorded as dirty since snapshot
+
+byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/encoded
+```
+
+**Constraints:**
+
+- Serialized properties must be declared `partial` (requires `<LangVersion>13</LangVersion>`
+  in the consuming project — C# 13 partial properties).
+- Collection-typed properties should use `TrackedList<T>` and `TrackedOrderedDict<TKey, TValue>`
+  so mutations through the collection (`.Add`, `.RemoveAt`, indexer set, etc.) are also recorded.
+  Plain `List<T>` / `OrderedDict<TKey, TValue>` are accepted but their internal mutations won't
+  be tracked — the encoder falls back to value comparison for those fields.
+- `Clone` on a tracked class also calls `DirtyTracking.RegisterSnapshot`, so the returned
+  object's `SnapshotVersion` is set to the current global version. Pass it as the `a` argument
+  to `EncodeDiff` to scope the diff to mutations after that point.
+- **Unity is currently unsupported** for `[DeltaPackTracked]` classes — Unity's bundled Roslyn
+  doesn't support C# 13 partial properties. Untracked `[DeltaPack]` classes work as before.
+
 ## API Reference
 
 For every `[DeltaPack] partial class T`, the generator emits these static methods:

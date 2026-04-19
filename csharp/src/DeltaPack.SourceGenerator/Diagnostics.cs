@@ -77,4 +77,20 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor TrackedRequiresDeltaPack = new(
+        id: "DP010",
+        title: "[DeltaPackTracked] requires [DeltaPack]",
+        messageFormat: "Type '{0}' is marked [DeltaPackTracked] but is missing [DeltaPack]; tracking only applies to delta-pack generated types",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor TrackedPropertyMustBePartial = new(
+        id: "DP011",
+        title: "[DeltaPackTracked] serialized properties must be declared 'partial'",
+        messageFormat: "Property '{0}.{1}' must be declared 'partial' in a [DeltaPackTracked] class so the source generator can emit a dirty-tracking setter (requires C# 13)",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

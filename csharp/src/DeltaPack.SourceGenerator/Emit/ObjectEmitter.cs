@@ -30,7 +30,9 @@ internal static class ObjectEmitter
         // Preserve `abstract` modifier on the partial; the user already declared the type.
         var abstractKw = def.IsAbstract ? "abstract " : "";
         var kindKw = def.IsStruct ? "struct" : "class";
-        return $"{abstractKw}partial {kindKw} {def.SimpleName}";
+        // Tracked classes need to declare the interface on at least one partial part.
+        var bases = def.IsTracked ? " : DeltaPack.IDirtyTracked" : "";
+        return $"{abstractKw}partial {kindKw} {def.SimpleName}{bases}";
     }
 
     private static void EmitStaticMembers(CodeWriter w, TypeDef def, ModelRegistry reg, bool hidesBase)
@@ -58,6 +60,12 @@ internal static class ObjectEmitter
         EmitDecode(w, def, reg, newIfHides);
         w.Line();
         EmitDecodeDiff(w, def, reg, "");
+
+        if (def.IsTracked)
+        {
+            w.Line();
+            TrackingEmitter.EmitTrackingMembers(w, def, reg);
+        }
     }
 
     private static void EmitFromJson(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
@@ -93,12 +101,18 @@ internal static class ObjectEmitter
     {
         using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
         {
-            using (w.Block("return new()"))
+            var header = def.IsTracked ? $"var result = new {def.SimpleName}" : "return new()";
+            using (w.Block(header))
             {
                 foreach (var f in def.Fields)
                     w.Line($"{f.Name} = {ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg)},");
             }
             w.Line(";");
+            if (def.IsTracked)
+            {
+                w.Line("DeltaPack.DirtyTracking.RegisterSnapshot(result, obj);");
+                w.Line("return result;");
+            }
         }
     }
 
@@ -145,7 +159,7 @@ internal static class ObjectEmitter
         using (w.Block($"internal static {newKw}void EncodeDiff_({def.SimpleName} a, {def.SimpleName} b, DeltaPack.Encoder encoder)"))
         {
             foreach (var f in def.Fields)
-                ExpressionRenderer.EncodeDiffField(w, f, reg, "a", "b");
+                ExpressionRenderer.EncodeDiffField(w, f, reg, "a", "b", def.SimpleName, def.IsTracked);
         }
     }
 

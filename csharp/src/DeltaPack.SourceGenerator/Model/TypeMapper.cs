@@ -11,6 +11,7 @@ internal static class TypeMapper
     public const string DeltaPackIgnoreAttributeFullName = "DeltaPack.DeltaPackIgnoreAttribute";
     public const string DeltaPackPrecisionAttributeFullName = "DeltaPack.DeltaPackPrecisionAttribute";
     public const string DeltaPackRangeAttributeFullName = "DeltaPack.DeltaPackRangeAttribute";
+    public const string DeltaPackTrackedAttributeFullName = "DeltaPack.DeltaPackTrackedAttribute";
     public const string DeltaPackUnionAttributeFullName = "DeltaPack.DeltaPackUnionAttribute";
     public const string OrderedDictMetadataName = "DeltaPack.OrderedDict`2";
 
@@ -135,6 +136,14 @@ internal static class TypeMapper
                 return new TypeMapResult(TypeRef.Array(elem.Type), null);
             }
 
+            // DeltaPack.TrackedList<T>
+            if (constructedMetadata == "global::DeltaPack.TrackedList<T>")
+            {
+                var elem = MapType(n.TypeArguments[0], null, null, null, location);
+                if (elem.Type is null) return elem;
+                return new TypeMapResult(TypeRef.Array(elem.Type, isTracked: true), null);
+            }
+
             // DeltaPack.OrderedDict<K,V>
             if (constructedMetadata == "global::DeltaPack.OrderedDict<TKey, TValue>")
             {
@@ -143,6 +152,16 @@ internal static class TypeMapper
                 if (k.Type is null) return k;
                 if (v.Type is null) return v;
                 return new TypeMapResult(TypeRef.Record(k.Type, v.Type), null);
+            }
+
+            // DeltaPack.TrackedOrderedDict<K,V>
+            if (constructedMetadata == "global::DeltaPack.TrackedOrderedDict<TKey, TValue>")
+            {
+                var k = MapType(n.TypeArguments[0], null, null, null, location);
+                var v = MapType(n.TypeArguments[1], null, null, null, location);
+                if (k.Type is null) return k;
+                if (v.Type is null) return v;
+                return new TypeMapResult(TypeRef.Record(k.Type, v.Type, isTracked: true), null);
             }
 
             // Dictionary<,> or System.Collections.Generic.OrderedDictionary<,> → error
@@ -189,6 +208,9 @@ internal static class TypeMapper
 
     public static bool HasDeltaPackAttribute(INamedTypeSymbol type)
         => type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == DeltaPackAttributeFullName);
+
+    public static bool HasTrackedAttribute(INamedTypeSymbol type)
+        => type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == DeltaPackTrackedAttributeFullName);
 
     public static bool HasIgnoreAttribute(ISymbol member)
         => member.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == DeltaPackIgnoreAttributeFullName);

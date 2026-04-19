@@ -2,36 +2,36 @@ using DeltaPack;
 
 namespace Shooter.Shared;
 
-[DeltaPack]
+[DeltaPack, DeltaPackTracked]
 public partial class GameState
 {
-    public OrderedDict<string, Player> Players { get; set; } = new();
-    public OrderedDict<string, Bullet> Bullets { get; set; } = new();
-    public uint Tick { get; set; }
+    public partial TrackedOrderedDict<string, Player> Players { get; set; }
+    public partial TrackedOrderedDict<string, Bullet> Bullets { get; set; }
+    public partial uint Tick { get; set; }
 }
 
-[DeltaPack]
+[DeltaPack, DeltaPackTracked]
 public partial class Player
 {
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public Vec2 Position { get; set; }
+    public partial string Id { get; set; }
+    public partial string Name { get; set; }
+    public partial Vec2 Position { get; set; }
 
     [DeltaPackPrecision(0.01)]
-    public float AimAngle { get; set; }
+    public partial float AimAngle { get; set; }
 
-    public uint Health { get; set; } = Constants.PlayerMaxHealth;
-    public bool IsAlive { get; set; } = true;
-    public uint Score { get; set; }
-    public uint Deaths { get; set; }
-
-    [DeltaPackPrecision(0.1)]
-    public float RespawnTimer { get; set; }
+    public partial uint Health { get; set; }
+    public partial bool IsAlive { get; set; }
+    public partial uint Score { get; set; }
+    public partial uint Deaths { get; set; }
 
     [DeltaPackPrecision(0.1)]
-    public float ShootCooldown { get; set; }
+    public partial float RespawnTimer { get; set; }
 
-    public PlayerColor Color { get; set; } = PlayerColor.Red;
+    [DeltaPackPrecision(0.1)]
+    public partial float ShootCooldown { get; set; }
+
+    public partial PlayerColor Color { get; set; }
 }
 
 public enum PlayerColor
@@ -44,16 +44,16 @@ public enum PlayerColor
     Orange
 }
 
-[DeltaPack]
+[DeltaPack, DeltaPackTracked]
 public partial class Bullet
 {
-    public string Id { get; set; } = "";
-    public string OwnerId { get; set; } = "";
-    public Vec2 Position { get; set; }
-    public Vec2 Velocity { get; set; }
+    public partial string Id { get; set; }
+    public partial string OwnerId { get; set; }
+    public partial Vec2 Position { get; set; }
+    public partial Vec2 Velocity { get; set; }
 
     [DeltaPackPrecision(0.1)]
-    public float TimeToLive { get; set; }
+    public partial float TimeToLive { get; set; }
 }
 
 [DeltaPack]

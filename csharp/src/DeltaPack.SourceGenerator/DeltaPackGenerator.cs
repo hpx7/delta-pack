@@ -25,7 +25,9 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
                     var decl = (TypeDeclarationSyntax)ctx.Node;
                     var sym = ctx.SemanticModel.GetDeclaredSymbol(decl) as INamedTypeSymbol;
                     if (sym is null) return null;
-                    return TypeMapper.HasDeltaPackAttribute(sym) ? sym : null;
+                    // Pick up types annotated with either attribute so we can diagnose
+                    // [DeltaPackTracked] used without [DeltaPack].
+                    return (TypeMapper.HasDeltaPackAttribute(sym) || TypeMapper.HasTrackedAttribute(sym)) ? sym : null;
                 })
             .Where(static sym => sym is not null)
             .Select(static (sym, _) => sym!)
@@ -43,6 +45,14 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
         var accepted = new List<INamedTypeSymbol>();
         foreach (var sym in annotated.Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default))
         {
+            if (TypeMapper.HasTrackedAttribute(sym) && !TypeMapper.HasDeltaPackAttribute(sym))
+            {
+                ctx.ReportDiagnostic(Diagnostic.Create(
+                    Diagnostics.TrackedRequiresDeltaPack, sym.Locations.FirstOrDefault(), sym.ToDisplayString()));
+                continue;
+            }
+            if (!TypeMapper.HasDeltaPackAttribute(sym)) continue;
+
             if (sym.IsGenericType)
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
@@ -60,6 +70,29 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.AbstractMissingUnion, sym.Locations.FirstOrDefault(), sym.ToDisplayString()));
                 continue;
+            }
+            // For tracked classes, verify each serialized property is declared `partial` so the
+            // generator can emit a dirty-tracking setter. Without this, the generator's emitted
+            // partial property body conflicts with the user's auto-property and the user gets
+            // a cryptic CS0102 "duplicate definition" instead of a targeted message.
+            if (TypeMapper.HasTrackedAttribute(sym))
+            {
+                var anyError = false;
+                foreach (var member in sym.GetMembers())
+                {
+                    if (member is not IPropertySymbol prop) continue;
+                    if (prop.IsStatic || prop.IsIndexer) continue;
+                    if (prop.DeclaredAccessibility != Accessibility.Public) continue;
+                    if (prop.SetMethod is null) continue;
+                    if (TypeMapper.HasIgnoreAttribute(prop)) continue;
+                    if (IsDeclaredPartialProperty(prop)) continue;
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        Diagnostics.TrackedPropertyMustBePartial,
+                        prop.Locations.FirstOrDefault() ?? sym.Locations.FirstOrDefault(),
+                        sym.ToDisplayString(), prop.Name));
+                    anyError = true;
+                }
+                if (anyError) continue;
             }
             accepted.Add(sym);
         }
@@ -182,7 +215,8 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
             UnionVariants: EquatableArray<string>.Empty,
             EnumMembers: EquatableArray<string>.Empty,
             IsAbstract: sym.IsAbstract,
-            IsStruct: sym.IsValueType);
+            IsStruct: sym.IsValueType,
+            IsTracked: TypeMapper.HasTrackedAttribute(sym));
     }
 
     private static TypeDef? BuildUnionDef(INamedTypeSymbol sym, ImmutableArray<INamedTypeSymbol> variants)
@@ -233,6 +267,22 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
         {
             if (decl.GetSyntax() is TypeDeclarationSyntax tds
                 && tds.Modifiers.Any(m => m.ValueText == "partial"))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// True when the property's declaring syntax has the <c>partial</c> modifier. Used in lieu of
+    /// <c>IPropertySymbol.IsPartialDefinition</c> which is only available on Roslyn 4.7+; this
+    /// project targets 4.0.1 to keep Unity LTS compat.
+    /// </summary>
+    private static bool IsDeclaredPartialProperty(IPropertySymbol prop)
+    {
+        foreach (var decl in prop.DeclaringSyntaxReferences)
+        {
+            if (decl.GetSyntax() is PropertyDeclarationSyntax pds
+                && pds.Modifiers.Any(m => m.ValueText == "partial"))
                 return true;
         }
         return false;

@@ -17,9 +17,13 @@ internal static class ExpressionRenderer
         TypeKind.Boolean => "bool",
         TypeKind.Float => "float",
         TypeKind.Int => t.IntStorage.CSharpKeyword(),
-        TypeKind.Array => $"System.Collections.Generic.List<{CSharpType(t.ElementType!, reg)}>",
+        TypeKind.Array => t.IsTracked
+            ? $"DeltaPack.TrackedList<{CSharpType(t.ElementType!, reg)}>"
+            : $"System.Collections.Generic.List<{CSharpType(t.ElementType!, reg)}>",
         TypeKind.Optional => OptionalDeclaredType(t.ElementType!, reg),
-        TypeKind.Record => $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>",
+        TypeKind.Record => t.IsTracked
+            ? $"DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>"
+            : $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>",
         TypeKind.Reference => t.ReferenceName!,
         _ => throw new InvalidOperationException($"Unknown type kind: {t.Kind}"),
     };
@@ -155,8 +159,12 @@ internal static class ExpressionRenderer
         TypeKind.Boolean => "decoder.NextBoolean()",
         TypeKind.Float => DecodeFloat(t),
         TypeKind.Int => DecodeInt(t),
-        TypeKind.Array => $"decoder.NextArray(() => {DecodeInline(t.ElementType!, reg)})",
-        TypeKind.Record => $"decoder.NextRecord(() => {DecodeInline(t.KeyType!, reg)}, () => {DecodeInline(t.ValueType!, reg)})",
+        TypeKind.Array => t.IsTracked
+            ? $"new DeltaPack.TrackedList<{CSharpType(t.ElementType!, reg)}>(decoder.NextArray(() => {DecodeInline(t.ElementType!, reg)}))"
+            : $"decoder.NextArray(() => {DecodeInline(t.ElementType!, reg)})",
+        TypeKind.Record => t.IsTracked
+            ? $"new DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>(decoder.NextRecord(() => {DecodeInline(t.KeyType!, reg)}, () => {DecodeInline(t.ValueType!, reg)}))"
+            : $"decoder.NextRecord(() => {DecodeInline(t.KeyType!, reg)}, () => {DecodeInline(t.ValueType!, reg)})",
         TypeKind.Reference => DecodeReference(t, reg),
         TypeKind.Optional => DecodeOptionalInline(t, reg),
         _ => throw new InvalidOperationException(),
@@ -263,16 +271,30 @@ internal static class ExpressionRenderer
     private static string CloneArray(TypeRef t, string val, ModelRegistry reg)
     {
         var elem = t.ElementType!;
+        var containerType = t.IsTracked
+            ? $"DeltaPack.TrackedList<{CSharpType(elem, reg)}>"
+            : $"System.Collections.Generic.List<{CSharpType(elem, reg)}>";
         if (IsDeepCloneNoop(elem, reg))
-            return $"new System.Collections.Generic.List<{CSharpType(elem, reg)}>({val})";
-        return $"{val}.Select(x => {CloneInline(elem, "x", reg)}).ToList()";
+            return $"new {containerType}({val})";
+        return t.IsTracked
+            ? $"new {containerType}({val}.Select(x => {CloneInline(elem, "x", reg)}))"
+            : $"{val}.Select(x => {CloneInline(elem, "x", reg)}).ToList()";
     }
 
     private static string CloneRecord(TypeRef t, string val, ModelRegistry reg)
     {
         var valueType = t.ValueType!;
+        var containerType = t.IsTracked
+            ? $"DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>"
+            : $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
         if (IsDeepCloneNoop(valueType, reg))
-            return $"new DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>({val})";
+            return $"new {containerType}({val})";
+        if (t.IsTracked)
+        {
+            // TrackedOrderedDict takes an IDictionary; we build an OrderedDict of cloned values first.
+            var odictType = $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
+            return $"new {containerType}({val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg)}))";
+        }
         return $"{val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg)})";
     }
 
@@ -311,13 +333,15 @@ internal static class ExpressionRenderer
 
     // ========== EncodeDiff (per-field, using `encoder.PushFieldDiff`) ==========
 
-    public static void EncodeDiffField(CodeWriter w, FieldModel f, ModelRegistry reg, string aExpr, string bExpr)
+    public static void EncodeDiffField(CodeWriter w, FieldModel f, ModelRegistry reg, string aExpr, string bExpr, string parentTypeName, bool isTracked)
     {
         var t = f.Type;
         var a = $"{aExpr}.{f.Name}";
         var b = $"{bExpr}.{f.Name}";
 
-        // Boolean diffs are a special case: no FieldDiff wrapper.
+        // Boolean diffs are a special case: no FieldDiff wrapper. Even on tracked classes
+        // we still emit PushBooleanDiff — the bit cost (1) matches the false-bit cost we'd
+        // emit for an unchanged tracked field, so there's no win from a tracked fast-path here.
         if (t.Kind == TypeKind.Boolean)
         {
             w.Line($"encoder.PushBooleanDiff({a}, {b});");
@@ -327,7 +351,16 @@ internal static class ExpressionRenderer
         var declaredType = CSharpType(t, reg);
         var equalsLambda = $"(x, y) => {EqualsInline(t, "x", "y", reg)}";
         var diffLambda = $"(x, y) => {EncodeDiffInline(t, "x", "y", reg)}";
-        w.Line($"encoder.PushFieldDiff<{declaredType}>({a}, {b}, {equalsLambda}, {diffLambda});");
+
+        if (isTracked)
+        {
+            // Tracked overload — encoder consults the parent's dirty map keyed by property name.
+            w.Line($"encoder.PushFieldDiff<{parentTypeName}, {declaredType}>({aExpr}, {bExpr}, \"{f.Name}\", p => p.{f.Name}, {equalsLambda}, {diffLambda});");
+        }
+        else
+        {
+            w.Line($"encoder.PushFieldDiff<{declaredType}>({a}, {b}, {equalsLambda}, {diffLambda});");
+        }
     }
 
     /// <summary>Expression that encodes the diff of two values of this type into `encoder`.</summary>
@@ -499,7 +532,9 @@ internal static class ExpressionRenderer
         TypeKind.Boolean => $"DeltaPack.JsonHelpers.ParseBoolean({jsonExpr})",
         TypeKind.Float => FromJsonFloat(t, jsonExpr),
         TypeKind.Int => $"{jsonExpr}.{IntGetter(t.IntStorage)}()",
-        TypeKind.Array => $"{jsonExpr}.EnumerateArray().Select(x => {FromJsonInline(t.ElementType!, "x", reg)}).ToList()",
+        TypeKind.Array => t.IsTracked
+            ? $"new DeltaPack.TrackedList<{CSharpType(t.ElementType!, reg)}>({jsonExpr}.EnumerateArray().Select(x => {FromJsonInline(t.ElementType!, "x", reg)}))"
+            : $"{jsonExpr}.EnumerateArray().Select(x => {FromJsonInline(t.ElementType!, "x", reg)}).ToList()",
         TypeKind.Record => FromJsonRecord(t, jsonExpr, reg),
         TypeKind.Reference => FromJsonReference(t, jsonExpr, reg),
         TypeKind.Optional => throw new InvalidOperationException("Optional must be handled at the field level; see FromJsonField."),
@@ -518,7 +553,10 @@ internal static class ExpressionRenderer
     {
         var keyParse = RecordKeyFromJson(t.KeyType!);
         var valueParse = FromJsonInline(t.ValueType!, "p.Value", reg);
-        return $"{jsonExpr}.EnumerateObject().ToOrderedDict(p => {keyParse}, p => {valueParse})";
+        var ordered = $"{jsonExpr}.EnumerateObject().ToOrderedDict(p => {keyParse}, p => {valueParse})";
+        return t.IsTracked
+            ? $"new DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>({ordered})"
+            : ordered;
     }
 
     private static string RecordKeyFromJson(TypeRef keyType) => keyType.Kind switch

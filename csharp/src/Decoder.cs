@@ -233,4 +233,72 @@ public class Decoder
 
         return result;
     }
+
+    /// <summary>
+    /// Tracked-container overload. Identical bit layout to the <see cref="OrderedDict{TKey, TValue}"/>
+    /// variant — picked by overload resolution when the generated code's property type is
+    /// <see cref="TrackedOrderedDict{TKey, TValue}"/>.
+    /// </summary>
+    public TrackedOrderedDict<TKey, TValue> NextRecordDiff<TKey, TValue>(
+        TrackedOrderedDict<TKey, TValue> obj,
+        Func<TKey> decodeKey,
+        Func<TValue> decodeVal,
+        Func<TValue, TValue> decodeDiff)
+        where TKey : notnull
+    {
+        var result = new TrackedOrderedDict<TKey, TValue>(obj);
+
+        if (obj.Count > 0)
+        {
+            var numDeletions = (int)NextUInt();
+            for (var i = 0; i < numDeletions; i++)
+            {
+                var key = obj.GetKeyAtIndex((int)NextUInt());
+                result.Remove(key);
+            }
+
+            var numUpdates = (int)NextUInt();
+            for (var i = 0; i < numUpdates; i++)
+            {
+                var key = obj.GetKeyAtIndex((int)NextUInt());
+                result[key] = decodeDiff(result[key]);
+            }
+        }
+
+        var numAdditions = (int)NextUInt();
+        for (var i = 0; i < numAdditions; i++)
+        {
+            var key = decodeKey();
+            var val = decodeVal();
+            result[key] = val;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Tracked-list overload. Identical bit layout to the <see cref="List{T}"/> variant —
+    /// picked by overload resolution when the generated code's property type is
+    /// <see cref="TrackedList{T}"/>.
+    /// </summary>
+    public TrackedList<T> NextArrayDiff<T>(TrackedList<T> arr, Func<T> decode, Func<T, T> decodeDiff)
+    {
+        var newLen = (int)NextUInt();
+        var result = new TrackedList<T>(newLen);
+        var copyLen = Math.Min(arr.Count, newLen);
+        for (var i = 0; i < copyLen; i++)
+            result.Add(arr[i]);
+
+        var numUpdates = (int)NextUInt();
+        for (var i = 0; i < numUpdates; i++)
+        {
+            var idx = (int)NextUInt();
+            result[idx] = decodeDiff(arr[idx]);
+        }
+
+        for (var i = arr.Count; i < newLen; i++)
+            result.Add(decode());
+
+        return result;
+    }
 }

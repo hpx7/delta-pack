@@ -26,6 +26,8 @@ public class GameSimulation
             Id = id,
             Name = name,
             Position = GetRandomSpawnPosition(),
+            Health = Constants.PlayerMaxHealth,
+            IsAlive = true,
             Color = Colors[_state.Players.Count % Colors.Length]
         };
         _state.Players[id] = player;

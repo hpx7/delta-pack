@@ -3,36 +3,36 @@ using DeltaPack;
 namespace Game2D;
 
 // Player class - property order must match TypeScript exactly
-[DeltaPack]
+[DeltaPack, DeltaPackTracked]
 public partial class Player
 {
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
+    public partial string Id { get; set; }
+    public partial string Name { get; set; }
 
     [DeltaPackPrecision(0.1)]
-    public float X { get; set; }
+    public partial float X { get; set; }
 
     [DeltaPackPrecision(0.1)]
-    public float Y { get; set; }
+    public partial float Y { get; set; }
 
     [DeltaPackPrecision(0.1)]
-    public float Vx { get; set; }
+    public partial float Vx { get; set; }
 
     [DeltaPackPrecision(0.1)]
-    public float Vy { get; set; }
+    public partial float Vy { get; set; }
 
-    public int Health { get; set; } = 100;
-    public int Score { get; set; }
-    public bool IsAlive { get; set; } = true;
+    public partial int Health { get; set; }
+    public partial int Score { get; set; }
+    public partial bool IsAlive { get; set; }
 }
 
 // GameState class
-[DeltaPack]
+[DeltaPack, DeltaPackTracked]
 public partial class GameState
 {
-    public DeltaPack.OrderedDict<string, Player> Players { get; set; } = new();
-    public int Tick { get; set; }
-    public float GameTime { get; set; }
+    public partial TrackedOrderedDict<string, Player> Players { get; set; }
+    public partial int Tick { get; set; }
+    public partial float GameTime { get; set; }
 }
 
 // ClientInput class

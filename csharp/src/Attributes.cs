@@ -50,3 +50,17 @@ public sealed class DeltaPackUnionAttribute : Attribute
     public Type[] Variants { get; }
     public DeltaPackUnionAttribute(params Type[] variants) => Variants = variants;
 }
+
+/// <summary>
+/// Opt-in change tracking for a <see cref="DeltaPackAttribute"/> class. Mutations
+/// on serialized properties are recorded so <c>EncodeDiff</c> can skip equality
+/// comparisons on unchanged fields, producing identical bytes at lower cost.
+///
+/// <para>Requires the consuming project to set <c>&lt;LangVersion&gt;13&lt;/LangVersion&gt;</c>:
+/// tracked serialized properties must be declared <c>partial</c> so the source
+/// generator can emit dirty-marking setters. Collection-typed properties should
+/// use <see cref="TrackedList{T}"/> / <see cref="TrackedOrderedDict{TKey,TValue}"/>
+/// so mutations inside the collection are also recorded.</para>
+/// </summary>
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class DeltaPackTrackedAttribute : Attribute { }
