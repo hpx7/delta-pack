@@ -2,11 +2,11 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>Class RleReader | DeltaPack </title>
+      <title>Class OrderedDictExtensions | DeltaPack </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="Class RleReader | DeltaPack ">
+      <meta name="title" content="Class OrderedDictExtensions | DeltaPack ">
       
-      <meta name="description" content="Streaming RLE reader - decodes bits lazily on-demand.">
+      
       <link rel="icon" href="../favicon.ico">
       <link rel="stylesheet" href="../public/docfx.min.css">
       <link rel="stylesheet" href="../public/main.css">
@@ -16,7 +16,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/hpx7/delta-pack/new/main/apiSpec/new?filename=DeltaPack_RleReader.md&amp;value=---%0Auid%3A%20DeltaPack.RleReader%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
+      <meta name="docfx:docurl" content="https://github.com/hpx7/delta-pack/new/main/apiSpec/new?filename=DeltaPack_OrderedDictExtensions.md&amp;value=---%0Auid%3A%20DeltaPack.OrderedDictExtensions%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -84,12 +84,12 @@
           <nav id="breadcrumb"></nav>
         </div>
 
-        <article data-uid="DeltaPack.RleReader">
+        <article data-uid="DeltaPack.OrderedDictExtensions">
 
 
 
-  <h1 id="DeltaPack_RleReader" data-uid="DeltaPack.RleReader" class="text-break">
-Class RleReader  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Rle.cs/#L151"><i class="bi bi-code-slash"></i></a>
+  <h1 id="DeltaPack_OrderedDictExtensions" data-uid="DeltaPack.OrderedDictExtensions" class="text-break">
+Class OrderedDictExtensions  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L165"><i class="bi bi-code-slash"></i></a>
   </h1>
 
   <div class="facts text-secondary">
@@ -97,12 +97,11 @@ Class RleReader  <a class="header-action link-secondary" title="View source" hre
   <dl><dt>Assembly</dt><dd>DeltaPack.dll</dd></dl>
   </div>
 
-  <div class="markdown summary"><p>Streaming RLE reader - decodes bits lazily on-demand.</p>
-</div>
+  <div class="markdown summary"></div>
   <div class="markdown conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public class RleReader</code></pre>
+    <pre><code class="lang-csharp hljs">public static class OrderedDictExtensions</code></pre>
   </div>
 
 
@@ -112,7 +111,7 @@ Class RleReader  <a class="header-action link-secondary" title="View source" hre
     <dt>Inheritance</dt>
     <dd>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
-      <div><span class="xref">RleReader</span></div>
+      <div><span class="xref">OrderedDictExtensions</span></div>
     </dd>
   </dl>
 
@@ -153,94 +152,45 @@ Class RleReader  <a class="header-action link-secondary" title="View source" hre
 </h2>
 
 
-  <a id="DeltaPack_RleReader_NextBit_" data-uid="DeltaPack.RleReader.NextBit*"></a>
+  <a id="DeltaPack_OrderedDictExtensions_ToOrderedDict_" data-uid="DeltaPack.OrderedDictExtensions.ToOrderedDict*"></a>
 
-  <h3 id="DeltaPack_RleReader_NextBit" data-uid="DeltaPack.RleReader.NextBit">
-  NextBit()
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Rle.cs/#L181"><i class="bi bi-code-slash"></i></a>
+  <h3 id="DeltaPack_OrderedDictExtensions_ToOrderedDict__3_System_Collections_Generic_IEnumerable___0__System_Func___0___1__System_Func___0___2__" data-uid="DeltaPack.OrderedDictExtensions.ToOrderedDict``3(System.Collections.Generic.IEnumerable{``0},System.Func{``0,``1},System.Func{``0,``2})">
+  ToOrderedDict&lt;TSource, TKey, TValue&gt;(IEnumerable&lt;TSource&gt;, Func&lt;TSource, TKey&gt;, Func&lt;TSource, TValue&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L167"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
   <div class="markdown level1 conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public bool NextBit()</code></pre>
-  </div>
-
-
-  <h4 class="section">Returns</h4>
-  <dl class="parameters">
-    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.boolean">bool</a></dt>
-    <dd></dd>
-  </dl>
-
-
-
-
-
-
-
-
-
-
-
-  <a id="DeltaPack_RleReader_NextBits_" data-uid="DeltaPack.RleReader.NextBits*"></a>
-
-  <h3 id="DeltaPack_RleReader_NextBits_System_Int32_" data-uid="DeltaPack.RleReader.NextBits(System.Int32)">
-  NextBits(int)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Rle.cs/#L196"><i class="bi bi-code-slash"></i></a>
-  </h3>
-
-  <div class="markdown level1 summary"></div>
-  <div class="markdown level1 conceptual"></div>
-
-  <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public int NextBits(int numBits)</code></pre>
+    <pre><code class="lang-csharp hljs">public static OrderedDict&lt;TKey, TValue&gt; ToOrderedDict&lt;TSource, TKey, TValue&gt;(this IEnumerable&lt;TSource&gt; source, Func&lt;TSource, TKey&gt; keySelector, Func&lt;TSource, TValue&gt; valueSelector) where TKey : notnull</code></pre>
   </div>
 
   <h4 class="section">Parameters</h4>
   <dl class="parameters">
-    <dt><code>numBits</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dt><code>source</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable</a>&lt;TSource&gt;</dt>
+    <dd></dd>
+    <dt><code>keySelector</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;TSource, TKey&gt;</dt>
+    <dd></dd>
+    <dt><code>valueSelector</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;TSource, TValue&gt;</dt>
     <dd></dd>
   </dl>
 
   <h4 class="section">Returns</h4>
   <dl class="parameters">
-    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dt><a class="xref" href="DeltaPack.OrderedDict-2.html">OrderedDict</a>&lt;TKey, TValue&gt;</dt>
     <dd></dd>
   </dl>
 
-
-
-
-
-
-
-
-
-
-
-  <a id="DeltaPack_RleReader_Reset_" data-uid="DeltaPack.RleReader.Reset*"></a>
-
-  <h3 id="DeltaPack_RleReader_Reset_System_Byte___" data-uid="DeltaPack.RleReader.Reset(System.Byte[])">
-  Reset(byte[])
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Rle.cs/#L161"><i class="bi bi-code-slash"></i></a>
-  </h3>
-
-  <div class="markdown level1 summary"></div>
-  <div class="markdown level1 conceptual"></div>
-
-  <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public void Reset(byte[] buf)</code></pre>
-  </div>
-
-  <h4 class="section">Parameters</h4>
+  <h4 class="section">Type Parameters</h4>
   <dl class="parameters">
-    <dt><code>buf</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.byte">byte</a>[]</dt>
+    <dt><code>TSource</code></dt>
+    <dd></dd>
+    <dt><code>TKey</code></dt>
+    <dd></dd>
+    <dt><code>TValue</code></dt>
     <dd></dd>
   </dl>
-
-
 
 
 
@@ -255,7 +205,7 @@ Class RleReader  <a class="header-action link-secondary" title="View source" hre
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Rle.cs/#L151" class="edit-link">Edit this page</a>
+          <a href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L165" class="edit-link">Edit this page</a>
         </div>
 
 

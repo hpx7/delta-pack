@@ -95,21 +95,14 @@
 Classes
 </h3>
     <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.ArrayType.html">ArrayType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.BooleanType.html">BooleanType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
       <dt><a class="xref" href="DeltaPack.Decoder.html">Decoder</a></dt>
       <dd></dd>
     </dl>
     <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.DeltaPackCodec-1.html">DeltaPackCodec&lt;T&gt;</a></dt>
-      <dd><p>Unity-friendly codec for encoding/decoding C# types.
-Create once during initialization, reuse in hot paths.</p>
+      <dt><a class="xref" href="DeltaPack.DeltaPackAttribute.html">DeltaPackAttribute</a></dt>
+      <dd><p>Marks a partial class or struct for compile-time delta-pack code generation.
+The source generator emits Encode/Decode/EncodeDiff/DecodeDiff/Equals/Clone/Default/
+FromJson/ToJson methods onto the annotated type.</p>
 </dd>
     </dl>
     <dl class="jumplist">
@@ -130,7 +123,7 @@ Bounded integers are encoded more efficiently when values are constrained.</p>
     </dl>
     <dl class="jumplist">
       <dt><a class="xref" href="DeltaPack.DeltaPackUnionAttribute.html">DeltaPackUnionAttribute</a></dt>
-      <dd><p>Marks a type as a union variant. Apply to the base class/interface.</p>
+      <dd><p>Marks an abstract base class as a union. List its variants as type arguments.</p>
 </dd>
     </dl>
     <dl class="jumplist">
@@ -138,23 +131,7 @@ Bounded integers are encoded more efficiently when values are constrained.</p>
       <dd></dd>
     </dl>
     <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.EnumType.html">EnumType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
       <dt><a class="xref" href="DeltaPack.EqualityHelpers.html">EqualityHelpers</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.FloatType.html">FloatType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.IntType.html">IntType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.Interpreter.html">Interpreter</a></dt>
       <dd></dd>
     </dl>
     <dl class="jumplist">
@@ -162,40 +139,13 @@ Bounded integers are encoded more efficiently when values are constrained.</p>
       <dd></dd>
     </dl>
     <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.ObjectType.html">ObjectType</a></dt>
+      <dt><a class="xref" href="DeltaPack.OrderedDictExtensions.html">OrderedDictExtensions</a></dt>
       <dd></dd>
     </dl>
     <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.OptionalType.html">OptionalType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.OrderedDictionaryExtensions.html">OrderedDictionaryExtensions</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.OrderedDictionary-2.html">OrderedDictionary&lt;TKey, TValue&gt;</a></dt>
+      <dt><a class="xref" href="DeltaPack.OrderedDict-2.html">OrderedDict&lt;TKey, TValue&gt;</a></dt>
       <dd><p>A dictionary that preserves insertion order.
 Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
-</dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.Parser.html">Parser</a></dt>
-      <dd><p>Parses YAML schema definitions into DeltaPack schema types.</p>
-</dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.RecordType.html">RecordType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.ReferenceType.html">ReferenceType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.ReflectionSchema.html">ReflectionSchema</a></dt>
-      <dd><p>Builds a schema from a C# type using reflection.
-Useful for inspecting the generated schema or comparing with manual schema definitions.</p>
 </dd>
     </dl>
     <dl class="jumplist">
@@ -206,35 +156,6 @@ Useful for inspecting the generated schema or comparing with manual schema defin
     <dl class="jumplist">
       <dt><a class="xref" href="DeltaPack.RleWriter.html">RleWriter</a></dt>
       <dd><p>Streaming RLE writer - encodes bits on-the-fly without buffering.</p>
-</dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.Schema.html">Schema</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.SchemaType.html">SchemaType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.StringType.html">StringType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.UnionType.html">UnionType</a></dt>
-      <dd></dd>
-    </dl>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.UnionValue.html">UnionValue</a></dt>
-      <dd></dd>
-    </dl>
-    <h3 id="interfaces">
-Interfaces
-</h3>
-    <dl class="jumplist">
-      <dt><a class="xref" href="DeltaPack.IDeltaPackApi-1.html">IDeltaPackApi&lt;T&gt;</a></dt>
-      <dd><p>Core interface for DeltaPack serialization operations.
-Implementations are returned by <a class="xref" href="DeltaPack.Interpreter.html#DeltaPack_Interpreter_Load__1_System_Collections_Generic_IReadOnlyDictionary_System_String_DeltaPack_SchemaType__System_String_">Load&lt;T&gt;(IReadOnlyDictionary&lt;string, SchemaType&gt;, string)</a> or generated code.</p>
 </dd>
     </dl>
 

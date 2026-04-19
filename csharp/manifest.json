@@ -22,34 +22,6 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.ArrayType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.ArrayType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.ArrayType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.BooleanType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.BooleanType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.BooleanType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
       "source_relative_path": "api/DeltaPack.Decoder.yml",
       "output": {
         ".html": {
@@ -64,17 +36,17 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.DeltaPackCodec-1.yml",
+      "source_relative_path": "api/DeltaPack.DeltaPackAttribute.yml",
       "output": {
         ".html": {
-          "relative_path": "api/DeltaPack.DeltaPackCodec-1.html"
+          "relative_path": "api/DeltaPack.DeltaPackAttribute.html"
         }
       },
       "version": "",
       "Uid": null,
       "IsMRef": true,
-      "Title": "DeltaPack.DeltaPackCodec<T>",
-      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackCodec-1.yml\" sourcestartlinenumber=\"1\">Unity-friendly codec for encoding/decoding C# types.\nCreate once during initialization, reuse in hot paths.</p>\n"
+      "Title": "DeltaPack.DeltaPackAttribute",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackAttribute.yml\" sourcestartlinenumber=\"1\">Marks a partial class or struct for compile-time delta-pack code generation.\nThe source generator emits Encode/Decode/EncodeDiff/DecodeDiff/Equals/Clone/Default/\nFromJson/ToJson methods onto the annotated type.</p>\n"
     },
     {
       "type": "ManagedReference",
@@ -130,7 +102,7 @@
       "Uid": null,
       "IsMRef": true,
       "Title": "DeltaPack.DeltaPackUnionAttribute",
-      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackUnionAttribute.yml\" sourcestartlinenumber=\"1\">Marks a type as a union variant. Apply to the base class/interface.</p>\n"
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackUnionAttribute.yml\" sourcestartlinenumber=\"1\">Marks an abstract base class as a union. List its variants as type arguments.</p>\n"
     },
     {
       "type": "ManagedReference",
@@ -144,20 +116,6 @@
       "Uid": null,
       "IsMRef": true,
       "Title": "DeltaPack.Encoder",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.EnumType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.EnumType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.EnumType",
       "Summary": null
     },
     {
@@ -176,62 +134,6 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.FloatType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.FloatType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.FloatType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.IDeltaPackApi-1.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.IDeltaPackApi-1.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.IDeltaPackApi<T>",
-      "Summary": "<p sourcefile=\"api/DeltaPack.IDeltaPackApi-1.yml\" sourcestartlinenumber=\"1\">Core interface for DeltaPack serialization operations.\nImplementations are returned by <xref href=\"DeltaPack.Interpreter.Load%60%601(System.Collections.Generic.IReadOnlyDictionary%7bSystem.String%2cDeltaPack.SchemaType%7d%2cSystem.String)\" data-throw-if-not-resolved=\"false\"></xref> or generated code.</p>\n"
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.IntType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.IntType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.IntType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.Interpreter.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.Interpreter.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.Interpreter",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
       "source_relative_path": "api/DeltaPack.JsonHelpers.yml",
       "output": {
         ".html": {
@@ -246,115 +148,31 @@
     },
     {
       "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.ObjectType.yml",
+      "source_relative_path": "api/DeltaPack.OrderedDict-2.yml",
       "output": {
         ".html": {
-          "relative_path": "api/DeltaPack.ObjectType.html"
+          "relative_path": "api/DeltaPack.OrderedDict-2.html"
         }
       },
       "version": "",
       "Uid": null,
       "IsMRef": true,
-      "Title": "DeltaPack.ObjectType",
+      "Title": "DeltaPack.OrderedDict<TKey, TValue>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.OrderedDict-2.yml\" sourcestartlinenumber=\"1\">A dictionary that preserves insertion order.\nBacked by a List for ordered storage and a Dictionary for O(1) key lookup.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.OrderedDictExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.OrderedDictExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.OrderedDictExtensions",
       "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.OptionalType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.OptionalType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.OptionalType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.OrderedDictionary-2.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.OrderedDictionary-2.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.OrderedDictionary<TKey, TValue>",
-      "Summary": "<p sourcefile=\"api/DeltaPack.OrderedDictionary-2.yml\" sourcestartlinenumber=\"1\">A dictionary that preserves insertion order.\nBacked by a List for ordered storage and a Dictionary for O(1) key lookup.</p>\n"
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.OrderedDictionaryExtensions.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.OrderedDictionaryExtensions.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.OrderedDictionaryExtensions",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.Parser.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.Parser.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.Parser",
-      "Summary": "<p sourcefile=\"api/DeltaPack.Parser.yml\" sourcestartlinenumber=\"1\">Parses YAML schema definitions into DeltaPack schema types.</p>\n"
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.RecordType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.RecordType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.RecordType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.ReferenceType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.ReferenceType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.ReferenceType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.ReflectionSchema.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.ReflectionSchema.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.ReflectionSchema",
-      "Summary": "<p sourcefile=\"api/DeltaPack.ReflectionSchema.yml\" sourcestartlinenumber=\"1\">Builds a schema from a C# type using reflection.\nUseful for inspecting the generated schema or comparing with manual schema definitions.</p>\n"
     },
     {
       "type": "ManagedReference",
@@ -383,76 +201,6 @@
       "IsMRef": true,
       "Title": "DeltaPack.RleWriter",
       "Summary": "<p sourcefile=\"api/DeltaPack.RleWriter.yml\" sourcestartlinenumber=\"1\">Streaming RLE writer - encodes bits on-the-fly without buffering.</p>\n"
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.Schema.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.Schema.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.Schema",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.SchemaType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.SchemaType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.SchemaType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.StringType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.StringType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.StringType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.UnionType.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.UnionType.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.UnionType",
-      "Summary": null
-    },
-    {
-      "type": "ManagedReference",
-      "source_relative_path": "api/DeltaPack.UnionValue.yml",
-      "output": {
-        ".html": {
-          "relative_path": "api/DeltaPack.UnionValue.html"
-        }
-      },
-      "version": "",
-      "Uid": null,
-      "IsMRef": true,
-      "Title": "DeltaPack.UnionValue",
-      "Summary": null
     },
     {
       "type": "ManagedReference",
