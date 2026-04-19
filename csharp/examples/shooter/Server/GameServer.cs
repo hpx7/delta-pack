@@ -13,10 +13,6 @@ public class GameServer : INetEventListener
     private readonly GameSimulation _game = new();
     private readonly Dictionary<int, ClientState> _clients = new();  // peer.Id -> state
 
-    private readonly DeltaPackCodec<ClientMessage> _clientCodec = new();
-    private readonly DeltaPackCodec<StateMessage> _stateCodec = new();
-    private readonly DeltaPackCodec<GameState> _gameStateCodec = new();
-
     private readonly Dictionary<uint, GameState> _stateHistory = new();
 
     private int _playerIdCounter;
@@ -149,7 +145,7 @@ public class GameServer : INetEventListener
         _game.Update(Constants.TickDuration);
 
         // Store cloned state for delta encoding
-        _stateHistory[_game.State.Tick] = _gameStateCodec.Clone(_game.State);
+        _stateHistory[_game.State.Tick] = GameState.Clone(_game.State);
 
         // Prune old history
         var minTick = _game.State.Tick - Constants.MaxHistoryTicks;
@@ -191,7 +187,7 @@ public class GameServer : INetEventListener
                     LastProcessedInputTick = 0,  // Will be overwritten by diff
                     State = baseline
                 };
-                writer.Put(_stateCodec.EncodeDiff(baselineMessage, message));
+                writer.Put(StateMessage.EncodeDiff(baselineMessage, message));
             }
             else
             {
@@ -203,7 +199,7 @@ public class GameServer : INetEventListener
                 }
                 writer.Put(0);  // Baseline tick = 0 means full state
                 message.BaselineTick = 0;
-                writer.Put(_stateCodec.Encode(message));
+                writer.Put(StateMessage.Encode(message));
             }
 
             client.Peer.Send(writer, DeliveryMethod.Sequenced);
@@ -217,7 +213,7 @@ public class GameServer : INetEventListener
 
         try
         {
-            var message = _clientCodec.Decode(data);
+            var message = ClientMessage.Decode(data);
 
             switch (message)
             {

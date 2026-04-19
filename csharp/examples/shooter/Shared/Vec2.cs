@@ -2,7 +2,8 @@ using DeltaPack;
 
 namespace Shooter.Shared;
 
-public struct Vec2
+[DeltaPack]
+public partial struct Vec2
 {
     [DeltaPackPrecision(0.1)]
     public float X;

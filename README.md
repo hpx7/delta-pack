@@ -296,11 +296,16 @@ Install:
 dotnet add package DeltaPack
 ```
 
-The C# runtime is Unity-compatible, and supports both codegen and runtime modes.
+Unity 2021.3 LTS and newer. A compile-time source generator (bundled with the NuGet)
+emits `Encode`/`Decode`/`EncodeDiff`/`DecodeDiff`/`Equals`/`Clone`/`FromJson`/`ToJson`
+for every `[DeltaPack]`-annotated type — no reflection at runtime, IL2CPP-safe.
 
-**Codegen:**
+**Codegen** — generate skeletons from a shared YAML schema:
 
 ```csharp
+using DeltaPack;
+using Generated;  // from `delta-pack generate schema.yml -l csharp -o Generated.cs`
+
 var prev = Position.Default();
 var current = Position.Clone(prev);
 current.X = 1.5f;
@@ -316,18 +321,22 @@ Position patched = Position.DecodeDiff(prev, diffBytes);
 Position.Equals(patched, current); // true
 ```
 
-**Runtime** -- build schemas from C# classes:
+The CLI emits minimal `[DeltaPack] partial class` skeletons; the source generator fills
+in the methods at compile time.
+
+**Native types** — skip the YAML, author your types directly in C#:
 
 ```csharp
-class Position {
-    [DeltaPackPrecision(0.1)]
-    public float X { get; set; }
-    [DeltaPackPrecision(0.1)]
-    public float Y { get; set; }
+using DeltaPack;
+
+[DeltaPack]
+public partial class Position
+{
+    [DeltaPackPrecision(0.1)] public float X { get; set; }
+    [DeltaPackPrecision(0.1)] public float Y { get; set; }
 }
 
-var api = new DeltaPackCodec<Position>();
-byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
+byte[] bytes = Position.Encode(new Position { X = 1.5f, Y = 2.0f });
 ```
 
 ### [Rust](rust/)

@@ -14,9 +14,6 @@ public class GameClient : INetEventListener
     private readonly NetManager _netManager;
     private NetPeer? _serverPeer;
 
-    private readonly DeltaPackCodec<ClientMessage> _clientCodec = new();
-    private readonly DeltaPackCodec<StateMessage> _stateCodec = new();
-
     private readonly string _playerName;
     private readonly Dictionary<uint, StateMessage> _stateHistory = new();
     private const uint MaxClientHistory = 75;  // ~1.5 seconds at 50Hz
@@ -120,7 +117,7 @@ public class GameClient : INetEventListener
             LastReceivedTick = _lastMessageTick,
             Inputs = _inputHistory.ToList()
         };
-        _serverPeer.Send(_clientCodec.Encode(message), DeliveryMethod.Sequenced);
+        _serverPeer.Send(ClientMessage.Encode(message), DeliveryMethod.Sequenced);
     }
 
     private void HandleMessage(byte[] data)
@@ -137,7 +134,7 @@ public class GameClient : INetEventListener
             if (baselineTick == 0)
             {
                 // Full state
-                message = _stateCodec.Decode(payload);
+                message = StateMessage.Decode(payload);
             }
             else
             {
@@ -150,7 +147,7 @@ public class GameClient : INetEventListener
                     Console.WriteLine($"DROP: Baseline {baselineTick} not in history (have {range})");
                     return;
                 }
-                message = _stateCodec.DecodeDiff(baseline, payload);
+                message = StateMessage.DecodeDiff(baseline, payload);
             }
 
             // Track packet loss
@@ -159,7 +156,7 @@ public class GameClient : INetEventListener
             HandleStateMessage(message);
 
             // Store in history for future diffs (must clone to avoid mutation)
-            _stateHistory[message.Tick] = _stateCodec.Clone(message);
+            _stateHistory[message.Tick] = StateMessage.Clone(message);
             _lastMessageTick = message.Tick;
 
             // Prune old history
@@ -195,7 +192,7 @@ public class GameClient : INetEventListener
 
         // Send join request
         var joinRequest = new JoinRequest { PlayerName = _playerName };
-        peer.Send(_clientCodec.Encode(joinRequest), DeliveryMethod.ReliableOrdered);
+        peer.Send(ClientMessage.Encode(joinRequest), DeliveryMethod.ReliableOrdered);
     }
 
     public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)

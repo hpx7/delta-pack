@@ -2,14 +2,16 @@ using DeltaPack;
 
 namespace Shooter.Shared;
 
-public class GameState
+[DeltaPack]
+public partial class GameState
 {
     public OrderedDict<string, Player> Players { get; set; } = new();
     public OrderedDict<string, Bullet> Bullets { get; set; } = new();
     public uint Tick { get; set; }
 }
 
-public class Player
+[DeltaPack]
+public partial class Player
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
@@ -42,7 +44,8 @@ public enum PlayerColor
     Orange
 }
 
-public class Bullet
+[DeltaPack]
+public partial class Bullet
 {
     public string Id { get; set; } = "";
     public string OwnerId { get; set; } = "";
@@ -53,7 +56,8 @@ public class Bullet
     public float TimeToLive { get; set; }
 }
 
-public class ClientInput
+[DeltaPack]
+public partial class ClientInput
 {
     public bool Up { get; set; }
     public bool Down { get; set; }

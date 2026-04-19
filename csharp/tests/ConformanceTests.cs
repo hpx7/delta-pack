@@ -4,8 +4,8 @@ using Xunit;
 namespace DeltaPack.Tests;
 
 /// <summary>
-/// Conformance tests that verify C# implementation produces identical binary output
-/// to golden bytes (source of truth). Tests both interpreter and codegen modes.
+/// Conformance tests that verify generated code produces output equivalent to
+/// the golden bytes (source of truth) for each example schema.
 /// </summary>
 public class ConformanceTests
 {
@@ -16,9 +16,6 @@ public class ConformanceTests
 
     private static byte[] ReadGoldenBytes(string example, string filename) =>
         File.ReadAllBytes(Path.Combine(ExamplesDir, example, filename));
-
-    private static string SchemaPath(string example) =>
-        Path.Combine(ExamplesDir, example, "schema.yml");
 
     private static string[] GetStateNames(string example)
     {
@@ -31,12 +28,6 @@ public class ConformanceTests
 
     private static JsonElement ReadState(string example, string stateName) =>
         JsonDocument.Parse(File.ReadAllText(Path.Combine(ExamplesDir, example, $"{stateName}.json"))).RootElement;
-
-    private static IDeltaPackApi<Dictionary<string, object?>> LoadInterpreter(string example)
-    {
-        var schema = Parser.ParseSchemaYml(File.ReadAllText(SchemaPath(example)));
-        return Interpreter.Load<Dictionary<string, object?>>(schema, example);
-    }
 
     #region Test Data Generation
 
@@ -61,78 +52,6 @@ public class ConformanceTests
                 yield return [example, states[i], states[i + 1]];
             }
         }
-    }
-
-    #endregion
-
-    #region Interpreter Mode Tests
-
-    [Theory]
-    [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_Encode_MatchesGolden(string example, string stateName)
-    {
-        var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
-        var api = LoadInterpreter(example);
-        var state = api.FromJson(ReadState(example, stateName));
-        var csEncoded = api.Encode(state);
-
-        // Encoding order may vary, so only check decoded equality
-        var goldenDecoded = api.Decode(goldenBytes);
-        var csDecoded = api.Decode(csEncoded);
-        Assert.True(api.Equals(goldenDecoded, csDecoded));
-    }
-
-    [Theory]
-    [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_Decode_FromGolden(string example, string stateName)
-    {
-        var goldenBytes = ReadGoldenBytes(example, $"{stateName}.snapshot.bin");
-        var api = LoadInterpreter(example);
-        var expected = api.FromJson(ReadState(example, stateName));
-        var decoded = api.Decode(goldenBytes);
-
-        Assert.True(api.Equals(expected, decoded));
-    }
-
-    [Theory]
-    [MemberData(nameof(EncodeTestData))]
-    public void Interpreter_ToJson_RoundTrip(string example, string stateName)
-    {
-        var api = LoadInterpreter(example);
-        var state = api.FromJson(ReadState(example, stateName));
-        var json = api.ToJson(state);
-        var reparsed = api.FromJson(json);
-
-        Assert.True(api.Equals(state, reparsed));
-    }
-
-    [Theory]
-    [MemberData(nameof(DiffTestData))]
-    public void Interpreter_EncodeDiff_MatchesGolden(string example, string oldName, string newName)
-    {
-        var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
-        var api = LoadInterpreter(example);
-        var oldState = api.FromJson(ReadState(example, oldName));
-        var newState = api.FromJson(ReadState(example, newName));
-        var csEncoded = api.EncodeDiff(oldState, newState);
-
-        // Encoding order may vary, so only check decoded equality
-        var goldenDecoded = api.DecodeDiff(oldState, goldenDiff);
-        var csDecoded = api.DecodeDiff(oldState, csEncoded);
-        Assert.True(api.Equals(goldenDecoded, csDecoded));
-    }
-
-    [Theory]
-    [MemberData(nameof(DiffTestData))]
-    public void Interpreter_DecodeDiff_FromGolden(string example, string oldName, string newName)
-    {
-        var goldenDiff = ReadGoldenBytes(example, $"{oldName}_{newName}.diff.bin");
-        var api = LoadInterpreter(example);
-        var oldState = api.FromJson(ReadState(example, oldName));
-        var newState = api.FromJson(ReadState(example, newName));
-        var decoded = api.DecodeDiff(oldState, goldenDiff);
-
-        Assert.True(api.Equals(newState, decoded));
     }
 
     #endregion

@@ -3,7 +3,8 @@ using DeltaPack;
 namespace Game2D;
 
 // Player class - property order must match TypeScript exactly
-public class Player
+[DeltaPack]
+public partial class Player
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
@@ -26,7 +27,8 @@ public class Player
 }
 
 // GameState class
-public class GameState
+[DeltaPack]
+public partial class GameState
 {
     public DeltaPack.OrderedDict<string, Player> Players { get; set; } = new();
     public int Tick { get; set; }
@@ -34,7 +36,8 @@ public class GameState
 }
 
 // ClientInput class
-public class ClientInput
+[DeltaPack]
+public partial class ClientInput
 {
     public bool Up { get; set; }
     public bool Down { get; set; }
@@ -44,24 +47,29 @@ public class ClientInput
 }
 
 // Client -> Server messages
+[DeltaPack]
 [DeltaPackUnion(typeof(JoinMessage), typeof(InputMessage))]
-public abstract class ClientMessage { }
+public abstract partial class ClientMessage { }
 
-public class JoinMessage : ClientMessage
+[DeltaPack]
+public partial class JoinMessage : ClientMessage
 {
     public string Name { get; set; } = "";
 }
 
-public class InputMessage : ClientMessage
+[DeltaPack]
+public partial class InputMessage : ClientMessage
 {
     public ClientInput Input { get; set; } = new();
 }
 
 // Server -> Client messages
+[DeltaPack]
 [DeltaPackUnion(typeof(StateMessage))]
-public abstract class ServerMessage { }
+public abstract partial class ServerMessage { }
 
-public class StateMessage : ServerMessage
+[DeltaPack]
+public partial class StateMessage : ServerMessage
 {
     public string PlayerId { get; set; } = "";
     public GameState State { get; set; } = new();

@@ -9,6 +9,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DeltaPack.csproj" />
+    <ProjectReference Include="..\..\src\DeltaPack.SourceGenerator\DeltaPack.SourceGenerator.csproj"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer" />
   </ItemGroup>
 
   <ItemGroup>

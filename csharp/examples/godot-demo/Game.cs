@@ -11,8 +11,6 @@ public partial class Game : Node2D
 	private const double InputSendInterval = 1.0 / 30;
 
 	private readonly WebSocketPeer _socket = new();
-	private readonly DeltaPackCodec<ClientMessage> _outCodec = new();
-	private readonly DeltaPackCodec<ServerMessage> _inCodec = new();
 
 	private ServerMessage? _lastServerMessage;
 	private string? _myPlayerId;
@@ -66,7 +64,7 @@ public partial class Game : Node2D
 
 	private void SendMessage(ClientMessage msg)
 	{
-		var bytes = _outCodec.Encode(msg);
+		var bytes = ClientMessage.Encode(msg);
 		_socket.PutPacket(bytes);
 	}
 
@@ -90,8 +88,8 @@ public partial class Game : Node2D
 		try
 		{
 			_lastServerMessage = _lastServerMessage is null
-				? _inCodec.Decode(data)
-				: _inCodec.DecodeDiff(_lastServerMessage, data);
+				? ServerMessage.Decode(data)
+				: ServerMessage.DecodeDiff(_lastServerMessage, data);
 
 			if (_lastServerMessage is StateMessage stateMsg)
 			{

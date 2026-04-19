@@ -19,16 +19,13 @@ public class Program
     public static void Main(string[] args)
     {
         // Parse flags
-        bool interpreterMode = args.Contains("--interpreter", StringComparer.OrdinalIgnoreCase);
         bool save = args.Contains("--save", StringComparer.OrdinalIgnoreCase);
         var filter = args.Where(a => !a.StartsWith("--")).ToArray();
 
         var examplesDir = Path.Combine("..", "examples");
-        var deltaPackOps = interpreterMode
-            ? CreateInterpreterOps(examplesDir)
-            : CreateCodegenOps();
+        var deltaPackOps = CreateCodegenOps();
 
-        var examples = LoadExamples(examplesDir, deltaPackOps, interpreterMode);
+        var examples = LoadExamples(examplesDir, deltaPackOps);
 
         if (filter.Length > 0)
         {
@@ -40,9 +37,6 @@ public class Program
                 Environment.Exit(1);
             }
         }
-
-        var mode = interpreterMode ? "INTERPRETER" : "CODEGEN";
-        Console.WriteLine($"Running benchmarks in {mode} mode\n");
 
         // Burn-in to warm up measurement infrastructure (Stopwatch, Action delegates, etc.)
         Console.Error.WriteLine("Warming up...");
@@ -371,32 +365,6 @@ public class Program
         };
     }
 
-    static Dictionary<string, DeltaPackOps> CreateInterpreterOps(string examplesDir)
-    {
-        var ops = new Dictionary<string, DeltaPackOps>();
-        foreach (var dir in Directory.GetDirectories(examplesDir))
-        {
-            var schemaPath = Path.Combine(dir, "schema.yml");
-            if (!File.Exists(schemaPath)) continue;
-
-            var name = Path.GetFileName(dir);
-            var yamlContent = File.ReadAllText(schemaPath);
-            var schema = Parser.ParseSchemaYml(yamlContent);
-
-            if (schema.ContainsKey(name))
-            {
-                var api = Interpreter.Load<object?>(schema, name);
-                ops[name] = new DeltaPackOps(
-                    api.FromJson,
-                    obj => JsonSerializer.Deserialize<JsonObject>(api.ToJson(obj))!,
-                    api.Encode,
-                    api.Decode,
-                    api.Equals);
-            }
-        }
-        return ops;
-    }
-
     static (Func<JsonParser, string, IMessage> parseJson, Func<byte[], IMessage> decode)? GetProtoParser(string name)
     {
         return name switch
@@ -441,7 +409,7 @@ public class Program
         return new AvroInfo(schema, Encode, Decode);
     }
 
-    static List<Example> LoadExamples(string examplesDir, Dictionary<string, DeltaPackOps> deltaPackOps, bool interpreterMode)
+    static List<Example> LoadExamples(string examplesDir, Dictionary<string, DeltaPackOps> deltaPackOps)
     {
         var examples = new List<Example>();
         var jsonParser = new JsonParser(JsonParser.Settings.Default.WithIgnoreUnknownFields(true));
@@ -450,7 +418,7 @@ public class Program
         {
             var protoInfo = GetProtoParser(name);
             var avroInfo = BuildAvroInfo(name);
-            examples.Add(LoadExample(name, examplesDir, jsonParser, ops, protoInfo, avroInfo, interpreterMode));
+            examples.Add(LoadExample(name, examplesDir, jsonParser, ops, protoInfo, avroInfo));
         }
 
         return examples;
@@ -462,8 +430,7 @@ public class Program
         JsonParser jsonParser,
         DeltaPackOps ops,
         (Func<JsonParser, string, IMessage> parseJson, Func<byte[], IMessage> decode)? protoInfo,
-        AvroInfo avroInfo,
-        bool interpreterMode)
+        AvroInfo avroInfo)
     {
         var exampleDir = Path.Combine(examplesDir, name);
         var stateFiles = Directory.GetFiles(exampleDir, "state*.json")
@@ -488,14 +455,10 @@ public class Program
 
             // MessagePack serialization
             byte[] msgPackEncoded = MessagePackSerializer.Typeless.Serialize(typed);
-            if (!interpreterMode)
+            var msgPackDecoded = MessagePackSerializer.Typeless.Deserialize(msgPackEncoded);
+            if (!ops.AreEqual(typed, msgPackDecoded))
             {
-                // Verify round-trip in codegen mode only (interpreter produces different object structure)
-                var msgPackDecoded = MessagePackSerializer.Typeless.Deserialize(msgPackEncoded);
-                if (!ops.AreEqual(typed, msgPackDecoded))
-                {
-                    throw new Exception($"MessagePack round-trip failed for {name}: {Path.GetFileName(file)}");
-                }
+                throw new Exception($"MessagePack round-trip failed for {name}: {Path.GetFileName(file)}");
             }
 
             // Parse and verify Protobuf round-trip (always uses codegen)

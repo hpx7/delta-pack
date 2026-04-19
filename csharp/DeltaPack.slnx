@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DeltaPack.csproj" />
+    <Project Path="src/DeltaPack.SourceGenerator/DeltaPack.SourceGenerator.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DeltaPack.Tests.csproj" />

@@ -12,9 +12,6 @@ public class GameServer
     private readonly GameLogic _game = new();
     private readonly Dictionary<string, ConnectedClient> _clients = new();
     private readonly Dictionary<IWebSocketConnection, string> _socketToClientId = new();
-    private readonly DeltaPackCodec<ClientMessage> _clientMessageCodec = new();
-    private readonly DeltaPackCodec<ServerMessage> _serverMessageCodec = new();
-
     private WebSocketServer? _server;
     private Timer? _tickTimer;
     private Timer? _statsTimer;
@@ -89,7 +86,7 @@ public class GameServer
 
         try
         {
-            var message = _clientMessageCodec.Decode(data);
+            var message = ClientMessage.Decode(data);
 
             switch (message)
             {
@@ -129,7 +126,7 @@ public class GameServer
         };
 
         client.LastMessage = stateMsg;
-        var encoded = _serverMessageCodec.Encode(stateMsg);
+        var encoded = ServerMessage.Encode(stateMsg);
         socket.Send(encoded);
 
         Console.WriteLine($"{playerName} joined the game");
@@ -159,12 +156,12 @@ public class GameServer
             };
 
             // Send diff from last message
-            var encoded = _serverMessageCodec.EncodeDiff(client.LastMessage, updateMessage);
+            var encoded = ServerMessage.EncodeDiff(client.LastMessage, updateMessage);
             client.Socket.Send(encoded);
             totalBytes += encoded.Length;
 
             // Clone and update client's last message
-            client.LastMessage = _serverMessageCodec.Clone(updateMessage);
+            client.LastMessage = ServerMessage.Clone(updateMessage);
         }
 
         // Track stats

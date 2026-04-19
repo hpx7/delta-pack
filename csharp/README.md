@@ -10,26 +10,24 @@ dotnet add package DeltaPack
 
 ## Quick Start
 
+Annotate your types with `[DeltaPack]` and declare them `partial`. A source generator
+emits `Encode`/`Decode`/`EncodeDiff`/`DecodeDiff`/`Equals`/`Clone`/`Default`/
+`FromJson`/`ToJson` at compile time.
+
 ```csharp
 using DeltaPack;
 
-// Define your types
-public class Player
+[DeltaPack]
+public partial class Player
 {
     public string Name { get; set; } = "";
     public int Score { get; set; }
     public bool Active { get; set; }
 }
 
-// Create a codec (do this once during initialization)
-var codec = new DeltaPackCodec<Player>();
-
-// Encode
 var player = new Player { Name = "Alice", Score = 100, Active = true };
-byte[] encoded = codec.Encode(player);
-
-// Decode
-Player decoded = codec.Decode(encoded);
+byte[] encoded = Player.Encode(player);
+Player decoded = Player.Decode(encoded);
 ```
 
 ## Delta Encoding
@@ -40,15 +38,15 @@ Send only what changed between two states:
 var stateA = new GameState { Score = 100, Health = 100 };
 var stateB = new GameState { Score = 150, Health = 100 }; // Only score changed
 
-byte[] diff = codec.EncodeDiff(stateA, stateB);
-GameState result = codec.DecodeDiff(stateA, diff);
+byte[] diff = GameState.EncodeDiff(stateA, stateB);
+GameState result = GameState.DecodeDiff(stateA, diff);
 
 // diff is smaller than full encode when few fields change
 ```
 
-## Code Generation
+## Shared Schemas (TypeScript/Rust/C#)
 
-As an alternative to reflection-based serialization, you can generate C# code from a YAML schema:
+For cross-language compatibility, you can author a YAML schema and generate C# from it:
 
 ```yaml
 # schema.yml
@@ -62,51 +60,38 @@ GameState:
   round: uint
 ```
 
-Generate C# code using the CLI:
-
 ```bash
 delta-pack generate schema.yml -l csharp -o Generated.cs
 ```
 
-The generated code provides static methods for each type:
-
-```csharp
-// Generated types are plain classes
-var player = new Player { Name = "Alice", Score = 100, Active = true };
-
-// Static encode/decode methods
-byte[] encoded = Player.Encode(player);
-Player decoded = Player.Decode(encoded);
-
-// Delta encoding
-byte[] diff = Player.EncodeDiff(oldPlayer, newPlayer);
-Player result = Player.DecodeDiff(oldPlayer, diff);
-```
-
-**When to use codegen vs reflection:**
-
-- **Codegen**: Shared schemas across TypeScript/C#, compile-time type safety, no reflection overhead
-- **Reflection**: Define types directly in C#, no build step, works with existing classes
+The CLI emits minimal `[DeltaPack] partial class` skeletons — the source generator still
+fills in the methods, so call sites and binary format match.
 
 ## Supported Types
 
-- **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `byte`, `short`, etc.
+- **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `byte`, `short`, etc.
 - **Enums**: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)
 - **Collections**: `List<T>`, `OrderedDict<TKey, TValue>` (TKey: `string`, `int`, `uint`, `long`, `ulong`)
 - **Nullable value types**: `int?`, `float?`, etc.
 - **Nullable reference types**: `Player?`, `string?`, etc.
-- **Nested objects**: Any class with public properties
+- **Nested objects**: Any `[DeltaPack] partial class`
+- **Structs**: `[DeltaPack] partial struct`
 - **Self-referencing types**: Types that reference themselves (e.g., linked lists, trees)
 - **Union types**: Abstract classes with `[DeltaPackUnion]` attribute
 
 ## Attributes
+
+### `[DeltaPack]`
+
+Marks a type for code generation. Types must be declared `partial`.
 
 ### `[DeltaPackPrecision]`
 
 Quantize floats for smaller encoding:
 
 ```csharp
-public class Position
+[DeltaPack]
+public partial class Position
 {
     [DeltaPackPrecision(0.01)]
     public float X { get; set; }
@@ -121,7 +106,8 @@ public class Position
 Specify bounds for integers (enables more efficient encoding):
 
 ```csharp
-public class Stats
+[DeltaPack]
+public partial class Stats
 {
     [DeltaPackRange(0, 100)]
     public int Health { get; set; }
@@ -136,7 +122,8 @@ public class Stats
 Exclude a property from serialization:
 
 ```csharp
-public class Player
+[DeltaPack]
+public partial class Player
 {
     public string Name { get; set; } = "";
     public int Score { get; set; }
@@ -151,18 +138,21 @@ public class Player
 Define polymorphic types:
 
 ```csharp
+[DeltaPack]
 [DeltaPackUnion(typeof(Sword), typeof(Bow))]
-public abstract class Weapon
+public abstract partial class Weapon
 {
     public string Name { get; set; } = "";
 }
 
-public class Sword : Weapon
+[DeltaPack]
+public partial class Sword : Weapon
 {
     public int SlashDamage { get; set; }
 }
 
-public class Bow : Weapon
+[DeltaPack]
+public partial class Bow : Weapon
 {
     public int ArrowDamage { get; set; }
     public float Range { get; set; }
@@ -171,84 +161,52 @@ public class Bow : Weapon
 
 ## API Reference
 
-### `DeltaPackCodec<T>`
+For every `[DeltaPack] partial class T`, the generator emits these static methods:
 
-| Method                         | Description                                 |
-| ------------------------------ | ------------------------------------------- |
-| `Encode(T obj)`                | Serialize object to bytes                   |
-| `Decode(byte[] buf)`           | Deserialize bytes to object                 |
-| `EncodeDiff(T a, T b)`         | Encode only the differences between a and b |
-| `DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b                |
-| `Equals(T a, T b)`             | Deep equality comparison                    |
-| `Clone(T obj)`                 | Deep clone                                  |
-| `FromJson(JsonElement json)`   | Deserialize from JSON                       |
-| `ToJson(T obj)`                | Serialize to JSON                           |
-| `Schema`                       | The generated schema (for debugging)        |
-
-### Custom Factory
-
-For types without parameterless constructors, such as records:
-
-```csharp
-public record ImmutablePlayer(string Name, int Score);
-
-var codec = new DeltaPackCodec<ImmutablePlayer>(
-    () => new ImmutablePlayer("", 0)
-);
-```
-
-> **Note:** Union types (abstract classes with `[DeltaPackUnion]`) don't require a factory—variants are instantiated directly during decoding.
+| Method                           | Description                                 |
+| -------------------------------- | ------------------------------------------- |
+| `T.Default()`                    | Construct a default instance                |
+| `T.Encode(T obj)`                | Serialize object to bytes                   |
+| `T.Decode(byte[] buf)`           | Deserialize bytes to object                 |
+| `T.EncodeDiff(T a, T b)`         | Encode only the differences between a and b |
+| `T.DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b                |
+| `T.Equals(T a, T b)`             | Deep equality comparison                    |
+| `T.Clone(T obj)`                 | Deep clone                                  |
+| `T.FromJson(JsonElement json)`   | Deserialize from JSON                       |
+| `T.ToJson(T obj)`                | Serialize to JSON                           |
 
 ## Unity Compatibility
 
-This library targets `netstandard2.1` and is compatible with Unity 2021.2+.
+Targets `netstandard2.1` and is IL2CPP/AOT-safe — the source generator runs at compile
+time, so there's no reflection overhead at runtime.
 
-**Recommended usage pattern:**
+The bundled source generator requires **Roslyn 4.0+**, which matches Unity 2021.3 LTS and
+newer. Older Unity versions predate incremental source generators and won't load the
+analyzer.
 
-```csharp
-public class NetworkManager : MonoBehaviour
-{
-    // Create codecs once during initialization
-    private DeltaPackCodec<GameState> _stateCodec;
-    private DeltaPackCodec<PlayerInput> _inputCodec;
-
-    void Awake()
-    {
-        _stateCodec = new DeltaPackCodec<GameState>();
-        _inputCodec = new DeltaPackCodec<PlayerInput>();
-    }
-
-    void SendState(GameState state)
-    {
-        byte[] data = _stateCodec.Encode(state);
-        // Send data...
-    }
-
-    GameState ReceiveState(byte[] data)
-    {
-        return _stateCodec.Decode(data);
-    }
-}
-```
+Install via [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity), which handles
+analyzer assets and pulls in the transitive `System.Text.Json` dependency needed for
+`FromJson`/`ToJson`.
 
 ## Requirements
 
 ### Runtime
 
-- .NET 6.0+ or .NET Standard 2.1 (Unity 2021.2+)
+- .NET 6.0+ or .NET Standard 2.1 (Unity 2021.3 LTS+)
 
 ### Type Definitions
 
-- **Parameterless constructor** required (or provide a factory)
+- Mark the type with `[DeltaPack]` and declare it `partial`
 - **Public properties** with both getter and setter are serialized
 - **Public fields** are also serialized
-- **`init` setters** work (reflection bypasses compile-time restriction)
+- **`init` setters** work
 - **Private members** are skipped
 - **Read-only properties** (getter only) are skipped
 - **Dictionary keys** must be `string`, `int`, `uint`, `long`, or `ulong`
 
 ```csharp
-public class Player
+[DeltaPack]
+public partial class Player
 {
     public string Name { get; set; } = "";     // ✓ Serialized
     public int Score { get; init; }            // ✓ Serialized (init works)

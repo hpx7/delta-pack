@@ -127,9 +127,6 @@ public class Encoder
             innerWrite(val);
     }
 
-    // Generated code passes concrete List<T>; compile-time overload resolution picks
-    // this version and the JIT emits the non-virtual List<T> indexer. The IList<T>
-    // overload below is the fallback for callers like the interpreter.
     public void PushArray<T>(List<T> val, Action<T> innerWrite)
     {
         var count = val.Count;
@@ -138,16 +135,6 @@ public class Encoder
             innerWrite(val[i]);
     }
 
-    public void PushArray<T>(IList<T> val, Action<T> innerWrite)
-    {
-        var count = val.Count;
-        PushUInt((uint)count);
-        for (var i = 0; i < count; i++)
-            innerWrite(val[i]);
-    }
-
-    // Same overload-pair pattern as PushArray: the concrete OrderedDict version
-    // uses indexed access; IDictionary is the interpreter fallback.
     public void PushRecord<TKey, TValue>(
         OrderedDict<TKey, TValue> val,
         Action<TKey> innerKeyWrite,
@@ -161,20 +148,6 @@ public class Encoder
             var key = val.GetKeyAtIndex(i);
             innerKeyWrite(key);
             innerValWrite(val[key]);
-        }
-    }
-
-    public void PushRecord<TKey, TValue>(
-        IDictionary<TKey, TValue> val,
-        Action<TKey> innerKeyWrite,
-        Action<TValue> innerValWrite)
-        where TKey : notnull
-    {
-        PushUInt((uint)val.Count);
-        foreach (var (key, value) in val)
-        {
-            innerKeyWrite(key);
-            innerValWrite(value);
         }
     }
 

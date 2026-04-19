@@ -8,7 +8,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>DeltaPack</PackageId>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
     <Authors>Harsh Pandey</Authors>
     <Description>Binary serialization library optimized for delta encoding of game state. Efficiently encode only what changed between two states.</Description>
     <PackageTags>serialization;binary;delta;encoding;game;networking;unity</PackageTags>
@@ -21,6 +21,9 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <!-- The source generator sub-project lives under src/; exclude it from the main compile. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);DeltaPack.SourceGenerator/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,7 +31,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="YamlDotNet" Version="16.2.1" />
+    <ProjectReference Include="DeltaPack.SourceGenerator/DeltaPack.SourceGenerator.csproj"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer" />
+    <None Include="DeltaPack.SourceGenerator/bin/$(Configuration)/netstandard2.0/DeltaPack.SourceGenerator.dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">

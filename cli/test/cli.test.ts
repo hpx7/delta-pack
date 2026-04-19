@@ -56,7 +56,8 @@ describe("CLI", () => {
   it("generate csharp", async () => {
     const generated =
       await $`bun ${cli} generate ${schemaPath} -l csharp`.text();
-    expect(generated).toContain("public class Primitives");
+    expect(generated).toContain("public partial class Primitives");
+    expect(generated).toContain("[DeltaPack]");
     expect(generated).toContain("namespace Generated");
   });
 

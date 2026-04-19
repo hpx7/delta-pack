@@ -6,6 +6,9 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/DeltaPack.csproj" />
+    <ProjectReference Include="../../src/DeltaPack.SourceGenerator/DeltaPack.SourceGenerator.csproj"
+                      ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../2d-game/Schema.cs" Link="SharedSchema.cs" />
