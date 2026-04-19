@@ -243,13 +243,18 @@ public partial class Bow : Weapon
 </tbody>
 </table>
 <h2 id="unity-compatibility">Unity Compatibility</h2>
-<p>Targets <code>netstandard2.1</code> and is compatible with Unity 2021.2+. The source generator
-runs at compile time, so there's no reflection overhead at runtime and the library works
-under IL2CPP.</p>
+<p>Targets <code>netstandard2.1</code> and is IL2CPP/AOT-safe — the source generator runs at compile
+time, so there's no reflection overhead at runtime.</p>
+<p>The bundled source generator requires <strong>Roslyn 4.0+</strong>, which matches Unity 2021.3 LTS and
+newer. Older Unity versions predate incremental source generators and won't load the
+analyzer.</p>
+<p>Install via <a href="https://github.com/GlitchEnzo/NuGetForUnity">NuGetForUnity</a>, which handles
+analyzer assets and pulls in the transitive <code>System.Text.Json</code> dependency needed for
+<code>FromJson</code>/<code>ToJson</code>.</p>
 <h2 id="requirements">Requirements</h2>
 <h3 id="runtime">Runtime</h3>
 <ul>
-<li>.NET 6.0+ or .NET Standard 2.1 (Unity 2021.2+)</li>
+<li>.NET 6.0+ or .NET Standard 2.1 (Unity 2021.3 LTS+)</li>
 </ul>
 <h3 id="type-definitions">Type Definitions</h3>
 <ul>
