@@ -10,6 +10,12 @@ public class TrackingTests
 {
     // ============ Object tracking ============
 
+    // Field slot indices mirror declaration order in tests/Tracking/Models/TrackedSimple.cs.
+    // TrackedPosition:  X=0, Y=1
+    // TrackedPlayer:    Name=0, Score=1, Pos=2, Inventory=3, Stats=4
+    private const int SlotX = 0, SlotY = 1;
+    private const int SlotPlayerPos = 2, SlotPlayerInventory = 3;
+
     [Fact]
     public void Setting_property_marks_field_dirty()
     {
@@ -18,10 +24,9 @@ public class TrackingTests
         p.X = 5f;
         p.Y = 10f;
 
-        var tracked = (IDirtyTracked)p;
-        Assert.NotNull(tracked.DirtyFields);
-        Assert.True(tracked.DirtyFields!["X"] > startVersion);
-        Assert.True(tracked.DirtyFields!["Y"] > startVersion);
+        var tracked = (ITrackedObject)p;
+        Assert.True(tracked.GetDirtyVersion(SlotX) > startVersion);
+        Assert.True(tracked.GetDirtyVersion(SlotY) > startVersion);
     }
 
     [Fact]
@@ -29,11 +34,11 @@ public class TrackingTests
     {
         var p = new TrackedPosition();
         p.X = 5f;
-        var tracked = (IDirtyTracked)p;
-        var versionAfterFirstSet = tracked.DirtyFields!["X"];
+        var tracked = (ITrackedObject)p;
+        var versionAfterFirstSet = tracked.GetDirtyVersion(SlotX);
 
         p.X = 5f; // no-op
-        Assert.Equal(versionAfterFirstSet, tracked.DirtyFields!["X"]);
+        Assert.Equal(versionAfterFirstSet, tracked.GetDirtyVersion(SlotX));
     }
 
     [Fact]
@@ -44,8 +49,8 @@ public class TrackingTests
         var pos = player.Pos;
         pos.X = 100f;
 
-        var parentTracked = (IDirtyTracked)player;
-        Assert.Contains("Pos", parentTracked.DirtyFields!.Keys);
+        var parentTracked = (ITrackedObject)player;
+        Assert.True(parentTracked.GetDirtyVersion(SlotPlayerPos) > -1);
     }
 
     // ============ TrackedList ============
@@ -55,20 +60,17 @@ public class TrackingTests
     {
         var list = new TrackedList<int>();
         list.Add(42);
-        var tracked = (IDirtyTracked)list;
-        Assert.NotNull(tracked.DirtyIndices);
-        Assert.True(tracked.DirtyIndices!.ContainsKey(0));
+        Assert.True(list.DirtyIndices.ContainsKey(0));
     }
 
     [Fact]
     public void TrackedList_Set_to_same_value_does_not_mark_dirty()
     {
         var list = new TrackedList<int> { 1, 2, 3 };
-        var tracked = (IDirtyTracked)list;
-        var versionBefore = tracked.DirtyIndices!.GetValueOrDefault(1, -1);
+        var versionBefore = list.DirtyIndices.GetValueOrDefault(1, -1);
 
         list[1] = 2; // no-op
-        Assert.Equal(versionBefore, tracked.DirtyIndices!.GetValueOrDefault(1, -1));
+        Assert.Equal(versionBefore, list.DirtyIndices.GetValueOrDefault(1, -1));
     }
 
     [Fact]
@@ -95,8 +97,8 @@ public class TrackingTests
         // Touching the property reparents the list.
         player.Inventory.Add(7);
 
-        var parentTracked = (IDirtyTracked)player;
-        Assert.Contains("Inventory", parentTracked.DirtyFields!.Keys);
+        var parentTracked = (ITrackedObject)player;
+        Assert.True(parentTracked.GetDirtyVersion(SlotPlayerInventory) > -1);
     }
 
     [Fact]
@@ -179,6 +181,47 @@ public class TrackingTests
         Assert.DoesNotContain("a", dict.DeletedKeys.Keys);
     }
 
+    [Fact]
+    public void EncodeDiff_modify_remove_readd_of_snapshot_key_preserves_final_value()
+    {
+        // Harder variant of the revival test: modify before the remove+re-add, so _dirty
+        // briefly holds the key before Remove clears it.
+        var live = TrackedPlayer.Default();
+        live.Stats["hp"] = 100;
+        var snap = TrackedPlayer.Clone(live);
+
+        live.Stats["hp"] = 200;       // _dirty["hp"] set
+        live.Stats.Remove("hp");      // _dirty cleared, _deleted["hp"] set
+        live.Stats["hp"] = 777;       // revival — must end up as update for snapshot
+
+        var diff = TrackedPlayer.EncodeDiff(snap, live);
+        var decoded = TrackedPlayer.DecodeDiff(snap, diff);
+        Assert.Equal(777, decoded.Stats["hp"]);
+    }
+
+    [Fact]
+    public void EncodeDiff_remove_then_readd_of_snapshot_key_preserves_new_value()
+    {
+        // Regression: for a key that was present in the snapshot, Remove-then-re-Add must
+        // still appear in the diff. Previously the re-Add went into _created (since the
+        // inner dict had just cleared the key), and the encoder's additions filter
+        // (`!a.ContainsKey(key)`) rejected it — while _dirty/_deleted were empty — so the
+        // change was dropped silently.
+        var live = TrackedPlayer.Default();
+        live.Stats["hp"] = 100;
+        live.Stats["mp"] = 50;
+
+        var snap = TrackedPlayer.Clone(live);
+
+        live.Stats.Remove("hp");
+        live.Stats["hp"] = 999;
+
+        var diff = TrackedPlayer.EncodeDiff(snap, live);
+        var decoded = TrackedPlayer.DecodeDiff(snap, diff);
+        Assert.Equal(999, decoded.Stats["hp"]);
+        Assert.Equal(50, decoded.Stats["mp"]);
+    }
+
     // ============ Snapshot semantics ============
 
     [Fact]
@@ -229,9 +272,9 @@ public class TrackingTests
         // once the parent's recorded version for the key is >= the propagated version.
         var live = TrackedPlayer.Default();
         live.Pos.X = 1f;
-        var versionAfterFirst = ((IDirtyTracked)live).DirtyFields!["Pos"];
+        var versionAfterFirst = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
         live.Pos.X = 2f;
-        var versionAfterSecond = ((IDirtyTracked)live).DirtyFields!["Pos"];
+        var versionAfterSecond = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
         Assert.True(versionAfterSecond > versionAfterFirst);
     }
 

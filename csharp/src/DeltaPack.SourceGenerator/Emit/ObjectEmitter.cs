@@ -31,7 +31,7 @@ internal static class ObjectEmitter
         var abstractKw = def.IsAbstract ? "abstract " : "";
         var kindKw = def.IsStruct ? "struct" : "class";
         // Tracked classes need to declare the interface on at least one partial part.
-        var bases = def.IsTracked ? " : DeltaPack.IDirtyTracked" : "";
+        var bases = def.IsTracked ? " : DeltaPack.ITrackedObject" : "";
         return $"{abstractKw}partial {kindKw} {def.SimpleName}{bases}";
     }
 
@@ -120,21 +120,67 @@ internal static class ObjectEmitter
 
     private static void EmitClone(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
     {
-        using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
+        if (def.IsTracked)
         {
-            var header = def.IsTracked ? $"var result = new {def.SimpleName}" : "return new()";
-            using (w.Block(header))
+            // Split into public `Clone` (registers the snapshot) and internal `CloneChild_`
+            // (does the work without registering). Nested clones reached via CreateSnapshot
+            // factories and tracked-reference fields use `CloneChild_`, so only the root
+            // ever ends up in the snapshot registry. Otherwise, cloning a tree of N tracked
+            // instances meant N registry entries + N PruneDeleted walks — quadratic at scale.
+            using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
             {
-                foreach (var f in def.Fields)
-                    w.Line($"{f.Name} = {ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg)},");
-            }
-            w.Line(";");
-            if (def.IsTracked)
-            {
+                w.Line("var result = CloneChild_(obj);");
                 w.Line("DeltaPack.DirtyTracking.RegisterSnapshot(result, obj);");
                 w.Line("return result;");
             }
+            w.Line();
+            using (w.Block($"internal static {def.SimpleName} CloneChild_({def.SimpleName} obj)"))
+            {
+                EmitTrackedCloneBody(w, def, reg);
+            }
         }
+        else
+        {
+            using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
+            {
+                using (w.Block("return new()"))
+                {
+                    foreach (var f in def.Fields)
+                        w.Line($"{f.Name} = {ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg)},");
+                }
+                w.Line(";");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Emits the tracked-type Clone body as direct backing-field writes plus per-child Reparent
+    /// calls. Does NOT call <c>RegisterSnapshot</c> — that's handled by the public <c>Clone</c>
+    /// wrapper at the root only. Writing to backing fields directly also avoids the per-field
+    /// NextVersion/dirty-map writes/PropagateToParent that the partial-property setters would
+    /// run — wasted work on a freshly-built snapshot.
+    /// </summary>
+    private static void EmitTrackedCloneBody(CodeWriter w, TypeDef def, ModelRegistry reg)
+    {
+        w.Line($"var result = new {def.SimpleName}();");
+        for (int slot = 0; slot < def.Fields.Length; slot++)
+        {
+            var f = def.Fields[slot];
+            var backing = ExpressionRenderer.TrackingBackingField(f);
+            // Pass inTrackedContext=true so CloneInline emits `CloneChild_` (not `Clone`)
+            // for any nested tracked references — no redundant registry entries.
+            var cloneExpr = ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg, inTrackedContext: true);
+            w.Line($"result.{backing} = {cloneExpr};");
+
+            if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+            {
+                // Optional<T> may legitimately be null; other trackable fields won't be.
+                // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
+                w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__t_{f.Name}, result, {slot});");
+            }
+        }
+        w.Line("return result;");
     }
 
     private static void EmitEquals(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
@@ -173,14 +219,25 @@ internal static class ObjectEmitter
         using (w.Block($"public static {newKw}byte[] EncodeDiff({def.SimpleName} a, {def.SimpleName} b)"))
         {
             w.Line("var encoder = new DeltaPack.Encoder();");
-            w.Line("encoder.PushObjectDiff(a, b, Equals, () => EncodeDiff_(a, b, encoder));");
+            // Method group `EncodeDiff_` binds to `Action<T, T, Encoder>` — the runtime caches
+            // the delegate per type, avoiding the per-call closure that a `() => ...` lambda
+            // would allocate.
+            w.Line("encoder.PushObjectDiff(a, b, Equals, EncodeDiff_);");
             w.Line("return encoder.ToBuffer();");
         }
         w.Line();
         using (w.Block($"internal static {newKw}void EncodeDiff_({def.SimpleName} a, {def.SimpleName} b, DeltaPack.Encoder encoder)"))
         {
-            foreach (var f in def.Fields)
-                ExpressionRenderer.EncodeDiffField(w, f, reg, "a", "b", def.SimpleName, def.IsTracked);
+            if (def.IsTracked)
+            {
+                // Hoist the baseline snapshot version once — each inlined field diff block
+                // below compares against this. Without the hoist, every field would repeat
+                // the same property read (virtual on IDirtyTracked); with N fields that's
+                // O(N) redundant reads per tracked object in the hot path.
+                w.Line("var __dp_minVersion = a.SnapshotVersion;");
+            }
+            for (int i = 0; i < def.Fields.Length; i++)
+                ExpressionRenderer.EncodeDiffField(w, def.Fields[i], i, reg, "a", "b", def.IsTracked);
         }
     }
 

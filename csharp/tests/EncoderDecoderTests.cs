@@ -144,7 +144,7 @@ public class EncoderDecoderTests
     public void Optional_Present_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptional("hello", encoder.PushString);
+        encoder.PushOptional("hello", (v, e) => e.PushString(v));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -155,7 +155,7 @@ public class EncoderDecoderTests
     public void Optional_Null_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptional<string>(null, encoder.PushString);
+        encoder.PushOptional<string>(null, (v, e) => e.PushString(v));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -168,7 +168,7 @@ public class EncoderDecoderTests
         var values = new List<long> { 1, 2, 3, 4, 5 };
 
         var encoder = new Encoder();
-        encoder.PushArray(values, encoder.PushInt);
+        encoder.PushArray(values, (v, e) => e.PushInt(v));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -181,7 +181,7 @@ public class EncoderDecoderTests
         var values = new List<string>();
 
         var encoder = new Encoder();
-        encoder.PushArray(values, encoder.PushString);
+        encoder.PushArray(values, (v, e) => e.PushString(v));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -199,7 +199,7 @@ public class EncoderDecoderTests
         };
 
         var encoder = new Encoder();
-        encoder.PushRecord(values, encoder.PushString, encoder.PushInt);
+        encoder.PushRecord(values, (k, e) => e.PushString(k), (v, e) => e.PushInt(v));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -284,8 +284,8 @@ public class EncoderDecoderTests
         encoder.PushArrayDiff(
             a, b,
             (x, y) => x == y,
-            encoder.PushInt,
-            (_, y) => encoder.PushInt(y));
+            (v, e) => e.PushInt(v),
+            (_, y, e) => e.PushInt(y));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -305,8 +305,8 @@ public class EncoderDecoderTests
         encoder.PushArrayDiff(
             a, a,
             (x, y) => x == y,
-            encoder.PushInt,
-            (_, y) => encoder.PushInt(y));
+            (v, e) => e.PushInt(v),
+            (_, y, e) => e.PushInt(y));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -338,9 +338,9 @@ public class EncoderDecoderTests
         encoder.PushRecordDiff(
             a, b,
             (x, y) => x == y,
-            encoder.PushString,
-            encoder.PushInt,
-            (_, y) => encoder.PushInt(y));
+            (k, e) => e.PushString(k),
+            (v, e) => e.PushInt(v),
+            (_, y, e) => e.PushInt(y));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -356,7 +356,7 @@ public class EncoderDecoderTests
     public void OptionalDiff_NullToValue_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiff<string>(null, "hello", encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
+        encoder.PushOptionalDiff<string>(null, "hello", (v, e) => e.PushString(v), (a, b, e) => e.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -367,7 +367,7 @@ public class EncoderDecoderTests
     public void OptionalDiff_ValueToNull_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiff<string>("hello", null, encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
+        encoder.PushOptionalDiff<string>("hello", null, (v, e) => e.PushString(v), (a, b, e) => e.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -378,7 +378,7 @@ public class EncoderDecoderTests
     public void OptionalDiff_ValueToValue_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiff("old", "new", encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
+        encoder.PushOptionalDiff("old", "new", (v, e) => e.PushString(v), (a, b, e) => e.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -389,7 +389,7 @@ public class EncoderDecoderTests
     public void OptionalDiff_Unchanged_String_RoundTrips()
     {
         var encoder = new Encoder();
-        encoder.PushOptionalDiff("same", "same", encoder.PushString, (a, b) => encoder.PushStringDiff(a, b));
+        encoder.PushOptionalDiff("same", "same", (v, e) => e.PushString(v), (a, b, e) => e.PushStringDiff(a, b));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -408,8 +408,8 @@ public class EncoderDecoderTests
         var encoder = new Encoder();
         encoder.PushOptionalDiff<List<long>>(
             null, a,
-            list => encoder.PushArray(list, encoder.PushInt),
-            (_, list) => encoder.PushArray(list, encoder.PushInt));
+            (list, e) => e.PushArray(list, (v, en) => en.PushInt(v)),
+            (_, list, e) => e.PushArray(list, (v, en) => en.PushInt(v)));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -428,8 +428,8 @@ public class EncoderDecoderTests
         var encoder = new Encoder();
         encoder.PushOptionalDiff<List<long>>(
             a, null,
-            list => encoder.PushArray(list, encoder.PushInt),
-            (_, list) => encoder.PushArray(list, encoder.PushInt));
+            (list, e) => e.PushArray(list, (v, en) => en.PushInt(v)),
+            (_, list, e) => e.PushArray(list, (v, en) => en.PushInt(v)));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -449,8 +449,8 @@ public class EncoderDecoderTests
         var encoder = new Encoder();
         encoder.PushOptionalDiff(
             a, b,
-            list => encoder.PushArray(list, encoder.PushInt),
-            (_, list) => encoder.PushArray(list, encoder.PushInt));
+            (list, e) => e.PushArray(list, (v, en) => en.PushInt(v)),
+            (_, list, e) => e.PushArray(list, (v, en) => en.PushInt(v)));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);
@@ -473,7 +473,7 @@ public class EncoderDecoderTests
         encoder.PushFloat(3.14f);
         encoder.PushBoolean(true);
         encoder.PushBoolean(false);
-        encoder.PushArray(new List<string> { "a", "b" }, encoder.PushString);
+        encoder.PushArray(new List<string> { "a", "b" }, (v, e) => e.PushString(v));
         var buffer = encoder.ToBuffer();
 
         var decoder = new Decoder(buffer);

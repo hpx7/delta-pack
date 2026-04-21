@@ -9,7 +9,7 @@ namespace DeltaPack;
 /// on serialized properties of <see cref="DeltaPackTrackedAttribute"/> classes so
 /// <c>EncodeDiff</c> can skip unchanged-index comparisons.
 /// </summary>
-public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, IDirtyTracked
+public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContainer
 {
     private readonly List<T> _inner;
     private readonly Dictionary<int, long> _dirty = new();
@@ -22,15 +22,52 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, IDirtyTracked
         ReparentRange(0, _inner.Count);
     }
 
+    /// <summary>
+    /// Source-generator entry point for snapshot construction. Clones each element via
+    /// <paramref name="cloneValue"/> and appends directly to the inner list, bypassing the
+    /// per-mutation <c>NextVersion</c>/<c>MarkDirty</c>/<c>PropagateToParent</c> work performed
+    /// by <see cref="Add"/>. Not intended for user code.
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static TrackedList<T> CreateSnapshot(TrackedList<T> source, System.Func<T, T> cloneValue)
+    {
+        var result = new TrackedList<T>(source._inner.Count);
+        for (int i = 0; i < source._inner.Count; i++)
+        {
+            var cloned = cloneValue(source._inner[i]);
+            result._inner.Add(cloned);
+            if (cloned is IDirtyTracked child) DirtyTracking.Reparent(child, result, i);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Source-generator entry point for snapshot construction of lists whose elements are
+    /// reference-immutable (primitives, strings, enums). Copies elements directly without
+    /// running the tracking write path.
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static TrackedList<T> CreateSnapshot(TrackedList<T> source)
+    {
+        var result = new TrackedList<T>(source._inner.Count);
+        for (int i = 0; i < source._inner.Count; i++)
+        {
+            result._inner.Add(source._inner[i]);
+            if (source._inner[i] is IDirtyTracked child) DirtyTracking.Reparent(child, result, i);
+        }
+        return result;
+    }
+
     // ============ IDirtyTracked ============
 
-    IReadOnlyDictionary<string, long>? IDirtyTracked.DirtyFields => null;
-    IReadOnlyDictionary<int, long>? IDirtyTracked.DirtyIndices => _dirty;
+    /// <summary>Per-index versions of entries mutated since the last snapshot.</summary>
+    public IReadOnlyDictionary<int, long> DirtyIndices => _dirty;
     public long SnapshotVersion { get; set; } = -1;
     public IDirtyTracked? Parent { get; set; }
     public object? ParentKey { get; set; }
+    public int ParentSlot { get; set; } = -1;
 
-    bool IDirtyTracked.MarkDirty(object key, long version)
+    bool ITrackedContainer.MarkDirty(object key, long version)
     {
         if (key is not int i) return false;
         if (_dirty.TryGetValue(i, out var existing) && existing >= version) return false;

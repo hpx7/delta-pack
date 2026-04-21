@@ -87,8 +87,11 @@ internal static class ExpressionRenderer
         TypeKind.Boolean => $"encoder.PushBoolean({val})",
         TypeKind.Float => EncodeFloat(t, val),
         TypeKind.Int => EncodeInt(t, val),
-        TypeKind.Array => $"encoder.PushArray({val}, x => {EncodeInline(t.ElementType!, "x", reg)})",
-        TypeKind.Record => $"encoder.PushRecord({val}, x => {EncodeInline(t.KeyType!, "x", reg)}, x => {EncodeInline(t.ValueType!, "x", reg)})",
+        // The inner lambdas take `encoder` as a parameter that shadows the outer `encoder`
+        // variable — that keeps them non-capturing so the C# compiler caches them as static
+        // delegates (one allocation per type, not per call).
+        TypeKind.Array => $"encoder.PushArray({val}, (x, encoder) => {EncodeInline(t.ElementType!, "x", reg)})",
+        TypeKind.Record => $"encoder.PushRecord({val}, (x, encoder) => {EncodeInline(t.KeyType!, "x", reg)}, (x, encoder) => {EncodeInline(t.ValueType!, "x", reg)})",
         TypeKind.Reference => EncodeReference(t, val, reg),
         // Optionals are handled at the statement level (PushBoolean + if for value types,
         // PushOptional for reference types). Callers use EncodeStatements for fields.
@@ -146,8 +149,9 @@ internal static class ExpressionRenderer
         }
         else
         {
-            // Reference-type optional
-            w.Line($"encoder.PushOptional({access}, x => {EncodeInline(inner, "x", reg)});");
+            // Reference-type optional. Lambda takes `encoder` as a parameter that shadows the
+            // outer `encoder` variable, so the compiler can cache the delegate statically.
+            w.Line($"encoder.PushOptional({access}, (x, encoder) => {EncodeInline(inner, "x", reg)});");
         }
     }
 
@@ -258,60 +262,79 @@ internal static class ExpressionRenderer
 
     // ========== Clone ==========
 
-    public static string CloneInline(TypeRef t, string val, ModelRegistry reg) => t.Kind switch
+    /// <summary>
+    /// Emits an inline clone expression for a value of type <paramref name="t"/>.
+    /// When <paramref name="inTrackedContext"/> is true, nested tracked-reference clones call
+    /// <c>CloneChild_</c> (which skips <c>RegisterSnapshot</c>) instead of <c>Clone</c>. The
+    /// tracked-container snapshot factories pass <c>CloneChild_</c>-targeted lambdas for the
+    /// same reason — only the outermost clone needs to be in the snapshot registry.
+    /// </summary>
+    public static string CloneInline(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext = false) => t.Kind switch
     {
         TypeKind.String or TypeKind.Boolean or TypeKind.Int or TypeKind.Float => val,
-        TypeKind.Array => CloneArray(t, val, reg),
-        TypeKind.Record => CloneRecord(t, val, reg),
-        TypeKind.Reference => CloneReference(t, val, reg),
-        TypeKind.Optional => CloneOptional(t, val, reg),
+        TypeKind.Array => CloneArray(t, val, reg, inTrackedContext),
+        TypeKind.Record => CloneRecord(t, val, reg, inTrackedContext),
+        TypeKind.Reference => CloneReference(t, val, reg, inTrackedContext),
+        TypeKind.Optional => CloneOptional(t, val, reg, inTrackedContext),
         _ => throw new InvalidOperationException(),
     };
 
-    private static string CloneArray(TypeRef t, string val, ModelRegistry reg)
+    private static string CloneArray(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
     {
         var elem = t.ElementType!;
-        var containerType = t.IsTracked
-            ? $"DeltaPack.TrackedList<{CSharpType(elem, reg)}>"
-            : $"System.Collections.Generic.List<{CSharpType(elem, reg)}>";
-        if (IsDeepCloneNoop(elem, reg))
-            return $"new {containerType}({val})";
-        return t.IsTracked
-            ? $"new {containerType}({val}.Select(x => {CloneInline(elem, "x", reg)}))"
-            : $"{val}.Select(x => {CloneInline(elem, "x", reg)}).ToList()";
-    }
-
-    private static string CloneRecord(TypeRef t, string val, ModelRegistry reg)
-    {
-        var valueType = t.ValueType!;
-        var containerType = t.IsTracked
-            ? $"DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>"
-            : $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
-        if (IsDeepCloneNoop(valueType, reg))
-            return $"new {containerType}({val})";
         if (t.IsTracked)
         {
-            // TrackedOrderedDict takes an IDictionary; we build an OrderedDict of cloned values first.
-            var odictType = $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
-            return $"new {containerType}({val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg)}))";
+            // Tracked: use the generator-only snapshot factory that sizes the inner list exactly,
+            // skips per-element MarkDirty/NextVersion, and reparents children once. The factory
+            // lambda is by definition a tracked context — nested tracked refs use CloneChild_.
+            var containerType = $"DeltaPack.TrackedList<{CSharpType(elem, reg)}>";
+            return IsDeepCloneNoop(elem, reg)
+                ? $"{containerType}.CreateSnapshot({val})"
+                : $"{containerType}.CreateSnapshot({val}, x => {CloneInline(elem, "x", reg, inTrackedContext: true)})";
         }
-        return $"{val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg)})";
+        var untrackedType = $"System.Collections.Generic.List<{CSharpType(elem, reg)}>";
+        if (IsDeepCloneNoop(elem, reg))
+            return $"new {untrackedType}({val})";
+        return $"{val}.Select(x => {CloneInline(elem, "x", reg, inTrackedContext)}).ToList()";
     }
 
-    private static string CloneReference(TypeRef t, string val, ModelRegistry reg)
+    private static string CloneRecord(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
+    {
+        var valueType = t.ValueType!;
+        if (t.IsTracked)
+        {
+            // Tracked: snapshot factory bypasses the ToOrderedDict → IDictionary ctor double-pass
+            // and skips per-entry dirty tracking. Factory lambda is a tracked context.
+            var containerType = $"DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
+            return IsDeepCloneNoop(valueType, reg)
+                ? $"{containerType}.CreateSnapshot({val})"
+                : $"{containerType}.CreateSnapshot({val}, x => {CloneInline(valueType, "x", reg, inTrackedContext: true)})";
+        }
+        var odictType = $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
+        if (IsDeepCloneNoop(valueType, reg))
+            return $"new {odictType}({val})";
+        return $"{val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg, inTrackedContext)})";
+    }
+
+    private static string CloneReference(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
     {
         var def = reg.Lookup(t.ReferenceName!);
         if (def?.Kind == TypeDefKind.Enum) return val;
+        // In a tracked context (root snapshot's clone body, or a tracked-container factory),
+        // nested tracked refs should go through CloneChild_ so the root's RegisterSnapshot
+        // is the only one that actually hits the snapshot registry.
+        if (inTrackedContext && def?.IsTracked == true)
+            return $"{t.ReferenceName}.CloneChild_({val})";
         return $"{t.ReferenceName}.Clone({val})";
     }
 
-    private static string CloneOptional(TypeRef t, string val, ModelRegistry reg)
+    private static string CloneOptional(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
     {
         var inner = t.ElementType!;
         if (IsDeepCloneNoop(inner, reg))
             return val;
         // reference type: null-check then clone
-        return $"{val} != null ? {CloneInline(inner, val, reg)} : null";
+        return $"{val} != null ? {CloneInline(inner, val, reg, inTrackedContext)} : null";
     }
 
     /// <summary>True if a value of this type can be cloned by simple assignment (value types + strings + enums).</summary>
@@ -331,9 +354,54 @@ internal static class ExpressionRenderer
         }
     }
 
-    // ========== EncodeDiff (per-field, using `encoder.PushFieldDiff`) ==========
+    /// <summary>
+    /// Name of the private backing field for a partial property. Must match the convention used
+    /// in <see cref="TrackingEmitter"/>'s generated property bodies.
+    /// </summary>
+    public static string TrackingBackingField(FieldModel f)
+        => "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
 
-    public static void EncodeDiffField(CodeWriter w, FieldModel f, ModelRegistry reg, string aExpr, string bExpr, string parentTypeName, bool isTracked)
+    /// <summary>
+    /// True if a value of this type can implement <see cref="DeltaPack.IDirtyTracked"/> and
+    /// therefore participates in parent-wiring — both during snapshot construction (emitted
+    /// by <see cref="ObjectEmitter"/>) and setter Detach/Reparent (emitted by
+    /// <see cref="TrackingEmitter"/>).
+    /// </summary>
+    public static bool ChildIsTrackable(TypeRef t, ModelRegistry reg)
+    {
+        switch (t.Kind)
+        {
+            case TypeKind.Array:
+            case TypeKind.Record:
+                return t.IsTracked;
+            case TypeKind.Reference:
+                {
+                    var def = reg.Lookup(t.ReferenceName!);
+                    if (def is null || def.Kind == TypeDefKind.Enum) return false;
+                    return def.IsTracked;
+                }
+            case TypeKind.Optional:
+                return ChildIsTrackable(t.ElementType!, reg);
+            default:
+                return false;
+        }
+    }
+
+    // ========== EncodeDiff (per-field) ==========
+
+    /// <summary>
+    /// Emits the diff for a single field of the parent type. For tracked parents, the entire
+    /// short-circuit + equals + encode sequence is inlined at the call site — the generated
+    /// code reads the backing field directly (same-class access) and calls the encoder's byte
+    /// writers without going through <c>Func</c> / <c>Action</c> delegates. This eliminates
+    /// ~4 delegate invocations per field plus the redundant interface type check on every
+    /// parent, which dominates EncodeDiff cost when most fields short-circuit.
+    /// </summary>
+    /// <remarks>
+    /// Assumes the caller hoisted <c>var __dp_minVersion = a.SnapshotVersion;</c> at the top of
+    /// the enclosing <c>EncodeDiff_</c> method. See <see cref="ObjectEmitter.EmitEncodeDiff"/>.
+    /// </remarks>
+    public static void EncodeDiffField(CodeWriter w, FieldModel f, int slot, ModelRegistry reg, string aExpr, string bExpr, bool isTracked)
     {
         var t = f.Type;
         var a = $"{aExpr}.{f.Name}";
@@ -348,19 +416,40 @@ internal static class ExpressionRenderer
             return;
         }
 
-        var declaredType = CSharpType(t, reg);
-        var equalsLambda = $"(x, y) => {EqualsInline(t, "x", "y", reg)}";
-        var diffLambda = $"(x, y) => {EncodeDiffInline(t, "x", "y", reg)}";
-
         if (isTracked)
         {
-            // Tracked overload — encoder consults the parent's dirty map keyed by property name.
-            w.Line($"encoder.PushFieldDiff<{parentTypeName}, {declaredType}>({aExpr}, {bExpr}, \"{f.Name}\", p => p.{f.Name}, {equalsLambda}, {diffLambda});");
+            // Fully-inlined tracked field diff. EncodeDiff_ is emitted as a static method on
+            // the parent's partial class, so it can read private `__dp_<field>` backing fields
+            // and per-slot `__dp_dirty{slot}` versions directly. No interface casts, no delegate
+            // invocations. The `else` branch scopes `__aF`/`__bF`/`__ch`, so field-local names
+            // don't collide across the sequence of emitted blocks.
+            var backing = TrackingBackingField(f);
+            w.Line($"if ({bExpr}.__dp_dirty{slot} <= __dp_minVersion)");
+            w.Line("{");
+            w.Indent();
+            w.Line("encoder.PushBoolean(false);");
+            w.Dedent();
+            w.Line("}");
+            w.Line("else");
+            w.Line("{");
+            w.Indent();
+            w.Line($"var __aF = {aExpr}.{backing};");
+            w.Line($"var __bF = {bExpr}.{backing};");
+            w.Line($"var __ch = !({EqualsInline(t, "__aF", "__bF", reg)});");
+            w.Line("encoder.PushBoolean(__ch);");
+            w.Line($"if (__ch) {EncodeDiffInline(t, "__aF", "__bF", reg)};");
+            w.Dedent();
+            w.Line("}");
+            return;
         }
-        else
-        {
-            w.Line($"encoder.PushFieldDiff<{declaredType}>({a}, {b}, {equalsLambda}, {diffLambda});");
-        }
+
+        var declaredType = CSharpType(t, reg);
+        var equalsLambda = $"(x, y) => {EqualsInline(t, "x", "y", reg)}";
+        // `(x, y, encoder)` — the lambda parameter named `encoder` shadows the outer
+        // `encoder` variable used inside EncodeDiffInline, so the lambda is non-capturing
+        // and the compiler caches the delegate in a static field.
+        var diffLambda = $"(x, y, encoder) => {EncodeDiffInline(t, "x", "y", reg)}";
+        w.Line($"encoder.PushFieldDiff<{declaredType}>({a}, {b}, {equalsLambda}, {diffLambda});");
     }
 
     /// <summary>Expression that encodes the diff of two values of this type into `encoder`.</summary>
@@ -407,8 +496,9 @@ internal static class ExpressionRenderer
         var elem = t.ElementType!;
         var elemType = CSharpType(elem, reg);
         var eqLambda = $"(x, y) => {EqualsInline(elem, "x", "y", reg)}";
-        var encodeLambda = $"x => {EncodeInline(elem, "x", reg)}";
-        var diffLambda = $"(x, y) => {EncodeDiffInline(elem, "x", "y", reg)}";
+        // Lambda param `encoder` shadows the outer encoder → non-capturing → statically cached.
+        var encodeLambda = $"(x, encoder) => {EncodeInline(elem, "x", reg)}";
+        var diffLambda = $"(x, y, encoder) => {EncodeDiffInline(elem, "x", "y", reg)}";
         return $"encoder.PushArrayDiff<{elemType}>({a}, {b}, {eqLambda}, {encodeLambda}, {diffLambda})";
     }
 
@@ -417,9 +507,9 @@ internal static class ExpressionRenderer
         var kType = CSharpType(t.KeyType!, reg);
         var vType = CSharpType(t.ValueType!, reg);
         var valEq = $"(x, y) => {EqualsInline(t.ValueType!, "x", "y", reg)}";
-        var keyEnc = $"x => {EncodeInline(t.KeyType!, "x", reg)}";
-        var valEnc = $"x => {EncodeInline(t.ValueType!, "x", reg)}";
-        var valDiff = $"(x, y) => {EncodeDiffInline(t.ValueType!, "x", "y", reg)}";
+        var keyEnc = $"(x, encoder) => {EncodeInline(t.KeyType!, "x", reg)}";
+        var valEnc = $"(x, encoder) => {EncodeInline(t.ValueType!, "x", reg)}";
+        var valDiff = $"(x, y, encoder) => {EncodeDiffInline(t.ValueType!, "x", "y", reg)}";
         return $"encoder.PushRecordDiff<{kType}, {vType}>({a}, {b}, {valEq}, {keyEnc}, {valEnc}, {valDiff})";
     }
 
@@ -438,8 +528,9 @@ internal static class ExpressionRenderer
     {
         var inner = t.ElementType!;
         var innerType = CSharpType(inner, reg);
-        var enc = $"x => {EncodeInline(inner, "x", reg)}";
-        var diff = $"(x, y) => {EncodeDiffInline(inner, "x", "y", reg)}";
+        // Lambda param `encoder` shadows outer → non-capturing → statically cached.
+        var enc = $"(x, encoder) => {EncodeInline(inner, "x", reg)}";
+        var diff = $"(x, y, encoder) => {EncodeDiffInline(inner, "x", "y", reg)}";
         return $"encoder.PushOptionalDiff<{innerType}>({a}, {b}, {enc}, {diff})";
     }
 

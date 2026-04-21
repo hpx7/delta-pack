@@ -127,6 +127,15 @@ public class OrderedDict<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary,
 
     public TKey GetKeyAtIndex(int index) => _list[index].Key;
 
+    /// <summary>O(1) lookup of a key's insertion-order index. Returns false if the key is absent.</summary>
+    public bool TryGetIndex(TKey key, out int index) => _index.TryGetValue(key, out index);
+
+    /// <summary>
+    /// Internal accessor to the raw key→index map. Used by <c>Encoder.PushRecordDiff</c> as a
+    /// zero-copy substitute for the dictionary it would otherwise build per call.
+    /// </summary>
+    internal Dictionary<TKey, int> IndexMap => _index;
+
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _list.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

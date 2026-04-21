@@ -13,7 +13,7 @@ namespace DeltaPack;
 /// <c>EncodeDiff</c> can emit only actual changes since the last snapshot.
 /// </summary>
 public sealed class TrackedOrderedDict<TKey, TValue>
-    : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, IDirtyTracked, IPruneable
+    : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, ITrackedContainer, IPruneable
     where TKey : notnull
 {
     private readonly OrderedDict<TKey, TValue> _inner;
@@ -35,10 +35,46 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         }
     }
 
-    // ============ IDirtyTracked ============
+    /// <summary>
+    /// Source-generator entry point for snapshot construction. Populates the inner dictionary
+    /// directly — skipping the per-entry <c>NextVersion</c>/<c>MarkDirty</c>/<c>PropagateToParent</c>
+    /// work that <see cref="Set"/> performs — since a freshly-built snapshot has no history to
+    /// track against. The generator uses this in <c>Clone</c> to avoid the cost of going through
+    /// the public mutation path. Not intended for user code.
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static TrackedOrderedDict<TKey, TValue> CreateSnapshot(
+        TrackedOrderedDict<TKey, TValue> source,
+        System.Func<TValue, TValue> cloneValue)
+    {
+        var result = new TrackedOrderedDict<TKey, TValue>(source._inner.Count);
+        foreach (var kvp in source._inner)
+        {
+            var cloned = cloneValue(kvp.Value);
+            result._inner.Add(kvp.Key, cloned);
+            if (cloned is IDirtyTracked child) DirtyTracking.Reparent(child, result, kvp.Key);
+        }
+        return result;
+    }
 
-    IReadOnlyDictionary<string, long>? IDirtyTracked.DirtyFields => null;
-    IReadOnlyDictionary<int, long>? IDirtyTracked.DirtyIndices => null;
+    /// <summary>
+    /// Source-generator entry point for snapshot construction of dicts whose values are
+    /// reference-immutable (primitives, strings, enums). Copies each entry directly into the
+    /// inner dictionary without running the tracking write path.
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public static TrackedOrderedDict<TKey, TValue> CreateSnapshot(TrackedOrderedDict<TKey, TValue> source)
+    {
+        var result = new TrackedOrderedDict<TKey, TValue>(source._inner.Count);
+        foreach (var kvp in source._inner)
+        {
+            result._inner.Add(kvp.Key, kvp.Value);
+            if (kvp.Value is IDirtyTracked child) DirtyTracking.Reparent(child, result, kvp.Key);
+        }
+        return result;
+    }
+
+    // ============ IDirtyTracked ============
 
     /// <summary>Per-key versions for entries updated since the last snapshot.</summary>
     public IReadOnlyDictionary<TKey, long> DirtyKeys => _dirty;
@@ -50,8 +86,9 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     public long SnapshotVersion { get; set; } = -1;
     public IDirtyTracked? Parent { get; set; }
     public object? ParentKey { get; set; }
+    public int ParentSlot { get; set; } = -1;
 
-    bool IDirtyTracked.MarkDirty(object key, long version)
+    bool ITrackedContainer.MarkDirty(object key, long version)
     {
         if (key is not TKey typedKey) return false;
         if (_dirty.TryGetValue(typedKey, out var existing) && existing >= version) return false;
@@ -91,6 +128,12 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     /// <summary>Delegates to the underlying <see cref="OrderedDict{TKey, TValue}.GetKeyAtIndex"/>.</summary>
     public TKey GetKeyAtIndex(int index) => _inner.GetKeyAtIndex(index);
 
+    /// <summary>Delegates to the underlying <see cref="OrderedDict{TKey, TValue}.TryGetIndex"/>.</summary>
+    public bool TryGetIndex(TKey key, out int index) => _inner.TryGetIndex(key, out index);
+
+    /// <summary>Internal accessor used by <c>Encoder.PushRecordDiff</c> — see <see cref="OrderedDict{TKey, TValue}.IndexMap"/>.</summary>
+    internal Dictionary<TKey, int> IndexMap => _inner.IndexMap;
+
     // ============ Mutating operations ============
 
     private void Set(TKey key, TValue value)
@@ -110,6 +153,13 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         else
         {
             _created[key] = v;
+            // Revival of a previously-deleted key: the deletion cleared _inner, so isUpdate is
+            // false — but the key may have been in the snapshot. We can't tell from here (the
+            // dict doesn't know which keys were in the baseline), so mark _dirty too. At encode
+            // time the filters pick exactly one bucket: aIndexMap.TryGetValue gates _dirty to
+            // snapshot keys, and !a.ContainsKey gates _created to non-snapshot keys.
+            if (_deleted.ContainsKey(key))
+                _dirty[key] = v;
         }
         _deleted.Remove(key);
         DirtyTracking.PropagateToParent(this, v);

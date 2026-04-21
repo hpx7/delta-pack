@@ -11,13 +11,13 @@ internal static class TrackingEmitter
 {
     public static void EmitTrackingMembers(CodeWriter w, TypeDef def, ModelRegistry reg)
     {
-        EmitInterfaceImpl(w);
+        EmitInterfaceImpl(w, def);
         w.Line();
         EmitSetSnapshotVersionRecursive(w, def, reg);
-        foreach (var f in def.Fields)
+        for (int i = 0; i < def.Fields.Length; i++)
         {
             w.Line();
-            EmitPartialProperty(w, f, reg);
+            EmitPartialProperty(w, def.Fields[i], i, reg);
         }
     }
 
@@ -28,7 +28,7 @@ internal static class TrackingEmitter
             w.Line("SnapshotVersion = version;");
             foreach (var f in def.Fields)
             {
-                if (!ChildIsTrackable(f.Type, reg)) continue;
+                if (!ExpressionRenderer.ChildIsTrackable(f.Type, reg)) continue;
                 // Field accessor: use the partial property which re-establishes parent on get.
                 // The null-check covers Optional<T> nullable references.
                 w.Line($"if ({f.Name} is DeltaPack.IDirtyTracked __t_{f.Name}) __t_{f.Name}.SetSnapshotVersionRecursive(version);");
@@ -36,32 +36,92 @@ internal static class TrackingEmitter
         }
     }
 
-    private static void EmitInterfaceImpl(CodeWriter w)
+    private static void EmitInterfaceImpl(CodeWriter w, TypeDef def)
     {
-        w.Line("private readonly System.Collections.Generic.Dictionary<string, long> __dpDirty = new();");
+        // Slot-based dirty storage: one long per declared field, compile-time slot offsets.
+        // Avoids the per-mutation hash + dict insert and the per-encode hash + dict lookup
+        // that a keyed scheme would incur. -1 means never dirtied.
+        for (int i = 0; i < def.Fields.Length; i++)
+            w.Line($"private long __dp_dirty{i} = -1;");
         w.Line();
-        w.Line("System.Collections.Generic.IReadOnlyDictionary<string, long>? DeltaPack.IDirtyTracked.DirtyFields => __dpDirty;");
-        w.Line("System.Collections.Generic.IReadOnlyDictionary<int, long>? DeltaPack.IDirtyTracked.DirtyIndices => null;");
+
         w.Line("public long SnapshotVersion { get; set; } = -1;");
         w.Line("public DeltaPack.IDirtyTracked? Parent { get; set; }");
         w.Line("public object? ParentKey { get; set; }");
+        w.Line("public int ParentSlot { get; set; } = -1;");
         w.Line();
-        using (w.Block("bool DeltaPack.IDirtyTracked.MarkDirty(object key, long version)"))
+
+        // Slot-based fast path. MarkDirty is invoked during parent-chain propagation
+        // (DirtyTracking.PropagateToParent) with the child's ParentSlot — no boxing, no
+        // string switch. GetDirtyVersion / IsAnyDirtyAfter are user-facing for inspection and
+        // encoder-side fast-checks respectively.
+        using (w.Block("bool DeltaPack.ITrackedObject.MarkDirty(int slot, long version)"))
         {
-            w.Line("if (key is not string __s) return false;");
-            w.Line("if (__dpDirty.TryGetValue(__s, out var __existing) && __existing >= version) return false;");
-            w.Line("__dpDirty[__s] = version;");
-            w.Line("return true;");
+            if (def.Fields.Length == 0)
+            {
+                w.Line("return false;");
+            }
+            else
+            {
+                using (w.Block("switch (slot)"))
+                {
+                    for (int i = 0; i < def.Fields.Length; i++)
+                    {
+                        w.Line($"case {i}:");
+                        w.Indent();
+                        w.Line($"if (__dp_dirty{i} >= version) return false;");
+                        w.Line($"__dp_dirty{i} = version;");
+                        w.Line("return true;");
+                        w.Dedent();
+                    }
+                    w.Line("default: return false;");
+                }
+            }
+        }
+        w.Line();
+
+        using (w.Block("long DeltaPack.ITrackedObject.GetDirtyVersion(int slot)"))
+        {
+            if (def.Fields.Length == 0)
+            {
+                w.Line("return -1;");
+            }
+            else
+            {
+                using (w.Block("return slot switch"))
+                {
+                    for (int i = 0; i < def.Fields.Length; i++)
+                        w.Line($"{i} => __dp_dirty{i},");
+                    w.Line("_ => -1,");
+                }
+                w.Line(";");
+            }
+        }
+        w.Line();
+
+        using (w.Block("bool DeltaPack.ITrackedObject.IsAnyDirtyAfter(long version)"))
+        {
+            if (def.Fields.Length == 0)
+            {
+                w.Line("return false;");
+            }
+            else
+            {
+                var parts = new string[def.Fields.Length];
+                for (int i = 0; i < def.Fields.Length; i++)
+                    parts[i] = $"__dp_dirty{i} > version";
+                w.Line($"return {string.Join(" || ", parts)};");
+            }
         }
     }
 
-    private static void EmitPartialProperty(CodeWriter w, FieldModel f, ModelRegistry reg)
+    private static void EmitPartialProperty(CodeWriter w, FieldModel f, int slot, ModelRegistry reg)
     {
         var declared = ExpressionRenderer.CSharpType(f.Type, reg);
         var backing = "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
         var name = f.Name;
         var defaultInit = ExpressionRenderer.DefaultInitializer(f.Type, reg);
-        var trackable = ChildIsTrackable(f.Type, reg);
+        var trackable = ExpressionRenderer.ChildIsTrackable(f.Type, reg);
 
         w.Line($"private {declared} {backing} = {defaultInit};");
 
@@ -73,7 +133,7 @@ internal static class TrackingEmitter
                 using (w.Block("get"))
                 {
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __t && !object.ReferenceEquals(__t.Parent, this))");
-                    w.Line($"    DeltaPack.DirtyTracking.Reparent(__t, this, \"{name}\");");
+                    w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__t, this, {slot});");
                     w.Line($"return {backing};");
                 }
             }
@@ -94,10 +154,10 @@ internal static class TrackingEmitter
                 if (trackable)
                 {
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __new)");
-                    w.Line($"    DeltaPack.DirtyTracking.Reparent(__new, this, \"{name}\");");
+                    w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__new, this, {slot});");
                 }
                 w.Line("var __v = DeltaPack.DirtyTracking.NextVersion();");
-                w.Line($"__dpDirty[\"{name}\"] = __v;");
+                w.Line($"__dp_dirty{slot} = __v;");
                 w.Line("DeltaPack.DirtyTracking.PropagateToParent(this, __v);");
             }
         }
@@ -132,27 +192,4 @@ internal static class TrackingEmitter
         }
     }
 
-    /// <summary>
-    /// True if a value of this type may implement <see cref="DeltaPack.IDirtyTracked"/> and therefore
-    /// participates in parent-wiring. Used to decide whether the setter emits Detach/Reparent.
-    /// </summary>
-    private static bool ChildIsTrackable(TypeRef t, ModelRegistry reg)
-    {
-        switch (t.Kind)
-        {
-            case TypeKind.Array:
-            case TypeKind.Record:
-                return t.IsTracked;
-            case TypeKind.Reference:
-                {
-                    var def = reg.Lookup(t.ReferenceName!);
-                    if (def is null || def.Kind == TypeDefKind.Enum) return false;
-                    return def.IsTracked;
-                }
-            case TypeKind.Optional:
-                return ChildIsTrackable(t.ElementType!, reg);
-            default:
-                return false;
-        }
-    }
 }

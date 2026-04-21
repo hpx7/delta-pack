@@ -4,34 +4,34 @@ using System.Threading;
 namespace DeltaPack;
 
 /// <summary>
-/// Implemented by tracked types to expose per-instance dirty metadata to the
-/// encoder. The encoder uses this to skip equality comparisons on fields whose
-/// recorded version is &lt;= the snapshot's version.
+/// Base contract for types that participate in delta-pack's dirty-tracking graph. Exposes
+/// parent-chain wiring (for propagation) and a snapshot-version slot (used at diff-encode
+/// time as the baseline). Implementers fall into two narrower categories —
+/// <see cref="ITrackedObject"/> for <c>[DeltaPackTracked]</c> classes (slot-keyed dirty
+/// storage) and <see cref="ITrackedContainer"/> for <see cref="TrackedList{T}"/> /
+/// <see cref="TrackedOrderedDict{TKey, TValue}"/> (key-keyed dirty storage).
 /// </summary>
 public interface IDirtyTracked
 {
-    /// <summary>Per-field versions, keyed by property name. Non-null on tracked objects; null on lists/dicts.</summary>
-    IReadOnlyDictionary<string, long>? DirtyFields { get; }
-
-    /// <summary>Per-index versions. Non-null on <see cref="TrackedList{T}"/>; null elsewhere.</summary>
-    IReadOnlyDictionary<int, long>? DirtyIndices { get; }
-
     /// <summary>Version of the global counter at the time this instance was registered as a snapshot; -1 if not a snapshot.</summary>
     long SnapshotVersion { get; set; }
 
     /// <summary>Parent container this instance is reachable from, or null if root / detached.</summary>
     IDirtyTracked? Parent { get; set; }
 
-    /// <summary>Key identifying this instance in its parent (string for object fields, int for list indices, user key for dict entries).</summary>
+    /// <summary>
+    /// Key identifying this instance in its parent when the parent is an <see cref="ITrackedContainer"/>
+    /// (int for list indices, user key for dict entries). Unused when the parent is an <see cref="ITrackedObject"/> —
+    /// <see cref="ParentSlot"/> carries the field slot in that case.
+    /// </summary>
     object? ParentKey { get; set; }
 
     /// <summary>
-    /// Records dirty at <paramref name="key"/> with <paramref name="version"/>. Returns true if
-    /// the stored version actually advanced (previous entry was absent or lower), false if it was
-    /// already ≥ <paramref name="version"/>. Callers use the return to decide whether to keep
-    /// walking up the parent chain.
+    /// Slot index identifying this instance's field on its parent when the parent is an
+    /// <see cref="ITrackedObject"/>. -1 when unused (e.g. the parent is a list/dict).
+    /// Stored as an int to avoid boxing on every parent-chain propagation.
     /// </summary>
-    bool MarkDirty(object key, long version);
+    int ParentSlot { get; set; }
 
     /// <summary>
     /// Sets <see cref="SnapshotVersion"/> on this instance and propagates the same value to every
@@ -39,6 +39,48 @@ public interface IDirtyTracked
     /// Called by <see cref="DirtyTracking.RegisterSnapshot"/> to mark the entire snapshot tree.
     /// </summary>
     void SetSnapshotVersionRecursive(long version);
+}
+
+/// <summary>
+/// Implemented by <c>[DeltaPackTracked]</c> classes. Dirty storage is slot-based — one
+/// <c>long</c> per declared field, indexed by the compile-time slot assigned by the source
+/// generator. Avoids the string-hash and dictionary-lookup cost of a keyed scheme.
+/// </summary>
+public interface ITrackedObject : IDirtyTracked
+{
+    /// <summary>
+    /// Records dirty at <paramref name="slot"/> with <paramref name="version"/>. Returns true
+    /// if the stored version actually advanced, false if the slot was already &gt;= <paramref name="version"/>.
+    /// Callers use the return to decide whether to keep walking up the parent chain.
+    /// </summary>
+    bool MarkDirty(int slot, long version);
+
+    /// <summary>
+    /// Returns the version recorded at <paramref name="slot"/>, or -1 if the slot has never been
+    /// marked dirty.
+    /// </summary>
+    long GetDirtyVersion(int slot);
+
+    /// <summary>
+    /// Returns true if any tracked field on this instance has a recorded version strictly greater
+    /// than <paramref name="version"/>. Used by <c>PushObjectDiff</c> to decide whether to emit a
+    /// "changed" bit without reading every slot individually.
+    /// </summary>
+    bool IsAnyDirtyAfter(long version);
+}
+
+/// <summary>
+/// Implemented by tracked container types (<see cref="TrackedList{T}"/>,
+/// <see cref="TrackedOrderedDict{TKey, TValue}"/>) whose dirty storage is keyed by user-supplied
+/// index / key rather than by a compile-time slot.
+/// </summary>
+public interface ITrackedContainer : IDirtyTracked
+{
+    /// <summary>
+    /// Records dirty at <paramref name="key"/> with <paramref name="version"/>. Returns true if
+    /// the stored version actually advanced, false if it was already &gt;= <paramref name="version"/>.
+    /// </summary>
+    bool MarkDirty(object key, long version);
 }
 
 /// <summary>
@@ -83,31 +125,59 @@ public static class DirtyTracking
     }
 
     /// <summary>
-    /// Walks up the parent chain, calling <see cref="IDirtyTracked.MarkDirty"/> at each level with
-    /// <paramref name="version"/>. Stops when the parent's existing entry for the relevant key is
-    /// already at least <paramref name="version"/> (no more propagation needed).
+    /// Walks up the parent chain, invoking the appropriate <c>MarkDirty</c> overload at each hop.
+    /// Object parents use the slot-based <see cref="ITrackedObject.MarkDirty(int, long)"/> (read
+    /// from the child's <see cref="IDirtyTracked.ParentSlot"/>); container parents use the keyed
+    /// <see cref="ITrackedContainer.MarkDirty(object, long)"/> (from <see cref="IDirtyTracked.ParentKey"/>).
+    /// Stops as soon as a parent reports its entry was already at or past <paramref name="version"/>.
     /// </summary>
     public static void PropagateToParent(IDirtyTracked child, long version)
     {
-        var parent = child.Parent;
-        var key = child.ParentKey;
-        while (parent is not null && key is not null)
+        var current = child;
+        while (true)
         {
-            if (!parent.MarkDirty(key, version)) return;
-            var next = parent.Parent;
-            key = parent.ParentKey;
-            parent = next;
+            var parent = current.Parent;
+            if (parent is null) return;
+            bool advanced;
+            if (parent is ITrackedObject tobj)
+            {
+                advanced = tobj.MarkDirty(current.ParentSlot, version);
+            }
+            else if (parent is ITrackedContainer tcon)
+            {
+                var key = current.ParentKey;
+                if (key is null) return;
+                advanced = tcon.MarkDirty(key, version);
+            }
+            else
+            {
+                return;
+            }
+            if (!advanced) return;
+            current = parent;
         }
     }
 
     /// <summary>
     /// Rewires <paramref name="child"/>'s parent reference to <paramref name="parent"/> / <paramref name="key"/>.
-    /// Safe to call on a fresh object or on reparenting.
+    /// Use when the parent is a tracked container (list / dict) — the child is identified in the
+    /// parent by <paramref name="key"/>.
     /// </summary>
     public static void Reparent(IDirtyTracked child, IDirtyTracked parent, object key)
     {
         child.Parent = parent;
         child.ParentKey = key;
+    }
+
+    /// <summary>
+    /// Rewires <paramref name="child"/>'s parent reference to <paramref name="parent"/> at field <paramref name="slot"/>.
+    /// Use when the parent is a tracked object — storing the int slot directly skips the box +
+    /// string-switch cost that a keyed reparent would incur on every propagation hop.
+    /// </summary>
+    public static void ReparentToObject(IDirtyTracked child, IDirtyTracked parent, int slot)
+    {
+        child.Parent = parent;
+        child.ParentSlot = slot;
     }
 
     /// <summary>
@@ -117,6 +187,7 @@ public static class DirtyTracking
     {
         child.Parent = null;
         child.ParentKey = null;
+        child.ParentSlot = -1;
     }
 
     private static void PruneDeleted(IDirtyTracked source)
