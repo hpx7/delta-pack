@@ -1,14 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  load,
-  ObjectType,
-  IntType,
-  UIntType,
-  StringType,
-  RecordType,
-  ReferenceType,
-  track,
-} from "../src/index.js";
+import { load, ObjectType, IntType, UIntType, StringType, RecordType, ReferenceType, track } from "../src/index.js";
 
 const Creature = ObjectType("Creature", {
   hp: IntType(),

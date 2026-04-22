@@ -66,7 +66,12 @@ function renderSchema(ctx: GeneratorContext): string {
         renderObject(ctx, name, type.properties, ctx.variantToUnion.get(name)),
       );
     } else if (type.type === "union") {
-      parts.push(renderUnion(name, type.options.map((o) => o.name!)));
+      parts.push(
+        renderUnion(
+          name,
+          type.options.map((o) => o.name!),
+        ),
+      );
     }
   }
 
@@ -101,9 +106,7 @@ function renderObject(
   baseClass?: string,
 ): string {
   const props = Object.entries(properties);
-  const propLines = props
-    .map(([n, t]) => renderProperty(ctx, n, t))
-    .join("\n");
+  const propLines = props.map(([n, t]) => renderProperty(ctx, n, t)).join("\n");
 
   const classHeader = baseClass
     ? `    public partial class ${name} : ${baseClass}`
@@ -159,7 +162,11 @@ function renderAttributes(type: Type): string {
     if (hasMin) return `[DeltaPackRange(${inner.min})]`;
     return "";
   }
-  if (inner.type === "float" && inner.precision !== undefined && inner.precision !== 0) {
+  if (
+    inner.type === "float" &&
+    inner.precision !== undefined &&
+    inner.precision !== 0
+  ) {
     return `[DeltaPackPrecision(${inner.precision}f)]`;
   }
   return "";

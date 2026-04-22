@@ -123,12 +123,12 @@ const state = session.decode(bytes);
 
 ### API
 
-| Method                       | Description                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| Method                       | Description                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
 | `api.createSyncSession()`    | Factory on every `DeltaPackApi<T>` (from `load`, `loadClass`, or codegen). Returns a new session. |
-| `.encode(state) → bytes`     | First call emits a full encode; subsequent calls emit diffs. View updates internally.            |
-| `.decode(bytes) → state`     | First call expects a full encode; subsequent calls expect diffs. Returns the updated view.       |
-| `.current() → state \| null` | The current view, or `null` if neither `encode` nor `decode` has been called.                    |
+| `.encode(state) → bytes`     | First call emits a full encode; subsequent calls emit diffs. View updates internally.             |
+| `.decode(bytes) → state`     | First call expects a full encode; subsequent calls expect diffs. Returns the updated view.        |
+| `.current() → state \| null` | The current view, or `null` if neither `encode` nor `decode` has been called.                     |
 
 For third-party types (no `DeltaPackApi<T>` object), construct directly: `new SyncSession(api)`.
 

@@ -29,11 +29,48 @@ ${parts.join("\n\n")}
 // ============ Name helpers ============
 
 const RUST_KEYWORDS = new Set([
-  "as", "break", "const", "continue", "crate", "else", "enum", "extern",
-  "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod",
-  "move", "mut", "pub", "ref", "return", "self", "Self", "static", "struct",
-  "super", "trait", "true", "type", "unsafe", "use", "where", "while",
-  "async", "await", "dyn", "bool", "str", "f32", "f64",
+  "as",
+  "break",
+  "const",
+  "continue",
+  "crate",
+  "else",
+  "enum",
+  "extern",
+  "false",
+  "fn",
+  "for",
+  "if",
+  "impl",
+  "in",
+  "let",
+  "loop",
+  "match",
+  "mod",
+  "move",
+  "mut",
+  "pub",
+  "ref",
+  "return",
+  "self",
+  "Self",
+  "static",
+  "struct",
+  "super",
+  "trait",
+  "true",
+  "type",
+  "unsafe",
+  "use",
+  "where",
+  "while",
+  "async",
+  "await",
+  "dyn",
+  "bool",
+  "str",
+  "f32",
+  "f64",
 ]);
 
 function toSnakeCase(str: string): string {
@@ -95,10 +132,7 @@ ${variants}
 
 // ============ Object Renderer ============
 
-function renderObject(
-  name: string,
-  properties: Record<string, Type>,
-): string {
+function renderObject(name: string, properties: Record<string, Type>): string {
   const fieldLines = Object.entries(properties)
     .map(([origName, type]) => {
       const [rustName, needsSerdeRename] = toRustFieldName(origName);
