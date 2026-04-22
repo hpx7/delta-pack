@@ -1,4 +1,4 @@
-import { floatRead, utf8Read, RleReader } from "./serde";
+import { floatRead, utf8Read, RleReader } from "./serde.js";
 
 export class Decoder {
   protected static _instance: Decoder | null = null;
