@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"derive":["DeltaPack"],"fn":["equals_array","equals_float","equals_float_quantized","equals_optional","equals_record"],"struct":["Decoder","Encoder","IndexMap"],"trait":["DeltaPack"]};
+window.SIDEBAR_ITEMS = {"derive":["DeltaPack"],"fn":["equals_array","equals_float","equals_float_quantized","equals_optional","equals_record"],"struct":["Decoder","Encoder","IndexMap","SyncSession"],"trait":["DeltaPack"]};
