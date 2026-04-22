@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { load, DeltaPackApi } from "./interpreter.js";
 import { NamedType, PropertyType, ClassUnionDef, isClassUnion, EnumType } from "./schema.js";
 import { SCHEMA_TYPE } from "./unified.js";
+import { SyncSession } from "./sync-session.js";
 
 // ============ Types ============
 
@@ -304,7 +305,7 @@ export function loadClass<T extends object>(rootClassOrUnion: AnyConstructor<T> 
 
   const wrap = (obj: T) => wrapUnions(obj, rootType, schema, unionVariants) as T;
 
-  return {
+  const api: DeltaPackApi<T> = {
     fromJson: (obj: object) => hydrate(rawApi.fromJson(wrap(obj as T)), rootName) as T,
     encode: (obj: T) => rawApi.encode(wrap(obj)),
     decode: (buf: Uint8Array) => hydrate(rawApi.decode(buf), rootName) as T,
@@ -313,7 +314,9 @@ export function loadClass<T extends object>(rootClassOrUnion: AnyConstructor<T> 
     equals: (a: T, b: T) => rawApi.equals(wrap(a), wrap(b)),
     clone: (obj: T) => hydrate(rawApi.clone(wrap(obj)), rootName) as T,
     toJson: (obj: T) => rawApi.toJson(wrap(obj)),
+    createSyncSession: () => new SyncSession(api),
   };
+  return api;
 }
 
 // ============ Internal Helpers ============

@@ -46,11 +46,6 @@ export const Primitives = {
     return result;
   },
   clone(obj: Primitives): Primitives {
-    const result = Primitives._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Primitives): Primitives {
     return {
       stringField: obj.stringField,
       signedIntField: obj.signedIntField,
@@ -167,5 +162,8 @@ export const Primitives = {
       ),
       booleanField: decoder.nextBooleanDiff(obj.booleanField),
     };
+  },
+  createSyncSession(): _.SyncSession<Primitives> {
+    return new _.SyncSession(Primitives);
   },
 };

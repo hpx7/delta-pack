@@ -104,10 +104,30 @@ delta-pack generate schema.yml -l rust > src/generated.rs
 
 The CLI emits struct and enum skeletons with `#[derive(DeltaPack)]` — not hand-rolled impls — so everything below applies identically to both modes.
 
-### Encode / decode / diff
+### State synchronization (`SyncSession<T>`)
+
+For ongoing state sync between two endpoints (server ↔ client, peer ↔ peer), use `SyncSession<T>`. It handles the full-encode bootstrap and every subsequent diff internally, and keeps both sides aligned even when the sender's state gets mutated in ways that reorder internal collections.
 
 ```rust,ignore
-use delta_pack::DeltaPack;  // trait must be in scope
+use delta_pack::DeltaPack;
+
+// Server — one SyncSession per connected peer
+let mut session = User::create_sync_session();
+peer.send(&session.encode(&user));  // first call: full; subsequent calls: diff
+
+// Client
+let mut session = User::create_sync_session();
+let user = session.decode(&bytes);
+```
+
+**`SyncSession` is the recommended API for real-time sync.** `create_sync_session()` is a default method on the `DeltaPack` trait, available for any `T: DeltaPack + Clone` — both are satisfied automatically by `#[derive(DeltaPack)]` on types that also `#[derive(Clone)]`.
+
+### Low-level encode / decode / diff (advanced)
+
+For custom protocols (ack-based history, multi-baseline diffs, UDP-style packet loss handling, etc.), use the trait methods directly:
+
+```rust,ignore
+use delta_pack::DeltaPack;
 
 let user1 = User { /* ... */ };
 
@@ -123,19 +143,35 @@ let reconstructed = User::decode_diff(&user1, &diff);
 assert!(user2.equals(&reconstructed));
 ```
 
+When using `encode_diff` / `decode_diff` directly, **the `a` argument must exactly match the peer's wire view, including `IndexMap` insertion order** — not just key-value equality. Mismatch causes silent corruption. `SyncSession` maintains this invariant for you.
+
 ### Attributes
 
 `#[delta_pack(...)]` on a field accepts:
 
-| Attribute                       | Target         | Effect                                                         |
-| ------------------------------- | -------------- | -------------------------------------------------------------- |
-| `range(min = N, max = M)`       | integer field  | bit-packs into `ceil(log2(M-N+1))` bits when `≤ 8` bits        |
-| `range(min = N)` / `range(max = M)` | integer field | sets one bound only                                        |
-| `precision = X`                 | `f32` field    | quantizes to multiples of `X`, encoded as a bit-packed integer |
+| Attribute                           | Target        | Effect                                                         |
+| ----------------------------------- | ------------- | -------------------------------------------------------------- |
+| `range(min = N, max = M)`           | integer field | bit-packs into `ceil(log2(M-N+1))` bits when `≤ 8` bits        |
+| `range(min = N)` / `range(max = M)` | integer field | sets one bound only                                            |
+| `precision = X`                     | `f32` field   | quantizes to multiples of `X`, encoded as a bit-packed integer |
 
 ## API
 
-Every type implementing `DeltaPack` provides:
+### `SyncSession<T>` (recommended for state sync)
+
+Stateful handle for one side of a sync stream. Handles full-vs-diff internally and keeps sender and receiver views aligned.
+
+| Method                       | Description                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `T::create_sync_session()`   | Default method on `DeltaPack` (for `T: Clone`). Returns a new session.                     |
+| `SyncSession::<T>::new()`    | Equivalent direct constructor if you prefer turbofish syntax.                              |
+| `.encode(&state) -> Vec<u8>` | First call emits a full encode; subsequent calls emit diffs. View updates internally.      |
+| `.decode(&bytes) -> &T`      | First call expects a full encode; subsequent calls expect diffs. Returns the updated view. |
+| `.current() -> Option<&T>`   | The current view, or `None` if neither `encode` nor `decode` has been called.              |
+
+### `DeltaPack` trait (low-level)
+
+Every type implementing `DeltaPack` provides these primitives. Use `SyncSession` for ordinary sync; use these directly for custom protocols.
 
 | Method                                       | Description                                 |
 | -------------------------------------------- | ------------------------------------------- |
@@ -163,10 +199,10 @@ Types also get a derived `impl Default`. The user is responsible for `Clone`, `D
 
 ### Containers
 
-| Schema   | Rust Type       |
-| -------- | --------------- |
-| `T[]`    | `Vec<T>`        |
-| `T?`     | `Option<T>`     |
+| Schema   | Rust Type        |
+| -------- | ---------------- |
+| `T[]`    | `Vec<T>`         |
+| `T?`     | `Option<T>`      |
 | `<K, V>` | `IndexMap<K, V>` |
 
 ### Named Types

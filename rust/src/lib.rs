@@ -5,6 +5,7 @@ mod delta_pack;
 mod encoder;
 mod helpers;
 mod rle;
+mod sync_session;
 mod varint;
 
 #[doc(hidden)]
@@ -18,3 +19,4 @@ pub use helpers::{
     equals_array, equals_float, equals_float_quantized, equals_optional, equals_record,
 };
 pub use indexmap::IndexMap;
+pub use sync_session::SyncSession;

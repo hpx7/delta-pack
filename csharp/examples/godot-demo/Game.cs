@@ -11,8 +11,8 @@ public partial class Game : Node2D
 	private const double InputSendInterval = 1.0 / 30;
 
 	private readonly WebSocketPeer _socket = new();
+	private readonly SyncSession<ServerMessage> _session = ServerMessage.CreateSyncSession();
 
-	private ServerMessage? _lastServerMessage;
 	private string? _myPlayerId;
 	private GameState? _state;
 
@@ -87,11 +87,11 @@ public partial class Game : Node2D
 		_messagesReceived++;
 		try
 		{
-			_lastServerMessage = _lastServerMessage is null
-				? ServerMessage.Decode(data)
-				: ServerMessage.DecodeDiff(_lastServerMessage, data);
+			// SyncSession.Decode picks full-vs-diff based on whether a prior
+			// message has been received.
+			var message = _session.Decode(data);
 
-			if (_lastServerMessage is StateMessage stateMsg)
+			if (message is StateMessage stateMsg)
 			{
 				_myPlayerId = stateMsg.PlayerId;
 				_state = stateMsg.State;

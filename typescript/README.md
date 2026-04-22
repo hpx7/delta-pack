@@ -10,11 +10,13 @@ npm install @hpx7/delta-pack
 
 ## Quick Start
 
-Delta-pack provides three approaches for working with schemas:
+Delta-pack provides three approaches for defining schemas:
 
 1. **Interpreter Mode** - Runtime schema parsing with dynamic API
 2. **Decorator Mode** - Use TypeScript decorators for class-based schemas (builds on interpreter mode)
 3. **Codegen Mode** - Generate TypeScript code from schemas for compile-time type safety
+
+**For state synchronization, use `SyncSession`** — see [State Synchronization](#state-synchronization-syncsession) below. `SyncSession` is the recommended API for game servers, collaborative apps, and any ongoing sync stream between two endpoints.
 
 ### Interpreter Mode (Recommended for prototyping)
 
@@ -98,6 +100,75 @@ const player: Player = { id: "p1", name: "Alice", score: 100 };
 const encoded = Player.encode(player);
 const decoded = Player.decode(encoded);
 ```
+
+## State Synchronization (`SyncSession`)
+
+For ongoing state sync between two endpoints (server ↔ client, peer ↔ peer), use `SyncSession<T>`. It wraps the encode/decode primitives with a stateful handle that:
+
+- Handles the full-encode bootstrap and subsequent diffs automatically — one method call per tick.
+- Keeps sender and receiver views aligned, even when the server's state is mutated in ways that reorder internal collections (swap-remove, reactive delete+reinsert, rebuild-from-unordered-source, etc.).
+- Works with any `DeltaPackApi<T>` produced by `load()`, `loadClass()`, or codegen.
+
+```typescript
+import { GameState } from "./generated";
+
+// Server — one SyncSession per connected peer
+const session = GameState.createSyncSession();
+ws.send(session.encode(state)); // first call: full; subsequent calls: diff
+
+// Client
+const session = GameState.createSyncSession();
+const state = session.decode(bytes);
+```
+
+### API
+
+| Method                       | Description                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `api.createSyncSession()`    | Factory on every `DeltaPackApi<T>` (from `load`, `loadClass`, or codegen). Returns a new session. |
+| `.encode(state) → bytes`     | First call emits a full encode; subsequent calls emit diffs. View updates internally.            |
+| `.decode(bytes) → state`     | First call expects a full encode; subsequent calls expect diffs. Returns the updated view.       |
+| `.current() → state \| null` | The current view, or `null` if neither `encode` nor `decode` has been called.                    |
+
+For third-party types (no `DeltaPackApi<T>` object), construct directly: `new SyncSession(api)`.
+
+### Recommended pattern
+
+```typescript
+// Server
+class GameServer {
+  private clients = new Map<string, { ws: WebSocket; session: SyncSession<GameState> }>();
+
+  broadcast(state: GameState) {
+    for (const { ws, session } of this.clients.values()) {
+      ws.send(session.encode(state));
+    }
+  }
+
+  onConnect(ws: WebSocket) {
+    const id = newId();
+    this.clients.set(id, { ws, session: GameState.createSyncSession() });
+  }
+}
+
+// Client
+class GameClient {
+  private session = GameState.createSyncSession();
+
+  onMessage(bytes: Uint8Array) {
+    const state = this.session.decode(bytes);
+    this.render(state);
+  }
+}
+```
+
+See `examples/2d-game` for a complete runnable reference.
+
+### Low-level API (advanced)
+
+`encode`, `decode`, `encodeDiff`, and `decodeDiff` are also exposed directly via `DeltaPackApi<T>` — use them if you need custom protocol behavior (ack-based history, multi-baseline diffs, UDP-style packet loss handling, etc.). See [Interpreter API](#interpreter-api) for details.
+
+When using the raw diff methods, **the `prev` argument must exactly match the peer's wire view, including map insertion order** — not just key-value equality. Mismatch causes silent corruption. `SyncSession` maintains this invariant for you; only reach for the raw API if you've committed to managing wire-view state yourself.
 
 ## Schema Definition
 
@@ -662,6 +733,7 @@ import {
   ReferenceType,
   RecordType,
   load,
+  SyncSession,
   Infer,
 } from "@hpx7/delta-pack";
 
@@ -720,9 +792,12 @@ const state2: GameStateType = {
   timeRemaining: 599.0,
 };
 
-// Delta encoding
-const diff = GameStateApi.encodeDiff(state1, state2);
-const reconstructed = GameStateApi.decodeDiff(state1, diff);
+// Recommended: SyncSession manages sender/receiver views automatically
+const sender = GameStateApi.createSyncSession();
+const receiver = GameStateApi.createSyncSession();
+
+receiver.decode(sender.encode(state1)); // first tick: full encode
+receiver.decode(sender.encode(state2)); // subsequent ticks: diffs
 ```
 
 **Using Decorator Mode:**
@@ -738,6 +813,7 @@ import {
   EnumType,
   Infer,
   loadClass,
+  SyncSession,
 } from "@hpx7/delta-pack";
 
 const Team = EnumType("Team", ["RED", "BLUE"]);
@@ -786,9 +862,12 @@ state2.players.get("p1")!.position.x = 105;
 state2.players.get("p1")!.position.y = 102;
 state2.timeRemaining = 599.0;
 
-// Delta encoding
-const diff = GameStateApi.encodeDiff(state1, state2);
-const reconstructed = GameStateApi.decodeDiff(state1, diff);
+// Recommended: SyncSession manages sender/receiver views automatically
+const sender = GameStateApi.createSyncSession();
+const receiver = GameStateApi.createSyncSession();
+
+receiver.decode(sender.encode(state1)); // first tick: full encode
+receiver.decode(sender.encode(state2)); // subsequent ticks: diffs
 ```
 
 **Using Codegen Mode:**
@@ -829,6 +908,7 @@ delta-pack generate game.schema.yml -l typescript -o generated.ts
 Then use the generated code:
 
 ```typescript
+import { SyncSession } from "@hpx7/delta-pack";
 import { GameState, Player } from "./generated";
 
 // TypeScript types are available at compile time
@@ -842,9 +922,10 @@ state.players.set("p1", {
   score: 0,
 });
 
-// Same API as interpreter mode
-const encoded = GameState.encode(state);
-const decoded = GameState.decode(encoded);
+// Recommended: SyncSession handles the sync stream
+const sender = GameState.createSyncSession();
+const receiver = GameState.createSyncSession();
+receiver.decode(sender.encode(state));
 ```
 
 ## Performance Tips
@@ -868,7 +949,7 @@ Delta encoding is most effective when:
 For maximum `encodeDiff` performance, use `track()` to automatically track which fields have changed. This allows delta encoding to skip comparison checks entirely. The tracking system uses version numbers, enabling efficient diffs from arbitrary baseline snapshots:
 
 ```typescript
-import { track } from "@hpx7/delta-pack";
+import { track, registerSnapshot } from "@hpx7/delta-pack";
 
 // Wrap state with tracking
 const state = track({
@@ -882,8 +963,12 @@ state.tick = 1;
 state.player.x = 100;
 state.players.get("p1")!.x = 50;
 
-// Take a snapshot - captures current version
+// Take a snapshot. `clone` is a pure deep copy; `registerSnapshot` stamps it
+// with the current version so `encodeDiff` can filter to mutations after this
+// point. `SyncSession` does both steps automatically — prefer it over the raw
+// pattern shown here unless you need manual control.
 const snapshot = GameStateApi.clone(state);
+registerSnapshot(snapshot, state);
 
 // More mutations after snapshot
 state.tick = 2;
@@ -900,7 +985,7 @@ const diff = GameStateApi.encodeDiff(snapshot, state);
 - Maps: `state.players.get("p1")!.x = 50` marks the player, key "p1", and `state.players`
 - Array methods: `push`, `pop`, `shift`, `unshift`, `splice` all mark appropriate indices
 
-**Multi-client game loop pattern:**
+**Multi-client game loop pattern (with SyncSession):**
 
 ```typescript
 class Game {
@@ -918,13 +1003,9 @@ class Game {
 
   broadcast() {
     for (const client of this.clients) {
-      // Each client has its own snapshot from their last update
-      const diff = GameStateApi.encodeDiff(client.lastSnapshot, this.state);
-      client.send(diff);
-      // Clone captures version for next diff
-      client.lastSnapshot = GameStateApi.clone(this.state);
+      // Each client has its own SyncSession; encode() handles full/diff internally.
+      client.send(client.session.encode(this.state));
     }
-    // No manual clearing needed - version tracking handles it
   }
 }
 ```

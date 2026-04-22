@@ -105,17 +105,12 @@ export const Player = {
     return result;
   },
   clone(obj: Player): Player {
-    const result = Player._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Player): Player {
     return {
       id: obj.id,
       name: obj.name,
       score: obj.score,
       isActive: obj.isActive,
-      partner: obj.partner != null ? Player._clone(obj.partner) : undefined,
+      partner: obj.partner != null ? Player.clone(obj.partner) : undefined,
     };
   },
   equals(a: Player, b: Player): boolean {
@@ -212,6 +207,9 @@ export const Player = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Player> {
+    return new _.SyncSession(Player);
+  },
 };
 
 export const Position = {
@@ -238,11 +236,6 @@ export const Position = {
     return result;
   },
   clone(obj: Position): Position {
-    const result = Position._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Position): Position {
     return {
       x: obj.x,
       y: obj.y,
@@ -309,6 +302,9 @@ export const Position = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Position> {
+    return new _.SyncSession(Position);
+  },
 };
 
 export const Velocity = {
@@ -335,11 +331,6 @@ export const Velocity = {
     return result;
   },
   clone(obj: Velocity): Velocity {
-    const result = Velocity._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Velocity): Velocity {
     return {
       vx: obj.vx,
       vy: obj.vy,
@@ -406,6 +397,9 @@ export const Velocity = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Velocity> {
+    return new _.SyncSession(Velocity);
+  },
 };
 
 export const Entity = {
@@ -432,14 +426,9 @@ export const Entity = {
     return result;
   },
   clone(obj: Entity): Entity {
-    const result = Entity._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Entity): Entity {
     return {
       id: obj.id,
-      position: Position._clone(obj.position),
+      position: Position.clone(obj.position),
     };
   },
   equals(a: Entity, b: Entity): boolean {
@@ -503,6 +492,9 @@ export const Entity = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Entity> {
+    return new _.SyncSession(Entity);
+  },
 };
 
 export const MoveAction = {
@@ -529,11 +521,6 @@ export const MoveAction = {
     return result;
   },
   clone(obj: MoveAction): MoveAction {
-    const result = MoveAction._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: MoveAction): MoveAction {
     return {
       x: obj.x,
       y: obj.y,
@@ -600,6 +587,9 @@ export const MoveAction = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<MoveAction> {
+    return new _.SyncSession(MoveAction);
+  },
 };
 
 export const AttackAction = {
@@ -626,11 +616,6 @@ export const AttackAction = {
     return result;
   },
   clone(obj: AttackAction): AttackAction {
-    const result = AttackAction._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: AttackAction): AttackAction {
     return {
       targetId: obj.targetId,
       damage: obj.damage,
@@ -697,6 +682,9 @@ export const AttackAction = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<AttackAction> {
+    return new _.SyncSession(AttackAction);
+  },
 };
 
 export const UseItemAction = {
@@ -720,11 +708,6 @@ export const UseItemAction = {
     return result;
   },
   clone(obj: UseItemAction): UseItemAction {
-    const result = UseItemAction._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: UseItemAction): UseItemAction {
     return {
       itemId: obj.itemId,
     };
@@ -776,6 +759,9 @@ export const UseItemAction = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<UseItemAction> {
+    return new _.SyncSession(UseItemAction);
+  },
 };
 
 export const GameAction = {
@@ -807,19 +793,13 @@ export const GameAction = {
   },
   clone(obj: GameAction): GameAction {
     if (obj._type === "MoveAction") {
-      const result = { _type: "MoveAction" as const, ...MoveAction._clone(obj) };
-      _.registerSnapshot(result, obj);
-      return result;
+      return { _type: "MoveAction" as const, ...MoveAction.clone(obj) };
     }
     else if (obj._type === "AttackAction") {
-      const result = { _type: "AttackAction" as const, ...AttackAction._clone(obj) };
-      _.registerSnapshot(result, obj);
-      return result;
+      return { _type: "AttackAction" as const, ...AttackAction.clone(obj) };
     }
     else if (obj._type === "UseItemAction") {
-      const result = { _type: "UseItemAction" as const, ...UseItemAction._clone(obj) };
-      _.registerSnapshot(result, obj);
-      return result;
+      return { _type: "UseItemAction" as const, ...UseItemAction.clone(obj) };
     }
     throw new Error(`Invalid GameAction: ${obj}`);
   },
@@ -931,7 +911,10 @@ export const GameAction = {
       }
       throw new Error("Invalid union diff");
     }
-  }
+  },
+  createSyncSession(): _.SyncSession<GameAction> {
+    return new _.SyncSession(GameAction);
+  },
 }
 
 export const GameState = {
@@ -976,13 +959,8 @@ export const GameState = {
     return result;
   },
   clone(obj: GameState): GameState {
-    const result = GameState._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: GameState): GameState {
     return {
-      players: obj.players.map((x) => Player._clone(x)),
+      players: obj.players.map((x) => Player.clone(x)),
       currentPlayer: obj.currentPlayer != null ? obj.currentPlayer : undefined,
       round: obj.round,
       metadata: new Map([...obj.metadata].map(([k, v]) => [k, v])),
@@ -1107,6 +1085,9 @@ export const GameState = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<GameState> {
+    return new _.SyncSession(GameState);
+  },
 };
 
 export const Inventory = {
@@ -1132,11 +1113,6 @@ export const Inventory = {
     return result;
   },
   clone(obj: Inventory): Inventory {
-    const result = Inventory._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Inventory): Inventory {
     return {
       items: obj.items != null ? obj.items.map((x) => new Map([...x].map(([k, v]) => [k, v]))) : undefined,
     };
@@ -1188,6 +1164,9 @@ export const Inventory = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Inventory> {
+    return new _.SyncSession(Inventory);
+  },
 };
 
 export const PlayerRegistry = {
@@ -1211,13 +1190,8 @@ export const PlayerRegistry = {
     return result;
   },
   clone(obj: PlayerRegistry): PlayerRegistry {
-    const result = PlayerRegistry._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: PlayerRegistry): PlayerRegistry {
     return {
-      players: new Map([...obj.players].map(([k, v]) => [k, Player._clone(v)])),
+      players: new Map([...obj.players].map(([k, v]) => [k, Player.clone(v)])),
     };
   },
   equals(a: PlayerRegistry, b: PlayerRegistry): boolean {
@@ -1266,5 +1240,8 @@ export const PlayerRegistry = {
         (x) => decoder.nextRecordDiff<string, Player>(x, () => decoder.nextString(), () => Player._decode(decoder), (x) => Player._decodeDiff(x, decoder)),
       ),
     };
+  },
+  createSyncSession(): _.SyncSession<PlayerRegistry> {
+    return new _.SyncSession(PlayerRegistry);
   },
 };

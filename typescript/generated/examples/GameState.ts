@@ -282,11 +282,6 @@ export const Position = {
     return result;
   },
   clone(obj: Position): Position {
-    const result = Position._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Position): Position {
     return {
       x: obj.x,
       y: obj.y,
@@ -353,6 +348,9 @@ export const Position = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Position> {
+    return new _.SyncSession(Position);
+  },
 };
 
 export const Velocity = {
@@ -379,11 +377,6 @@ export const Velocity = {
     return result;
   },
   clone(obj: Velocity): Velocity {
-    const result = Velocity._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Velocity): Velocity {
     return {
       vx: obj.vx,
       vy: obj.vy,
@@ -450,6 +443,9 @@ export const Velocity = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Velocity> {
+    return new _.SyncSession(Velocity);
+  },
 };
 
 export const InventoryItem = {
@@ -492,11 +488,6 @@ export const InventoryItem = {
     return result;
   },
   clone(obj: InventoryItem): InventoryItem {
-    const result = InventoryItem._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: InventoryItem): InventoryItem {
     return {
       itemId: obj.itemId,
       name: obj.name,
@@ -623,6 +614,9 @@ export const InventoryItem = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<InventoryItem> {
+    return new _.SyncSession(InventoryItem);
+  },
 };
 
 export const Equipment = {
@@ -663,11 +657,6 @@ export const Equipment = {
     return result;
   },
   clone(obj: Equipment): Equipment {
-    const result = Equipment._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Equipment): Equipment {
     return {
       weapon: obj.weapon != null ? obj.weapon : undefined,
       armor: obj.armor != null ? obj.armor : undefined,
@@ -764,6 +753,9 @@ export const Equipment = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Equipment> {
+    return new _.SyncSession(Equipment);
+  },
 };
 
 export const PlayerStats = {
@@ -820,11 +812,6 @@ export const PlayerStats = {
     return result;
   },
   clone(obj: PlayerStats): PlayerStats {
-    const result = PlayerStats._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: PlayerStats): PlayerStats {
     return {
       health: obj.health,
       maxHealth: obj.maxHealth,
@@ -1041,6 +1028,9 @@ export const PlayerStats = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<PlayerStats> {
+    return new _.SyncSession(PlayerStats);
+  },
 };
 
 export const ActiveEffect = {
@@ -1073,11 +1063,6 @@ export const ActiveEffect = {
     return result;
   },
   clone(obj: ActiveEffect): ActiveEffect {
-    const result = ActiveEffect._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: ActiveEffect): ActiveEffect {
     return {
       effectType: obj.effectType,
       duration: obj.duration,
@@ -1174,6 +1159,9 @@ export const ActiveEffect = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<ActiveEffect> {
+    return new _.SyncSession(ActiveEffect);
+  },
 };
 
 export const AbilityCooldown = {
@@ -1203,11 +1191,6 @@ export const AbilityCooldown = {
     return result;
   },
   clone(obj: AbilityCooldown): AbilityCooldown {
-    const result = AbilityCooldown._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: AbilityCooldown): AbilityCooldown {
     return {
       abilityId: obj.abilityId,
       abilityType: obj.abilityType,
@@ -1288,6 +1271,9 @@ export const AbilityCooldown = {
         (x) => decoder.nextFloatDiff(x),
       ),
     };
+  },
+  createSyncSession(): _.SyncSession<AbilityCooldown> {
+    return new _.SyncSession(AbilityCooldown);
   },
 };
 
@@ -1384,24 +1370,19 @@ export const Player = {
     return result;
   },
   clone(obj: Player): Player {
-    const result = Player._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Player): Player {
     return {
       playerId: obj.playerId,
       username: obj.username,
       team: obj.team != null ? obj.team : undefined,
       status: obj.status,
-      position: Position._clone(obj.position),
-      velocity: Velocity._clone(obj.velocity),
+      position: Position.clone(obj.position),
+      velocity: Velocity.clone(obj.velocity),
       rotation: obj.rotation,
-      stats: PlayerStats._clone(obj.stats),
-      inventory: obj.inventory.map((x) => InventoryItem._clone(x)),
-      equipment: Equipment._clone(obj.equipment),
-      activeEffects: obj.activeEffects.map((x) => ActiveEffect._clone(x)),
-      abilityCooldowns: obj.abilityCooldowns.map((x) => AbilityCooldown._clone(x)),
+      stats: PlayerStats.clone(obj.stats),
+      inventory: obj.inventory.map((x) => InventoryItem.clone(x)),
+      equipment: Equipment.clone(obj.equipment),
+      activeEffects: obj.activeEffects.map((x) => ActiveEffect.clone(x)),
+      abilityCooldowns: obj.abilityCooldowns.map((x) => AbilityCooldown.clone(x)),
       kills: obj.kills,
       deaths: obj.deaths,
       assists: obj.assists,
@@ -1743,6 +1724,9 @@ export const Player = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Player> {
+    return new _.SyncSession(Player);
+  },
 };
 
 export const Enemy = {
@@ -1800,16 +1784,11 @@ export const Enemy = {
     return result;
   },
   clone(obj: Enemy): Enemy {
-    const result = Enemy._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Enemy): Enemy {
     return {
       enemyId: obj.enemyId,
       name: obj.name,
-      position: Position._clone(obj.position),
-      velocity: Velocity._clone(obj.velocity),
+      position: Position.clone(obj.position),
+      velocity: Velocity.clone(obj.velocity),
       health: obj.health,
       maxHealth: obj.maxHealth,
       level: obj.level,
@@ -1997,6 +1976,9 @@ export const Enemy = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Enemy> {
+    return new _.SyncSession(Enemy);
+  },
 };
 
 export const Projectile = {
@@ -2041,16 +2023,11 @@ export const Projectile = {
     return result;
   },
   clone(obj: Projectile): Projectile {
-    const result = Projectile._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Projectile): Projectile {
     return {
       projectileId: obj.projectileId,
       ownerId: obj.ownerId,
-      position: Position._clone(obj.position),
-      velocity: Velocity._clone(obj.velocity),
+      position: Position.clone(obj.position),
+      velocity: Velocity.clone(obj.velocity),
       damage: obj.damage,
       penetration: obj.penetration,
       timeToLive: obj.timeToLive,
@@ -2202,6 +2179,9 @@ export const Projectile = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Projectile> {
+    return new _.SyncSession(Projectile);
+  },
 };
 
 export const DroppedLoot = {
@@ -2234,15 +2214,10 @@ export const DroppedLoot = {
     return result;
   },
   clone(obj: DroppedLoot): DroppedLoot {
-    const result = DroppedLoot._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: DroppedLoot): DroppedLoot {
     return {
       lootId: obj.lootId,
-      position: Position._clone(obj.position),
-      item: InventoryItem._clone(obj.item),
+      position: Position.clone(obj.position),
+      item: InventoryItem.clone(obj.item),
       despawnTime: obj.despawnTime,
     };
   },
@@ -2335,6 +2310,9 @@ export const DroppedLoot = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<DroppedLoot> {
+    return new _.SyncSession(DroppedLoot);
+  },
 };
 
 export const WorldObject = {
@@ -2380,15 +2358,10 @@ export const WorldObject = {
     return result;
   },
   clone(obj: WorldObject): WorldObject {
-    const result = WorldObject._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: WorldObject): WorldObject {
     return {
       objectId: obj.objectId,
       objectType: obj.objectType,
-      position: Position._clone(obj.position),
+      position: Position.clone(obj.position),
       health: obj.health != null ? obj.health : undefined,
       isDestroyed: obj.isDestroyed,
       isInteractable: obj.isInteractable,
@@ -2508,6 +2481,9 @@ export const WorldObject = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<WorldObject> {
+    return new _.SyncSession(WorldObject);
+  },
 };
 
 export const MatchStats = {
@@ -2546,11 +2522,6 @@ export const MatchStats = {
     return result;
   },
   clone(obj: MatchStats): MatchStats {
-    const result = MatchStats._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: MatchStats): MatchStats {
     return {
       totalKills: obj.totalKills,
       totalDeaths: obj.totalDeaths,
@@ -2677,6 +2648,9 @@ export const MatchStats = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<MatchStats> {
+    return new _.SyncSession(MatchStats);
+  },
 };
 
 export const TeamScore = {
@@ -2709,11 +2683,6 @@ export const TeamScore = {
     return result;
   },
   clone(obj: TeamScore): TeamScore {
-    const result = TeamScore._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: TeamScore): TeamScore {
     return {
       team: obj.team,
       score: obj.score,
@@ -2810,6 +2779,9 @@ export const TeamScore = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<TeamScore> {
+    return new _.SyncSession(TeamScore);
+  },
 };
 
 export const GameSettings = {
@@ -2848,11 +2820,6 @@ export const GameSettings = {
     return result;
   },
   clone(obj: GameSettings): GameSettings {
-    const result = GameSettings._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: GameSettings): GameSettings {
     return {
       maxPlayers: obj.maxPlayers,
       friendlyFire: obj.friendlyFire,
@@ -2970,6 +2937,9 @@ export const GameSettings = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<GameSettings> {
+    return new _.SyncSession(GameSettings);
+  },
 };
 
 export const GameState = {
@@ -3043,11 +3013,6 @@ export const GameState = {
     return result;
   },
   clone(obj: GameState): GameState {
-    const result = GameState._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: GameState): GameState {
     return {
       gameId: obj.gameId,
       serverTime: obj.serverTime,
@@ -3055,14 +3020,14 @@ export const GameState = {
       round: obj.round,
       phase: obj.phase,
       timeRemaining: obj.timeRemaining,
-      players: new Map([...obj.players].map(([k, v]) => [k, Player._clone(v)])),
-      enemies: new Map([...obj.enemies].map(([k, v]) => [k, Enemy._clone(v)])),
-      projectiles: new Map([...obj.projectiles].map(([k, v]) => [k, Projectile._clone(v)])),
-      droppedLoot: new Map([...obj.droppedLoot].map(([k, v]) => [k, DroppedLoot._clone(v)])),
-      worldObjects: new Map([...obj.worldObjects].map(([k, v]) => [k, WorldObject._clone(v)])),
-      teamScores: obj.teamScores.map((x) => TeamScore._clone(x)),
-      matchStats: MatchStats._clone(obj.matchStats),
-      settings: GameSettings._clone(obj.settings),
+      players: new Map([...obj.players].map(([k, v]) => [k, Player.clone(v)])),
+      enemies: new Map([...obj.enemies].map(([k, v]) => [k, Enemy.clone(v)])),
+      projectiles: new Map([...obj.projectiles].map(([k, v]) => [k, Projectile.clone(v)])),
+      droppedLoot: new Map([...obj.droppedLoot].map(([k, v]) => [k, DroppedLoot.clone(v)])),
+      worldObjects: new Map([...obj.worldObjects].map(([k, v]) => [k, WorldObject.clone(v)])),
+      teamScores: obj.teamScores.map((x) => TeamScore.clone(x)),
+      matchStats: MatchStats.clone(obj.matchStats),
+      settings: GameSettings.clone(obj.settings),
       winningTeam: obj.winningTeam != null ? obj.winningTeam : undefined,
       mapName: obj.mapName,
       weatherIntensity: obj.weatherIntensity,
@@ -3338,5 +3303,8 @@ export const GameState = {
         (x) => decoder.nextFloatDiff(x),
       ),
     };
+  },
+  createSyncSession(): _.SyncSession<GameState> {
+    return new _.SyncSession(GameState);
   },
 };

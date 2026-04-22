@@ -1,4 +1,5 @@
 import { WebSocketServer, WebSocket } from "ws";
+import type { SyncSession } from "@hpx7/delta-pack";
 import { GameState, JoinMessage, InputMessage, ClientMessageApi, GameStateApi, ClientMessage } from "./schema.js";
 import { Game } from "./game.js";
 
@@ -11,7 +12,7 @@ interface Client {
   id: string;
   ws: WebSocket;
   name: string;
-  inSync: boolean; // Whether client is in sync with shared snapshot
+  session: SyncSession<GameState>;
 }
 
 class GameServer {
@@ -21,7 +22,6 @@ class GameServer {
   private broadcastInterval: NodeJS.Timeout | null = null;
   private statsInterval: NodeJS.Timeout | null = null;
   private clientIdCounter = 0;
-  private sharedSnapshot: GameState | null = null; // Shared baseline for all in-sync clients
 
   // Performance tracking
   private stats = {
@@ -60,7 +60,7 @@ class GameServer {
       id: clientId,
       ws,
       name: `Player${this.clientIdCounter}`,
-      inSync: false,
+      session: GameStateApi.createSyncSession(),
     };
 
     console.log(`🔌 Client connected: ${clientId}`);
@@ -112,27 +112,16 @@ class GameServer {
     let clientsSent = 0;
     const currentState = this.game.getState();
 
-    // Send diff or full state to each client
+    // Each client's SyncSession tracks its own wire view and handles the
+    // full-vs-diff distinction internally.
     for (const client of this.clients.values()) {
       if (client.ws.readyState !== WebSocket.OPEN) continue;
 
-      let encoded: Uint8Array;
-      if (client.inSync && this.sharedSnapshot) {
-        // In sync: send diff from shared snapshot
-        encoded = GameStateApi.encodeDiff(this.sharedSnapshot, currentState);
-      } else {
-        // New client: send full state, mark as in sync
-        encoded = GameStateApi.encode(currentState);
-        client.inSync = true;
-      }
-
+      const encoded = client.session.encode(currentState);
       client.ws.send(encoded);
       totalBytes += encoded.length;
       clientsSent++;
     }
-
-    // Update shared snapshot once (not per client)
-    this.sharedSnapshot = GameStateApi.clone(currentState);
 
     // Track stats
     this.stats.totalBytesSent += totalBytes;

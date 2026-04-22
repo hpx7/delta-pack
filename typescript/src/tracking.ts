@@ -12,7 +12,7 @@ const PARENT = Symbol.for("delta-pack:parent");
 /** Symbol for key in parent (for dirty propagation) */
 const PARENT_KEY = Symbol.for("delta-pack:parentKey");
 
-/** Symbol for snapshot version (set on cloned objects) */
+/** Symbol for snapshot version (set by {@link registerSnapshot}) */
 const SNAPSHOT_VERSION = Symbol.for("delta-pack:snapshotVersion");
 
 /** Symbol for created version map (Map<K, version> for maps - tracks new keys) */
@@ -42,26 +42,36 @@ export function currentVersion(): number {
 const snapshotRefs = new Set<WeakRef<object>>();
 
 /**
- * Register a snapshot for version tracking and auto-pruning.
- * Called by clone() to capture the current version.
- * @internal
+ * Stamp `snapshot` as a baseline against a tracked `source`. Recursively sets
+ * `SNAPSHOT_VERSION` on `snapshot` (and every nested container it reaches) to
+ * the current global version, then prunes deleted-key tombstones on `source`
+ * that are older than the oldest surviving snapshot.
+ *
+ * This is what gives `encodeDiff(snapshot, source)` its version-based filter:
+ * only mutations with a version greater than `snapshot.SNAPSHOT_VERSION` are
+ * included. No-op when `source` is not tracked (plain objects fall through to
+ * the value-comparison path automatically).
+ *
+ * {@link SyncSession} calls this for you after each encode. Call it directly
+ * only when using the raw `encodeDiff` API with a tracked source.
  */
 export function registerSnapshot(snapshot: object, source: object): void {
   if (!isTracked(source)) return;
 
   const version = currentVersion();
-  // Recursively set SNAPSHOT_VERSION on snapshot and all nested containers
   setSnapshotVersionRecursive(snapshot, version);
   snapshotRefs.add(new WeakRef(snapshot));
 
-  // Prune deleted entries on each clone
   pruneDeletedEntries(source);
 }
 
 /** Recursively set SNAPSHOT_VERSION on an object and all its nested containers */
 function setSnapshotVersionRecursive(obj: unknown, version: number): void {
   if (obj == null || typeof obj !== "object") return;
-  Object.defineProperty(obj, SNAPSHOT_VERSION, { value: version });
+  // configurable: a SyncSession view's unchanged nested refs are reused across
+  // ticks (decodeDiff returns the same reference when no change), so the same
+  // object can be stamped multiple times as the session's snapshot version advances.
+  Object.defineProperty(obj, SNAPSHOT_VERSION, { value: version, configurable: true });
 
   if (obj instanceof Map) {
     for (const value of obj.values()) {
@@ -79,7 +89,8 @@ function setSnapshotVersionRecursive(obj: unknown, version: number): void {
 }
 
 /**
- * Get the snapshot version of an object (if it was created via clone from a tracked source).
+ * Get the snapshot version of an object (set by {@link registerSnapshot}, or `undefined`
+ * if the object hasn't been stamped as a snapshot of a tracked source).
  * @internal
  */
 export function getSnapshotVersion(obj: unknown): number | undefined {
@@ -205,7 +216,11 @@ export type Tracked<T> =
  * state.tick = 1;                  // Records version for "tick"
  * state.player.x = 100;            // Records version for "x", propagates to parent
  *
- * const snapshot1 = api.clone(state);  // Captures current version
+ * // Take a snapshot. `clone` is a pure deep copy; `registerSnapshot` stamps it
+ * // with the current version so `encodeDiff` can filter to mutations after
+ * // this point. (SyncSession does both steps automatically.)
+ * const snapshot1 = api.clone(state);
+ * registerSnapshot(snapshot1, state);
  *
  * state.tick = 2;
  * const diff = api.encodeDiff(snapshot1, state);  // Only includes changes since snapshot1
@@ -552,10 +567,14 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
             // Update existing key
             dirty.set(key, version);
           } else {
-            // New key
+            // New key. Revival of a previously-deleted key: the deletion cleared `target`,
+            // so target.has(key) is false — but the key may have been in the baseline
+            // snapshot. We can't tell from here, so mark dirty too. The encoder's filters
+            // pick exactly one bucket: !a.has(key) gates `created` to non-snapshot keys,
+            // a.has(key) gates `dirty` to snapshot keys.
             created.set(key, version);
+            if (deleted.has(key)) dirty.set(key, version);
           }
-          // Revive if previously deleted
           deleted.delete(key);
           propagateToParent(trackedValues, version);
           target.set(key, trackRecursive(value, trackedValues, key as string | number) as V);

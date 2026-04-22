@@ -264,77 +264,67 @@ internal static class ExpressionRenderer
 
     /// <summary>
     /// Emits an inline clone expression for a value of type <paramref name="t"/>.
-    /// When <paramref name="inTrackedContext"/> is true, nested tracked-reference clones call
-    /// <c>CloneChild_</c> (which skips <c>RegisterSnapshot</c>) instead of <c>Clone</c>. The
-    /// tracked-container snapshot factories pass <c>CloneChild_</c>-targeted lambdas for the
-    /// same reason — only the outermost clone needs to be in the snapshot registry.
     /// </summary>
-    public static string CloneInline(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext = false) => t.Kind switch
+    public static string CloneInline(TypeRef t, string val, ModelRegistry reg) => t.Kind switch
     {
         TypeKind.String or TypeKind.Boolean or TypeKind.Int or TypeKind.Float => val,
-        TypeKind.Array => CloneArray(t, val, reg, inTrackedContext),
-        TypeKind.Record => CloneRecord(t, val, reg, inTrackedContext),
-        TypeKind.Reference => CloneReference(t, val, reg, inTrackedContext),
-        TypeKind.Optional => CloneOptional(t, val, reg, inTrackedContext),
+        TypeKind.Array => CloneArray(t, val, reg),
+        TypeKind.Record => CloneRecord(t, val, reg),
+        TypeKind.Reference => CloneReference(t, val, reg),
+        TypeKind.Optional => CloneOptional(t, val, reg),
         _ => throw new InvalidOperationException(),
     };
 
-    private static string CloneArray(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
+    private static string CloneArray(TypeRef t, string val, ModelRegistry reg)
     {
         var elem = t.ElementType!;
         if (t.IsTracked)
         {
             // Tracked: use the generator-only snapshot factory that sizes the inner list exactly,
-            // skips per-element MarkDirty/NextVersion, and reparents children once. The factory
-            // lambda is by definition a tracked context — nested tracked refs use CloneChild_.
+            // skips per-element MarkDirty/NextVersion, and reparents children once.
             var containerType = $"DeltaPack.TrackedList<{CSharpType(elem, reg)}>";
             return IsDeepCloneNoop(elem, reg)
                 ? $"{containerType}.CreateSnapshot({val})"
-                : $"{containerType}.CreateSnapshot({val}, x => {CloneInline(elem, "x", reg, inTrackedContext: true)})";
+                : $"{containerType}.CreateSnapshot({val}, x => {CloneInline(elem, "x", reg)})";
         }
         var untrackedType = $"System.Collections.Generic.List<{CSharpType(elem, reg)}>";
         if (IsDeepCloneNoop(elem, reg))
             return $"new {untrackedType}({val})";
-        return $"{val}.Select(x => {CloneInline(elem, "x", reg, inTrackedContext)}).ToList()";
+        return $"{val}.Select(x => {CloneInline(elem, "x", reg)}).ToList()";
     }
 
-    private static string CloneRecord(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
+    private static string CloneRecord(TypeRef t, string val, ModelRegistry reg)
     {
         var valueType = t.ValueType!;
         if (t.IsTracked)
         {
             // Tracked: snapshot factory bypasses the ToOrderedDict → IDictionary ctor double-pass
-            // and skips per-entry dirty tracking. Factory lambda is a tracked context.
+            // and skips per-entry dirty tracking.
             var containerType = $"DeltaPack.TrackedOrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
             return IsDeepCloneNoop(valueType, reg)
                 ? $"{containerType}.CreateSnapshot({val})"
-                : $"{containerType}.CreateSnapshot({val}, x => {CloneInline(valueType, "x", reg, inTrackedContext: true)})";
+                : $"{containerType}.CreateSnapshot({val}, x => {CloneInline(valueType, "x", reg)})";
         }
         var odictType = $"DeltaPack.OrderedDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(valueType, reg)}>";
         if (IsDeepCloneNoop(valueType, reg))
             return $"new {odictType}({val})";
-        return $"{val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg, inTrackedContext)})";
+        return $"{val}.ToOrderedDict(kvp => kvp.Key, kvp => {CloneInline(valueType, "kvp.Value", reg)})";
     }
 
-    private static string CloneReference(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
+    private static string CloneReference(TypeRef t, string val, ModelRegistry reg)
     {
         var def = reg.Lookup(t.ReferenceName!);
         if (def?.Kind == TypeDefKind.Enum) return val;
-        // In a tracked context (root snapshot's clone body, or a tracked-container factory),
-        // nested tracked refs should go through CloneChild_ so the root's RegisterSnapshot
-        // is the only one that actually hits the snapshot registry.
-        if (inTrackedContext && def?.IsTracked == true)
-            return $"{t.ReferenceName}.CloneChild_({val})";
         return $"{t.ReferenceName}.Clone({val})";
     }
 
-    private static string CloneOptional(TypeRef t, string val, ModelRegistry reg, bool inTrackedContext)
+    private static string CloneOptional(TypeRef t, string val, ModelRegistry reg)
     {
         var inner = t.ElementType!;
         if (IsDeepCloneNoop(inner, reg))
             return val;
         // reference type: null-check then clone
-        return $"{val} != null ? {CloneInline(inner, val, reg, inTrackedContext)} : null";
+        return $"{val} != null ? {CloneInline(inner, val, reg)} : null";
     }
 
     /// <summary>True if a value of this type can be cloned by simple assignment (value types + strings + enums).</summary>

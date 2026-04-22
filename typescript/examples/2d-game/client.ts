@@ -1,6 +1,6 @@
 import WebSocket from "ws";
 import * as readline from "readline";
-import { GameState, ClientInput, JoinMessage, InputMessage, ClientMessageApi, GameStateApi } from "./schema.js";
+import { ClientInput, JoinMessage, InputMessage, ClientMessageApi, GameStateApi } from "./schema.js";
 
 // Client configuration
 const SERVER_URL = "ws://localhost:3000";
@@ -10,7 +10,7 @@ class GameClient {
   private ws: WebSocket | null = null;
   private playerId: string; // Client-generated ID
   private playerName: string;
-  private gameState: GameState | null = null; // Also used as baseline for diff decoding
+  private session = GameStateApi.createSyncSession();
   private connected = false;
 
   // Input state
@@ -39,13 +39,9 @@ class GameClient {
     this.ws.on("message", (data: Buffer) => {
       try {
         const bytes = new Uint8Array(data);
-
-        if (this.gameState != null) {
-          // Decode as diff from current state (which serves as baseline)
-          this.gameState = GameStateApi.decodeDiff(this.gameState, bytes);
-        } else {
-          // First message, decode as full state
-          this.gameState = GameStateApi.decode(bytes);
+        const wasFirstMessage = this.session.current() === null;
+        this.session.decode(bytes);
+        if (wasFirstMessage) {
           console.log(`\n🎮 Joined game! Player ID: ${this.playerId}`);
         }
 
@@ -88,15 +84,16 @@ class GameClient {
   }
 
   private printGameState() {
-    if (!this.gameState) return;
+    const state = this.session.current();
+    if (!state) return;
 
-    console.log(`\n━━━ Game State (Tick ${this.gameState.tick}) ━━━`);
-    console.log(`Game Time: ${this.gameState.gameTime.toFixed(1)}s`);
-    console.log(`Players: ${this.gameState.players.size}`);
+    console.log(`\n━━━ Game State (Tick ${state.tick}) ━━━`);
+    console.log(`Game Time: ${state.gameTime.toFixed(1)}s`);
+    console.log(`Players: ${state.players.size}`);
 
-    if (this.gameState.players.size > 0) {
+    if (state.players.size > 0) {
       console.log("\nPlayers:");
-      this.gameState.players.forEach((player, id) => {
+      state.players.forEach((player, id) => {
         const isMe = id === this.playerId ? " (YOU)" : "";
         const pos = `(${player.x.toFixed(1)}, ${player.y.toFixed(1)})`;
         const vel = player.vx !== 0 || player.vy !== 0 ? ` vel:(${player.vx.toFixed(1)}, ${player.vy.toFixed(1)})` : "";

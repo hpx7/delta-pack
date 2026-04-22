@@ -2,7 +2,7 @@ import * as _ from "./helpers.js";
 import { NamedType, Type } from "./schema.js";
 import type { Infer } from "./infer.js";
 import { compileEncodeDecode } from "./jit.js";
-import { registerSnapshot } from "./tracking.js";
+import { SyncSession } from "./sync-session.js";
 
 /**
  * The serialization API returned by {@link load} for a given schema type.
@@ -40,6 +40,8 @@ export type DeltaPackApi<T> = {
   equals: (a: T, b: T) => boolean;
   /** Create a deep clone of an object */
   clone: (obj: T) => T;
+  /** Construct a {@link SyncSession} bound to this API — the recommended handle for state sync streams. */
+  createSyncSession: () => SyncSession<T>;
 };
 
 type UnionVal = { _type: string; [k: string]: unknown };
@@ -304,7 +306,7 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
   // Use JIT-compiled encode/decode for performance
   const jit = compileEncodeDecode(rootType);
 
-  return {
+  const api: DeltaPackApi<unknown> = {
     fromJson: (obj: object) => _fromJson(obj, rootType, rootType),
     toJson: (obj) => _toJson(obj, rootType, rootType) as Record<string, unknown>,
     encode: (obj) => jit.encode(obj),
@@ -312,12 +314,8 @@ export function load(rootType: NamedType): DeltaPackApi<unknown> {
     encodeDiff: (a, b) => jit.encodeDiff(a, b),
     decodeDiff: (a, diff: Uint8Array) => jit.decodeDiff(a, diff),
     equals: (a, b) => _equals(a, b, rootType, rootType),
-    clone: (obj) => {
-      const cloned = _clone(obj, rootType, rootType);
-      if (cloned != null && typeof cloned === "object") {
-        registerSnapshot(cloned as object, obj as object);
-      }
-      return cloned;
-    },
+    clone: (obj) => _clone(obj, rootType, rootType),
+    createSyncSession: () => new SyncSession(api),
   };
+  return api;
 }

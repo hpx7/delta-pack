@@ -373,7 +373,10 @@ export class DiffEncoder extends Encoder {
         }
       }
       for (const [key, ver] of createdVersions) {
-        if (ver > minVersion && b.has(key)) {
+        // !a.has(key) gates additions to keys that don't already exist in the snapshot —
+        // revival (delete + re-set) marks both `created` and `dirty`; this filter directs
+        // the emission to the dirty-update path instead of a full-value addition.
+        if (ver > minVersion && b.has(key) && !a.has(key)) {
           additions.push([key, b.get(key)!]);
         }
       }

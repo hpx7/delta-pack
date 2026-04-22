@@ -60,6 +60,12 @@ internal static class ObjectEmitter
         EmitDecode(w, def, reg, newIfHides);
         w.Line();
         EmitDecodeDiff(w, def, reg, "");
+        // Structs can't satisfy `where T : class` on SyncSession<T>, skip them.
+        if (!def.IsStruct)
+        {
+            w.Line();
+            EmitCreateSyncSession(w, def, newIfHides);
+        }
 
         if (def.IsTracked)
         {
@@ -120,28 +126,32 @@ internal static class ObjectEmitter
 
     private static void EmitClone(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
     {
-        if (def.IsTracked)
+        using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
         {
-            // Split into public `Clone` (registers the snapshot) and internal `CloneChild_`
-            // (does the work without registering). Nested clones reached via CreateSnapshot
-            // factories and tracked-reference fields use `CloneChild_`, so only the root
-            // ever ends up in the snapshot registry. Otherwise, cloning a tree of N tracked
-            // instances meant N registry entries + N PruneDeleted walks — quadratic at scale.
-            using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
+            if (def.IsTracked)
             {
-                w.Line("var result = CloneChild_(obj);");
-                w.Line("DeltaPack.DirtyTracking.RegisterSnapshot(result, obj);");
+                // Write to backing fields directly rather than going through the partial-property
+                // setters — setters would run NextVersion / dirty-map writes / PropagateToParent on
+                // every field, which is wasted work on a freshly-built clone.
+                w.Line($"var result = new {def.SimpleName}();");
+                for (int slot = 0; slot < def.Fields.Length; slot++)
+                {
+                    var f = def.Fields[slot];
+                    var backing = ExpressionRenderer.TrackingBackingField(f);
+                    var cloneExpr = ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg);
+                    w.Line($"result.{backing} = {cloneExpr};");
+
+                    if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                    {
+                        // Optional<T> may legitimately be null; other trackable fields won't be.
+                        // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
+                        w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                        w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__t_{f.Name}, result, {slot});");
+                    }
+                }
                 w.Line("return result;");
             }
-            w.Line();
-            using (w.Block($"internal static {def.SimpleName} CloneChild_({def.SimpleName} obj)"))
-            {
-                EmitTrackedCloneBody(w, def, reg);
-            }
-        }
-        else
-        {
-            using (w.Block($"public static {newKw}{def.SimpleName} Clone({def.SimpleName} obj)"))
+            else
             {
                 using (w.Block("return new()"))
                 {
@@ -151,36 +161,6 @@ internal static class ObjectEmitter
                 w.Line(";");
             }
         }
-    }
-
-    /// <summary>
-    /// Emits the tracked-type Clone body as direct backing-field writes plus per-child Reparent
-    /// calls. Does NOT call <c>RegisterSnapshot</c> — that's handled by the public <c>Clone</c>
-    /// wrapper at the root only. Writing to backing fields directly also avoids the per-field
-    /// NextVersion/dirty-map writes/PropagateToParent that the partial-property setters would
-    /// run — wasted work on a freshly-built snapshot.
-    /// </summary>
-    private static void EmitTrackedCloneBody(CodeWriter w, TypeDef def, ModelRegistry reg)
-    {
-        w.Line($"var result = new {def.SimpleName}();");
-        for (int slot = 0; slot < def.Fields.Length; slot++)
-        {
-            var f = def.Fields[slot];
-            var backing = ExpressionRenderer.TrackingBackingField(f);
-            // Pass inTrackedContext=true so CloneInline emits `CloneChild_` (not `Clone`)
-            // for any nested tracked references — no redundant registry entries.
-            var cloneExpr = ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg, inTrackedContext: true);
-            w.Line($"result.{backing} = {cloneExpr};");
-
-            if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
-            {
-                // Optional<T> may legitimately be null; other trackable fields won't be.
-                // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
-                w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__t_{f.Name}, result, {slot});");
-            }
-        }
-        w.Line("return result;");
     }
 
     private static void EmitEquals(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
@@ -258,6 +238,14 @@ internal static class ObjectEmitter
             }
             w.Line(";");
         }
+    }
+
+    private static void EmitCreateSyncSession(CodeWriter w, TypeDef def, string newKw)
+    {
+        // Union variants hide the base class's CreateSyncSession() — same name + empty params,
+        // only the generic return type differs — so they need the `new` modifier.
+        w.Line($"public static {newKw}DeltaPack.SyncSession<{def.SimpleName}> CreateSyncSession()");
+        w.Line($"    => new(Encode, Decode, EncodeDiff, DecodeDiff, Clone);");
     }
 
     private static void EmitDecodeDiff(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)

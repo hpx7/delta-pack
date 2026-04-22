@@ -75,11 +75,6 @@ export const Address = {
     return result;
   },
   clone(obj: Address): Address {
-    const result = Address._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Address): Address {
     return {
       street: obj.street,
       zip: obj.zip,
@@ -161,6 +156,9 @@ export const Address = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Address> {
+    return new _.SyncSession(Address);
+  },
 };
 
 export const EmailContact = {
@@ -184,11 +182,6 @@ export const EmailContact = {
     return result;
   },
   clone(obj: EmailContact): EmailContact {
-    const result = EmailContact._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: EmailContact): EmailContact {
     return {
       email: obj.email,
     };
@@ -240,6 +233,9 @@ export const EmailContact = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<EmailContact> {
+    return new _.SyncSession(EmailContact);
+  },
 };
 
 export const PhoneContact = {
@@ -268,11 +264,6 @@ export const PhoneContact = {
     return result;
   },
   clone(obj: PhoneContact): PhoneContact {
-    const result = PhoneContact._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: PhoneContact): PhoneContact {
     return {
       phone: obj.phone,
       extension: obj.extension != null ? obj.extension : undefined,
@@ -339,6 +330,9 @@ export const PhoneContact = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<PhoneContact> {
+    return new _.SyncSession(PhoneContact);
+  },
 };
 
 export const Contact = {
@@ -366,14 +360,10 @@ export const Contact = {
   },
   clone(obj: Contact): Contact {
     if (obj._type === "EmailContact") {
-      const result = { _type: "EmailContact" as const, ...EmailContact._clone(obj) };
-      _.registerSnapshot(result, obj);
-      return result;
+      return { _type: "EmailContact" as const, ...EmailContact.clone(obj) };
     }
     else if (obj._type === "PhoneContact") {
-      const result = { _type: "PhoneContact" as const, ...PhoneContact._clone(obj) };
-      _.registerSnapshot(result, obj);
-      return result;
+      return { _type: "PhoneContact" as const, ...PhoneContact.clone(obj) };
     }
     throw new Error(`Invalid Contact: ${obj}`);
   },
@@ -461,7 +451,10 @@ export const Contact = {
       }
       throw new Error("Invalid union diff");
     }
-  }
+  },
+  createSyncSession(): _.SyncSession<Contact> {
+    return new _.SyncSession(Contact);
+  },
 }
 
 export const User = {
@@ -516,11 +509,6 @@ export const User = {
     return result;
   },
   clone(obj: User): User {
-    const result = User._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: User): User {
     return {
       id: obj.id,
       name: obj.name,
@@ -528,8 +516,8 @@ export const User = {
       weight: obj.weight,
       married: obj.married,
       hairColor: obj.hairColor,
-      address: obj.address != null ? Address._clone(obj.address) : undefined,
-      children: obj.children.map((x) => User._clone(x)),
+      address: obj.address != null ? Address.clone(obj.address) : undefined,
+      children: obj.children.map((x) => User.clone(x)),
       metadata: new Map([...obj.metadata].map(([k, v]) => [k, v])),
       preferredContact: obj.preferredContact != null ? Contact.clone(obj.preferredContact) : undefined,
     };
@@ -697,5 +685,8 @@ export const User = {
         (x) => decoder.nextOptionalDiff<Contact>(x, () => Contact._decode(decoder), (x) => Contact._decodeDiff(x, decoder)),
       ),
     };
+  },
+  createSyncSession(): _.SyncSession<User> {
+    return new _.SyncSession(User);
   },
 };

@@ -29,7 +29,7 @@ public class GameServer
         public required string Id { get; init; }
         public required IWebSocketConnection Socket { get; init; }
         public string Name { get; set; } = "";
-        public ServerMessage? LastMessage { get; set; }
+        public SyncSession<ServerMessage> Session { get; } = ServerMessage.CreateSyncSession();
     }
 
     public void Start()
@@ -118,16 +118,13 @@ public class GameServer
         };
         _clients[clientId] = client;
 
-        // Send initial full state
+        // First SyncSession.Encode emits a full encode and seeds the session's view.
         var stateMsg = new StateMessage
         {
             PlayerId = clientId,
             State = _game.State
         };
-
-        client.LastMessage = stateMsg;
-        var encoded = ServerMessage.Encode(stateMsg);
-        socket.Send(encoded);
+        socket.Send(client.Session.Encode(stateMsg));
 
         Console.WriteLine($"{playerName} joined the game");
     }
@@ -146,22 +143,17 @@ public class GameServer
         foreach (var client in _clients.Values)
         {
             if (!client.Socket.IsAvailable) continue;
-            if (client.LastMessage == null) continue;
 
-            // Create update message with current state
+            // Each client's SyncSession tracks its own wire view and handles
+            // the full-vs-diff distinction internally.
             var updateMessage = new StateMessage
             {
                 PlayerId = client.Id,
                 State = _game.State
             };
-
-            // Send diff from last message
-            var encoded = ServerMessage.EncodeDiff(client.LastMessage, updateMessage);
+            var encoded = client.Session.Encode(updateMessage);
             client.Socket.Send(encoded);
             totalBytes += encoded.Length;
-
-            // Clone and update client's last message
-            client.LastMessage = ServerMessage.Clone(updateMessage);
         }
 
         // Track stats

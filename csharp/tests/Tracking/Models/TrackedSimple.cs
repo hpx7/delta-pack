@@ -18,3 +18,9 @@ public partial class TrackedPlayer
     public partial TrackedList<int> Inventory { get; set; }
     public partial TrackedOrderedDict<string, int> Stats { get; set; }
 }
+
+[DeltaPack, DeltaPackTracked]
+public partial class TrackedRegistry
+{
+    public partial TrackedOrderedDict<string, TrackedPlayer> Players { get; set; }
+}

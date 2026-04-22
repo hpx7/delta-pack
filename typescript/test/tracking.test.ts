@@ -1,6 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { Infer, track, load, loadClass } from "@hpx7/delta-pack";
+import { Infer, track, load, loadClass, registerSnapshot } from "@hpx7/delta-pack";
 import { getFieldVersions } from "../src/tracking.js";
+
+/** Deep-clone + stamp as a snapshot of the source — the raw-API analog of what SyncSession does. */
+function snapshot<T>(api: { clone: (x: T) => T }, source: T): T {
+  const snap = api.clone(source);
+  if (snap != null && typeof snap === "object") {
+    registerSnapshot(snap as object, source as object);
+  }
+  return snap;
+}
 import { schema } from "./schema.js";
 import { Position } from "./reflection-schema.js";
 
@@ -720,13 +729,13 @@ describe("Dirty Tracking", () => {
       state.x = 100;
 
       // Take first snapshot
-      const snapshot1 = api.clone(state);
+      const snapshot1 = snapshot(api, state);
 
       // More changes
       state.y = 200;
 
       // Take second snapshot
-      const snapshot2 = api.clone(state);
+      const snapshot2 = snapshot(api, state);
 
       // More changes
       state.x = 300;
@@ -756,11 +765,11 @@ describe("Dirty Tracking", () => {
 
       // Add key1
       state.metadata.set("key1", "value1");
-      const snapshot1 = api.clone(state);
+      const snapshot1 = snapshot(api, state);
 
       // Add key2
       state.metadata.set("key2", "value2");
-      const snapshot2 = api.clone(state);
+      const snapshot2 = snapshot(api, state);
 
       // Delete key1
       state.metadata.delete("key1");
@@ -782,11 +791,11 @@ describe("Dirty Tracking", () => {
       const api = load(schema.Position);
 
       const state = track({ x: 100, y: 200 });
-      const snapshot = api.clone(state);
+      const snap = snapshot(api, state);
 
       // No changes since snapshot - should still produce valid diff
-      const diff = api.encodeDiff(snapshot, state);
-      const decoded = api.decodeDiff(snapshot, diff);
+      const diff = api.encodeDiff(snap, state);
+      const decoded = api.decodeDiff(snap, diff);
       expect(decoded.x).toBe(100);
       expect(decoded.y).toBe(200);
     });
@@ -821,7 +830,7 @@ describe("Dirty Tracking", () => {
 
       // Modify first player
       state.players[0]!.score = 100;
-      const snapshot1 = api.clone(state);
+      const snapshot1 = snapshot(api, state);
 
       // Modify second player after snapshot
       state.players[1]!.score = 200;
@@ -847,11 +856,11 @@ describe("Dirty Tracking", () => {
       }) as GameState;
 
       // Take initial snapshot
-      const snapshot1 = api.clone(state);
+      const snapshot1 = snapshot(api, state);
 
       // Update existing key (not add or delete)
       state.metadata.set("key1", "updated1");
-      const snapshot2 = api.clone(state);
+      const snapshot2 = snapshot(api, state);
 
       // Update another key after snapshot2
       state.metadata.set("key2", "updated2");
@@ -867,6 +876,48 @@ describe("Dirty Tracking", () => {
       const decoded2 = api.decodeDiff(snapshot2, diff2);
       expect(decoded2.metadata.get("key1")).toBe("updated1");
       expect(decoded2.metadata.get("key2")).toBe("updated2");
+    });
+
+    it("emits an update (not an addition) when a snapshot key is deleted and re-set", () => {
+      // Revival scenario: a key that was in the baseline snapshot is deleted and then
+      // re-set (e.g. delete+reinsert for reordering). Tracking records the key in
+      // CREATED, but the encoder must recognize it still exists in the snapshot and
+      // route the emission through the update path — not encode the full value as an
+      // addition. Compare bytes to a control where the same field change is made via
+      // a plain `set` (no delete+reinsert): the two should produce identically-sized
+      // diffs.
+      type GameState = Infer<typeof schema.GameState>;
+      const api = load(schema.GameState);
+
+      const makeState = () =>
+        track({
+          players: [],
+          round: 1,
+          metadata: new Map<string, string>([
+            ["a", "X"],
+            ["b", "Y"],
+          ]),
+        }) as GameState;
+
+      // Revival path: delete "a" and re-set it with a new value.
+      const revived = makeState();
+      const snapRevived = snapshot(api, revived);
+      revived.metadata.delete("a");
+      revived.metadata.set("a", "X2");
+      const diffRevived = api.encodeDiff(snapRevived, revived);
+
+      // Control: same net value change via a plain `set`.
+      const control = makeState();
+      const snapControl = snapshot(api, control);
+      control.metadata.set("a", "X2");
+      const diffControl = api.encodeDiff(snapControl, control);
+
+      // Both should route through the update path and produce equivalent diffs.
+      expect(diffRevived.length).toBe(diffControl.length);
+
+      // Decoded result is the same as the control in both cases.
+      expect(api.decodeDiff(snapRevived, diffRevived).metadata.get("a")).toBe("X2");
+      expect(api.decodeDiff(snapControl, diffControl).metadata.get("a")).toBe("X2");
     });
   });
 });

@@ -1,4 +1,4 @@
-use crate::{Decoder, Encoder};
+use crate::{Decoder, Encoder, SyncSession};
 
 /// Common surface shared by every `delta-pack`-encodable type, whether produced
 /// by the CLI's Rust codegen or the `#[derive(DeltaPack)]` proc-macro.
@@ -44,5 +44,16 @@ pub trait DeltaPack: Sized {
     #[must_use]
     fn decode_diff(obj: &Self, diff: &[u8]) -> Self {
         Decoder::decode(diff, |decoder| Self::decode_diff_from(obj, decoder))
+    }
+
+    /// Construct a [`SyncSession`] for this type — the recommended handle for
+    /// state sync streams. Only available when `Self: Clone`, which generated
+    /// and `#[derive(DeltaPack)]` types satisfy by convention.
+    #[must_use]
+    fn create_sync_session() -> SyncSession<Self>
+    where
+        Self: Clone,
+    {
+        SyncSession::new()
     }
 }

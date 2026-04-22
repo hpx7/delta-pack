@@ -144,8 +144,14 @@ public class GameServer : INetEventListener
     {
         _game.Update(Constants.TickDuration);
 
-        // Store cloned state for delta encoding
-        _stateHistory[_game.State.Tick] = GameState.Clone(_game.State);
+        // Store cloned state for ack-based delta encoding. This isn't SyncSession
+        // territory: each client acks a specific tick and we diff against *that*
+        // historical state, not a running "peer view." Clone is a pure deep copy
+        // after the API decoupling, so we also call RegisterSnapshot so the
+        // tracking version filter scopes the diff correctly.
+        var snapshot = GameState.Clone(_game.State);
+        DirtyTracking.RegisterSnapshot(snapshot, _game.State);
+        _stateHistory[_game.State.Tick] = snapshot;
 
         // Prune old history
         var minTick = _game.State.Tick - Constants.MaxHistoryTicks;

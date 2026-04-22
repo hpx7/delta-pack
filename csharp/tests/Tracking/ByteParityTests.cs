@@ -8,9 +8,22 @@ namespace DeltaPack.Tests.Tracking;
 /// Asserts that <c>EncodeDiff</c> on a tracked class produces identical bytes to
 /// the structurally-equivalent untracked class. The tracking machinery is meant
 /// to be a pure cost optimization — it must never alter the wire format.
+/// <para>
+/// Low-level use of <c>EncodeDiff</c> with tracked classes requires the caller to
+/// mark the baseline as a snapshot via <see cref="DirtyTracking.RegisterSnapshot"/>
+/// so the encoder's version filter has the right cutoff. The helper below does this
+/// for the tests; <see cref="SyncSession{T}"/> handles it automatically in real use.
+/// </para>
 /// </summary>
 public class ByteParityTests
 {
+    private static T Snapshot<T>(T source, Func<T, T> clone) where T : class
+    {
+        var snap = clone(source);
+        DirtyTracking.RegisterSnapshot(snap, source);
+        return snap;
+    }
+
     [Fact]
     public void Position_full_encode_byte_parity()
     {
@@ -25,7 +38,7 @@ public class ByteParityTests
         var tA = TrackedPosition.Default();
         tA.X = 1f;
         tA.Y = 2f;
-        var tSnap = TrackedPosition.Clone(tA);
+        var tSnap = Snapshot(tA, TrackedPosition.Clone);
         tA.X = 99f;
 
         var uA = new UntrackedPosition { X = 1f, Y = 2f };
@@ -44,7 +57,7 @@ public class ByteParityTests
         tracked.Inventory.Add(1);
         tracked.Inventory.Add(2);
         tracked.Stats["hp"] = 100;
-        var tSnap = TrackedPlayer.Clone(tracked);
+        var tSnap = Snapshot(tracked, TrackedPlayer.Clone);
 
         // Mutations after snapshot
         tracked.Score = 25;
@@ -76,7 +89,7 @@ public class ByteParityTests
         // byte parity diverges by a few wasted bits in this set-then-revert pattern.
         var tracked = TrackedPlayer.Default();
         tracked.Stats["a"] = 1;
-        var tSnap = TrackedPlayer.Clone(tracked);
+        var tSnap = Snapshot(tracked, TrackedPlayer.Clone);
         tracked.Stats["b"] = 2;
         tracked.Stats.Remove("b");
 
@@ -103,7 +116,7 @@ public class ByteParityTests
         // should emit no diff payload for that field even though tracking saw mutations.
         var tracked = TrackedPlayer.Default();
         tracked.Score = 10;
-        var tSnap = TrackedPlayer.Clone(tracked);
+        var tSnap = Snapshot(tracked, TrackedPlayer.Clone);
         tracked.Score = 99;
         tracked.Score = 10; // back to snapshot value
 
@@ -132,7 +145,7 @@ public class ByteParityTests
         var tracked = TrackedPlayer.Default();
         tracked.Stats["a"] = 1;
         tracked.Stats["b"] = 2;
-        var tSnap = TrackedPlayer.Clone(tracked);
+        var tSnap = Snapshot(tracked, TrackedPlayer.Clone);
         tracked.Stats.Clear();
 
         var untracked = new UntrackedPlayer { Stats = new() { ["a"] = 1, ["b"] = 2 } };
@@ -149,7 +162,7 @@ public class ByteParityTests
         tracked.Inventory.Add(10);
         tracked.Inventory.Add(20);
         tracked.Inventory.Add(30);
-        var tSnap = TrackedPlayer.Clone(tracked);
+        var tSnap = Snapshot(tracked, TrackedPlayer.Clone);
         tracked.Inventory.RemoveAt(1);
         tracked.Inventory.Add(99);
 
@@ -168,7 +181,7 @@ public class ByteParityTests
         tracked.Stats["a"] = 1;
         tracked.Stats["b"] = 2;
         tracked.Stats["c"] = 3;
-        var snap = TrackedPlayer.Clone(tracked);
+        var snap = Snapshot(tracked, TrackedPlayer.Clone);
 
         tracked.Stats.Remove("b");
         tracked.Stats["d"] = 4;

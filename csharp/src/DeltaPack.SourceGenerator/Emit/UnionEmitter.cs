@@ -231,6 +231,12 @@ internal static class UnionEmitter
                 w.Line($"throw new System.InvalidOperationException(\"Invalid {def.SimpleName} diff\");");
             }
         }
+        w.Line();
+
+        // CreateSyncSession — factory for the SyncSession wrapper using this type's
+        // generated static methods as delegates.
+        w.Line($"public static DeltaPack.SyncSession<{def.SimpleName}> CreateSyncSession()");
+        w.Line($"    => new(Encode, Decode, EncodeDiff, DecodeDiff, Clone);");
     }
 
     private static string Short(string fqn)

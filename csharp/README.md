@@ -30,9 +30,27 @@ byte[] encoded = Player.Encode(player);
 Player decoded = Player.Decode(encoded);
 ```
 
-## Delta Encoding
+## State Synchronization (`SyncSession<T>`)
 
-Send only what changed between two states:
+For ongoing state sync between two endpoints (server ↔ client, peer ↔ peer), use `SyncSession<T>`. It handles the full-encode bootstrap plus subsequent diffs automatically and keeps both sides aligned — even when the sender's state gets mutated in ways that reorder internal collections.
+
+```csharp
+using DeltaPack;
+
+// Server — one SyncSession per connected peer
+var session = GameState.CreateSyncSession();
+peer.Send(session.Encode(state));  // first call: full; subsequent calls: diff
+
+// Client
+var session = GameState.CreateSyncSession();
+GameState state = session.Decode(bytes);
+```
+
+**`SyncSession` is the recommended API for real-time sync.** The source generator emits a `CreateSyncSession()` factory on every `[DeltaPack]` type. For manual wiring (e.g., to a third-party type), construct directly: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)`.
+
+### Low-level delta encoding (advanced)
+
+For custom protocols (ack-based history, multi-baseline diffs, UDP-style packet loss handling, etc.), use the generated `EncodeDiff` / `DecodeDiff` methods directly:
 
 ```csharp
 var stateA = new GameState { Score = 100, Health = 100 };
@@ -40,9 +58,9 @@ var stateB = new GameState { Score = 150, Health = 100 }; // Only score changed
 
 byte[] diff = GameState.EncodeDiff(stateA, stateB);
 GameState result = GameState.DecodeDiff(stateA, diff);
-
-// diff is smaller than full encode when few fields change
 ```
+
+When using these directly, **the `a` argument must exactly match the peer's wire view (same key insertion order in `OrderedDict`s, not just the same key-value content)**. Mismatch causes silent corruption. `SyncSession` maintains this invariant for you — reach for the raw API only if you've committed to managing wire-view state yourself.
 
 ## Shared Schemas (TypeScript/Rust/C#)
 
@@ -180,7 +198,12 @@ var live = Player.Default();
 live.Name = "Alice";
 live.Score = 10;
 
-var snapshot = Player.Clone(live);  // captures the current global version
+// Take a snapshot. `Clone` is a pure deep copy; `RegisterSnapshot` stamps it
+// with the current global version so `EncodeDiff` filters to mutations after
+// this point. `SyncSession<T>` does both steps automatically — prefer it over
+// the raw pattern shown here unless you need manual control.
+var snapshot = Player.Clone(live);
+DirtyTracking.RegisterSnapshot(snapshot, live);
 live.Score = 25;                    // recorded as dirty since snapshot
 
 byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/encoded
@@ -195,9 +218,10 @@ byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/enco
   so mutations through the collection (`.Add`, `.RemoveAt`, indexer set, etc.) are recorded.
   Using `List<T>` or `OrderedDict<TKey, TValue>` on a tracked class produces diagnostics
   `DP012` / `DP013` with code fixes that swap in the tracked variant.
-- `Clone` on a tracked class also calls `DirtyTracking.RegisterSnapshot`, so the returned
-  object's `SnapshotVersion` is set to the current global version. Pass it as the `a` argument
-  to `EncodeDiff` to scope the diff to mutations after that point.
+- `Clone` on a tracked class is a plain deep copy. When using raw `EncodeDiff` with the
+  clone as the baseline, call `DirtyTracking.RegisterSnapshot(snap, source)` first to stamp
+  its `SnapshotVersion` so tracking's version filter scopes the diff correctly.
+  `SyncSession<T>` handles this for you.
 - **Unity is currently unsupported** for `[DeltaPackTracked]` classes — Unity's bundled Roslyn
   doesn't support C# 13 partial properties. Untracked `[DeltaPack]` classes work as before.
 
@@ -208,10 +232,26 @@ You can convert an existing class's properties to `partial` ahead of time, then 
 
 ## API Reference
 
-For every `[DeltaPack] partial class T`, the generator emits these static methods:
+### `SyncSession<T>` (recommended for state sync)
+
+Stateful handle for one side of a sync stream. Handles full-vs-diff internally and keeps sender and receiver views aligned.
+
+| Method                      | Description                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `T.CreateSyncSession()`     | Factory emitted by the source generator on every `[DeltaPack]` type                        |
+| `.Encode(T state) → byte[]` | First call emits a full encode; subsequent calls emit diffs. View updates internally.      |
+| `.Decode(byte[] bytes) → T` | First call expects a full encode; subsequent calls expect diffs. Returns the updated view. |
+| `.Current → T?`             | The current view, or `null` if neither `Encode` nor `Decode` has been called.              |
+
+For third-party types (no source generator), construct directly with the delegate overload: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)`.
+
+### Low-level API (per type)
+
+For every `[DeltaPack] partial class T`, the generator emits these static methods. Use them directly for custom protocols; use `SyncSession<T>` for ordinary sync streams.
 
 | Method                           | Description                                 |
 | -------------------------------- | ------------------------------------------- |
+| `T.CreateSyncSession()`          | Construct a `SyncSession<T>` (see above)    |
 | `T.Default()`                    | Construct a default instance                |
 | `T.Encode(T obj)`                | Serialize object to bytes                   |
 | `T.Decode(byte[] buf)`           | Deserialize bytes to object                 |

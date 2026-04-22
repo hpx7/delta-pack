@@ -146,11 +146,6 @@ ${toJsonBody}
     return result;
   },
   clone(obj: ${name}): ${name} {
-    const result = ${name}._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: ${name}): ${name} {
     return {
 ${cloneBody}
     };
@@ -193,6 +188,9 @@ ${decodeBody}
 ${decodeDiffBody}
     };
   },
+  createSyncSession(): _.SyncSession<${name}> {
+    return new _.SyncSession(${name});
+  },
 };`;
 }
 
@@ -219,7 +217,7 @@ function renderUnionApi(
   const cloneCases = ifElseChain(
     options,
     (opt, _, p) =>
-      `    ${p}if (obj._type === "${opt.name}") {\n      const result = { _type: "${opt.name}" as const, ...${opt.name}._clone(obj) };\n      _.registerSnapshot(result, obj);\n      return result;\n    }`,
+      `    ${p}if (obj._type === "${opt.name}") {\n      return { _type: "${opt.name}" as const, ...${opt.name}.clone(obj) };\n    }`,
   );
 
   const equalsCases = ifElseChain(
@@ -322,7 +320,10 @@ ${decodeDiffSame}
 ${decodeDiffNew}
       throw new Error("Invalid union diff");
     }
-  }
+  },
+  createSyncSession(): _.SyncSession<${name}> {
+    return new _.SyncSession(${name});
+  },
 }`;
 }
 
@@ -429,9 +430,8 @@ function renderClone(ctx: GeneratorContext, type: Type, key: string): string {
       `${key} != null ? ${renderClone(ctx, t.value, key)} : undefined`,
     record: (t) =>
       `new Map([...${key}].map(([k, v]) => [k, ${renderClone(ctx, t.value, "v")}]))`,
-    selfReference: () => `${ctx.currentTypeName}._clone(${key})`,
-    object: (t) => `${t.name}._clone(${key})`,
-    // Unions don't have _clone, use clone (which handles registration)
+    selfReference: () => `${ctx.currentTypeName}.clone(${key})`,
+    object: (t) => `${t.name}.clone(${key})`,
     union: (t) => `${t.name}.clone(${key})`,
   });
 }

@@ -68,11 +68,6 @@ export const InnerInner = {
     return result;
   },
   clone(obj: InnerInner): InnerInner {
-    const result = InnerInner._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: InnerInner): InnerInner {
     return {
       long: obj.long,
       enum: obj.enum,
@@ -154,6 +149,9 @@ export const InnerInner = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<InnerInner> {
+    return new _.SyncSession(InnerInner);
+  },
 };
 
 export const Outer = {
@@ -180,11 +178,6 @@ export const Outer = {
     return result;
   },
   clone(obj: Outer): Outer {
-    const result = Outer._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Outer): Outer {
     return {
       bool: obj.bool.map((x) => x),
       double: obj.double,
@@ -251,6 +244,9 @@ export const Outer = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Outer> {
+    return new _.SyncSession(Outer);
+  },
 };
 
 export const Inner = {
@@ -280,15 +276,10 @@ export const Inner = {
     return result;
   },
   clone(obj: Inner): Inner {
-    const result = Inner._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Inner): Inner {
     return {
       int32: obj.int32,
-      innerInner: InnerInner._clone(obj.innerInner),
-      outer: Outer._clone(obj.outer),
+      innerInner: InnerInner.clone(obj.innerInner),
+      outer: Outer.clone(obj.outer),
     };
   },
   equals(a: Inner, b: Inner): boolean {
@@ -366,6 +357,9 @@ export const Inner = {
       ),
     };
   },
+  createSyncSession(): _.SyncSession<Inner> {
+    return new _.SyncSession(Inner);
+  },
 };
 
 export const Test = {
@@ -401,15 +395,10 @@ export const Test = {
     return result;
   },
   clone(obj: Test): Test {
-    const result = Test._clone(obj);
-    _.registerSnapshot(result, obj);
-    return result;
-  },
-  _clone(obj: Test): Test {
     return {
       string: obj.string,
       uint32: obj.uint32,
-      inner: Inner._clone(obj.inner),
+      inner: Inner.clone(obj.inner),
       float: obj.float,
       boundedInt: obj.boundedInt,
     };
@@ -516,5 +505,8 @@ export const Test = {
         (x) => decoder.nextEnumDiff(x, 3),
       ),
     };
+  },
+  createSyncSession(): _.SyncSession<Test> {
+    return new _.SyncSession(Test);
   },
 };

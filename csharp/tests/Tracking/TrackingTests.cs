@@ -225,11 +225,12 @@ public class TrackingTests
     // ============ Snapshot semantics ============
 
     [Fact]
-    public void Clone_registers_snapshot_with_current_version()
+    public void RegisterSnapshot_stamps_current_version()
     {
         var live = TrackedPosition.Default();
         live.X = 1f;
         var snap = TrackedPosition.Clone(live);
+        DirtyTracking.RegisterSnapshot(snap, live);
 
         var snapTracked = (IDirtyTracked)snap;
         Assert.Equal(DirtyTracking.CurrentVersion, snapTracked.SnapshotVersion);
@@ -243,6 +244,7 @@ public class TrackingTests
         live.Y = 2f;
 
         var snap = TrackedPosition.Clone(live);
+        DirtyTracking.RegisterSnapshot(snap, live);
         live.X = 100f;
 
         var diff = TrackedPosition.EncodeDiff(snap, live);
@@ -252,7 +254,7 @@ public class TrackingTests
     }
 
     [Fact]
-    public void Snapshot_propagates_version_into_nested_collections()
+    public void RegisterSnapshot_propagates_version_into_nested_collections()
     {
         // Regression: nested TrackedList/TrackedOrderedDict on a snapshot must have
         // their SnapshotVersion set so the encoder's index-based filter has the right baseline.
@@ -261,6 +263,7 @@ public class TrackingTests
         live.Inventory.Add(2);
 
         var snap = TrackedPlayer.Clone(live);
+        DirtyTracking.RegisterSnapshot(snap, live);
         var snapInventory = (IDirtyTracked)snap.Inventory;
         Assert.Equal(DirtyTracking.CurrentVersion, snapInventory.SnapshotVersion);
     }
