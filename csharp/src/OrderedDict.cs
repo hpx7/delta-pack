@@ -105,14 +105,18 @@ public class OrderedDict<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary,
         _index.TryGetValue(item.Key, out var idx) &&
         EqualityComparer<TValue>.Default.Equals(_list[idx].Value, item.Value);
 
-    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    public bool TryGetValue(TKey key,
+#if !NETSTANDARD2_1
+        [MaybeNullWhen(false)]
+#endif
+        out TValue value)
     {
         if (_index.TryGetValue(key, out var idx))
         {
             value = _list[idx].Value;
             return true;
         }
-        value = default;
+        value = default!;
         return false;
     }
 

@@ -228,7 +228,11 @@ public sealed class TrackedOrderedDict<TKey, TValue>
 
     public bool ContainsKey(TKey key) => _inner.ContainsKey(key);
     public bool Contains(KeyValuePair<TKey, TValue> item) => _inner.Contains(item);
-    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => _inner.TryGetValue(key, out value);
+    public bool TryGetValue(TKey key,
+#if !NETSTANDARD2_1
+        [MaybeNullWhen(false)]
+#endif
+        out TValue value) => _inner.TryGetValue(key, out value);
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => _inner.CopyTo(array, arrayIndex);
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _inner.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => _inner.GetEnumerator();

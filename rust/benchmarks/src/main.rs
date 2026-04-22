@@ -700,7 +700,7 @@ where
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    T::decode(&deltapack_encoded);
+                    let _ = T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
@@ -766,7 +766,7 @@ where
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    T::decode(&deltapack_encoded);
+                    let _ = T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
@@ -831,7 +831,7 @@ where
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    T::decode(&deltapack_encoded);
+                    let _ = T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
@@ -901,7 +901,7 @@ where
                 msgpack_encoded,
                 deltapack_encode: Box::new(move || typed_clone.encode()),
                 deltapack_decode: Box::new(move || {
-                    T::decode(&deltapack_encoded);
+                    let _ = T::decode(&deltapack_encoded);
                 }),
                 protobuf_encode: Box::new(move || proto_clone.encode_to_vec()),
                 protobuf_decode: Box::new(move || {
