@@ -156,7 +156,7 @@ How each schema type is represented in TypeScript, C#, and Rust:
 | `boolean`             | `boolean`                     | `bool`                              | `bool`                      |
 | `T[]`                 | `T[]`                         | `List<T>`                           | `Vec<T>`                    |
 | `T?`                  | `T \| undefined`              | `T?`                                | `Option<T>`                 |
-| `<K, V>`              | `Map<K, V>`                   | `OrderedDictionary<K, V>`           | `IndexMap<K, V>`            |
+| `<K, V>`              | `Map<K, V>`                   | `OrderedDict<K, V>`                 | `IndexMap<K, V>`            |
 | Object                | `type` (structural)           | `class`                             | `struct`                    |
 | Enum                  | string literal union          | `enum`                              | `enum`                      |
 | Union                 | discriminated union (`_type`) | abstract class + variant subclasses | `enum` (tagged)             |
@@ -180,7 +180,19 @@ Diff compactness comes from **change bits**: inside objects, unions, arrays, and
 
 <!-- #region api -->
 
-Every object and union type provides the following functions:
+### `SyncSession<T>` (recommended)
+
+For state synchronization between two endpoints, use `SyncSession<T>` — a stateful handle that manages the full-vs-diff distinction and keeps both sides in sync automatically. First call on each side is a full encode/decode; subsequent calls are deltas against the accumulated view.
+
+```
+       sender.encode(state) ──→ [bytes] ──→ receiver.decode(bytes) ──→ state
+```
+
+Both the server and the client create a `SyncSession<T>`, and each one handles the full-encode bootstrap and every subsequent diff internally. The session guarantees that sender and receiver stay aligned even when the server's state is mutated in ways that reorder internal collections.
+
+### Low-level API (advanced)
+
+Every object and union type also exposes stateless primitives. Use these if you need full control — multi-baseline diffs, custom transport protocols, ack-based history, etc.:
 
 | Function                         | Description                                         |
 | -------------------------------- | --------------------------------------------------- |
@@ -193,19 +205,7 @@ Every object and union type provides the following functions:
 | `fromJson(json) → obj`           | Parse from JSON with lenient type coercion          |
 | `toJson(obj) → json`             | Convert to a JSON-serializable representation       |
 
-### Typical flow
-
-```
-          encode              decode
- Server ────────→ [bytes] ────────→ Client
-   T                                  T
-
-          encodeDiff          decodeDiff
- Server ────────→ [bytes] ────────→ Client
- (prev,next)                     (prev,diff)
-```
-
-The server sends a full `encode` snapshot when a client first connects, then sends `encodeDiff` deltas for subsequent state changes. The client applies each delta to its local copy using `decodeDiff`.
+When using these directly, `prev` passed to `encodeDiff` / `decodeDiff` **must match the peer's wire view exactly** (same key insertion order in maps, not just the same key-value content). Mismatch causes silent corruption. `SyncSession` exists specifically to guarantee this invariant for you — prefer it unless you need manual control.
 
 <!-- #endregion api -->
 
@@ -240,18 +240,14 @@ TypeScript supports codegen mode as well as a dynamic runtime mode.
 ```typescript
 import { Position } from "./generated";
 
-const prev: Position = Position.default();
-const current: Position = { ...prev, x: 1.5 };
+// Recommended: SyncSession handles full-vs-diff and keeps peers in sync.
+const sender = Position.createSyncSession();
+const receiver = Position.createSyncSession();
 
-// Snapshot
-const snapshotBytes = Position.encode(current);
-const decoded = Position.decode(snapshotBytes);
-Position.equals(decoded, current); // true
-
-// Delta
-const diffBytes = Position.encodeDiff(prev, current);
-const patched = Position.decodeDiff(prev, diffBytes);
-Position.equals(patched, current); // true
+const state: Position = { x: 1.5, y: 2.0 };
+receiver.decode(sender.encode(state)); // first call: full encode
+state.x = 1.8;
+receiver.decode(sender.encode(state)); // subsequent calls: diff
 ```
 
 **Runtime** -- define schemas programmatically, no build step needed:
@@ -296,38 +292,42 @@ Install:
 dotnet add package DeltaPack
 ```
 
-The C# runtime is Unity-compatible, and supports both codegen and runtime modes.
+Unity 2021.3 LTS and newer. A compile-time source generator (bundled with the NuGet)
+emits `Encode`/`Decode`/`EncodeDiff`/`DecodeDiff`/`Equals`/`Clone`/`FromJson`/`ToJson`
+for every `[DeltaPack]`-annotated type — no reflection at runtime, IL2CPP-safe.
 
-**Codegen:**
+**Codegen** — generate skeletons from a shared YAML schema:
 
 ```csharp
-var prev = Position.Default();
-var current = Position.Clone(prev);
-current.X = 1.5f;
+using DeltaPack;
+using Generated;  // from `delta-pack generate schema.yml -l csharp -o Generated.cs`
 
-// Snapshot
-byte[] snapshotBytes = Position.Encode(current);
-Position decoded = Position.Decode(snapshotBytes);
-Position.Equals(decoded, current); // true
+// Recommended: SyncSession handles full-vs-diff and keeps peers in sync.
+var sender = Position.CreateSyncSession();
+var receiver = Position.CreateSyncSession();
 
-// Delta
-byte[] diffBytes = Position.EncodeDiff(prev, current);
-Position patched = Position.DecodeDiff(prev, diffBytes);
-Position.Equals(patched, current); // true
+var state = new Position { X = 1.5f, Y = 2.0f };
+receiver.Decode(sender.Encode(state));  // first call: full encode
+state.X = 1.8f;
+receiver.Decode(sender.Encode(state));  // subsequent calls: diff
 ```
 
-**Runtime** -- build schemas from C# classes:
+The CLI emits minimal `[DeltaPack] partial class` skeletons; the source generator fills
+in the methods at compile time.
+
+**Native types** — skip the YAML, author your types directly in C#:
 
 ```csharp
-class Position {
-    [DeltaPackPrecision(0.1)]
-    public float X { get; set; }
-    [DeltaPackPrecision(0.1)]
-    public float Y { get; set; }
+using DeltaPack;
+
+[DeltaPack]
+public partial class Position
+{
+    [DeltaPackPrecision(0.1)] public float X { get; set; }
+    [DeltaPackPrecision(0.1)] public float Y { get; set; }
 }
 
-var api = new DeltaPackCodec<Position>();
-byte[] bytes = api.Encode(new Position { X = 1.5f, Y = 2.0f });
+byte[] bytes = Position.Encode(new Position { X = 1.5f, Y = 2.0f });
 ```
 
 ### [Rust](rust/)
@@ -338,23 +338,38 @@ Install:
 cargo add delta-pack
 ```
 
-Rust uses codegen exclusively:
+Rust supports both codegen mode and a `#[derive(DeltaPack)]` mode. Both expand through the same proc-macro and produce byte-identical output, so the choice is about workflow: derive mode needs no CLI install and no committed generated files, while codegen mode shares the schema with TypeScript or C# peers.
+
+**Codegen:**
 
 ```rust
+use delta_pack::DeltaPack;
 use generated::Position;
 
-let prev = Position::default();
-let current = Position { x: 1.5, ..prev.clone() };
+// Recommended: SyncSession handles full-vs-diff and keeps peers in sync.
+let mut sender = Position::create_sync_session();
+let mut receiver = Position::create_sync_session();
 
-// Snapshot
-let snapshot_bytes = current.encode();
-let decoded = Position::decode(&snapshot_bytes);
-current.equals(&decoded); // true
+let mut state = Position { x: 1.5, y: 2.0 };
+receiver.decode(&sender.encode(&state));  // first call: full encode
+state.x = 1.8;
+receiver.decode(&sender.encode(&state));  // subsequent calls: diff
+```
 
-// Delta
-let diff_bytes = Position::encode_diff(&prev, &current);
-let patched = Position::decode_diff(&prev, &diff_bytes);
-current.equals(&patched); // true
+**Derive** -- define schemas as native Rust types, no build step needed:
+
+```rust
+use delta_pack::DeltaPack;
+
+#[derive(Clone, Debug, DeltaPack)]
+pub struct Position {
+    #[delta_pack(precision = 0.1)]
+    pub x: f32,
+    #[delta_pack(precision = 0.1)]
+    pub y: f32,
+}
+
+let bytes = Position { x: 1.5, y: 2.0 }.encode();
 ```
 
 ### [CLI](cli/)
