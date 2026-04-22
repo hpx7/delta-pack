@@ -314,7 +314,7 @@ dependencies = [
 
 [[package]]
 name = "delta-pack"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "delta-pack-derive",
  "indexmap",
@@ -341,7 +341,7 @@ dependencies = [
 
 [[package]]
 name = "delta-pack-derive"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "proc-macro2",
  "quote",

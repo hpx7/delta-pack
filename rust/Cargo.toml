@@ -14,7 +14,7 @@ categories = ["encoding", "game-development", "network-programming"]
 members = [".", "benchmarks", "delta-pack-derive"]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT"
@@ -23,7 +23,7 @@ repository = "https://github.com/hpx7/delta-pack"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 indexmap = { version = "2", features = ["serde"] }
-delta-pack-derive = { path = "delta-pack-derive", version = "0.2.1" }
+delta-pack-derive = { path = "delta-pack-derive", version = "0.3.0" }
 
 [dev-dependencies]
 serde_json = "1"
