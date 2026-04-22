@@ -95,16 +95,28 @@ var player = new Player { Name = &quot;Alice&quot;, Score = 100, Active = true }
 byte[] encoded = Player.Encode(player);
 Player decoded = Player.Decode(encoded);
 </code></pre>
-<h2 id="delta-encoding">Delta Encoding</h2>
-<p>Send only what changed between two states:</p>
+<h2 id="state-synchronization-syncsessiont">State Synchronization (<code>SyncSession&lt;T&gt;</code>)</h2>
+<p>For ongoing state sync between two endpoints (server ↔ client, peer ↔ peer), use <code>SyncSession&lt;T&gt;</code>. It handles the full-encode bootstrap plus subsequent diffs automatically and keeps both sides aligned — even when the sender's state gets mutated in ways that reorder internal collections.</p>
+<pre><code class="lang-csharp">using DeltaPack;
+
+// Server — one SyncSession per connected peer
+var session = GameState.CreateSyncSession();
+peer.Send(session.Encode(state));  // first call: full; subsequent calls: diff
+
+// Client
+var session = GameState.CreateSyncSession();
+GameState state = session.Decode(bytes);
+</code></pre>
+<p><strong><code>SyncSession</code> is the recommended API for real-time sync.</strong> The source generator emits a <code>CreateSyncSession()</code> factory on every <code>[DeltaPack]</code> type. For manual wiring (e.g., to a third-party type), construct directly: <code>new SyncSession&lt;T&gt;(encode, decode, encodeDiff, decodeDiff, clone)</code>.</p>
+<h3 id="low-level-delta-encoding-advanced">Low-level delta encoding (advanced)</h3>
+<p>For custom protocols (ack-based history, multi-baseline diffs, UDP-style packet loss handling, etc.), use the generated <code>EncodeDiff</code> / <code>DecodeDiff</code> methods directly:</p>
 <pre><code class="lang-csharp">var stateA = new GameState { Score = 100, Health = 100 };
 var stateB = new GameState { Score = 150, Health = 100 }; // Only score changed
 
 byte[] diff = GameState.EncodeDiff(stateA, stateB);
 GameState result = GameState.DecodeDiff(stateA, diff);
-
-// diff is smaller than full encode when few fields change
 </code></pre>
+<p>When using these directly, <strong>the <code>a</code> argument must exactly match the peer's wire view (same key insertion order in <code>OrderedDict</code>s, not just the same key-value content)</strong>. Mismatch causes silent corruption. <code>SyncSession</code> maintains this invariant for you — reach for the raw API only if you've committed to managing wire-view state yourself.</p>
 <h2 id="shared-schemas-typescriptrustc">Shared Schemas (TypeScript/Rust/C#)</h2>
 <p>For cross-language compatibility, you can author a YAML schema and generate C# from it:</p>
 <pre><code class="lang-yaml"># schema.yml
@@ -194,8 +206,57 @@ public partial class Bow : Weapon
     public float Range { get; set; }
 }
 </code></pre>
+<h3 id="deltapacktracked"><code>[DeltaPackTracked]</code></h3>
+<p>Opt-in change tracking. The generator emits dirty-marking setters on partial properties so
+<code>EncodeDiff</code> skips equality comparisons on fields that haven't been mutated since the
+snapshot was taken — same wire format as the untracked encoder, lower CPU cost.</p>
+<pre><code class="lang-csharp">[DeltaPack, DeltaPackTracked]
+public partial class Player
+{
+    public partial string Name { get; set; }
+    public partial uint Score { get; set; }
+    public partial Position Pos { get; set; }
+    public partial TrackedList&lt;int&gt; Inventory { get; set; }
+    public partial TrackedOrderedDict&lt;string, int&gt; Stats { get; set; }
+}
+
+var live = Player.Default();
+live.Name = &quot;Alice&quot;;
+live.Score = 10;
+
+// Take a snapshot. `Clone` is a pure deep copy; `RegisterSnapshot` stamps it
+// with the current global version so `EncodeDiff` filters to mutations after
+// this point. `SyncSession&lt;T&gt;` does both steps automatically — prefer it over
+// the raw pattern shown here unless you need manual control.
+var snapshot = Player.Clone(live);
+DirtyTracking.RegisterSnapshot(snapshot, live);
+live.Score = 25;                    // recorded as dirty since snapshot
+
+byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/encoded
+</code></pre>
+<p><strong>Constraints:</strong></p>
+<ul>
+<li>Serialized properties must be declared <code>partial</code> (requires <code>&lt;LangVersion&gt;13&lt;/LangVersion&gt;</code>
+in the consuming project — C# 13 partial properties). Missing <code>partial</code> produces
+diagnostic <code>DP011</code> with an alt-enter code fix.</li>
+<li>Collection-typed properties must use <code>TrackedList&lt;T&gt;</code> and <code>TrackedOrderedDict&lt;TKey, TValue&gt;</code>
+so mutations through the collection (<code>.Add</code>, <code>.RemoveAt</code>, indexer set, etc.) are recorded.
+Using <code>List&lt;T&gt;</code> or <code>OrderedDict&lt;TKey, TValue&gt;</code> on a tracked class produces diagnostics
+<code>DP012</code> / <code>DP013</code> with code fixes that swap in the tracked variant.</li>
+<li><code>Clone</code> on a tracked class is a plain deep copy. When using raw <code>EncodeDiff</code> with the
+clone as the baseline, call <code>DirtyTracking.RegisterSnapshot(snap, source)</code> first to stamp
+its <code>SnapshotVersion</code> so tracking's version filter scopes the diff correctly.
+<code>SyncSession&lt;T&gt;</code> handles this for you.</li>
+<li><strong>Unity is currently unsupported</strong> for <code>[DeltaPackTracked]</code> classes — Unity's bundled Roslyn
+doesn't support C# 13 partial properties. Untracked <code>[DeltaPack]</code> classes work as before.</li>
+</ul>
+<p><strong>Migrating gradually.</strong> The generator accepts <code>partial</code> properties on untracked <code>[DeltaPack]</code>
+classes too (it emits a trivial implementing declaration with the same IL as an auto-property).
+You can convert an existing class's properties to <code>partial</code> ahead of time, then flip
+<code>[DeltaPackTracked]</code> on later without touching every property.</p>
 <h2 id="api-reference">API Reference</h2>
-<p>For every <code>[DeltaPack] partial class T</code>, the generator emits these static methods:</p>
+<h3 id="syncsessiont-recommended-for-state-sync"><code>SyncSession&lt;T&gt;</code> (recommended for state sync)</h3>
+<p>Stateful handle for one side of a sync stream. Handles full-vs-diff internally and keeps sender and receiver views aligned.</p>
 <table>
 <thead>
 <tr>
@@ -204,6 +265,39 @@ public partial class Bow : Weapon
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>T.CreateSyncSession()</code></td>
+<td>Factory emitted by the source generator on every <code>[DeltaPack]</code> type</td>
+</tr>
+<tr>
+<td><code>.Encode(T state) → byte[]</code></td>
+<td>First call emits a full encode; subsequent calls emit diffs. View updates internally.</td>
+</tr>
+<tr>
+<td><code>.Decode(byte[] bytes) → T</code></td>
+<td>First call expects a full encode; subsequent calls expect diffs. Returns the updated view.</td>
+</tr>
+<tr>
+<td><code>.Current → T?</code></td>
+<td>The current view, or <code>null</code> if neither <code>Encode</code> nor <code>Decode</code> has been called.</td>
+</tr>
+</tbody>
+</table>
+<p>For third-party types (no source generator), construct directly with the delegate overload: <code>new SyncSession&lt;T&gt;(encode, decode, encodeDiff, decodeDiff, clone)</code>.</p>
+<h3 id="low-level-api-per-type">Low-level API (per type)</h3>
+<p>For every <code>[DeltaPack] partial class T</code>, the generator emits these static methods. Use them directly for custom protocols; use <code>SyncSession&lt;T&gt;</code> for ordinary sync streams.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>T.CreateSyncSession()</code></td>
+<td>Construct a <code>SyncSession&lt;T&gt;</code> (see above)</td>
+</tr>
 <tr>
 <td><code>T.Default()</code></td>
 <td>Construct a default instance</td>

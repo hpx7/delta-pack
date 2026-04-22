@@ -92,6 +92,20 @@
     },
     {
       "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DeltaPackTrackedAttribute.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DeltaPackTrackedAttribute.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DeltaPackTrackedAttribute",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackTrackedAttribute.yml\" sourcestartlinenumber=\"1\">Opt-in change tracking for a <xref href=\"DeltaPack.DeltaPackAttribute\" data-throw-if-not-resolved=\"false\"></xref> class. Mutations\non serialized properties are recorded so <code>EncodeDiff</code> can skip equality\ncomparisons on unchanged fields, producing identical bytes at lower cost.</p>\n<p>Requires the consuming project to set <code>&lt;LangVersion&gt;13&lt;/LangVersion&gt;</code>:\ntracked serialized properties must be declared <code>partial</code> so the source\ngenerator can emit dirty-marking setters. Collection-typed properties should\nuse <xref href=\"DeltaPack.TrackedList%601\" data-throw-if-not-resolved=\"false\"></xref> / <xref href=\"DeltaPack.TrackedOrderedDict%602\" data-throw-if-not-resolved=\"false\"></xref>\nso mutations inside the collection are also recorded.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
       "source_relative_path": "api/DeltaPack.DeltaPackUnionAttribute.yml",
       "output": {
         ".html": {
@@ -103,6 +117,20 @@
       "IsMRef": true,
       "Title": "DeltaPack.DeltaPackUnionAttribute",
       "Summary": "<p sourcefile=\"api/DeltaPack.DeltaPackUnionAttribute.yml\" sourcestartlinenumber=\"1\">Marks an abstract base class as a union. List its variants as type arguments.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.DirtyTracking.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.DirtyTracking.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.DirtyTracking",
+      "Summary": "<p sourcefile=\"api/DeltaPack.DirtyTracking.yml\" sourcestartlinenumber=\"1\">Monotonic version counter and snapshot registry shared by all tracked\ninstances in the process. Mirrors the TypeScript <code>tracking.ts</code>\nmodule.</p>\n"
     },
     {
       "type": "ManagedReference",
@@ -131,6 +159,48 @@
       "IsMRef": true,
       "Title": "DeltaPack.EqualityHelpers",
       "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.IDirtyTracked.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.IDirtyTracked.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.IDirtyTracked",
+      "Summary": "<p sourcefile=\"api/DeltaPack.IDirtyTracked.yml\" sourcestartlinenumber=\"1\">Base contract for types that participate in delta-pack's dirty-tracking graph. Exposes\nparent-chain wiring (for propagation) and a snapshot-version slot (used at diff-encode\ntime as the baseline). Implementers fall into two narrower categories —\n<xref href=\"DeltaPack.ITrackedObject\" data-throw-if-not-resolved=\"false\"></xref> for <code>[DeltaPackTracked]</code> classes (slot-keyed dirty\nstorage) and <xref href=\"DeltaPack.ITrackedContainer\" data-throw-if-not-resolved=\"false\"></xref> for <xref href=\"DeltaPack.TrackedList%601\" data-throw-if-not-resolved=\"false\"></xref> /\n<xref href=\"DeltaPack.TrackedOrderedDict%602\" data-throw-if-not-resolved=\"false\"></xref> (key-keyed dirty storage).</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.ITrackedContainer.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.ITrackedContainer.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.ITrackedContainer",
+      "Summary": "<p sourcefile=\"api/DeltaPack.ITrackedContainer.yml\" sourcestartlinenumber=\"1\">Implemented by tracked container types (<xref href=\"DeltaPack.TrackedList%601\" data-throw-if-not-resolved=\"false\"></xref>,\n<xref href=\"DeltaPack.TrackedOrderedDict%602\" data-throw-if-not-resolved=\"false\"></xref>) whose dirty storage is keyed by user-supplied\nindex / key rather than by a compile-time slot.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.ITrackedObject.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.ITrackedObject.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.ITrackedObject",
+      "Summary": "<p sourcefile=\"api/DeltaPack.ITrackedObject.yml\" sourcestartlinenumber=\"1\">Implemented by <code>[DeltaPackTracked]</code> classes. Dirty storage is slot-based — one\n<code>long</code> per declared field, indexed by the compile-time slot assigned by the source\ngenerator. Avoids the string-hash and dictionary-lookup cost of a keyed scheme.</p>\n"
     },
     {
       "type": "ManagedReference",
@@ -201,6 +271,48 @@
       "IsMRef": true,
       "Title": "DeltaPack.RleWriter",
       "Summary": "<p sourcefile=\"api/DeltaPack.RleWriter.yml\" sourcestartlinenumber=\"1\">Streaming RLE writer - encodes bits on-the-fly without buffering.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.SyncSession-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.SyncSession-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.SyncSession<T>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.SyncSession-1.yml\" sourcestartlinenumber=\"1\">A stateful handle over a one-way state-sync session between two endpoints.</p>\n<p>\nEach endpoint holds a <xref href=\"DeltaPack.SyncSession%601\" data-throw-if-not-resolved=\"false\"></xref> representing the current\nshared view of the peer's state. The sender calls <xref href=\"DeltaPack.SyncSession%601.Encode(%600)\" data-throw-if-not-resolved=\"false\"></xref> to\nproduce bytes; the receiver calls <xref href=\"DeltaPack.SyncSession%601.Decode(System.Byte%5b%5d)\" data-throw-if-not-resolved=\"false\"></xref> to apply them. Both\nsides converge on the same view as long as messages are delivered in order.\n</p>\n<p>\nThe class handles the \"first call is full encode, subsequent are diffs\"\ndistinction internally. It also ensures the sender's view always matches\nwhat the peer reconstructs — even when the user's <code>state</code> object has\nbeen mutated or reordered in ways that would break a raw\n<code>EncodeDiff</code> call.\n</p>\n<p>\nPrefer the generated <code>CreateSyncSession()</code> factory on each schema type:\n</p>\n<pre><code class=\"lang-csharp\">var session = GameState.CreateSyncSession();</code></pre>\n<p>\nThe delegate-taking constructor below is the lower-level entry point — useful\nwhen you need to pass custom encode/decode/clone callbacks, but most callers\nshould go through the factory.\n</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.TrackedList-1.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.TrackedList-1.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.TrackedList<T>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.TrackedList-1.yml\" sourcestartlinenumber=\"1\">A <xref href=\"System.Collections.Generic.List%601\" data-throw-if-not-resolved=\"false\"></xref>-compatible list that records per-index version numbers\non every mutation. Intended as a drop-in replacement for <xref href=\"System.Collections.Generic.List%601\" data-throw-if-not-resolved=\"false\"></xref>\non serialized properties of <xref href=\"DeltaPack.DeltaPackTrackedAttribute\" data-throw-if-not-resolved=\"false\"></xref> classes so\n<code>EncodeDiff</code> can skip unchanged-index comparisons.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/DeltaPack.TrackedOrderedDict-2.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/DeltaPack.TrackedOrderedDict-2.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "DeltaPack.TrackedOrderedDict<TKey, TValue>",
+      "Summary": "<p sourcefile=\"api/DeltaPack.TrackedOrderedDict-2.yml\" sourcestartlinenumber=\"1\">An insertion-order-preserving dictionary that records per-key version numbers\non mutations. Intended as a drop-in replacement for <xref href=\"DeltaPack.OrderedDict%602\" data-throw-if-not-resolved=\"false\"></xref>\non serialized properties of <xref href=\"DeltaPack.DeltaPackTrackedAttribute\" data-throw-if-not-resolved=\"false\"></xref> classes.\nTracks three separate maps: updated keys (<code>DirtyKeys</code>), newly inserted\nkeys (<code>CreatedKeys</code>), and removed keys (<code>DeletedKeys</code>) so\n<code>EncodeDiff</code> can emit only actual changes since the last snapshot.</p>\n"
     },
     {
       "type": "ManagedReference",

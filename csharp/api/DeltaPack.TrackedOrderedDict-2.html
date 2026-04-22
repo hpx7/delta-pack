@@ -2,11 +2,11 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>Class OrderedDict&lt;TKey, TValue&gt; | DeltaPack </title>
+      <title>Class TrackedOrderedDict&lt;TKey, TValue&gt; | DeltaPack </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="Class OrderedDict&lt;TKey, TValue&gt; | DeltaPack ">
+      <meta name="title" content="Class TrackedOrderedDict&lt;TKey, TValue&gt; | DeltaPack ">
       
-      <meta name="description" content="A dictionary that preserves insertion order. Backed by a List for ordered storage and a Dictionary for O(1) key lookup.">
+      <meta name="description" content="An insertion-order-preserving dictionary that records per-key version numbers on mutations. Intended as a drop-in replacement for  on serialized properties of  classes. Tracks three separate maps: updated keys (DirtyKeys), newly inserted keys (CreatedKeys), and removed keys (DeletedKeys) so EncodeDiff can emit only actual changes since the last snapshot.">
       <link rel="icon" href="../favicon.ico">
       <link rel="stylesheet" href="../public/docfx.min.css">
       <link rel="stylesheet" href="../public/main.css">
@@ -16,7 +16,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/hpx7/delta-pack/new/main/apiSpec/new?filename=DeltaPack_OrderedDict_2.md&amp;value=---%0Auid%3A%20DeltaPack.OrderedDict%602%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
+      <meta name="docfx:docurl" content="https://github.com/hpx7/delta-pack/new/main/apiSpec/new?filename=DeltaPack_TrackedOrderedDict_2.md&amp;value=---%0Auid%3A%20DeltaPack.TrackedOrderedDict%602%0Asummary%3A%20&#39;*You%20can%20override%20summary%20for%20the%20API%20here%20using%20*MARKDOWN*%20syntax&#39;%0A---%0A%0A*Please%20type%20below%20more%20information%20about%20this%20API%3A*%0A%0A">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -84,12 +84,12 @@
           <nav id="breadcrumb"></nav>
         </div>
 
-        <article data-uid="DeltaPack.OrderedDict`2">
+        <article data-uid="DeltaPack.TrackedOrderedDict`2">
 
 
 
-  <h1 id="DeltaPack_OrderedDict_2" data-uid="DeltaPack.OrderedDict`2" class="text-break">
-Class OrderedDict&lt;TKey, TValue&gt;  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L10"><i class="bi bi-code-slash"></i></a>
+  <h1 id="DeltaPack_TrackedOrderedDict_2" data-uid="DeltaPack.TrackedOrderedDict`2" class="text-break">
+Class TrackedOrderedDict&lt;TKey, TValue&gt;  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L15"><i class="bi bi-code-slash"></i></a>
   </h1>
 
   <div class="facts text-secondary">
@@ -97,13 +97,17 @@ Class OrderedDict&lt;TKey, TValue&gt;  <a class="header-action link-secondary" t
   <dl><dt>Assembly</dt><dd>DeltaPack.dll</dd></dl>
   </div>
 
-  <div class="markdown summary"><p>A dictionary that preserves insertion order.
-Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
+  <div class="markdown summary"><p>An insertion-order-preserving dictionary that records per-key version numbers
+on mutations. Intended as a drop-in replacement for <a class="xref" href="DeltaPack.OrderedDict-2.html">OrderedDict&lt;TKey, TValue&gt;</a>
+on serialized properties of <a class="xref" href="DeltaPack.DeltaPackTrackedAttribute.html">DeltaPackTrackedAttribute</a> classes.
+Tracks three separate maps: updated keys (<code>DirtyKeys</code>), newly inserted
+keys (<code>CreatedKeys</code>), and removed keys (<code>DeletedKeys</code>) so
+<code>EncodeDiff</code> can emit only actual changes since the last snapshot.</p>
 </div>
   <div class="markdown conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public class OrderedDict&lt;TKey, TValue&gt; : IDictionary&lt;TKey, TValue&gt;, ICollection&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;, IDictionary, ICollection, IReadOnlyDictionary&lt;TKey, TValue&gt;, IReadOnlyCollection&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;, IEnumerable&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;, IEnumerable where TKey : notnull</code></pre>
+    <pre><code class="lang-csharp hljs">public sealed class TrackedOrderedDict&lt;TKey, TValue&gt; : IDictionary&lt;TKey, TValue&gt;, ICollection&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;, IReadOnlyDictionary&lt;TKey, TValue&gt;, IReadOnlyCollection&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;, IEnumerable&lt;KeyValuePair&lt;TKey, TValue&gt;&gt;, IEnumerable, ITrackedContainer, IDirtyTracked where TKey : notnull</code></pre>
   </div>
 
 
@@ -120,7 +124,7 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
     <dt>Inheritance</dt>
     <dd>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></div>
-      <div><span class="xref">OrderedDict&lt;TKey, TValue&gt;</span></div>
+      <div><span class="xref">TrackedOrderedDict&lt;TKey, TValue&gt;</span></div>
     </dd>
   </dl>
 
@@ -129,12 +133,12 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
     <dd>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.idictionary-2">IDictionary</a>&lt;TKey, TValue&gt;</div>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.keyvaluepair-2">KeyValuePair</a>&lt;TKey, TValue&gt;&gt;</div>
-      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.idictionary">IDictionary</a></div>
-      <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.icollection">ICollection</a></div>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlydictionary-2">IReadOnlyDictionary</a>&lt;TKey, TValue&gt;</div>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlycollection-1">IReadOnlyCollection</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.keyvaluepair-2">KeyValuePair</a>&lt;TKey, TValue&gt;&gt;</div>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ienumerable-1">IEnumerable</a>&lt;<a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.keyvaluepair-2">KeyValuePair</a>&lt;TKey, TValue&gt;&gt;</div>
       <div><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.ienumerable">IEnumerable</a></div>
+      <div><a class="xref" href="DeltaPack.ITrackedContainer.html">ITrackedContainer</a></div>
+      <div><a class="xref" href="DeltaPack.IDirtyTracked.html">IDirtyTracked</a></div>
     </dd>
   </dl>
 
@@ -153,9 +157,6 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
     </div>
     <div>
       <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.gettype">object.GetType()</a>
-    </div>
-    <div>
-      <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.memberwiseclone">object.MemberwiseClone()</a>
     </div>
     <div>
       <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object.referenceequals">object.ReferenceEquals(object, object)</a>
@@ -181,18 +182,18 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 </h2>
 
 
-  <a id="DeltaPack_OrderedDict_2__ctor_" data-uid="DeltaPack.OrderedDict`2.#ctor*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2__ctor_" data-uid="DeltaPack.TrackedOrderedDict`2.#ctor*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2__ctor" data-uid="DeltaPack.OrderedDict`2.#ctor">
-  OrderedDict()
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L16"><i class="bi bi-code-slash"></i></a>
+  <h3 id="DeltaPack_TrackedOrderedDict_2__ctor" data-uid="DeltaPack.TrackedOrderedDict`2.#ctor">
+  TrackedOrderedDict()
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L27"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
   <div class="markdown level1 conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public OrderedDict()</code></pre>
+    <pre><code class="lang-csharp hljs">public TrackedOrderedDict()</code></pre>
   </div>
 
 
@@ -207,18 +208,18 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2__ctor_" data-uid="DeltaPack.OrderedDict`2.#ctor*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2__ctor_" data-uid="DeltaPack.TrackedOrderedDict`2.#ctor*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2__ctor_System_Collections_Generic_IDictionary__0__1__" data-uid="DeltaPack.OrderedDict`2.#ctor(System.Collections.Generic.IDictionary{`0,`1})">
-  OrderedDict(IDictionary&lt;TKey, TValue&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L28"><i class="bi bi-code-slash"></i></a>
+  <h3 id="DeltaPack_TrackedOrderedDict_2__ctor_System_Collections_Generic_IDictionary__0__1__" data-uid="DeltaPack.TrackedOrderedDict`2.#ctor(System.Collections.Generic.IDictionary{`0,`1})">
+  TrackedOrderedDict(IDictionary&lt;TKey, TValue&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L29"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
   <div class="markdown level1 conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public OrderedDict(IDictionary&lt;TKey, TValue&gt; source)</code></pre>
+    <pre><code class="lang-csharp hljs">public TrackedOrderedDict(IDictionary&lt;TKey, TValue&gt; source)</code></pre>
   </div>
 
   <h4 class="section">Parameters</h4>
@@ -238,18 +239,18 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2__ctor_" data-uid="DeltaPack.OrderedDict`2.#ctor*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2__ctor_" data-uid="DeltaPack.TrackedOrderedDict`2.#ctor*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2__ctor_System_Int32_" data-uid="DeltaPack.OrderedDict`2.#ctor(System.Int32)">
-  OrderedDict(int)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L22"><i class="bi bi-code-slash"></i></a>
+  <h3 id="DeltaPack_TrackedOrderedDict_2__ctor_System_Int32_" data-uid="DeltaPack.TrackedOrderedDict`2.#ctor(System.Int32)">
+  TrackedOrderedDict(int)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L28"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"></div>
   <div class="markdown level1 conceptual"></div>
 
   <div class="codewrapper">
-    <pre><code class="lang-csharp hljs">public OrderedDict(int capacity)</code></pre>
+    <pre><code class="lang-csharp hljs">public TrackedOrderedDict(int capacity)</code></pre>
   </div>
 
   <h4 class="section">Parameters</h4>
@@ -273,11 +274,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 </h2>
 
 
-  <a id="DeltaPack_OrderedDict_2_Count_" data-uid="DeltaPack.OrderedDict`2.Count*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Count_" data-uid="DeltaPack.TrackedOrderedDict`2.Count*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Count" data-uid="DeltaPack.OrderedDict`2.Count">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Count" data-uid="DeltaPack.TrackedOrderedDict`2.Count">
   Count
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L64"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L221"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Gets the number of elements contained in the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a>.</p>
@@ -306,11 +307,107 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_IsReadOnly_" data-uid="DeltaPack.OrderedDict`2.IsReadOnly*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_CreatedKeys_" data-uid="DeltaPack.TrackedOrderedDict`2.CreatedKeys*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_IsReadOnly" data-uid="DeltaPack.OrderedDict`2.IsReadOnly">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_CreatedKeys" data-uid="DeltaPack.TrackedOrderedDict`2.CreatedKeys">
+  CreatedKeys
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L82"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Per-key versions for entries inserted since the last snapshot.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IReadOnlyDictionary&lt;TKey, long&gt; CreatedKeys { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlydictionary-2">IReadOnlyDictionary</a>&lt;TKey, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int64">long</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_DeletedKeys_" data-uid="DeltaPack.TrackedOrderedDict`2.DeletedKeys*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_DeletedKeys" data-uid="DeltaPack.TrackedOrderedDict`2.DeletedKeys">
+  DeletedKeys
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L84"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Per-key versions for entries removed since the last snapshot.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IReadOnlyDictionary&lt;TKey, long&gt; DeletedKeys { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlydictionary-2">IReadOnlyDictionary</a>&lt;TKey, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int64">long</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_DirtyKeys_" data-uid="DeltaPack.TrackedOrderedDict`2.DirtyKeys*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_DirtyKeys" data-uid="DeltaPack.TrackedOrderedDict`2.DirtyKeys">
+  DirtyKeys
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L80"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Per-key versions for entries updated since the last snapshot.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IReadOnlyDictionary&lt;TKey, long&gt; DirtyKeys { get; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.ireadonlydictionary-2">IReadOnlyDictionary</a>&lt;TKey, <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int64">long</a>&gt;</dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_IsReadOnly_" data-uid="DeltaPack.TrackedOrderedDict`2.IsReadOnly*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_IsReadOnly" data-uid="DeltaPack.TrackedOrderedDict`2.IsReadOnly">
   IsReadOnly
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L66"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L222"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Gets a value indicating whether the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a> is read-only.</p>
@@ -339,11 +436,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Item_" data-uid="DeltaPack.OrderedDict`2.Item*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Item_" data-uid="DeltaPack.TrackedOrderedDict`2.Item*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Item__0_" data-uid="DeltaPack.OrderedDict`2.Item(`0)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Item__0_" data-uid="DeltaPack.TrackedOrderedDict`2.Item(`0)">
   this[TKey]
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L39"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L122"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Gets or sets the element with the specified key.</p>
@@ -390,11 +487,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Keys_" data-uid="DeltaPack.OrderedDict`2.Keys*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Keys_" data-uid="DeltaPack.TrackedOrderedDict`2.Keys*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Keys" data-uid="DeltaPack.OrderedDict`2.Keys">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Keys" data-uid="DeltaPack.TrackedOrderedDict`2.Keys">
   Keys
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L56"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L224"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Gets an <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a> containing the keys of the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.idictionary-2">IDictionary&lt;TKey, TValue&gt;</a>.</p>
@@ -423,11 +520,143 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Values_" data-uid="DeltaPack.OrderedDict`2.Values*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Parent_" data-uid="DeltaPack.TrackedOrderedDict`2.Parent*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Values" data-uid="DeltaPack.OrderedDict`2.Values">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Parent" data-uid="DeltaPack.TrackedOrderedDict`2.Parent">
+  Parent
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L87"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Parent container this instance is reachable from, or null if root / detached.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public IDirtyTracked? Parent { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="DeltaPack.IDirtyTracked.html">IDirtyTracked</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_ParentKey_" data-uid="DeltaPack.TrackedOrderedDict`2.ParentKey*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_ParentKey" data-uid="DeltaPack.TrackedOrderedDict`2.ParentKey">
+  ParentKey
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L88"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Key identifying this instance in its parent when the parent is an <a class="xref" href="DeltaPack.ITrackedContainer.html">ITrackedContainer</a>
+(int for list indices, user key for dict entries). Unused when the parent is an <a class="xref" href="DeltaPack.ITrackedObject.html">ITrackedObject</a> —
+<a class="xref" href="DeltaPack.IDirtyTracked.html#DeltaPack_IDirtyTracked_ParentSlot">ParentSlot</a> carries the field slot in that case.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public object? ParentKey { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.object">object</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_ParentSlot_" data-uid="DeltaPack.TrackedOrderedDict`2.ParentSlot*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_ParentSlot" data-uid="DeltaPack.TrackedOrderedDict`2.ParentSlot">
+  ParentSlot
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L89"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Slot index identifying this instance's field on its parent when the parent is an
+<a class="xref" href="DeltaPack.ITrackedObject.html">ITrackedObject</a>. -1 when unused (e.g. the parent is a list/dict).
+Stored as an int to avoid boxing on every parent-chain propagation.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public int ParentSlot { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int32">int</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_SnapshotVersion_" data-uid="DeltaPack.TrackedOrderedDict`2.SnapshotVersion*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_SnapshotVersion" data-uid="DeltaPack.TrackedOrderedDict`2.SnapshotVersion">
+  SnapshotVersion
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L86"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Version of the global counter at the time this instance was registered as a snapshot; -1 if not a snapshot.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public long SnapshotVersion { get; set; }</code></pre>
+  </div>
+
+
+
+
+
+  <h4 class="section">Property Value</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="https://learn.microsoft.com/dotnet/api/system.int64">long</a></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_TrackedOrderedDict_2_Values_" data-uid="DeltaPack.TrackedOrderedDict`2.Values*"></a>
+
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Values" data-uid="DeltaPack.TrackedOrderedDict`2.Values">
   Values
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L58"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L225"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Gets an <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a> containing the values in the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.idictionary-2">IDictionary&lt;TKey, TValue&gt;</a>.</p>
@@ -460,11 +689,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 </h2>
 
 
-  <a id="DeltaPack_OrderedDict_2_Add_" data-uid="DeltaPack.OrderedDict`2.Add*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Add_" data-uid="DeltaPack.TrackedOrderedDict`2.Add*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Add_System_Collections_Generic_KeyValuePair__0__1__" data-uid="DeltaPack.OrderedDict`2.Add(System.Collections.Generic.KeyValuePair{`0,`1})">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Add_System_Collections_Generic_KeyValuePair__0__1__" data-uid="DeltaPack.TrackedOrderedDict`2.Add(System.Collections.Generic.KeyValuePair{`0,`1})">
   Add(KeyValuePair&lt;TKey, TValue&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L76"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L175"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Adds an item to the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a>.</p>
@@ -499,11 +728,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Add_" data-uid="DeltaPack.OrderedDict`2.Add*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Add_" data-uid="DeltaPack.TrackedOrderedDict`2.Add*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Add__0__1_" data-uid="DeltaPack.OrderedDict`2.Add(`0,`1)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Add__0__1_" data-uid="DeltaPack.TrackedOrderedDict`2.Add(`0,`1)">
   Add(TKey, TValue)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L68"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L168"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Adds an element with the provided key and value to the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.idictionary-2">IDictionary&lt;TKey, TValue&gt;</a>.</p>
@@ -547,11 +776,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Clear_" data-uid="DeltaPack.OrderedDict`2.Clear*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Clear_" data-uid="DeltaPack.TrackedOrderedDict`2.Clear*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Clear" data-uid="DeltaPack.OrderedDict`2.Clear">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Clear" data-uid="DeltaPack.TrackedOrderedDict`2.Clear">
   Clear()
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L119"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L197"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Removes all items from the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a>.</p>
@@ -580,11 +809,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Contains_" data-uid="DeltaPack.OrderedDict`2.Contains*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Contains_" data-uid="DeltaPack.TrackedOrderedDict`2.Contains*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Contains_System_Collections_Generic_KeyValuePair__0__1__" data-uid="DeltaPack.OrderedDict`2.Contains(System.Collections.Generic.KeyValuePair{`0,`1})">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Contains_System_Collections_Generic_KeyValuePair__0__1__" data-uid="DeltaPack.TrackedOrderedDict`2.Contains(System.Collections.Generic.KeyValuePair{`0,`1})">
   Contains(KeyValuePair&lt;TKey, TValue&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L104"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L230"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Determines whether the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a> contains a specific value.</p>
@@ -619,11 +848,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_ContainsKey_" data-uid="DeltaPack.OrderedDict`2.ContainsKey*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_ContainsKey_" data-uid="DeltaPack.TrackedOrderedDict`2.ContainsKey*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_ContainsKey__0_" data-uid="DeltaPack.OrderedDict`2.ContainsKey(`0)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_ContainsKey__0_" data-uid="DeltaPack.TrackedOrderedDict`2.ContainsKey(`0)">
   ContainsKey(TKey)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L102"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L229"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Determines whether the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.idictionary-2">IDictionary&lt;TKey, TValue&gt;</a> contains an element with the specified key.</p>
@@ -664,11 +893,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_CopyTo_" data-uid="DeltaPack.OrderedDict`2.CopyTo*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_CopyTo_" data-uid="DeltaPack.TrackedOrderedDict`2.CopyTo*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_CopyTo_System_Collections_Generic_KeyValuePair__0__1____System_Int32_" data-uid="DeltaPack.OrderedDict`2.CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_CopyTo_System_Collections_Generic_KeyValuePair__0__1____System_Int32_" data-uid="DeltaPack.TrackedOrderedDict`2.CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)">
   CopyTo(KeyValuePair&lt;TKey, TValue&gt;[], int)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L125"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L232"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Copies the elements of the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a> to an <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.array">Array</a>, starting at a particular <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.array">Array</a> index.</p>
@@ -712,11 +941,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_GetEnumerator_" data-uid="DeltaPack.OrderedDict`2.GetEnumerator*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_GetEnumerator_" data-uid="DeltaPack.TrackedOrderedDict`2.GetEnumerator*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_GetEnumerator" data-uid="DeltaPack.OrderedDict`2.GetEnumerator">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_GetEnumerator" data-uid="DeltaPack.TrackedOrderedDict`2.GetEnumerator">
   GetEnumerator()
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L139"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L233"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Returns an enumerator that iterates through the collection.</p>
@@ -745,14 +974,15 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_GetKeyAtIndex_" data-uid="DeltaPack.OrderedDict`2.GetKeyAtIndex*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_GetKeyAtIndex_" data-uid="DeltaPack.TrackedOrderedDict`2.GetKeyAtIndex*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_GetKeyAtIndex_System_Int32_" data-uid="DeltaPack.OrderedDict`2.GetKeyAtIndex(System.Int32)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_GetKeyAtIndex_System_Int32_" data-uid="DeltaPack.TrackedOrderedDict`2.GetKeyAtIndex(System.Int32)">
   GetKeyAtIndex(int)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L128"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L129"><i class="bi bi-code-slash"></i></a>
   </h3>
 
-  <div class="markdown level1 summary"></div>
+  <div class="markdown level1 summary"><p>Delegates to the underlying <a class="xref" href="DeltaPack.OrderedDict-2.html#DeltaPack_OrderedDict_2_GetKeyAtIndex_System_Int32_">GetKeyAtIndex(int)</a>.</p>
+</div>
   <div class="markdown level1 conceptual"></div>
 
   <div class="codewrapper">
@@ -781,11 +1011,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Remove_" data-uid="DeltaPack.OrderedDict`2.Remove*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Remove_" data-uid="DeltaPack.TrackedOrderedDict`2.Remove*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Remove_System_Collections_Generic_KeyValuePair__0__1__" data-uid="DeltaPack.OrderedDict`2.Remove(System.Collections.Generic.KeyValuePair{`0,`1})">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Remove_System_Collections_Generic_KeyValuePair__0__1__" data-uid="DeltaPack.TrackedOrderedDict`2.Remove(System.Collections.Generic.KeyValuePair{`0,`1})">
   Remove(KeyValuePair&lt;TKey, TValue&gt;)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L93"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L192"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Removes the first occurrence of a specific object from the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.icollection-1">ICollection&lt;T&gt;</a>.</p>
@@ -826,11 +1056,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_Remove_" data-uid="DeltaPack.OrderedDict`2.Remove*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_Remove_" data-uid="DeltaPack.TrackedOrderedDict`2.Remove*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_Remove__0_" data-uid="DeltaPack.OrderedDict`2.Remove(`0)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_Remove__0_" data-uid="DeltaPack.TrackedOrderedDict`2.Remove(`0)">
   Remove(TKey)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L78"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L177"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Removes the element with the specified key from the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.idictionary-2">IDictionary&lt;TKey, TValue&gt;</a>.</p>
@@ -874,14 +1104,14 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_TryGetIndex_" data-uid="DeltaPack.OrderedDict`2.TryGetIndex*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_TryGetIndex_" data-uid="DeltaPack.TrackedOrderedDict`2.TryGetIndex*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_TryGetIndex__0_System_Int32__" data-uid="DeltaPack.OrderedDict`2.TryGetIndex(`0,System.Int32@)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_TryGetIndex__0_System_Int32__" data-uid="DeltaPack.TrackedOrderedDict`2.TryGetIndex(`0,System.Int32@)">
   TryGetIndex(TKey, out int)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L131"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L132"><i class="bi bi-code-slash"></i></a>
   </h3>
 
-  <div class="markdown level1 summary"><p>O(1) lookup of a key's insertion-order index. Returns false if the key is absent.</p>
+  <div class="markdown level1 summary"><p>Delegates to the underlying <a class="xref" href="DeltaPack.OrderedDict-2.html#DeltaPack_OrderedDict_2_TryGetIndex__0_System_Int32__">TryGetIndex(TKey, out int)</a>.</p>
 </div>
   <div class="markdown level1 conceptual"></div>
 
@@ -913,11 +1143,11 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 
 
 
-  <a id="DeltaPack_OrderedDict_2_TryGetValue_" data-uid="DeltaPack.OrderedDict`2.TryGetValue*"></a>
+  <a id="DeltaPack_TrackedOrderedDict_2_TryGetValue_" data-uid="DeltaPack.TrackedOrderedDict`2.TryGetValue*"></a>
 
-  <h3 id="DeltaPack_OrderedDict_2_TryGetValue__0__1__" data-uid="DeltaPack.OrderedDict`2.TryGetValue(`0,`1@)">
+  <h3 id="DeltaPack_TrackedOrderedDict_2_TryGetValue__0__1__" data-uid="DeltaPack.TrackedOrderedDict`2.TryGetValue(`0,`1@)">
   TryGetValue(TKey, out TValue)
-  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L108"><i class="bi bi-code-slash"></i></a>
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L231"><i class="bi bi-code-slash"></i></a>
   </h3>
 
   <div class="markdown level1 summary"><p>Gets the value associated with the specified key.</p>
@@ -965,7 +1195,7 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/OrderedDict.cs/#L10" class="edit-link">Edit this page</a>
+          <a href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/TrackedOrderedDict.cs/#L15" class="edit-link">Edit this page</a>
         </div>
 
 

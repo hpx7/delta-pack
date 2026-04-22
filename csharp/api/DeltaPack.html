@@ -122,8 +122,27 @@ Bounded integers are encoded more efficiently when values are constrained.</p>
 </dd>
     </dl>
     <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.DeltaPackTrackedAttribute.html">DeltaPackTrackedAttribute</a></dt>
+      <dd><p>Opt-in change tracking for a <a class="xref" href="DeltaPack.DeltaPackAttribute.html">DeltaPackAttribute</a> class. Mutations
+on serialized properties are recorded so <code>EncodeDiff</code> can skip equality
+comparisons on unchanged fields, producing identical bytes at lower cost.</p>
+<p>Requires the consuming project to set <code>&lt;LangVersion&gt;13&lt;/LangVersion&gt;</code>:
+tracked serialized properties must be declared <code>partial</code> so the source
+generator can emit dirty-marking setters. Collection-typed properties should
+use <a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList&lt;T&gt;</a> / <a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict&lt;TKey, TValue&gt;</a>
+so mutations inside the collection are also recorded.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
       <dt><a class="xref" href="DeltaPack.DeltaPackUnionAttribute.html">DeltaPackUnionAttribute</a></dt>
       <dd><p>Marks an abstract base class as a union. List its variants as type arguments.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.DirtyTracking.html">DirtyTracking</a></dt>
+      <dd><p>Monotonic version counter and snapshot registry shared by all tracked
+instances in the process. Mirrors the TypeScript <code>tracking.ts</code>
+module.</p>
 </dd>
     </dl>
     <dl class="jumplist">
@@ -156,6 +175,78 @@ Backed by a List for ordered storage and a Dictionary for O(1) key lookup.</p>
     <dl class="jumplist">
       <dt><a class="xref" href="DeltaPack.RleWriter.html">RleWriter</a></dt>
       <dd><p>Streaming RLE writer - encodes bits on-the-fly without buffering.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.SyncSession-1.html">SyncSession&lt;T&gt;</a></dt>
+      <dd><p>A stateful handle over a one-way state-sync session between two endpoints.</p>
+<p>
+Each endpoint holds a <a class="xref" href="DeltaPack.SyncSession-1.html">SyncSession&lt;T&gt;</a> representing the current
+shared view of the peer's state. The sender calls <a class="xref" href="DeltaPack.SyncSession-1.html#DeltaPack_SyncSession_1_Encode__0_">Encode(T)</a> to
+produce bytes; the receiver calls <a class="xref" href="DeltaPack.SyncSession-1.html#DeltaPack_SyncSession_1_Decode_System_Byte___">Decode(byte[])</a> to apply them. Both
+sides converge on the same view as long as messages are delivered in order.
+</p>
+<p>
+The class handles the "first call is full encode, subsequent are diffs"
+distinction internally. It also ensures the sender's view always matches
+what the peer reconstructs — even when the user's <code>state</code> object has
+been mutated or reordered in ways that would break a raw
+<code>EncodeDiff</code> call.
+</p>
+<p>
+Prefer the generated <code>CreateSyncSession()</code> factory on each schema type:
+</p>
+<pre><code class="lang-csharp">var session = GameState.CreateSyncSession();</code></pre>
+<p>
+The delegate-taking constructor below is the lower-level entry point — useful
+when you need to pass custom encode/decode/clone callbacks, but most callers
+should go through the factory.
+</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList&lt;T&gt;</a></dt>
+      <dd><p>A <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1">List&lt;T&gt;</a>-compatible list that records per-index version numbers
+on every mutation. Intended as a drop-in replacement for <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1">List&lt;T&gt;</a>
+on serialized properties of <a class="xref" href="DeltaPack.DeltaPackTrackedAttribute.html">DeltaPackTrackedAttribute</a> classes so
+<code>EncodeDiff</code> can skip unchanged-index comparisons.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict&lt;TKey, TValue&gt;</a></dt>
+      <dd><p>An insertion-order-preserving dictionary that records per-key version numbers
+on mutations. Intended as a drop-in replacement for <a class="xref" href="DeltaPack.OrderedDict-2.html">OrderedDict&lt;TKey, TValue&gt;</a>
+on serialized properties of <a class="xref" href="DeltaPack.DeltaPackTrackedAttribute.html">DeltaPackTrackedAttribute</a> classes.
+Tracks three separate maps: updated keys (<code>DirtyKeys</code>), newly inserted
+keys (<code>CreatedKeys</code>), and removed keys (<code>DeletedKeys</code>) so
+<code>EncodeDiff</code> can emit only actual changes since the last snapshot.</p>
+</dd>
+    </dl>
+    <h3 id="interfaces">
+Interfaces
+</h3>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.IDirtyTracked.html">IDirtyTracked</a></dt>
+      <dd><p>Base contract for types that participate in delta-pack's dirty-tracking graph. Exposes
+parent-chain wiring (for propagation) and a snapshot-version slot (used at diff-encode
+time as the baseline). Implementers fall into two narrower categories —
+<a class="xref" href="DeltaPack.ITrackedObject.html">ITrackedObject</a> for <code>[DeltaPackTracked]</code> classes (slot-keyed dirty
+storage) and <a class="xref" href="DeltaPack.ITrackedContainer.html">ITrackedContainer</a> for <a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList&lt;T&gt;</a> /
+<a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict&lt;TKey, TValue&gt;</a> (key-keyed dirty storage).</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.ITrackedContainer.html">ITrackedContainer</a></dt>
+      <dd><p>Implemented by tracked container types (<a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList&lt;T&gt;</a>,
+<a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict&lt;TKey, TValue&gt;</a>) whose dirty storage is keyed by user-supplied
+index / key rather than by a compile-time slot.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="DeltaPack.ITrackedObject.html">ITrackedObject</a></dt>
+      <dd><p>Implemented by <code>[DeltaPackTracked]</code> classes. Dirty storage is slot-based — one
+<code>long</code> per declared field, indexed by the compile-time slot assigned by the source
+generator. Avoids the string-hash and dictionary-lookup cost of a keyed scheme.</p>
 </dd>
     </dl>
 

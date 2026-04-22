@@ -189,6 +189,54 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
 
   <a id="DeltaPack_Decoder_NextArrayDiff_" data-uid="DeltaPack.Decoder.NextArrayDiff*"></a>
 
+  <h3 id="DeltaPack_Decoder_NextArrayDiff__1_DeltaPack_TrackedList___0__System_Func___0__System_Func___0___0__" data-uid="DeltaPack.Decoder.NextArrayDiff``1(DeltaPack.TrackedList{``0},System.Func{``0},System.Func{``0,``0})">
+  NextArrayDiff&lt;T&gt;(TrackedList&lt;T&gt;, Func&lt;T&gt;, Func&lt;T, T&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L284"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Tracked-list overload. Identical bit layout to the <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.collections.generic.list-1">List&lt;T&gt;</a> variant —
+picked by overload resolution when the generated code's property type is
+<a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList&lt;T&gt;</a>.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public TrackedList&lt;T&gt; NextArrayDiff&lt;T&gt;(TrackedList&lt;T&gt; arr, Func&lt;T&gt; decode, Func&lt;T, T&gt; decodeDiff)</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>arr</code> <a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList</a>&lt;T&gt;</dt>
+    <dd></dd>
+    <dt><code>decode</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-1">Func</a>&lt;T&gt;</dt>
+    <dd></dd>
+    <dt><code>decodeDiff</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;T, T&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="DeltaPack.TrackedList-1.html">TrackedList</a>&lt;T&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>T</code></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_Decoder_NextArrayDiff_" data-uid="DeltaPack.Decoder.NextArrayDiff*"></a>
+
   <h3 id="DeltaPack_Decoder_NextArrayDiff__1_System_Collections_Generic_IList___0__System_Func___0__System_Func___0___0__" data-uid="DeltaPack.Decoder.NextArrayDiff``1(System.Collections.Generic.IList{``0},System.Func{``0},System.Func{``0,``0})">
   NextArrayDiff&lt;T&gt;(IList&lt;T&gt;, Func&lt;T&gt;, Func&lt;T, T&gt;)
   <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L176"><i class="bi bi-code-slash"></i></a>
@@ -942,6 +990,58 @@ Class Decoder  <a class="header-action link-secondary" title="View source" href=
   <h4 class="section">Returns</h4>
   <dl class="parameters">
     <dt><a class="xref" href="DeltaPack.OrderedDict-2.html">OrderedDict</a>&lt;TKey, TValue&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Type Parameters</h4>
+  <dl class="parameters">
+    <dt><code>TKey</code></dt>
+    <dd></dd>
+    <dt><code>TValue</code></dt>
+    <dd></dd>
+  </dl>
+
+
+
+
+
+
+
+
+
+
+  <a id="DeltaPack_Decoder_NextRecordDiff_" data-uid="DeltaPack.Decoder.NextRecordDiff*"></a>
+
+  <h3 id="DeltaPack_Decoder_NextRecordDiff__2_DeltaPack_TrackedOrderedDict___0___1__System_Func___0__System_Func___1__System_Func___1___1__" data-uid="DeltaPack.Decoder.NextRecordDiff``2(DeltaPack.TrackedOrderedDict{``0,``1},System.Func{``0},System.Func{``1},System.Func{``1,``1})">
+  NextRecordDiff&lt;TKey, TValue&gt;(TrackedOrderedDict&lt;TKey, TValue&gt;, Func&lt;TKey&gt;, Func&lt;TValue&gt;, Func&lt;TValue, TValue&gt;)
+  <a class="header-action link-secondary" title="View source" href="https://github.com/hpx7/delta-pack/blob/main/csharp/src/Decoder.cs/#L242"><i class="bi bi-code-slash"></i></a>
+  </h3>
+
+  <div class="markdown level1 summary"><p>Tracked-container overload. Identical bit layout to the <a class="xref" href="DeltaPack.OrderedDict-2.html">OrderedDict&lt;TKey, TValue&gt;</a>
+variant — picked by overload resolution when the generated code's property type is
+<a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict&lt;TKey, TValue&gt;</a>.</p>
+</div>
+  <div class="markdown level1 conceptual"></div>
+
+  <div class="codewrapper">
+    <pre><code class="lang-csharp hljs">public TrackedOrderedDict&lt;TKey, TValue&gt; NextRecordDiff&lt;TKey, TValue&gt;(TrackedOrderedDict&lt;TKey, TValue&gt; obj, Func&lt;TKey&gt; decodeKey, Func&lt;TValue&gt; decodeVal, Func&lt;TValue, TValue&gt; decodeDiff) where TKey : notnull</code></pre>
+  </div>
+
+  <h4 class="section">Parameters</h4>
+  <dl class="parameters">
+    <dt><code>obj</code> <a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict</a>&lt;TKey, TValue&gt;</dt>
+    <dd></dd>
+    <dt><code>decodeKey</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-1">Func</a>&lt;TKey&gt;</dt>
+    <dd></dd>
+    <dt><code>decodeVal</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-1">Func</a>&lt;TValue&gt;</dt>
+    <dd></dd>
+    <dt><code>decodeDiff</code> <a class="xref" href="https://learn.microsoft.com/dotnet/api/system.func-2">Func</a>&lt;TValue, TValue&gt;</dt>
+    <dd></dd>
+  </dl>
+
+  <h4 class="section">Returns</h4>
+  <dl class="parameters">
+    <dt><a class="xref" href="DeltaPack.TrackedOrderedDict-2.html">TrackedOrderedDict</a>&lt;TKey, TValue&gt;</dt>
     <dd></dd>
   </dl>
 
