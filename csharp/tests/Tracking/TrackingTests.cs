@@ -20,7 +20,7 @@ public class TrackingTests
     public void Setting_property_marks_field_dirty()
     {
         var p = new TrackedPosition();
-        var startVersion = DirtyTracking.Internal.CurrentVersion;
+        var startVersion = Tracker.CurrentVersion;
         p.X = 5f;
         p.Y = 10f;
 
@@ -232,7 +232,7 @@ public class TrackingTests
         live.Y = 2f;
 
         var snap = TrackedPosition.Clone(live);
-        DirtyTracking.RegisterSnapshot(snap, live);
+        Tracker.RegisterSnapshot(snap, live);
         live.X = 100f;
 
         var diff = TrackedPosition.EncodeDiff(snap, live);
@@ -265,7 +265,7 @@ public class TrackingTests
         live.Pos.X = 1f;
         var versionAfterFirst = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
 
-        DirtyTracking.RegisterSnapshot(TrackedPlayer.Clone(live), live);
+        Tracker.RegisterSnapshot(TrackedPlayer.Clone(live), live);
 
         live.Pos.X = 2f;
         var versionAfterSecond = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);

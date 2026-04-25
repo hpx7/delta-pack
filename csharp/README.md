@@ -46,7 +46,23 @@ var session = GameState.CreateSyncSession();
 GameState state = session.Decode(bytes);
 ```
 
-**`SyncSession` is the recommended API for real-time sync.** The source generator emits a `CreateSyncSession()` factory on every `[DeltaPack]` type. For manual wiring (e.g., to a third-party type), construct directly: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)`.
+**`SyncSession` is the recommended API for real-time sync.** The source generator emits a `CreateSyncSession()` factory on every `[DeltaPack]` type. For manual wiring (e.g., to a third-party type), construct directly: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)` (binds to `Tracker.Default`) or `new SyncSession<T>(tracker, encode, decode, encodeDiff, decodeDiff, clone)` for explicit per-domain isolation.
+
+### Multiple sync domains in one process (`Tracker`)
+
+If you're hosting several independent sync domains in a single process — game rooms, tenants, parallel tests — pass a per-domain `Tracker` to keep their baseline / tombstone state isolated:
+
+```csharp
+var roomA = new Tracker();
+var roomB = new Tracker();
+
+var sessionA = GameState.CreateSyncSession(roomA);
+var sessionB = GameState.CreateSyncSession(roomB);
+```
+
+Without an explicit `Tracker`, all calls share `Tracker.Default` (the process-wide singleton) — fine for single-domain apps, scripts, and demos. With an explicit tracker per domain: a stale snapshot held alive in room A can't suppress tombstone pruning in room B, and the setter fast-path in B isn't gated by A's encode tick rate.
+
+The version clock itself is process-global, so dirty stamps remain comparable across trackers and a tracked subtree adopts its parent's tracker on attach (no re-stamping pass needed).
 
 ### Low-level delta encoding (advanced)
 
@@ -198,12 +214,12 @@ var live = Player.Default();
 live.Name = "Alice";
 live.Score = 10;
 
-// Take a snapshot. `Clone` is a pure deep copy; `RegisterSnapshot` stamps it
-// with the current global version so `EncodeDiff` filters to mutations after
-// this point. `SyncSession<T>` does both steps automatically — prefer it over
-// the raw pattern shown here unless you need manual control.
+// Take a snapshot. `Clone` is a pure deep copy; `Tracker.RegisterSnapshot`
+// stamps it against the source's tracker so `EncodeDiff` filters to mutations
+// after this point. `SyncSession<T>` does both steps automatically — prefer it
+// over the raw pattern shown here unless you need manual control.
 var snapshot = Player.Clone(live);
-DirtyTracking.RegisterSnapshot(snapshot, live);
+Tracker.RegisterSnapshot(snapshot, live);
 live.Score = 25;                    // recorded as dirty since snapshot
 
 byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/encoded
@@ -219,7 +235,7 @@ byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/enco
   Using `List<T>` or `OrderedDict<TKey, TValue>` on a tracked class produces diagnostics
   `DP012` / `DP013` with code fixes that swap in the tracked variant.
 - `Clone` on a tracked class is a plain deep copy. When using raw `EncodeDiff` with the
-  clone as the baseline, call `DirtyTracking.RegisterSnapshot(snap, source)` so tracking's
+  clone as the baseline, call `Tracker.RegisterSnapshot(snap, source)` so tracking's
   version filter knows at which version the snapshot was taken — the baseline is looked up
   implicitly by snapshot identity in subsequent `EncodeDiff(snap, source)` calls.
   `SyncSession<T>` handles this for you.
@@ -237,31 +253,35 @@ You can convert an existing class's properties to `partial` ahead of time, then 
 
 Stateful handle for one side of a sync stream. Handles full-vs-diff internally and keeps sender and receiver views aligned.
 
-| Method                      | Description                                                                                |
-| --------------------------- | ------------------------------------------------------------------------------------------ |
-| `T.CreateSyncSession()`     | Factory emitted by the source generator on every `[DeltaPack]` type                        |
-| `.Encode(T state) → byte[]` | First call emits a full encode; subsequent calls emit diffs. View updates internally.      |
-| `.Decode(byte[] bytes) → T` | First call expects a full encode; subsequent calls expect diffs. Returns the updated view. |
-| `.Current → T?`             | The current view, or `null` if neither `Encode` nor `Decode` has been called.              |
+| Method                              | Description                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------------ |
+| `T.CreateSyncSession()`             | Factory bound to `Tracker.Default` — fine for single-domain apps                           |
+| `T.CreateSyncSession(Tracker)`      | Factory bound to a per-domain `Tracker` (game room, tenant, parallel test)                 |
+| `.Tracker → Tracker`                | The tracker this session's baselines are recorded against                                  |
+| `.Encode(T state) → byte[]`         | First call emits a full encode; subsequent calls emit diffs. View updates internally.      |
+| `.Decode(byte[] bytes) → T`         | First call expects a full encode; subsequent calls expect diffs. Returns the updated view. |
+| `.Current → T?`                     | The current view, or `null` if neither `Encode` nor `Decode` has been called.              |
 
-For third-party types (no source generator), construct directly with the delegate overload: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)`.
+For third-party types (no source generator), construct directly with the delegate overload: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)`. Pass an explicit `Tracker` as the first argument if you need per-domain isolation.
 
 ### Low-level API (per type)
 
 For every `[DeltaPack] partial class T`, the generator emits these static methods. Use them directly for custom protocols; use `SyncSession<T>` for ordinary sync streams.
 
-| Method                           | Description                                 |
-| -------------------------------- | ------------------------------------------- |
-| `T.CreateSyncSession()`          | Construct a `SyncSession<T>` (see above)    |
-| `T.Default()`                    | Construct a default instance                |
-| `T.Encode(T obj)`                | Serialize object to bytes                   |
-| `T.Decode(byte[] buf)`           | Deserialize bytes to object                 |
-| `T.EncodeDiff(T a, T b)`         | Encode only the differences between a and b |
-| `T.DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b                |
-| `T.Equals(T a, T b)`             | Deep equality comparison                    |
-| `T.Clone(T obj)`                 | Deep clone                                  |
-| `T.FromJson(JsonElement json)`   | Deserialize from JSON                       |
-| `T.ToJson(T obj)`                | Serialize to JSON                           |
+| Method                              | Description                                              |
+| ----------------------------------- | -------------------------------------------------------- |
+| `T.CreateSyncSession()`             | Construct a `SyncSession<T>` bound to `Tracker.Default`  |
+| `T.CreateSyncSession(Tracker)`      | Construct a `SyncSession<T>` bound to a specific tracker |
+| `T.Default()`                       | Construct a default instance                             |
+| `T.Encode(T obj)`                   | Serialize object to bytes                                |
+| `T.Decode(byte[] buf)`              | Deserialize bytes (binds the result to `Tracker.Default`)|
+| `T.Decode(byte[] buf, Tracker)`     | Deserialize bytes (binds the result to a specific tracker) |
+| `T.EncodeDiff(T a, T b)`            | Encode only the differences between a and b              |
+| `T.DecodeDiff(T a, byte[] diff)`    | Apply diff to a, producing b                             |
+| `T.Equals(T a, T b)`                | Deep equality comparison                                 |
+| `T.Clone(T obj)`                    | Deep clone (the clone inherits `obj`'s tracker)          |
+| `T.FromJson(JsonElement json)`      | Deserialize from JSON                                    |
+| `T.ToJson(T obj)`                   | Serialize to JSON                                        |
 
 ## Unity Compatibility
 

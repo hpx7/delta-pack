@@ -122,6 +122,21 @@ internal static class ObjectEmitter
     private static void EmitDefault(CodeWriter w, TypeDef def, string newKw)
     {
         w.Line($"public static {newKw}{def.SimpleName} Default() => new();");
+        if (def.IsTracked)
+        {
+            // Tracker-aware factory: child tracked instances are field-initialized with
+            // Tracker.Default and adopt this instance's tracker lazily on first getter access
+            // (via TrackingOps.ReparentToObject). The shared-clock invariant means that's safe
+            // — dirty stamps are universally comparable across trackers.
+            w.Line();
+            w.Line($"public static {def.SimpleName} Default(DeltaPack.Tracker tracker)");
+            using (w.Block(""))
+            {
+                w.Line($"var result = new {def.SimpleName}();");
+                w.Line("((DeltaPack.IDirtyTracked)result).Tracker = tracker;");
+                w.Line("return result;");
+            }
+        }
     }
 
     private static void EmitClone(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
@@ -132,8 +147,10 @@ internal static class ObjectEmitter
             {
                 // Write to backing fields directly rather than going through the partial-property
                 // setters — setters would run NextVersion / dirty-map writes / PropagateToParent on
-                // every field, which is wasted work on a freshly-built clone.
+                // every field, which is wasted work on a freshly-built clone. The clone inherits
+                // obj's tracker so it lands in the same domain.
                 w.Line($"var result = new {def.SimpleName}();");
+                w.Line($"((DeltaPack.IDirtyTracked)result).Tracker = ((DeltaPack.IDirtyTracked)obj).Tracker;");
                 for (int slot = 0; slot < def.Fields.Length; slot++)
                 {
                     var f = def.Fields[slot];
@@ -146,7 +163,7 @@ internal static class ObjectEmitter
                         // Optional<T> may legitimately be null; other trackable fields won't be.
                         // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
                         w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                        w.Line($"    DeltaPack.DirtyTracking.Internal.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
                     }
                 }
                 w.Line("return result;");
@@ -199,13 +216,19 @@ internal static class ObjectEmitter
         using (w.Block($"public static {newKw}byte[] EncodeDiff({def.SimpleName} a, {def.SimpleName} b)"))
         {
             w.Line("var encoder = new DeltaPack.Encoder();");
-            // Look up the baseline associated with snapshot `a`. If the caller registered `a`
-            // via DirtyTracking.RegisterSnapshot, this returns the version at registration;
-            // otherwise -1 disables the tracking filter and the encoder falls back to equality.
-            w.Line("encoder.MinVersion = DeltaPack.DirtyTracking.Internal.GetBaselineFor(a);");
-            // Method group `EncodeDiff_` binds to `Action<T, T, Encoder>` — the runtime caches
-            // the delegate per type, avoiding the per-call closure that a `() => ...` lambda
-            // would allocate.
+            if (def.IsStruct)
+            {
+                // Structs can't implement IDirtyTracked — pattern-match would be a compile error.
+                w.Line("encoder.MinVersion = -1;");
+            }
+            else
+            {
+                // Class case: the `is` check resolves to true only when `a` actually implements
+                // IDirtyTracked (i.e. the type is `[DeltaPackTracked]`). For untracked classes
+                // the cast fails at runtime and we fall back to -1, disabling the tracking
+                // filter. One emitted line covers both tracked and untracked classes.
+                w.Line("encoder.MinVersion = a is DeltaPack.IDirtyTracked __dp_a ? __dp_a.Tracker.GetBaselineFor(a) : -1;");
+            }
             w.Line("encoder.PushObjectDiff(a, b, Equals, EncodeDiff_);");
             w.Line("return encoder.ToBuffer();");
         }
@@ -228,18 +251,46 @@ internal static class ObjectEmitter
     {
         using (w.Block($"public static {newKw}{def.SimpleName} Decode(byte[] buf)"))
         {
-            w.Line("var decoder = new DeltaPack.Decoder(buf);");
+            w.Line("return Decode(buf, DeltaPack.Tracker.Default);");
+        }
+        w.Line();
+        using (w.Block($"public static {newKw}{def.SimpleName} Decode(byte[] buf, DeltaPack.Tracker tracker)"))
+        {
+            w.Line("var decoder = new DeltaPack.Decoder(buf) { Tracker = tracker };");
             w.Line("return Decode_(decoder);");
         }
         w.Line();
         using (w.Block($"internal static {newKw}{def.SimpleName} Decode_(DeltaPack.Decoder decoder)"))
         {
-            using (w.Block("return new()"))
+            if (def.IsTracked)
             {
-                foreach (var f in def.Fields)
-                    w.Line($"{f.Name} = {ExpressionRenderer.DecodeInline(f.Type, reg)},");
+                // Bypass setters (avoids the aliasing guard + wasted dirty bookkeeping) and
+                // stamp the result with the decoder's tracker so children land in the right
+                // domain when reparented below.
+                w.Line($"var result = new {def.SimpleName}();");
+                w.Line("((DeltaPack.IDirtyTracked)result).Tracker = decoder.Tracker;");
+                for (int slot = 0; slot < def.Fields.Length; slot++)
+                {
+                    var f = def.Fields[slot];
+                    var backing = ExpressionRenderer.TrackingBackingField(f);
+                    w.Line($"result.{backing} = {ExpressionRenderer.DecodeInline(f.Type, reg)};");
+                    if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                    {
+                        w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                        w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                    }
+                }
+                w.Line("return result;");
             }
-            w.Line(";");
+            else
+            {
+                using (w.Block("return new()"))
+                {
+                    foreach (var f in def.Fields)
+                        w.Line($"{f.Name} = {ExpressionRenderer.DecodeInline(f.Type, reg)},");
+                }
+                w.Line(";");
+            }
         }
     }
 
@@ -248,7 +299,10 @@ internal static class ObjectEmitter
         // Union variants hide the base class's CreateSyncSession() — same name + empty params,
         // only the generic return type differs — so they need the `new` modifier.
         w.Line($"public static {newKw}DeltaPack.SyncSession<{def.SimpleName}> CreateSyncSession()");
-        w.Line($"    => new(Encode, Decode, EncodeDiff, DecodeDiff, Clone);");
+        w.Line($"    => CreateSyncSession(DeltaPack.Tracker.Default);");
+        w.Line();
+        w.Line($"public static {newKw}DeltaPack.SyncSession<{def.SimpleName}> CreateSyncSession(DeltaPack.Tracker tracker)");
+        w.Line($"    => new(tracker, Encode, buf => Decode(buf, tracker), EncodeDiff, DecodeDiff, Clone);");
     }
 
     private static void EmitDecodeDiff(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
@@ -256,6 +310,11 @@ internal static class ObjectEmitter
         using (w.Block($"public static {newKw}{def.SimpleName} DecodeDiff({def.SimpleName} obj, byte[] diff)"))
         {
             w.Line("var decoder = new DeltaPack.Decoder(diff);");
+            if (def.IsTracked)
+            {
+                // Inherit the snapshot's tracker so the decoded result lands in the same domain.
+                w.Line("decoder.Tracker = ((DeltaPack.IDirtyTracked)obj).Tracker;");
+            }
             w.Line("return decoder.NextObjectDiff(obj, () => DecodeDiff_(obj, decoder));");
         }
         w.Line();
@@ -269,6 +328,7 @@ internal static class ObjectEmitter
                 // the snapshot, not the new result). Parent pointers are re-established
                 // explicitly below, mirroring Clone.
                 w.Line($"var result = new {def.SimpleName}();");
+                w.Line("((DeltaPack.IDirtyTracked)result).Tracker = decoder.Tracker;");
                 for (int slot = 0; slot < def.Fields.Length; slot++)
                 {
                     var f = def.Fields[slot];
@@ -277,7 +337,7 @@ internal static class ObjectEmitter
                     if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
                     {
                         w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                        w.Line($"    DeltaPack.DirtyTracking.Internal.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
                     }
                 }
                 w.Line("return result;");

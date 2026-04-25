@@ -150,7 +150,7 @@ public class GameServer : INetEventListener
         // RegisterSnapshot associates a baseline version with this snapshot so the
         // tracking filter scopes later EncodeDiff(snapshot, state) calls correctly.
         var snapshot = GameState.Clone(_game.State);
-        DirtyTracking.RegisterSnapshot(snapshot, _game.State);
+        Tracker.RegisterSnapshot(snapshot, _game.State);
         _stateHistory[_game.State.Tick] = snapshot;
 
         // Prune old history

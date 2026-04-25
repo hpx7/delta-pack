@@ -3,33 +3,21 @@ namespace DeltaPack;
 /// <summary>
 /// A stateful handle over a one-way state-sync session between two endpoints.
 /// <para>
-/// Each endpoint holds a <see cref="SyncSession{T}"/> representing the current
-/// shared view of the peer's state. The sender calls <see cref="Encode"/> to
-/// produce bytes; the receiver calls <see cref="Decode"/> to apply them. Both
-/// sides converge on the same view as long as messages are delivered in order.
+/// Each session is bound to a <see cref="DeltaPack.Tracker"/> that owns its baseline /
+/// tombstone state, isolating it from any other session in the process.
 /// </para>
 /// <para>
-/// The class handles the "first call is full encode, subsequent are diffs"
-/// distinction internally. It also ensures the sender's view always matches
-/// what the peer reconstructs — even when the user's <c>state</c> object has
-/// been mutated or reordered in ways that would break a raw
-/// <c>EncodeDiff</c> call.
-/// </para>
-/// <para>
-/// Prefer the generated <c>CreateSyncSession()</c> factory on each schema type:
+/// Prefer the generated <c>CreateSyncSession()</c> / <c>CreateSyncSession(Tracker)</c>
+/// factories on each schema type:
 /// </para>
 /// <code>
-/// var session = GameState.CreateSyncSession();
+/// var session = GameState.CreateSyncSession(myTracker);
 /// </code>
-/// <para>
-/// The delegate-taking constructor below is the lower-level entry point — useful
-/// when you need to pass custom encode/decode/clone callbacks, but most callers
-/// should go through the factory.
-/// </para>
 /// </summary>
 public sealed class SyncSession<T>
     where T : class
 {
+    private readonly Tracker _tracker;
     private readonly Func<T, byte[]> _encode;
     private readonly Func<byte[], T> _decode;
     private readonly Func<T, T, byte[]> _encodeDiff;
@@ -38,12 +26,14 @@ public sealed class SyncSession<T>
     private T? _view;
 
     public SyncSession(
+        Tracker tracker,
         Func<T, byte[]> encode,
         Func<byte[], T> decode,
         Func<T, T, byte[]> encodeDiff,
         Func<T, byte[], T> decodeDiff,
         Func<T, T> clone)
     {
+        _tracker = tracker;
         _encode = encode;
         _decode = decode;
         _encodeDiff = encodeDiff;
@@ -52,10 +42,24 @@ public sealed class SyncSession<T>
     }
 
     /// <summary>
-    /// Produce bytes to send to the peer. First call emits a full encode;
-    /// subsequent calls emit a diff against the current view. Either way,
-    /// the internal view is updated to match what the peer will hold after
-    /// applying the returned bytes.
+    /// Convenience overload binding to <see cref="Tracker.Default"/>. Use when you don't need
+    /// per-domain isolation — typically untracked types or single-room apps.
+    /// </summary>
+    public SyncSession(
+        Func<T, byte[]> encode,
+        Func<byte[], T> decode,
+        Func<T, T, byte[]> encodeDiff,
+        Func<T, byte[], T> decodeDiff,
+        Func<T, T> clone)
+        : this(Tracker.Default, encode, decode, encodeDiff, decodeDiff, clone) { }
+
+    /// <summary>The tracker this session's baselines are recorded against.</summary>
+    public Tracker Tracker => _tracker;
+
+    /// <summary>
+    /// Produce bytes to send to the peer. First call emits a full encode; subsequent calls
+    /// emit a diff against the current view. Either way, the internal view is updated to
+    /// match what the peer will hold after applying the returned bytes.
     /// </summary>
     public byte[] Encode(T state)
     {
@@ -63,15 +67,16 @@ public sealed class SyncSession<T>
         // Simulate the peer's decode to keep our view aligned with theirs, even when `state`
         // has been reordered in ways that would break raw EncodeDiff.
         _view = _view is null ? _clone(state) : _decodeDiff(_view, bytes);
-        // Register the new view so the next EncodeDiff call sees the right baseline (looked up
-        // implicitly via snapshot identity) and so tombstone pruning's cutoff tracks this session.
-        DirtyTracking.RegisterSnapshot(_view, state);
+        // Register the new view so the next EncodeDiff sees the right baseline (looked up
+        // implicitly by snapshot identity) and so tombstone pruning's cutoff tracks this
+        // session. Auto-routes to state's tracker.
+        Tracker.RegisterSnapshot(_view, state);
         return bytes;
     }
 
     /// <summary>
-    /// Apply bytes received from the peer. First call expects a full encode;
-    /// subsequent calls expect a diff. Returns the updated view.
+    /// Apply bytes received from the peer. First call expects a full encode; subsequent calls
+    /// expect a diff. Returns the updated view.
     /// </summary>
     public T Decode(byte[] bytes)
     {
@@ -79,9 +84,6 @@ public sealed class SyncSession<T>
         return _view;
     }
 
-    /// <summary>
-    /// The current view, or <c>null</c> if neither <see cref="Encode"/> nor
-    /// <see cref="Decode"/> has been called.
-    /// </summary>
+    /// <summary>The current view, or <c>null</c> if neither <see cref="Encode"/> nor <see cref="Decode"/> has been called.</summary>
     public T? Current => _view;
 }

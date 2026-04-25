@@ -13,11 +13,27 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 {
     private readonly List<T> _inner;
     private readonly Dictionary<int, long> _dirty = new();
+    private Tracker _tracker;
 
-    public TrackedList() => _inner = new List<T>();
-    public TrackedList(int capacity) => _inner = new List<T>(capacity);
-    public TrackedList(IEnumerable<T> source)
+    public TrackedList() : this(Tracker.Default) { }
+    public TrackedList(int capacity) : this(Tracker.Default, capacity) { }
+    public TrackedList(IEnumerable<T> source) : this(Tracker.Default, source) { }
+
+    public TrackedList(Tracker tracker)
     {
+        _tracker = tracker;
+        _inner = new List<T>();
+    }
+
+    public TrackedList(Tracker tracker, int capacity)
+    {
+        _tracker = tracker;
+        _inner = new List<T>(capacity);
+    }
+
+    public TrackedList(Tracker tracker, IEnumerable<T> source)
+    {
+        _tracker = tracker;
         _inner = new List<T>(source);
         CheckNewSlotBatch(_inner);
         ReparentRange(0, _inner.Count);
@@ -32,12 +48,12 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public static TrackedList<T> CreateSnapshot(TrackedList<T> source, System.Func<T, T> cloneValue)
     {
-        var result = new TrackedList<T>(source._inner.Count);
+        var result = new TrackedList<T>(source._tracker, source._inner.Count);
         for (int i = 0; i < source._inner.Count; i++)
         {
             var cloned = cloneValue(source._inner[i]);
             result._inner.Add(cloned);
-            if (cloned is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
+            if (cloned is IDirtyTracked child) TrackingOps.Reparent(child, result, i);
         }
         return result;
     }
@@ -50,11 +66,11 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public static TrackedList<T> CreateSnapshot(TrackedList<T> source)
     {
-        var result = new TrackedList<T>(source._inner.Count);
+        var result = new TrackedList<T>(source._tracker, source._inner.Count);
         for (int i = 0; i < source._inner.Count; i++)
         {
             result._inner.Add(source._inner[i]);
-            if (source._inner[i] is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
+            if (source._inner[i] is IDirtyTracked child) TrackingOps.Reparent(child, result, i);
         }
         return result;
     }
@@ -62,17 +78,15 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     /// <summary>
     /// Internal decoder entry point: builds a new list with <paramref name="capacity"/> seeded
     /// by copying the first <paramref name="copyLen"/> elements of <paramref name="source"/>.
-    /// Bypasses the mutation-path aliasing guard (the decoder owns both source and result and
-    /// may legitimately move tracked children between them) and reparents those children onto
-    /// the returned list.
+    /// Bypasses the mutation-path aliasing guard.
     /// </summary>
-    internal static TrackedList<T> CopyPrefixForDecode(TrackedList<T> source, int copyLen, int capacity)
+    internal static TrackedList<T> CopyPrefixForDecode(TrackedList<T> source, int copyLen, int capacity, Tracker tracker)
     {
-        var result = new TrackedList<T>(capacity);
+        var result = new TrackedList<T>(tracker, capacity);
         for (int i = 0; i < copyLen; i++)
         {
             result._inner.Add(source._inner[i]);
-            if (source._inner[i] is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
+            if (source._inner[i] is IDirtyTracked child) TrackingOps.Reparent(child, result, i);
         }
         return result;
     }
@@ -83,15 +97,11 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     private object? _parentKey;
     private int _parentSlot = -1;
 
+    Tracker IDirtyTracked.Tracker { get => _tracker; set => _tracker = value; }
     IDirtyTracked? IDirtyTracked.Parent { get => _parent; set => _parent = value; }
     object? IDirtyTracked.ParentKey { get => _parentKey; set => _parentKey = value; }
     int IDirtyTracked.ParentSlot { get => _parentSlot; set => _parentSlot = value; }
 
-    /// <summary>
-    /// Per-index versions of entries mutated since the last snapshot. Encoder-facing plumbing —
-    /// not intended for user code. Access via a cast: <c>((TrackedList&lt;T&gt;)list).DirtyIndices</c>
-    /// would still work but <see cref="EditorBrowsableAttribute"/> keeps it out of IntelliSense.
-    /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public IReadOnlyDictionary<int, long> DirtyIndices => _dirty;
 
@@ -114,14 +124,14 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
             CheckReplace(value, index);
 
             if (_inner[index] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
-                DirtyTracking.Internal.Detach(oldChild);
+                TrackingOps.Detach(oldChild);
 
             _inner[index] = value;
-            if (value is IDirtyTracked newChild) DirtyTracking.Internal.Reparent(newChild, this, index);
+            if (value is IDirtyTracked newChild) TrackingOps.Reparent(newChild, this, index);
 
-            var v = DirtyTracking.Internal.NextVersion();
+            var v = Tracker.NextVersion();
             _dirty[index] = v;
-            DirtyTracking.Internal.PropagateToParent(this, v);
+            TrackingOps.PropagateToParent(this, v);
         }
     }
 
@@ -133,30 +143,28 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         var index = _inner.Count;
         CheckNewSlot(item);
         _inner.Add(item);
-        if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
-        var v = DirtyTracking.Internal.NextVersion();
+        if (item is IDirtyTracked child) TrackingOps.Reparent(child, this, index);
+        var v = Tracker.NextVersion();
         _dirty[index] = v;
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     public void AddRange(IEnumerable<T> items)
     {
-        // Materialize up front so the aliasing pre-scan sees the exact list that will be
-        // inserted (and so a lazy enumerable isn't walked twice).
         var materialized = items as IList<T> ?? new List<T>(items);
         if (materialized.Count == 0) return;
         var startIndex = _inner.Count;
         CheckNewSlotBatch(materialized);
 
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         foreach (var item in materialized)
         {
             var index = _inner.Count;
             _inner.Add(item);
-            if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
+            if (item is IDirtyTracked child) TrackingOps.Reparent(child, this, index);
             _dirty[index] = v;
         }
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     public void Insert(int index, T item)
@@ -164,12 +172,12 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         if (index < 0 || index > _inner.Count) throw new System.ArgumentOutOfRangeException(nameof(index));
         CheckNewSlot(item);
         _inner.Insert(index, item);
-        if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
+        if (item is IDirtyTracked child) TrackingOps.Reparent(child, this, index);
         UpdateParentKeys(index + 1, _inner.Count);
 
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         for (int i = index; i < _inner.Count; i++) _dirty[i] = v;
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     public bool Remove(T item)
@@ -185,14 +193,14 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         if (index < 0 || index >= _inner.Count) throw new System.ArgumentOutOfRangeException(nameof(index));
 
         if (_inner[index] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
-            DirtyTracking.Internal.Detach(oldChild);
+            TrackingOps.Detach(oldChild);
 
         _inner.RemoveAt(index);
         UpdateParentKeys(index, _inner.Count);
 
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         for (int i = index; i < _inner.Count + 1; i++) _dirty[i] = v;
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     /// <summary>Removes <paramref name="count"/> elements starting at <paramref name="index"/>.</summary>
@@ -205,15 +213,15 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         for (int i = index; i < index + count; i++)
         {
             if (_inner[i] is IDirtyTracked c && ReferenceEquals(c.Parent, this))
-                DirtyTracking.Internal.Detach(c);
+                TrackingOps.Detach(c);
         }
         var oldCount = _inner.Count;
         _inner.RemoveRange(index, count);
         UpdateParentKeys(index, _inner.Count);
 
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         for (int i = index; i < oldCount; i++) _dirty[i] = v;
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     /// <summary>Inserts each item in <paramref name="items"/> starting at <paramref name="index"/>.</summary>
@@ -227,16 +235,15 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 
         _inner.InsertRange(index, materialized);
 
-        // Reparent the freshly-inserted items, then update keys on everything shifted right.
         for (int i = 0; i < materialized.Count; i++)
         {
-            if (_inner[index + i] is IDirtyTracked c) DirtyTracking.Internal.Reparent(c, this, index + i);
+            if (_inner[index + i] is IDirtyTracked c) TrackingOps.Reparent(c, this, index + i);
         }
         UpdateParentKeys(index + materialized.Count, _inner.Count);
 
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         for (int i = index; i < _inner.Count; i++) _dirty[i] = v;
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     public void Clear()
@@ -245,12 +252,12 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         var oldCount = _inner.Count;
         for (int i = 0; i < oldCount; i++)
         {
-            if (_inner[i] is IDirtyTracked c && ReferenceEquals(c.Parent, this)) DirtyTracking.Internal.Detach(c);
+            if (_inner[i] is IDirtyTracked c && ReferenceEquals(c.Parent, this)) TrackingOps.Detach(c);
         }
         _inner.Clear();
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         for (int i = 0; i < oldCount; i++) _dirty[i] = v;
-        DirtyTracking.Internal.PropagateToParent(this, v);
+        TrackingOps.PropagateToParent(this, v);
     }
 
     /// <summary>
@@ -283,9 +290,6 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 
     // ============ Internal helpers ============
 
-    // Replace-at-index (indexer setter): allow re-seating the same child at the same index,
-    // which the ref-equality short-circuit at the top of the setter already handled — so
-    // at this point any non-null parent that isn't exactly (this, targetIndex) is an alias.
     private void CheckReplace(T value, int targetIndex)
     {
         if (value is IDirtyTracked child && child.Parent is not null
@@ -293,14 +297,10 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         {
             throw new System.InvalidOperationException(
                 "Cannot add a tracked child that is already attached to another parent or index — " +
-                "aliasing is not supported. Detach it from its current owner first (remove it from " +
-                "that container or reassign the prior slot).");
+                "aliasing is not supported. Detach it from its current owner first.");
         }
     }
 
-    // Append/insert operations always allocate a fresh slot, so any non-null parent on the
-    // incoming value means it's also still living in its previous slot — that's aliasing even
-    // if its existing ParentKey coincidentally matches the target index.
     private void CheckNewSlot(T value)
     {
         if (value is IDirtyTracked child && child.Parent is not null)
@@ -317,9 +317,6 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         {
             CheckNewSlot(items[i]);
             if (items[i] is not IDirtyTracked) continue;
-            // Intra-batch duplicate detection. O(n²) in batch size — acceptable because
-            // batches are typically tiny and we only enter this loop once per tracked
-            // element. Rejects `list.AddRange(new[] { shared, shared })`.
             for (int j = 0; j < i; j++)
             {
                 if (ReferenceEquals(items[j], items[i]))
@@ -334,10 +331,10 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 
     private void MarkAllDirtyAndReparent()
     {
-        var v = DirtyTracking.Internal.NextVersion();
+        var v = Tracker.NextVersion();
         for (int i = 0; i < _inner.Count; i++) _dirty[i] = v;
         UpdateParentKeys(0, _inner.Count);
-        if (_inner.Count > 0) DirtyTracking.Internal.PropagateToParent(this, v);
+        if (_inner.Count > 0) TrackingOps.PropagateToParent(this, v);
     }
 
     private void UpdateParentKeys(int start, int end)
@@ -353,7 +350,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     {
         for (int i = start; i < end; i++)
         {
-            if (_inner[i] is IDirtyTracked c) DirtyTracking.Internal.Reparent(c, this, i);
+            if (_inner[i] is IDirtyTracked c) TrackingOps.Reparent(c, this, i);
         }
     }
 }

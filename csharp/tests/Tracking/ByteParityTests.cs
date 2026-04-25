@@ -10,9 +10,9 @@ namespace DeltaPack.Tests.Tracking;
 /// to be a pure cost optimization — it must never alter the wire format.
 /// <para>
 /// Low-level use of <c>EncodeDiff</c> with tracked classes requires registering
-/// the baseline via <see cref="DirtyTracking.RegisterSnapshot"/> so the encoder's
-/// version filter has the right cutoff — the association is looked up implicitly
-/// by snapshot identity. <see cref="SyncSession{T}"/> handles this automatically.
+/// the baseline via <see cref="Tracker.RegisterSnapshot"/> on the source's tracker
+/// so the encoder's version filter has the right cutoff. <see cref="SyncSession{T}"/>
+/// handles this automatically.
 /// </para>
 /// </summary>
 public class ByteParityTests
@@ -20,7 +20,7 @@ public class ByteParityTests
     private static T Snapshot<T>(T source, Func<T, T> clone) where T : class
     {
         var snap = clone(source);
-        DirtyTracking.RegisterSnapshot(snap, source);
+        Tracker.RegisterSnapshot(snap, source);
         return snap;
     }
 

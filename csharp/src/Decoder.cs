@@ -15,6 +15,13 @@ public class Decoder
     private readonly List<string> _dict;
     private readonly RleReader _rle;
 
+    /// <summary>
+    /// Tracker that decoded tracked-container instances (and tracked-class results) bind to.
+    /// Set by the entry-point Decode/DecodeDiff methods so that decoded values land in the
+    /// correct domain.
+    /// </summary>
+    public Tracker Tracker { get; set; } = Tracker.Default;
+
     public Decoder(byte[] buf)
     {
         _buffer = buf;
@@ -290,7 +297,7 @@ public class Decoder
         var copyLen = Math.Min(arr.Count, newLen);
         // Prefill via the internal copy (same reasoning as NextRecordDiff) so the aliasing
         // guard on Add() doesn't fire on children still parented to `arr`.
-        var result = TrackedList<T>.CopyPrefixForDecode(arr, copyLen, newLen);
+        var result = TrackedList<T>.CopyPrefixForDecode(arr, copyLen, newLen, Tracker);
 
         var numUpdates = (int)NextUInt();
         for (var i = 0; i < numUpdates; i++)

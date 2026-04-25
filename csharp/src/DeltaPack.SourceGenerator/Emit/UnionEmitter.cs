@@ -149,7 +149,9 @@ internal static class UnionEmitter
         using (w.Block($"public static byte[] EncodeDiff({def.SimpleName} a, {def.SimpleName} b)"))
         {
             w.Line("var encoder = new DeltaPack.Encoder();");
-            w.Line("encoder.MinVersion = DeltaPack.DirtyTracking.Internal.GetBaselineFor(a);");
+            // Variants are themselves tracked classes; read the snapshot's tracker via the
+            // IDirtyTracked surface so we get the right per-domain baseline.
+            w.Line("encoder.MinVersion = a is DeltaPack.IDirtyTracked __dp_a ? __dp_a.Tracker.GetBaselineFor(a) : -1;");
             w.Line("EncodeDiff_(a, b, encoder);");
             w.Line("return encoder.ToBuffer();");
         }
@@ -182,7 +184,12 @@ internal static class UnionEmitter
         // Decode
         using (w.Block($"public static {def.SimpleName} Decode(byte[] buf)"))
         {
-            w.Line("var decoder = new DeltaPack.Decoder(buf);");
+            w.Line("return Decode(buf, DeltaPack.Tracker.Default);");
+        }
+        w.Line();
+        using (w.Block($"public static {def.SimpleName} Decode(byte[] buf, DeltaPack.Tracker tracker)"))
+        {
+            w.Line("var decoder = new DeltaPack.Decoder(buf) { Tracker = tracker };");
             w.Line("return Decode_(decoder);");
         }
         w.Line();
@@ -203,6 +210,7 @@ internal static class UnionEmitter
         using (w.Block($"public static {def.SimpleName} DecodeDiff({def.SimpleName} obj, byte[] diff)"))
         {
             w.Line("var decoder = new DeltaPack.Decoder(diff);");
+            w.Line("if (obj is DeltaPack.IDirtyTracked __dp_obj) decoder.Tracker = __dp_obj.Tracker;");
             w.Line("return DecodeDiff_(obj, decoder);");
         }
         w.Line();
@@ -237,7 +245,10 @@ internal static class UnionEmitter
         // CreateSyncSession — factory for the SyncSession wrapper using this type's
         // generated static methods as delegates.
         w.Line($"public static DeltaPack.SyncSession<{def.SimpleName}> CreateSyncSession()");
-        w.Line($"    => new(Encode, Decode, EncodeDiff, DecodeDiff, Clone);");
+        w.Line($"    => CreateSyncSession(DeltaPack.Tracker.Default);");
+        w.Line();
+        w.Line($"public static DeltaPack.SyncSession<{def.SimpleName}> CreateSyncSession(DeltaPack.Tracker tracker)");
+        w.Line($"    => new(tracker, Encode, buf => Decode(buf, tracker), EncodeDiff, DecodeDiff, Clone);");
     }
 
     private static string Short(string fqn)

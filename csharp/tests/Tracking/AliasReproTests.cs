@@ -54,7 +54,7 @@ public class AliasReproTests
 
         shared.X = 42;
         var snap = TrackedPair.Clone(live);
-        DirtyTracking.RegisterSnapshot(snap, live);
+        Tracker.RegisterSnapshot(snap, live);
 
         shared.X = 99;
         var decoded = TrackedPair.DecodeDiff(snap, TrackedPair.EncodeDiff(snap, live));
