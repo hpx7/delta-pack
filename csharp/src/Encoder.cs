@@ -21,6 +21,15 @@ public class Encoder
     private readonly RleWriter _rle;
     private readonly StringInterner _interner;
 
+    /// <summary>
+    /// Baseline version used by this encoder's diff paths. Fields / entries whose recorded dirty
+    /// version is &gt; <see cref="MinVersion"/> are treated as "changed since the baseline" and
+    /// included in the diff; everything else is skipped. <see cref="SyncSession{T}"/> sets this
+    /// automatically from its per-session scalar; raw <see cref="EncodeDiff"/> callers can leave
+    /// it at its default of -1 to include every field.
+    /// </summary>
+    public long MinVersion { get; set; } = -1;
+
     public Encoder()
     {
         _buffer = _sharedBuffer ??= new byte[DefaultBufferSize];
@@ -215,9 +224,9 @@ public class Encoder
         if (b is ITrackedObject tb)
         {
             // Tracked fast path: unrolled short-circuit OR over compile-time slot versions,
-            // no dictionary walk.
-            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
-            changed = tb.IsAnyDirtyAfter(minVersion);
+            // no dictionary walk. Baseline version is carried on the Encoder (set by
+            // EncodeDiff's top-level entry point) — see Encoder.MinVersion.
+            changed = tb.IsAnyDirtyAfter(MinVersion);
         }
         else
         {
@@ -290,7 +299,7 @@ public class Encoder
 
         if (b is TrackedList<T> tb)
         {
-            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
+            var minVersion = MinVersion;
             foreach (var kvp in tb.DirtyIndices)
             {
                 if (kvp.Key < minLen && kvp.Value > minVersion)
@@ -337,7 +346,7 @@ public class Encoder
         if (b is TrackedOrderedDict<TKey, TValue> tb)
         {
             // Tracked fast path: use per-key change maps instead of scanning both sides.
-            var minVersion = a is IDirtyTracked ta ? ta.SnapshotVersion : -1L;
+            var minVersion = MinVersion;
 
             // Resolve `a`'s key→index lookup once. Common case: a is itself an
             // OrderedDict or TrackedOrderedDict (because the generator always emits the same

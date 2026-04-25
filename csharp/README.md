@@ -219,8 +219,9 @@ byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/enco
   Using `List<T>` or `OrderedDict<TKey, TValue>` on a tracked class produces diagnostics
   `DP012` / `DP013` with code fixes that swap in the tracked variant.
 - `Clone` on a tracked class is a plain deep copy. When using raw `EncodeDiff` with the
-  clone as the baseline, call `DirtyTracking.RegisterSnapshot(snap, source)` first to stamp
-  its `SnapshotVersion` so tracking's version filter scopes the diff correctly.
+  clone as the baseline, call `DirtyTracking.RegisterSnapshot(snap, source)` so tracking's
+  version filter knows at which version the snapshot was taken — the baseline is looked up
+  implicitly by snapshot identity in subsequent `EncodeDiff(snap, source)` calls.
   `SyncSession<T>` handles this for you.
 - **Unity is currently unsupported** for `[DeltaPackTracked]` classes — Unity's bundled Roslyn
   doesn't support C# 13 partial properties. Untracked `[DeltaPack]` classes work as before.

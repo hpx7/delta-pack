@@ -20,7 +20,7 @@ public class TrackingTests
     public void Setting_property_marks_field_dirty()
     {
         var p = new TrackedPosition();
-        var startVersion = DirtyTracking.CurrentVersion;
+        var startVersion = DirtyTracking.Internal.CurrentVersion;
         p.X = 5f;
         p.Y = 10f;
 
@@ -225,19 +225,7 @@ public class TrackingTests
     // ============ Snapshot semantics ============
 
     [Fact]
-    public void RegisterSnapshot_stamps_current_version()
-    {
-        var live = TrackedPosition.Default();
-        live.X = 1f;
-        var snap = TrackedPosition.Clone(live);
-        DirtyTracking.RegisterSnapshot(snap, live);
-
-        var snapTracked = (IDirtyTracked)snap;
-        Assert.Equal(DirtyTracking.CurrentVersion, snapTracked.SnapshotVersion);
-    }
-
-    [Fact]
-    public void EncodeDiff_after_snapshot_only_emits_changed_fields()
+    public void RegisterSnapshot_scopes_EncodeDiff_to_post_snapshot_mutations()
     {
         var live = TrackedPosition.Default();
         live.X = 1f;
@@ -254,28 +242,31 @@ public class TrackingTests
     }
 
     [Fact]
-    public void RegisterSnapshot_propagates_version_into_nested_collections()
+    public void Setter_short_circuits_repeat_mutation_within_same_snapshot_window()
     {
-        // Regression: nested TrackedList/TrackedOrderedDict on a snapshot must have
-        // their SnapshotVersion set so the encoder's index-based filter has the right baseline.
-        var live = TrackedPlayer.Default();
-        live.Inventory.Add(1);
-        live.Inventory.Add(2);
-
-        var snap = TrackedPlayer.Clone(live);
-        DirtyTracking.RegisterSnapshot(snap, live);
-        var snapInventory = (IDirtyTracked)snap.Inventory;
-        Assert.Equal(DirtyTracking.CurrentVersion, snapInventory.SnapshotVersion);
-    }
-
-    [Fact]
-    public void Parent_propagation_short_circuits_when_version_already_higher()
-    {
-        // Burn through some versions to verify PropagateToParent stops walking up the chain
-        // once the parent's recorded version for the key is >= the propagated version.
+        // Second mutation to the same field within one snapshot window must NOT bump the
+        // version — the field is already dirty past every pending baseline, so NextVersion +
+        // parent-chain propagation would be pure overhead.
         var live = TrackedPlayer.Default();
         live.Pos.X = 1f;
         var versionAfterFirst = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
+        live.Pos.X = 2f;
+        var versionAfterSecond = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
+        Assert.Equal(versionAfterFirst, versionAfterSecond);
+    }
+
+    [Fact]
+    public void Setter_short_circuit_reactivates_after_new_snapshot()
+    {
+        // After RegisterSnapshot advances LatestBaseline past the last dirty version, the
+        // next mutation must take the full path again so a subsequent EncodeDiff against the
+        // new snapshot sees the field as changed.
+        var live = TrackedPlayer.Default();
+        live.Pos.X = 1f;
+        var versionAfterFirst = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
+
+        DirtyTracking.RegisterSnapshot(TrackedPlayer.Clone(live), live);
+
         live.Pos.X = 2f;
         var versionAfterSecond = ((ITrackedObject)live).GetDirtyVersion(SlotPlayerPos);
         Assert.True(versionAfterSecond > versionAfterFirst);

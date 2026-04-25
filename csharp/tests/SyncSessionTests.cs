@@ -74,36 +74,6 @@ public class SyncSessionTests
     }
 
     [Fact]
-    public void StampsSnapshotVersionOnViewAfterDiffEncode()
-    {
-        var sender = TrackedRegistry.CreateSyncSession();
-
-        var state = new TrackedRegistry
-        {
-            Players = new TrackedOrderedDict<string, TrackedPlayer>
-            {
-                { "a", new TrackedPlayer { Name = "Alice", Score = 10 } },
-            },
-        };
-
-        // First Encode: SyncSession stamps the view (from Clone) via RegisterSnapshot.
-        sender.Encode(state);
-        var versionAfterFirst = ((IDirtyTracked)sender.Current!).SnapshotVersion;
-        Assert.True(versionAfterFirst > -1);
-
-        // Mutate and Encode again. View is now produced by DecodeDiff — without
-        // SyncSession's RegisterSnapshot hook its SnapshotVersion would stay at
-        // the previous stamp, breaking the version-based diff filter (and
-        // DeletedKeys tombstone pruning) from this point on. With the fix, it
-        // advances past the first snapshot.
-        state.Players["a"].Score = 11;
-        sender.Encode(state);
-        var versionAfterSecond = ((IDirtyTracked)sender.Current!).SnapshotVersion;
-        Assert.True(versionAfterSecond > versionAfterFirst,
-            $"expected view's SnapshotVersion to advance past {versionAfterFirst}, got {versionAfterSecond}");
-    }
-
-    [Fact]
     public void KeepsTrackedStateInSyncAcrossManyTicks()
     {
         var sender = TrackedRegistry.CreateSyncSession();

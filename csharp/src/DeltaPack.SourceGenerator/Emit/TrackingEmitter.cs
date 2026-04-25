@@ -12,27 +12,10 @@ internal static class TrackingEmitter
     public static void EmitTrackingMembers(CodeWriter w, TypeDef def, ModelRegistry reg)
     {
         EmitInterfaceImpl(w, def);
-        w.Line();
-        EmitSetSnapshotVersionRecursive(w, def, reg);
         for (int i = 0; i < def.Fields.Length; i++)
         {
             w.Line();
             EmitPartialProperty(w, def.Fields[i], i, reg);
-        }
-    }
-
-    private static void EmitSetSnapshotVersionRecursive(CodeWriter w, TypeDef def, ModelRegistry reg)
-    {
-        using (w.Block("void DeltaPack.IDirtyTracked.SetSnapshotVersionRecursive(long version)"))
-        {
-            w.Line("SnapshotVersion = version;");
-            foreach (var f in def.Fields)
-            {
-                if (!ExpressionRenderer.ChildIsTrackable(f.Type, reg)) continue;
-                // Field accessor: use the partial property which re-establishes parent on get.
-                // The null-check covers Optional<T> nullable references.
-                w.Line($"if ({f.Name} is DeltaPack.IDirtyTracked __t_{f.Name}) __t_{f.Name}.SetSnapshotVersionRecursive(version);");
-            }
         }
     }
 
@@ -45,15 +28,22 @@ internal static class TrackingEmitter
             w.Line($"private long __dp_dirty{i} = -1;");
         w.Line();
 
-        w.Line("public long SnapshotVersion { get; set; } = -1;");
-        w.Line("public DeltaPack.IDirtyTracked? Parent { get; set; }");
-        w.Line("public object? ParentKey { get; set; }");
-        w.Line("public int ParentSlot { get; set; } = -1;");
+        // IDirtyTracked backing fields + explicit impl. Explicit so the interface members
+        // (Parent / ParentKey / ParentSlot) don't appear on the concrete type's IntelliSense
+        // surface and can't be assigned through `instance.Parent = x` (which would corrupt the
+        // parent chain). Runtime calls go through IDirtyTracked-typed variables, so the cast
+        // cost is zero.
+        w.Line("private DeltaPack.IDirtyTracked? __dp_parent;");
+        w.Line("private object? __dp_parentKey;");
+        w.Line("private int __dp_parentSlot = -1;");
+        w.Line("DeltaPack.IDirtyTracked? DeltaPack.IDirtyTracked.Parent { get => __dp_parent; set => __dp_parent = value; }");
+        w.Line("object? DeltaPack.IDirtyTracked.ParentKey { get => __dp_parentKey; set => __dp_parentKey = value; }");
+        w.Line("int DeltaPack.IDirtyTracked.ParentSlot { get => __dp_parentSlot; set => __dp_parentSlot = value; }");
         w.Line();
 
         // Slot-based fast path. MarkDirty is invoked during parent-chain propagation
-        // (DirtyTracking.PropagateToParent) with the child's ParentSlot — no boxing, no
-        // string switch. GetDirtyVersion / IsAnyDirtyAfter are user-facing for inspection and
+        // (DirtyTracking.Internal.PropagateToParent) with the child's ParentSlot — no boxing,
+        // no string switch. GetDirtyVersion / IsAnyDirtyAfter are user-facing for inspection and
         // encoder-side fast-checks respectively.
         using (w.Block("bool DeltaPack.ITrackedObject.MarkDirty(int slot, long version)"))
         {
@@ -133,7 +123,7 @@ internal static class TrackingEmitter
                 using (w.Block("get"))
                 {
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __t && !object.ReferenceEquals(__t.Parent, this))");
-                    w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__t, this, {slot});");
+                    w.Line($"    DeltaPack.DirtyTracking.Internal.ReparentToObject(__t, this, {slot});");
                     w.Line($"return {backing};");
                 }
             }
@@ -148,17 +138,23 @@ internal static class TrackingEmitter
                 if (trackable)
                 {
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __old && object.ReferenceEquals(__old.Parent, this))");
-                    w.Line($"    DeltaPack.DirtyTracking.Detach(__old);");
+                    w.Line($"    DeltaPack.DirtyTracking.Internal.Detach(__old);");
                 }
                 w.Line($"{backing} = value;");
                 if (trackable)
                 {
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __new)");
-                    w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__new, this, {slot});");
+                    w.Line($"    DeltaPack.DirtyTracking.Internal.ReparentToObject(__new, this, {slot});");
                 }
-                w.Line("var __v = DeltaPack.DirtyTracking.NextVersion();");
+                // Fast path: if this slot is already dirty past every pending baseline, the
+                // next EncodeDiff will emit the field regardless of what we record here. Skip
+                // the atomic NextVersion + parent walk — both are observable-free in this
+                // state. The detach/reparent above still has to run (structural child->parent
+                // correctness for future propagations), but version bookkeeping is pure cost.
+                w.Line($"if (__dp_dirty{slot} > DeltaPack.DirtyTracking.Internal.LatestBaseline) return;");
+                w.Line("var __v = DeltaPack.DirtyTracking.Internal.NextVersion();");
                 w.Line($"__dp_dirty{slot} = __v;");
-                w.Line("DeltaPack.DirtyTracking.PropagateToParent(this, __v);");
+                w.Line("DeltaPack.DirtyTracking.Internal.PropagateToParent(this, __v);");
             }
         }
     }

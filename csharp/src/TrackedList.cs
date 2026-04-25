@@ -36,7 +36,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         {
             var cloned = cloneValue(source._inner[i]);
             result._inner.Add(cloned);
-            if (cloned is IDirtyTracked child) DirtyTracking.Reparent(child, result, i);
+            if (cloned is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
         }
         return result;
     }
@@ -53,19 +53,28 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         for (int i = 0; i < source._inner.Count; i++)
         {
             result._inner.Add(source._inner[i]);
-            if (source._inner[i] is IDirtyTracked child) DirtyTracking.Reparent(child, result, i);
+            if (source._inner[i] is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
         }
         return result;
     }
 
-    // ============ IDirtyTracked ============
+    // ============ IDirtyTracked / ITrackedContainer (explicit impl — source-gen plumbing) ============
 
-    /// <summary>Per-index versions of entries mutated since the last snapshot.</summary>
+    private IDirtyTracked? _parent;
+    private object? _parentKey;
+    private int _parentSlot = -1;
+
+    IDirtyTracked? IDirtyTracked.Parent { get => _parent; set => _parent = value; }
+    object? IDirtyTracked.ParentKey { get => _parentKey; set => _parentKey = value; }
+    int IDirtyTracked.ParentSlot { get => _parentSlot; set => _parentSlot = value; }
+
+    /// <summary>
+    /// Per-index versions of entries mutated since the last snapshot. Encoder-facing plumbing —
+    /// not intended for user code. Access via a cast: <c>((TrackedList&lt;T&gt;)list).DirtyIndices</c>
+    /// would still work but <see cref="EditorBrowsableAttribute"/> keeps it out of IntelliSense.
+    /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public IReadOnlyDictionary<int, long> DirtyIndices => _dirty;
-    public long SnapshotVersion { get; set; } = -1;
-    public IDirtyTracked? Parent { get; set; }
-    public object? ParentKey { get; set; }
-    public int ParentSlot { get; set; } = -1;
 
     bool ITrackedContainer.MarkDirty(object key, long version)
     {
@@ -73,15 +82,6 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         if (_dirty.TryGetValue(i, out var existing) && existing >= version) return false;
         _dirty[i] = version;
         return true;
-    }
-
-    void IDirtyTracked.SetSnapshotVersionRecursive(long version)
-    {
-        SnapshotVersion = version;
-        foreach (var item in _inner)
-        {
-            if (item is IDirtyTracked t) t.SetSnapshotVersionRecursive(version);
-        }
     }
 
     // ============ Mutating operations ============
@@ -94,14 +94,14 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
             if (EqualityComparer<T>.Default.Equals(_inner[index], value)) return;
 
             if (_inner[index] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
-                DirtyTracking.Detach(oldChild);
+                DirtyTracking.Internal.Detach(oldChild);
 
             _inner[index] = value;
-            if (value is IDirtyTracked newChild) DirtyTracking.Reparent(newChild, this, index);
+            if (value is IDirtyTracked newChild) DirtyTracking.Internal.Reparent(newChild, this, index);
 
-            var v = DirtyTracking.NextVersion();
+            var v = DirtyTracking.Internal.NextVersion();
             _dirty[index] = v;
-            DirtyTracking.PropagateToParent(this, v);
+            DirtyTracking.Internal.PropagateToParent(this, v);
         }
     }
 
@@ -112,36 +112,36 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     {
         var index = _inner.Count;
         _inner.Add(item);
-        if (item is IDirtyTracked child) DirtyTracking.Reparent(child, this, index);
-        var v = DirtyTracking.NextVersion();
+        if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
+        var v = DirtyTracking.Internal.NextVersion();
         _dirty[index] = v;
-        DirtyTracking.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     public void AddRange(IEnumerable<T> items)
     {
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         var startIndex = _inner.Count;
         foreach (var item in items)
         {
             var index = _inner.Count;
             _inner.Add(item);
-            if (item is IDirtyTracked child) DirtyTracking.Reparent(child, this, index);
+            if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
             _dirty[index] = v;
         }
-        if (_inner.Count > startIndex) DirtyTracking.PropagateToParent(this, v);
+        if (_inner.Count > startIndex) DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     public void Insert(int index, T item)
     {
         if (index < 0 || index > _inner.Count) throw new System.ArgumentOutOfRangeException(nameof(index));
         _inner.Insert(index, item);
-        if (item is IDirtyTracked child) DirtyTracking.Reparent(child, this, index);
+        if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
         UpdateParentKeys(index + 1, _inner.Count);
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         for (int i = index; i < _inner.Count; i++) _dirty[i] = v;
-        DirtyTracking.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     public bool Remove(T item)
@@ -157,14 +157,14 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         if (index < 0 || index >= _inner.Count) throw new System.ArgumentOutOfRangeException(nameof(index));
 
         if (_inner[index] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
-            DirtyTracking.Detach(oldChild);
+            DirtyTracking.Internal.Detach(oldChild);
 
         _inner.RemoveAt(index);
         UpdateParentKeys(index, _inner.Count);
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         for (int i = index; i < _inner.Count + 1; i++) _dirty[i] = v;
-        DirtyTracking.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     /// <summary>Removes <paramref name="count"/> elements starting at <paramref name="index"/>.</summary>
@@ -177,15 +177,15 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         for (int i = index; i < index + count; i++)
         {
             if (_inner[i] is IDirtyTracked c && ReferenceEquals(c.Parent, this))
-                DirtyTracking.Detach(c);
+                DirtyTracking.Internal.Detach(c);
         }
         var oldCount = _inner.Count;
         _inner.RemoveRange(index, count);
         UpdateParentKeys(index, _inner.Count);
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         for (int i = index; i < oldCount; i++) _dirty[i] = v;
-        DirtyTracking.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     /// <summary>Inserts each item in <paramref name="items"/> starting at <paramref name="index"/>.</summary>
@@ -201,13 +201,13 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         // Reparent the freshly-inserted items, then update keys on everything shifted right.
         for (int i = 0; i < materialized.Count; i++)
         {
-            if (_inner[index + i] is IDirtyTracked c) DirtyTracking.Reparent(c, this, index + i);
+            if (_inner[index + i] is IDirtyTracked c) DirtyTracking.Internal.Reparent(c, this, index + i);
         }
         UpdateParentKeys(index + materialized.Count, _inner.Count);
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         for (int i = index; i < _inner.Count; i++) _dirty[i] = v;
-        DirtyTracking.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     public void Clear()
@@ -216,12 +216,12 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         var oldCount = _inner.Count;
         for (int i = 0; i < oldCount; i++)
         {
-            if (_inner[i] is IDirtyTracked c && ReferenceEquals(c.Parent, this)) DirtyTracking.Detach(c);
+            if (_inner[i] is IDirtyTracked c && ReferenceEquals(c.Parent, this)) DirtyTracking.Internal.Detach(c);
         }
         _inner.Clear();
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         for (int i = 0; i < oldCount; i++) _dirty[i] = v;
-        DirtyTracking.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     /// <summary>
@@ -256,10 +256,10 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 
     private void MarkAllDirtyAndReparent()
     {
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         for (int i = 0; i < _inner.Count; i++) _dirty[i] = v;
         UpdateParentKeys(0, _inner.Count);
-        if (_inner.Count > 0) DirtyTracking.PropagateToParent(this, v);
+        if (_inner.Count > 0) DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     private void UpdateParentKeys(int start, int end)
@@ -275,7 +275,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     {
         for (int i = start; i < end; i++)
         {
-            if (_inner[i] is IDirtyTracked c) DirtyTracking.Reparent(c, this, i);
+            if (_inner[i] is IDirtyTracked c) DirtyTracking.Internal.Reparent(c, this, i);
         }
     }
 }

@@ -146,9 +146,9 @@ public class GameServer : INetEventListener
 
         // Store cloned state for ack-based delta encoding. This isn't SyncSession
         // territory: each client acks a specific tick and we diff against *that*
-        // historical state, not a running "peer view." Clone is a pure deep copy
-        // after the API decoupling, so we also call RegisterSnapshot so the
-        // tracking version filter scopes the diff correctly.
+        // historical state, not a running "peer view." Clone is a pure deep copy;
+        // RegisterSnapshot associates a baseline version with this snapshot so the
+        // tracking filter scopes later EncodeDiff(snapshot, state) calls correctly.
         var snapshot = GameState.Clone(_game.State);
         DirtyTracking.RegisterSnapshot(snapshot, _game.State);
         _stateHistory[_game.State.Tick] = snapshot;

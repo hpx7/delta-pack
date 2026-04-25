@@ -388,8 +388,9 @@ internal static class ExpressionRenderer
     /// parent, which dominates EncodeDiff cost when most fields short-circuit.
     /// </summary>
     /// <remarks>
-    /// Assumes the caller hoisted <c>var __dp_minVersion = a.SnapshotVersion;</c> at the top of
-    /// the enclosing <c>EncodeDiff_</c> method. See <see cref="ObjectEmitter.EmitEncodeDiff"/>.
+    /// <c>__dp_minVersion</c> is a parameter threaded through <c>EncodeDiff_</c> from the caller
+    /// (<see cref="SyncSession{T}"/>'s scalar baseline, or <c>-1</c> by default for raw
+    /// <c>EncodeDiff</c> users). See <see cref="ObjectEmitter.EmitEncodeDiff"/>.
     /// </remarks>
     public static void EncodeDiffField(CodeWriter w, FieldModel f, int slot, ModelRegistry reg, string aExpr, string bExpr, bool isTracked)
     {

@@ -149,6 +149,7 @@ internal static class UnionEmitter
         using (w.Block($"public static byte[] EncodeDiff({def.SimpleName} a, {def.SimpleName} b)"))
         {
             w.Line("var encoder = new DeltaPack.Encoder();");
+            w.Line("encoder.MinVersion = DeltaPack.DirtyTracking.Internal.GetBaselineFor(a);");
             w.Line("EncodeDiff_(a, b, encoder);");
             w.Line("return encoder.ToBuffer();");
         }

@@ -60,13 +60,11 @@ public sealed class SyncSession<T>
     public byte[] Encode(T state)
     {
         var bytes = _view is null ? _encode(state) : _encodeDiff(_view, state);
-        // Maintain a view of what the peer will hold after applying `bytes`. For
-        // the first call, a clone of `state` captures the wire order; for diffs,
-        // simulating the peer's decode keeps us aligned even when `state` has been
-        // reordered in ways that would break a raw EncodeDiff. We then stamp the
-        // view as a snapshot of `state` so tracking's version-based diff filter
-        // keeps working on subsequent encodes (no-op when state isn't tracked).
+        // Simulate the peer's decode to keep our view aligned with theirs, even when `state`
+        // has been reordered in ways that would break raw EncodeDiff.
         _view = _view is null ? _clone(state) : _decodeDiff(_view, bytes);
+        // Register the new view so the next EncodeDiff call sees the right baseline (looked up
+        // implicitly via snapshot identity) and so tombstone pruning's cutoff tracks this session.
         DirtyTracking.RegisterSnapshot(_view, state);
         return bytes;
     }

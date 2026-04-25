@@ -146,7 +146,7 @@ internal static class ObjectEmitter
                         // Optional<T> may legitimately be null; other trackable fields won't be.
                         // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
                         w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                        w.Line($"    DeltaPack.DirtyTracking.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        w.Line($"    DeltaPack.DirtyTracking.Internal.ReparentToObject(__t_{f.Name}, result, {slot});");
                     }
                 }
                 w.Line("return result;");
@@ -199,6 +199,10 @@ internal static class ObjectEmitter
         using (w.Block($"public static {newKw}byte[] EncodeDiff({def.SimpleName} a, {def.SimpleName} b)"))
         {
             w.Line("var encoder = new DeltaPack.Encoder();");
+            // Look up the baseline associated with snapshot `a`. If the caller registered `a`
+            // via DirtyTracking.RegisterSnapshot, this returns the version at registration;
+            // otherwise -1 disables the tracking filter and the encoder falls back to equality.
+            w.Line("encoder.MinVersion = DeltaPack.DirtyTracking.Internal.GetBaselineFor(a);");
             // Method group `EncodeDiff_` binds to `Action<T, T, Encoder>` — the runtime caches
             // the delegate per type, avoiding the per-call closure that a `() => ...` lambda
             // would allocate.
@@ -210,11 +214,10 @@ internal static class ObjectEmitter
         {
             if (def.IsTracked)
             {
-                // Hoist the baseline snapshot version once — each inlined field diff block
-                // below compares against this. Without the hoist, every field would repeat
-                // the same property read (virtual on IDirtyTracked); with N fields that's
-                // O(N) redundant reads per tracked object in the hot path.
-                w.Line("var __dp_minVersion = a.SnapshotVersion;");
+                // Hoist the baseline once — each inlined field diff block compares against this.
+                // Reading Encoder.MinVersion repeatedly inside the hot loop would force a
+                // property-get at every field check on a tracked object.
+                w.Line("var __dp_minVersion = encoder.MinVersion;");
             }
             for (int i = 0; i < def.Fields.Length; i++)
                 ExpressionRenderer.EncodeDiffField(w, def.Fields[i], i, reg, "a", "b", def.IsTracked);

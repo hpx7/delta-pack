@@ -24,6 +24,12 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     private readonly Dictionary<TKey, long> _created = new();
     private readonly Dictionary<TKey, long> _deleted = new();
 
+    // True once this dict has been registered in DirtyTracking's tombstone-bearer set.
+    // Set on the first tombstone-creating Remove/Clear; never cleared (the registry handles
+    // de-registration by noticing PruneDeletedBefore returned false). Keeping this as a
+    // dict-local flag avoids a set membership check on every Remove.
+    private bool _registeredAsTombstoneBearer;
+
     public TrackedOrderedDict() => _inner = new OrderedDict<TKey, TValue>();
     public TrackedOrderedDict(int capacity) => _inner = new OrderedDict<TKey, TValue>(capacity);
     public TrackedOrderedDict(IDictionary<TKey, TValue> source)
@@ -31,7 +37,7 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         _inner = new OrderedDict<TKey, TValue>(source);
         foreach (var kvp in _inner)
         {
-            if (kvp.Value is IDirtyTracked child) DirtyTracking.Reparent(child, this, kvp.Key);
+            if (kvp.Value is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, kvp.Key);
         }
     }
 
@@ -52,7 +58,7 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         {
             var cloned = cloneValue(kvp.Value);
             result._inner.Add(kvp.Key, cloned);
-            if (cloned is IDirtyTracked child) DirtyTracking.Reparent(child, result, kvp.Key);
+            if (cloned is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, kvp.Key);
         }
         return result;
     }
@@ -69,24 +75,30 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         foreach (var kvp in source._inner)
         {
             result._inner.Add(kvp.Key, kvp.Value);
-            if (kvp.Value is IDirtyTracked child) DirtyTracking.Reparent(child, result, kvp.Key);
+            if (kvp.Value is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, kvp.Key);
         }
         return result;
     }
 
-    // ============ IDirtyTracked ============
+    // ============ IDirtyTracked / ITrackedContainer (explicit impl — source-gen plumbing) ============
 
-    /// <summary>Per-key versions for entries updated since the last snapshot.</summary>
+    private IDirtyTracked? _parent;
+    private object? _parentKey;
+    private int _parentSlot = -1;
+
+    IDirtyTracked? IDirtyTracked.Parent { get => _parent; set => _parent = value; }
+    object? IDirtyTracked.ParentKey { get => _parentKey; set => _parentKey = value; }
+    int IDirtyTracked.ParentSlot { get => _parentSlot; set => _parentSlot = value; }
+
+    /// <summary>Per-key versions for entries updated since the last snapshot. Encoder-facing plumbing.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public IReadOnlyDictionary<TKey, long> DirtyKeys => _dirty;
-    /// <summary>Per-key versions for entries inserted since the last snapshot.</summary>
+    /// <summary>Per-key versions for entries inserted since the last snapshot. Encoder-facing plumbing.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public IReadOnlyDictionary<TKey, long> CreatedKeys => _created;
-    /// <summary>Per-key versions for entries removed since the last snapshot.</summary>
+    /// <summary>Per-key versions for entries removed since the last snapshot. Encoder-facing plumbing.</summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public IReadOnlyDictionary<TKey, long> DeletedKeys => _deleted;
-
-    public long SnapshotVersion { get; set; } = -1;
-    public IDirtyTracked? Parent { get; set; }
-    public object? ParentKey { get; set; }
-    public int ParentSlot { get; set; } = -1;
 
     bool ITrackedContainer.MarkDirty(object key, long version)
     {
@@ -96,25 +108,29 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         return true;
     }
 
-    void IDirtyTracked.SetSnapshotVersionRecursive(long version)
+    bool IPruneable.PruneDeletedBefore(long minVersion)
     {
-        SnapshotVersion = version;
-        foreach (var kvp in _inner)
+        if (_deleted.Count == 0)
         {
-            if (kvp.Value is IDirtyTracked t) t.SetSnapshotVersionRecursive(version);
+            _registeredAsTombstoneBearer = false;
+            return false;
         }
-    }
-
-    void IPruneable.PruneDeletedBefore(long minVersion)
-    {
-        if (_deleted.Count == 0) return;
         List<TKey>? toRemove = null;
         foreach (var kvp in _deleted)
         {
             if (kvp.Value < minVersion) (toRemove ??= new List<TKey>()).Add(kvp.Key);
         }
-        if (toRemove is null) return;
-        foreach (var key in toRemove) _deleted.Remove(key);
+        if (toRemove is not null)
+        {
+            foreach (var key in toRemove) _deleted.Remove(key);
+            DirtyTracking.DecrementTombstones(toRemove.Count);
+        }
+        if (_deleted.Count == 0)
+        {
+            _registeredAsTombstoneBearer = false;
+            return false;
+        }
+        return true;
     }
 
     // ============ Indexed access ============
@@ -140,12 +156,12 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     {
         var isUpdate = _inner.ContainsKey(key);
         if (isUpdate && _inner[key] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
-            DirtyTracking.Detach(oldChild);
+            DirtyTracking.Internal.Detach(oldChild);
 
         _inner[key] = value;
-        if (value is IDirtyTracked newChild) DirtyTracking.Reparent(newChild, this, key);
+        if (value is IDirtyTracked newChild) DirtyTracking.Internal.Reparent(newChild, this, key);
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
         if (isUpdate)
         {
             _dirty[key] = v;
@@ -161,8 +177,8 @@ public sealed class TrackedOrderedDict<TKey, TValue>
             if (_deleted.ContainsKey(key))
                 _dirty[key] = v;
         }
-        _deleted.Remove(key);
-        DirtyTracking.PropagateToParent(this, v);
+        if (_deleted.Remove(key)) DirtyTracking.DecrementTombstones(1);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     public void Add(TKey key, TValue value)
@@ -178,14 +194,20 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     {
         if (!_inner.ContainsKey(key)) return false;
         if (_inner[key] is IDirtyTracked child && ReferenceEquals(child.Parent, this))
-            DirtyTracking.Detach(child);
+            DirtyTracking.Internal.Detach(child);
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
+        var isNewTombstone = !_deleted.ContainsKey(key);
         _deleted[key] = v;
         _dirty.Remove(key);
         _created.Remove(key);
         _inner.Remove(key);
-        DirtyTracking.PropagateToParent(this, v);
+        if (isNewTombstone)
+        {
+            DirtyTracking.IncrementTombstones(1);
+            EnsureRegisteredAsTombstoneBearer();
+        }
+        DirtyTracking.Internal.PropagateToParent(this, v);
         return true;
     }
 
@@ -198,22 +220,36 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     {
         if (_inner.Count == 0) return;
 
-        var v = DirtyTracking.NextVersion();
+        var v = DirtyTracking.Internal.NextVersion();
+        int newTombstones = 0;
         foreach (var kvp in _inner)
         {
             if (kvp.Value is IDirtyTracked child && ReferenceEquals(child.Parent, this))
-                DirtyTracking.Detach(child);
+                DirtyTracking.Internal.Detach(child);
             // Always mark deleted unconditionally — the encoder filter (a.ContainsKey check)
             // skips spurious deletions for keys that didn't exist in the snapshot. We can't
             // safely use _created.Remove as a short-circuit here because a key may have been
             // "created" before the snapshot, in which case it's part of the snapshot baseline
             // and a deletion must still be emitted.
+            if (!_deleted.ContainsKey(kvp.Key)) newTombstones++;
             _deleted[kvp.Key] = v;
             _dirty.Remove(kvp.Key);
             _created.Remove(kvp.Key);
         }
         _inner.Clear();
-        DirtyTracking.PropagateToParent(this, v);
+        if (newTombstones > 0)
+        {
+            DirtyTracking.IncrementTombstones(newTombstones);
+            EnsureRegisteredAsTombstoneBearer();
+        }
+        DirtyTracking.Internal.PropagateToParent(this, v);
+    }
+
+    private void EnsureRegisteredAsTombstoneBearer()
+    {
+        if (_registeredAsTombstoneBearer) return;
+        _registeredAsTombstoneBearer = true;
+        DirtyTracking.RegisterTombstoneBearer(this);
     }
 
     // ============ Read-only / pass-through ============

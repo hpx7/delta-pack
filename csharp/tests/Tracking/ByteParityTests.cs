@@ -9,10 +9,10 @@ namespace DeltaPack.Tests.Tracking;
 /// the structurally-equivalent untracked class. The tracking machinery is meant
 /// to be a pure cost optimization — it must never alter the wire format.
 /// <para>
-/// Low-level use of <c>EncodeDiff</c> with tracked classes requires the caller to
-/// mark the baseline as a snapshot via <see cref="DirtyTracking.RegisterSnapshot"/>
-/// so the encoder's version filter has the right cutoff. The helper below does this
-/// for the tests; <see cref="SyncSession{T}"/> handles it automatically in real use.
+/// Low-level use of <c>EncodeDiff</c> with tracked classes requires registering
+/// the baseline via <see cref="DirtyTracking.RegisterSnapshot"/> so the encoder's
+/// version filter has the right cutoff — the association is looked up implicitly
+/// by snapshot identity. <see cref="SyncSession{T}"/> handles this automatically.
 /// </para>
 /// </summary>
 public class ByteParityTests
