@@ -261,12 +261,36 @@ internal static class ObjectEmitter
         w.Line();
         using (w.Block($"internal static {newKw}{def.SimpleName} DecodeDiff_({def.SimpleName} obj, DeltaPack.Decoder decoder)"))
         {
-            using (w.Block("return new()"))
+            if (def.IsTracked)
             {
-                foreach (var f in def.Fields)
-                    w.Line($"{f.Name} = {ExpressionRenderer.DecodeDiffField(f, reg, "obj")},");
+                // Assign to backing fields directly rather than through the partial-property
+                // setters — the setter-side aliasing guard would trip on unchanged fields
+                // (NextFieldDiff returns the old snapshot's child, whose Parent points at
+                // the snapshot, not the new result). Parent pointers are re-established
+                // explicitly below, mirroring Clone.
+                w.Line($"var result = new {def.SimpleName}();");
+                for (int slot = 0; slot < def.Fields.Length; slot++)
+                {
+                    var f = def.Fields[slot];
+                    var backing = ExpressionRenderer.TrackingBackingField(f);
+                    w.Line($"result.{backing} = {ExpressionRenderer.DecodeDiffField(f, reg, "obj")};");
+                    if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                    {
+                        w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                        w.Line($"    DeltaPack.DirtyTracking.Internal.ReparentToObject(__t_{f.Name}, result, {slot});");
+                    }
+                }
+                w.Line("return result;");
             }
-            w.Line(";");
+            else
+            {
+                using (w.Block("return new()"))
+                {
+                    foreach (var f in def.Fields)
+                        w.Line($"{f.Name} = {ExpressionRenderer.DecodeDiffField(f, reg, "obj")},");
+                }
+                w.Line(";");
+            }
         }
     }
 }

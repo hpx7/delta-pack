@@ -15,7 +15,7 @@ internal static class TrackingEmitter
         for (int i = 0; i < def.Fields.Length; i++)
         {
             w.Line();
-            EmitPartialProperty(w, def.Fields[i], i, reg);
+            EmitPartialProperty(w, def, def.Fields[i], i, reg);
         }
     }
 
@@ -105,7 +105,7 @@ internal static class TrackingEmitter
         }
     }
 
-    private static void EmitPartialProperty(CodeWriter w, FieldModel f, int slot, ModelRegistry reg)
+    private static void EmitPartialProperty(CodeWriter w, TypeDef def, FieldModel f, int slot, ModelRegistry reg)
     {
         var declared = ExpressionRenderer.CSharpType(f.Type, reg);
         var backing = "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
@@ -137,6 +137,15 @@ internal static class TrackingEmitter
                 EmitSetterEqualityShortCircuit(w, f.Type, backing, "value");
                 if (trackable)
                 {
+                    // Aliasing guard: a tracked child carries exactly one Parent/ParentSlot
+                    // pointer, so attaching the same instance to two slots would silently let
+                    // the latest assignment steal ownership from the earlier one — mutations
+                    // through the stolen alias would propagate to the wrong slot and diverge
+                    // on the receiver. Reject it explicitly; callers must first replace the
+                    // prior slot with a different value (or `null` for optionals) to release
+                    // ownership.
+                    w.Line($"if (value is DeltaPack.IDirtyTracked __incoming && __incoming.Parent is not null && (!object.ReferenceEquals(__incoming.Parent, this) || __incoming.ParentSlot != {slot}))");
+                    w.Line($"    throw new System.InvalidOperationException(\"Cannot assign a tracked child that is already attached to another parent or slot — aliasing is not supported. Detach it from its current owner first (assign that slot to a different value). Field: {def.SimpleName}.{f.Name}\");");
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __old && object.ReferenceEquals(__old.Parent, this))");
                     w.Line($"    DeltaPack.DirtyTracking.Internal.Detach(__old);");
                 }

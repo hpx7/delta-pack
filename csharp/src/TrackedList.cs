@@ -19,6 +19,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     public TrackedList(IEnumerable<T> source)
     {
         _inner = new List<T>(source);
+        CheckNewSlotBatch(_inner);
         ReparentRange(0, _inner.Count);
     }
 
@@ -51,6 +52,24 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     {
         var result = new TrackedList<T>(source._inner.Count);
         for (int i = 0; i < source._inner.Count; i++)
+        {
+            result._inner.Add(source._inner[i]);
+            if (source._inner[i] is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Internal decoder entry point: builds a new list with <paramref name="capacity"/> seeded
+    /// by copying the first <paramref name="copyLen"/> elements of <paramref name="source"/>.
+    /// Bypasses the mutation-path aliasing guard (the decoder owns both source and result and
+    /// may legitimately move tracked children between them) and reparents those children onto
+    /// the returned list.
+    /// </summary>
+    internal static TrackedList<T> CopyPrefixForDecode(TrackedList<T> source, int copyLen, int capacity)
+    {
+        var result = new TrackedList<T>(capacity);
+        for (int i = 0; i < copyLen; i++)
         {
             result._inner.Add(source._inner[i]);
             if (source._inner[i] is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, result, i);
@@ -92,6 +111,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
         set
         {
             if (EqualityComparer<T>.Default.Equals(_inner[index], value)) return;
+            CheckReplace(value, index);
 
             if (_inner[index] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
                 DirtyTracking.Internal.Detach(oldChild);
@@ -111,6 +131,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     public void Add(T item)
     {
         var index = _inner.Count;
+        CheckNewSlot(item);
         _inner.Add(item);
         if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
         var v = DirtyTracking.Internal.NextVersion();
@@ -120,21 +141,28 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 
     public void AddRange(IEnumerable<T> items)
     {
-        var v = DirtyTracking.Internal.NextVersion();
+        // Materialize up front so the aliasing pre-scan sees the exact list that will be
+        // inserted (and so a lazy enumerable isn't walked twice).
+        var materialized = items as IList<T> ?? new List<T>(items);
+        if (materialized.Count == 0) return;
         var startIndex = _inner.Count;
-        foreach (var item in items)
+        CheckNewSlotBatch(materialized);
+
+        var v = DirtyTracking.Internal.NextVersion();
+        foreach (var item in materialized)
         {
             var index = _inner.Count;
             _inner.Add(item);
             if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
             _dirty[index] = v;
         }
-        if (_inner.Count > startIndex) DirtyTracking.Internal.PropagateToParent(this, v);
+        DirtyTracking.Internal.PropagateToParent(this, v);
     }
 
     public void Insert(int index, T item)
     {
         if (index < 0 || index > _inner.Count) throw new System.ArgumentOutOfRangeException(nameof(index));
+        CheckNewSlot(item);
         _inner.Insert(index, item);
         if (item is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, index);
         UpdateParentKeys(index + 1, _inner.Count);
@@ -195,6 +223,7 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
 
         var materialized = items as IList<T> ?? new List<T>(items);
         if (materialized.Count == 0) return;
+        CheckNewSlotBatch(materialized);
 
         _inner.InsertRange(index, materialized);
 
@@ -253,6 +282,55 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     IEnumerator IEnumerable.GetEnumerator() => _inner.GetEnumerator();
 
     // ============ Internal helpers ============
+
+    // Replace-at-index (indexer setter): allow re-seating the same child at the same index,
+    // which the ref-equality short-circuit at the top of the setter already handled — so
+    // at this point any non-null parent that isn't exactly (this, targetIndex) is an alias.
+    private void CheckReplace(T value, int targetIndex)
+    {
+        if (value is IDirtyTracked child && child.Parent is not null
+            && (!ReferenceEquals(child.Parent, this) || !object.Equals(child.ParentKey, targetIndex)))
+        {
+            throw new System.InvalidOperationException(
+                "Cannot add a tracked child that is already attached to another parent or index — " +
+                "aliasing is not supported. Detach it from its current owner first (remove it from " +
+                "that container or reassign the prior slot).");
+        }
+    }
+
+    // Append/insert operations always allocate a fresh slot, so any non-null parent on the
+    // incoming value means it's also still living in its previous slot — that's aliasing even
+    // if its existing ParentKey coincidentally matches the target index.
+    private void CheckNewSlot(T value)
+    {
+        if (value is IDirtyTracked child && child.Parent is not null)
+        {
+            throw new System.InvalidOperationException(
+                "Cannot add a tracked child that is already attached to another parent — " +
+                "aliasing is not supported. Detach it from its current owner first.");
+        }
+    }
+
+    private void CheckNewSlotBatch(IList<T> items)
+    {
+        for (int i = 0; i < items.Count; i++)
+        {
+            CheckNewSlot(items[i]);
+            if (items[i] is not IDirtyTracked) continue;
+            // Intra-batch duplicate detection. O(n²) in batch size — acceptable because
+            // batches are typically tiny and we only enter this loop once per tracked
+            // element. Rejects `list.AddRange(new[] { shared, shared })`.
+            for (int j = 0; j < i; j++)
+            {
+                if (ReferenceEquals(items[j], items[i]))
+                {
+                    throw new System.InvalidOperationException(
+                        "Cannot add the same tracked child reference more than once in a single " +
+                        "batch — aliasing is not supported.");
+                }
+            }
+        }
+    }
 
     private void MarkAllDirtyAndReparent()
     {

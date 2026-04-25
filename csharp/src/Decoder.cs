@@ -246,7 +246,10 @@ public class Decoder
         Func<TValue, TValue> decodeDiff)
         where TKey : notnull
     {
-        var result = new TrackedOrderedDict<TKey, TValue>(obj);
+        // Build the result by copying the baseline directly (bypassing the user-facing
+        // aliasing guard on the ctor). The decoder owns both obj and the returned result,
+        // so moving tracked children from one to the other is legitimate.
+        var result = TrackedOrderedDict<TKey, TValue>.CreateSnapshot(obj);
 
         if (obj.Count > 0)
         {
@@ -284,10 +287,10 @@ public class Decoder
     public TrackedList<T> NextArrayDiff<T>(TrackedList<T> arr, Func<T> decode, Func<T, T> decodeDiff)
     {
         var newLen = (int)NextUInt();
-        var result = new TrackedList<T>(newLen);
         var copyLen = Math.Min(arr.Count, newLen);
-        for (var i = 0; i < copyLen; i++)
-            result.Add(arr[i]);
+        // Prefill via the internal copy (same reasoning as NextRecordDiff) so the aliasing
+        // guard on Add() doesn't fire on children still parented to `arr`.
+        var result = TrackedList<T>.CopyPrefixForDecode(arr, copyLen, newLen);
 
         var numUpdates = (int)NextUInt();
         for (var i = 0; i < numUpdates; i++)

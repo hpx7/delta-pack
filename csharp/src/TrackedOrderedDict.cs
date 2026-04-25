@@ -35,6 +35,7 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     public TrackedOrderedDict(IDictionary<TKey, TValue> source)
     {
         _inner = new OrderedDict<TKey, TValue>(source);
+        CheckSourceBatch(_inner);
         foreach (var kvp in _inner)
         {
             if (kvp.Value is IDirtyTracked child) DirtyTracking.Internal.Reparent(child, this, kvp.Key);
@@ -154,6 +155,7 @@ public sealed class TrackedOrderedDict<TKey, TValue>
 
     private void Set(TKey key, TValue value)
     {
+        CheckIncoming(value, key);
         var isUpdate = _inner.ContainsKey(key);
         if (isUpdate && _inner[key] is IDirtyTracked oldChild && ReferenceEquals(oldChild.Parent, this))
             DirtyTracking.Internal.Detach(oldChild);
@@ -250,6 +252,44 @@ public sealed class TrackedOrderedDict<TKey, TValue>
         if (_registeredAsTombstoneBearer) return;
         _registeredAsTombstoneBearer = true;
         DirtyTracking.RegisterTombstoneBearer(this);
+    }
+
+    private void CheckIncoming(TValue value, TKey targetKey)
+    {
+        if (value is IDirtyTracked child && child.Parent is not null
+            && (!ReferenceEquals(child.Parent, this) || !object.Equals(child.ParentKey, targetKey)))
+        {
+            throw new System.InvalidOperationException(
+                "Cannot add a tracked value that is already attached to another parent or key — " +
+                "aliasing is not supported. Detach it from its current owner first (remove it from " +
+                "that container or reassign the prior slot).");
+        }
+    }
+
+    private static void CheckSourceBatch(OrderedDict<TKey, TValue> source)
+    {
+        List<IDirtyTracked>? seen = null;
+        foreach (var kvp in source)
+        {
+            if (kvp.Value is not IDirtyTracked child) continue;
+            if (child.Parent is not null)
+            {
+                throw new System.InvalidOperationException(
+                    "Cannot initialize TrackedOrderedDict with a tracked value already attached " +
+                    "to another parent — aliasing is not supported.");
+            }
+            if (seen is null) seen = new List<IDirtyTracked>();
+            foreach (var prev in seen)
+            {
+                if (ReferenceEquals(prev, child))
+                {
+                    throw new System.InvalidOperationException(
+                        "Cannot initialize TrackedOrderedDict with the same tracked value under " +
+                        "two keys — aliasing is not supported.");
+                }
+            }
+            seen.Add(child);
+        }
     }
 
     // ============ Read-only / pass-through ============

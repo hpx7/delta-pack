@@ -24,3 +24,10 @@ public partial class TrackedRegistry
 {
     public partial TrackedOrderedDict<string, TrackedPlayer> Players { get; set; }
 }
+
+[DeltaPack, DeltaPackTracked]
+public partial class TrackedPair
+{
+    public partial TrackedPosition A { get; set; }
+    public partial TrackedPosition B { get; set; }
+}
