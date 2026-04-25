@@ -1440,3 +1440,27 @@ describe("Interpreter Coverage - Edge Cases", () => {
     expect(cloned.child).not.toBe(original.child);
   });
 });
+
+describe("Edge Cases - Encoder validation throws", () => {
+  it("pushBoundedInt rejects non-integer", () => {
+    const api = load(ObjectType("X", { v: IntType({ min: 0 }) }));
+    expect(() => api.encode({ v: 1.5 } as { v: number })).toThrow(RangeError);
+  });
+
+  it("pushBoundedInt rejects below-minimum", () => {
+    const api = load(ObjectType("X", { v: IntType({ min: 10 }) }));
+    expect(() => api.encode({ v: 5 })).toThrow(RangeError);
+  });
+
+  it("pushFloatQuantized rejects non-finite", () => {
+    const api = load(ObjectType("X", { v: FloatType({ precision: 0.1 }) }));
+    expect(() => api.encode({ v: Infinity })).toThrow(RangeError);
+    expect(() => api.encode({ v: NaN })).toThrow(RangeError);
+  });
+
+  it("pushBitPackedInt rejects out-of-range", () => {
+    const api = load(ObjectType("X", { v: IntType({ min: 0, max: 7 }) })); // 3 bits
+    expect(() => api.encode({ v: 8 })).toThrow(RangeError);
+    expect(() => api.encode({ v: -1 })).toThrow(RangeError);
+  });
+});

@@ -117,8 +117,18 @@ function renderObjectApi(
     .join(" &&\n      ");
   const encodeBody = p((n, t) => `    ${renderEncode(ctx, t, `obj.${n}`)};`);
   const encodeDiffBody = p(
-    (n, t) => `    ${renderEncodeDiffField(ctx, t, "a", "b", `"${n}"`)}`,
+    (n, t) => `    ${renderEncodeDiffField(ctx, t, "a", "b", n)}`,
   );
+  // `bRaw` is referenced by helper calls and by inline blocks for fields read
+  // via the unwrapped parent — i.e. anything other than tracked containers
+  // (array/record/optional<container>), which must read through the proxy.
+  // Skip the declaration when no field uses it, otherwise tsc flags it as unused.
+  const usesUnwrapped = props.some(([, t]) => !needsProxyAccess(t));
+  const bRawDecl = usesUnwrapped ? "\n    const bRaw = _.getUnderlying(b);" : "";
+  // `versions` drives the dirty-version filter for every non-boolean field. The
+  // only case where it's unused is when every field is boolean.
+  const usesVersions = props.some(([, t]) => !isBooleanLike(t));
+  const versionsDecl = usesVersions ? "\n    const versions = _.getFieldVersions(b);" : "";
   const decodeBody = p((n, t) => `      ${n}: ${renderDecode(ctx, t)},`);
   const decodeDiffBody = p(
     (n, t) => `      ${n}: ${renderDecodeDiffField(ctx, t, `obj.${n}`)},`,
@@ -165,10 +175,11 @@ ${encodeBody}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
     const encoder = _.DiffEncoder.create();
-    encoder.pushObjectDiff(a, b, ${name}.equals, () => ${name}._encodeDiff(a, b, encoder));
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    encoder.pushObjectDiff(a, b, ${name}.equals, ${name}._encodeDiff);
     return encoder.toBuffer();
   },
-  _encodeDiff(a: ${name}, b: ${name}, encoder: _.DiffEncoder): void {
+  _encodeDiff(a: ${name}, b: ${name}, encoder: _.DiffEncoder): void {${versionsDecl}${bRawDecl}
 ${encodeDiffBody}
   },
   decode(input: Uint8Array): ${name} {
@@ -292,6 +303,7 @@ ${encodeCases}
   },
   encodeDiff(a: ${name}, b: ${name}): Uint8Array {
     const encoder = _.DiffEncoder.create();
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
     ${name}._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -531,7 +543,13 @@ function renderDecode(ctx: GeneratorContext, type: Type): string {
   });
 }
 
-// Field diff using pushFieldDiff - handles change bit
+// Per-field diff. The shared `DiffEncoder` helpers (pushFieldString, …,
+// pushFieldDiff) are the single source of truth for the dirty gate +
+// value-compare + change-bit logic; this function picks which helper to call
+// for each field type. Booleans skip the version gate (tracking overhead >
+// comparison cost). Array/record/optional fields fall back to an inline
+// if/else block — closures inside those only allocate when the field is dirty,
+// so a helper-with-callbacks would force unconditional allocation.
 function renderEncodeDiffField(
   ctx: GeneratorContext,
   type: Type,
@@ -539,24 +557,91 @@ function renderEncodeDiffField(
   b: string,
   key: string,
 ): string {
-  // References are transparent
   if (type.type === "reference") {
     return renderEncodeDiffField(ctx, type.ref, a, b, key);
   }
-  // Boolean: just compare directly (tracking overhead > comparison cost)
+  // Boolean: just emit the flip bit, no version filter.
   if (type.type === "boolean") {
-    return `${renderEncodeDiff(ctx, type, `${a}[${key}]`, `${b}[${key}]`)};`;
+    return `encoder.pushBooleanDiff(${a}.${key}, bRaw.${key});`;
   }
-  // Other primitives, enums, optionals: use pushFieldDiff with tracking
-  const eqExpr = renderEquals(ctx, type, "x", "y");
-  const diffExpr = renderEncodeDiff(ctx, type, "x", "y");
-  return `encoder.pushFieldDiff(
-      ${a},
-      ${b},
-      ${key},
-      (x, y) => ${eqExpr},
-      (x, y) => ${diffExpr},
-    );`;
+  // Containers (array/record/optional) — inline if/else, with proxy access for
+  // tracked-container reads (the plain target stays empty/stale; the proxy
+  // routes reads through the tracked child).
+  if (type.type === "array" || type.type === "record" || type.type === "optional") {
+    const bSource = needsProxyAccess(type) ? b : "bRaw";
+    const eqExpr = renderEquals(ctx, type, "aVal", "bVal");
+    const diffExpr = renderEncodeDiff(ctx, type, "aVal", "bVal");
+    return `if (versions !== undefined && (versions.get("${key}") ?? -1) <= encoder.minVersion) {
+      encoder.pushBoolean(false);
+    } else {
+      const aVal = ${a}.${key}, bVal = ${bSource}.${key};
+      const changed = !(${eqExpr});
+      encoder.pushBoolean(changed);
+      if (changed) ${diffExpr};
+    }`;
+  }
+  // Primitives + nested objects/unions/self-refs: one-line helper call. Read
+  // through `bRaw` since the proxy `set` trap keeps these in sync on the
+  // unwrapped target.
+  const aRef = `${a}.${key}`;
+  const bRef = `bRaw.${key}`;
+  const versionsArg = `versions, "${key}"`;
+  return dispatch(type, {
+    string: () => `encoder.pushFieldString(${versionsArg}, ${aRef}, ${bRef});`,
+    int: (t) => {
+      const s = intStrategy(t);
+      if (s.kind === "packed") {
+        return `encoder.pushFieldBitPackedInt(${versionsArg}, ${aRef}, ${bRef}, ${s.offset}, ${s.max}, ${s.numBits});`;
+      }
+      if (s.kind === "unsigned") {
+        return `encoder.pushFieldBoundedInt(${versionsArg}, ${aRef}, ${bRef}, ${s.min});`;
+      }
+      return `encoder.pushFieldInt(${versionsArg}, ${aRef}, ${bRef});`;
+    },
+    float: (t) => {
+      const s = floatStrategy(t);
+      return s.kind === "quantized"
+        ? `encoder.pushFieldFloatQuantized(${versionsArg}, ${aRef}, ${bRef}, ${s.precision});`
+        : `encoder.pushFieldFloat(${versionsArg}, ${aRef}, ${bRef});`;
+    },
+    enum: (t) => `encoder.pushFieldEnum(${versionsArg}, ${aRef}, ${bRef}, ${t.name}, ${t.numBits});`,
+    object: (t) =>
+      `encoder.pushFieldDiff(${versionsArg}, ${aRef}, ${bRef}, ${t.name}.equals, ${t.name}._encodeDiff);`,
+    selfReference: () =>
+      `encoder.pushFieldDiff(${versionsArg}, ${aRef}, ${bRef}, ${ctx.currentTypeName}.equals, ${ctx.currentTypeName}._encodeDiff);`,
+    union: (t) =>
+      `encoder.pushFieldDiff(${versionsArg}, ${aRef}, ${bRef}, ${t.name}.equals, ${t.name}._encodeDiff);`,
+    boolean: () => {
+      throw new Error("boolean handled by caller");
+    },
+    array: () => {
+      throw new Error("array handled by caller");
+    },
+    record: () => {
+      throw new Error("record handled by caller");
+    },
+    optional: () => {
+      throw new Error("optional handled by caller");
+    },
+  });
+}
+
+// Whether reading a field of this type via `getUnderlying(b)[key]` is unsafe
+// because tracked containers replace their backing storage. Arrays and records
+// keep their tracked state on a fresh internal collection that the parent's
+// plain target never sees, so we must go through the proxy for those.
+function needsProxyAccess(type: Type): boolean {
+  if (type.type === "reference") return needsProxyAccess(type.ref);
+  if (type.type === "array" || type.type === "record") return true;
+  if (type.type === "optional") return needsProxyAccess(type.value);
+  return false;
+}
+
+// Boolean fields skip the version filter (tracking overhead > comparison cost),
+// so `versions` is unused when every field is boolean.
+function isBooleanLike(type: Type): boolean {
+  if (type.type === "reference") return isBooleanLike(type.ref);
+  return type.type === "boolean";
 }
 
 // Encode diff for a value. In "element" context (inside array/optional/record

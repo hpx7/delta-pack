@@ -1,11 +1,6 @@
 import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
-import {
-  getUnderlying,
-  getFieldVersions,
-  getCreatedVersions,
-  getDeletedVersions,
-  getSnapshotVersion,
-} from "./tracking.js";
+import { getFieldVersions, getCreatedVersions, getDeletedVersions } from "./tracking.js";
+import { equalsFloat, equalsFloatQuantized } from "./helpers.js";
 
 export class Encoder {
   protected static _instance: Encoder | null = null;
@@ -187,12 +182,22 @@ export class Encoder {
 export class DiffEncoder extends Encoder {
   protected static override _instance: DiffEncoder | null = null;
 
+  /**
+   * Snapshot baseline version threaded through the entire encode. Set once
+   * by the top-level `encodeDiff(a, b)` wrapper from
+   * `getSnapshotVersion(a) ?? -1`, then read by every nested diff method
+   * instead of looking up the per-node snapshot stamp the previous design
+   * paid for at every tree level.
+   */
+  minVersion = -1;
+
   static override create(): DiffEncoder {
     const enc = DiffEncoder._instance ?? new DiffEncoder();
     DiffEncoder._instance = null;
     enc.pos = 0;
     enc.dict = [];
     enc.rle.reset();
+    enc.minVersion = -1;
     return enc;
   }
 
@@ -242,15 +247,20 @@ export class DiffEncoder extends Encoder {
     this.pushBitPackedInt(b, min, max, numBits);
   }
 
-  // Object diff - handles dirty tracking and change bit
-  pushObjectDiff<T>(a: T, b: T, equals: (a: T, b: T) => boolean, encodeDiff: () => void) {
+  // Object diff - handles dirty tracking and change bit. encodeDiff receives
+  // (a, b, encoder) so the generated code can pass the static `_encodeDiff`
+  // method directly without allocating a wrapping closure per call.
+  pushObjectDiff<T>(
+    a: T,
+    b: T,
+    equals: (a: T, b: T) => boolean,
+    encodeDiff: (a: T, b: T, encoder: DiffEncoder) => void
+  ) {
     const versions = getFieldVersions(b);
-    const snapshotVersion = getSnapshotVersion(a);
 
     let changed = false;
     if (versions != null) {
-      // Version-based: check if any field changed since snapshot (or all if no snapshot)
-      const minVersion = snapshotVersion ?? -1;
+      const minVersion = this.minVersion;
       for (const [, ver] of versions) {
         if (ver > minVersion) {
           changed = true;
@@ -258,31 +268,152 @@ export class DiffEncoder extends Encoder {
         }
       }
     } else {
-      // No tracking: use equals check
       changed = !equals(a, b);
     }
 
     this.pushBoolean(changed);
-    if (changed) encodeDiff();
+    if (changed) encodeDiff(a, b, this);
   }
 
-  // Diff a primitive field: check tracking, compare values, encode if changed
-  pushFieldDiff<O, K extends string & keyof O>(
-    a: O,
-    b: O,
-    key: K,
-    equals: (a: O[K], b: O[K]) => boolean,
-    encodeDiff: (a: O[K], b: O[K]) => void
-  ) {
-    if (this.isFieldUnchanged(a, b, key)) {
+  // ---- Per-field diff helpers --------------------------------------------------------------
+  //
+  // Generated code (both AOT and JIT) uses these for the per-field diff loop. Each helper
+  // gates on the dirty version filter (skipping the field entirely if no mutation has
+  // happened since the snapshot baseline), then falls back to a value compare and pushes
+  // either a 0 bit (no change) or a 1 bit + the diff payload.
+  //
+  // Type-specialized variants (pushFieldString, pushFieldInt, …) avoid the closure
+  // allocations the previous closure-passing form paid at every call site. Composite
+  // field types (object, union, self-ref) use `pushFieldDiff` with the type's static
+  // `equals` and `_encodeDiff` method references — also no closures. Array/record/optional
+  // fields fall back to inline if/else blocks in the generator (closures inside those only
+  // allocate when the field is dirty), since a helper would force unconditional allocation.
+
+  /** True if `key` should be encoded — untracked source, or version > snapshot baseline. */
+  private isFieldDirty(versions: Map<unknown, number> | undefined, key: string): boolean {
+    return versions === undefined || (versions.get(key) ?? -1) > this.minVersion;
+  }
+
+  pushFieldString(versions: Map<unknown, number> | undefined, key: string, aVal: string, bVal: string): void {
+    if (!this.isFieldDirty(versions, key)) {
       this.pushBoolean(false);
       return;
     }
-    const aVal = a[key];
-    const bVal = this.unwrap(b[key]) as O[K];
+    const changed = aVal !== bVal;
+    this.pushBoolean(changed);
+    if (changed) this.pushStringDiff(aVal, bVal);
+  }
+
+  pushFieldInt(versions: Map<unknown, number> | undefined, key: string, aVal: number, bVal: number): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
+    const changed = aVal !== bVal;
+    this.pushBoolean(changed);
+    if (changed) this.pushIntDiff(aVal, bVal);
+  }
+
+  pushFieldBoundedInt(
+    versions: Map<unknown, number> | undefined,
+    key: string,
+    aVal: number,
+    bVal: number,
+    min: number
+  ): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
+    const changed = aVal !== bVal;
+    this.pushBoolean(changed);
+    if (changed) this.pushBoundedIntDiff(aVal, bVal, min);
+  }
+
+  pushFieldBitPackedInt(
+    versions: Map<unknown, number> | undefined,
+    key: string,
+    aVal: number,
+    bVal: number,
+    min: number,
+    max: number,
+    numBits: number
+  ): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
+    const changed = aVal !== bVal;
+    this.pushBoolean(changed);
+    if (changed) this.pushBitPackedIntDiff(aVal, bVal, min, max, numBits);
+  }
+
+  pushFieldFloat(versions: Map<unknown, number> | undefined, key: string, aVal: number, bVal: number): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
+    const changed = !equalsFloat(aVal, bVal);
+    this.pushBoolean(changed);
+    if (changed) this.pushFloatDiff(aVal, bVal);
+  }
+
+  pushFieldFloatQuantized(
+    versions: Map<unknown, number> | undefined,
+    key: string,
+    aVal: number,
+    bVal: number,
+    precision: number
+  ): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
+    const changed = !equalsFloatQuantized(aVal, bVal, precision);
+    this.pushBoolean(changed);
+    if (changed) this.pushFloatQuantizedDiff(aVal, bVal, precision);
+  }
+
+  pushFieldEnum<T extends string>(
+    versions: Map<unknown, number> | undefined,
+    key: string,
+    aVal: T,
+    bVal: T,
+    // The AOT codegen passes a hybrid enum object (numeric keys → strings,
+    // string keys → numeric indices); the JIT passes a string-keyed lookup.
+    // Both expose `lookup[stringValue] -> number`, which is all we need.
+    enumLookup: Record<string, unknown>,
+    numBits: number
+  ): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
+    const changed = aVal !== bVal;
+    this.pushBoolean(changed);
+    if (changed) this.pushEnumDiff(enumLookup[aVal] as number, enumLookup[bVal] as number, numBits);
+  }
+
+  /**
+   * Generic per-field diff for composite types (object, union, self-ref). `equals` and
+   * `encodeDiff` are passed as static method references — `Type.equals` /
+   * `Type._encodeDiff` — so the call site allocates nothing.
+   */
+  pushFieldDiff<T>(
+    versions: Map<unknown, number> | undefined,
+    key: string,
+    aVal: T,
+    bVal: T,
+    equals: (a: T, b: T) => boolean,
+    encodeDiff: (a: T, b: T, encoder: DiffEncoder) => void
+  ): void {
+    if (!this.isFieldDirty(versions, key)) {
+      this.pushBoolean(false);
+      return;
+    }
     const changed = !equals(aVal, bVal);
     this.pushBoolean(changed);
-    if (changed) encodeDiff(aVal, bVal);
+    if (changed) encodeDiff(aVal, bVal, this);
   }
 
   pushOptionalDiff<T>(a: T | undefined, b: T | undefined, encode: (x: T) => void, encodeDiff: (a: T, b: T) => void) {
@@ -306,15 +437,13 @@ export class DiffEncoder extends Encoder {
     encodeDiff: (a: T, b: T) => void
   ) {
     const versions = getFieldVersions(b);
-    const snapshotVersion = getSnapshotVersion(a);
     this.writeUVarint(b.length);
 
     // Collect changed indices (sparse encoding)
     const updates: number[] = [];
     const minLen = Math.min(a.length, b.length);
     if (versions != null) {
-      // Version-based: only include indices changed since snapshot (or all if no snapshot)
-      const minVersion = snapshotVersion ?? -1;
+      const minVersion = this.minVersion;
       versions.forEach((ver, i) => {
         if (typeof i === "number" && i < minLen && ver > minVersion) {
           updates.push(i);
@@ -348,7 +477,6 @@ export class DiffEncoder extends Encoder {
     encodeVal: (x: T) => void,
     encodeDiff: (a: T, b: T) => void
   ) {
-    const snapshotVersion = getSnapshotVersion(a);
     const versions = getFieldVersions(b) as Map<K, number> | undefined;
     const createdVersions = getCreatedVersions(b);
     const deletedVersions = getDeletedVersions(b);
@@ -365,8 +493,7 @@ export class DiffEncoder extends Encoder {
     const additions: [K, T][] = [];
 
     if (versions && createdVersions && deletedVersions) {
-      // Version-based: only include changes since snapshot (or all if no snapshot)
-      const minVersion = snapshotVersion ?? -1;
+      const minVersion = this.minVersion;
       for (const [key, ver] of deletedVersions) {
         if (ver > minVersion && a.has(key)) {
           deletions.push(keyToIndex.get(key)!);
@@ -419,20 +546,5 @@ export class DiffEncoder extends Encoder {
       encodeKey(key);
       encodeVal(val);
     });
-  }
-
-  // Check if field is unchanged via version tracking (pure, no side effects)
-  private isFieldUnchanged<T>(a: T, b: T, key: string & keyof T): boolean {
-    const versions = getFieldVersions(b);
-    if (versions == null) return false; // No tracking, must compare values
-
-    const minVersion = getSnapshotVersion(a) ?? -1;
-    const fieldVersion = versions.get(key as string);
-    return fieldVersion == null || fieldVersion <= minVersion;
-  }
-
-  // Unwrap a potentially tracked value to get the underlying object
-  private unwrap<T>(val: T): T {
-    return val != null && typeof val === "object" ? (getUnderlying(val as object) as T) : val;
   }
 }

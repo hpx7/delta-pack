@@ -1,5 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { Infer, track, load, loadClass, registerSnapshot } from "@hpx7/delta-pack";
+import {
+  Infer,
+  track,
+  load,
+  loadClass,
+  registerSnapshot,
+  ObjectType,
+  EnumType,
+  UnionType,
+  IntType,
+  StringType,
+  FloatType,
+  ReferenceType,
+} from "@hpx7/delta-pack";
 import { getFieldVersions } from "../src/tracking.js";
 
 /** Deep-clone + stamp as a snapshot of the source — the raw-API analog of what SyncSession does. */
@@ -918,6 +931,86 @@ describe("Dirty Tracking", () => {
       // Decoded result is the same as the control in both cases.
       expect(api.decodeDiff(snapRevived, diffRevived).metadata.get("a")).toBe("X2");
       expect(api.decodeDiff(snapControl, diffControl).metadata.get("a")).toBe("X2");
+    });
+  });
+
+  describe("Per-field version filter (DiffEncoder helpers)", () => {
+    // These cover the "field is not dirty" skip branch on each helper, which
+    // only fires when (1) the source is tracked, (2) a snapshot was registered,
+    // and (3) the field hasn't been touched since that snapshot. The wire bit
+    // is the same as the value-compare-finds-equal path, so tests that only
+    // check decoded values won't distinguish them — these assert the skip path
+    // is exercised at all.
+
+    it("skips encoding tracked enum field that hasn't changed since snapshot", () => {
+      const Color = EnumType("Color", ["RED", "BLUE", "GREEN"]);
+      const Holder = ObjectType("Holder", {
+        color: ReferenceType(Color),
+        count: IntType(),
+      });
+      type Holder = Infer<typeof Holder>;
+      const api = load(Holder);
+
+      const state = track<Holder>({ color: "RED", count: 0 });
+      const snap = snapshot(api, state);
+      // Touch only `count`; `color` hits the skip path in pushFieldEnum.
+      state.count = 5;
+
+      const diff = api.encodeDiff(snap, state);
+      const decoded = api.decodeDiff(snap, diff);
+      expect(decoded.color).toBe("RED");
+      expect(decoded.count).toBe(5);
+    });
+
+    it("skips encoding tracked numeric fields that haven't changed since snapshot", () => {
+      const Holder = ObjectType("Holder", {
+        velocity: FloatType(),
+        // Bounded int with min/max → bit-packed encoding (numBits set).
+        level: IntType({ min: 1, max: 100 }),
+        // Unbounded int → varint encoding (pushFieldInt).
+        score: IntType(),
+        count: IntType(),
+      });
+      const api = load(Holder);
+
+      const state = track({ velocity: 1.5, level: 50, score: 42, count: 0 });
+      const snap = snapshot(api, state);
+      // Touch only `count`; velocity (pushFieldFloat), level
+      // (pushFieldBitPackedInt), and score (pushFieldInt) all hit the skip path.
+      state.count = 5;
+
+      const diff = api.encodeDiff(snap, state);
+      const decoded = api.decodeDiff(snap, diff);
+      expect(decoded.velocity).toBe(1.5);
+      expect(decoded.level).toBe(50);
+      expect(decoded.score).toBe(42);
+      expect(decoded.count).toBe(5);
+    });
+
+    it("skips encoding tracked union field that hasn't changed since snapshot", () => {
+      const VariantA = ObjectType("VariantA", { value: IntType() });
+      const VariantB = ObjectType("VariantB", { name: StringType() });
+      const Variants = UnionType("Variants", [VariantA, VariantB]);
+      const Holder = ObjectType("Holder", {
+        action: ReferenceType(Variants),
+        count: IntType(),
+      });
+      type Holder = Infer<typeof Holder>;
+      const api = load(Holder);
+
+      const state = track<Holder>({
+        action: { _type: "VariantA", value: 1 },
+        count: 0,
+      });
+      const snap = snapshot(api, state);
+      // Touch only `count`; `action` hits the skip path in pushFieldDiff.
+      state.count = 5;
+
+      const diff = api.encodeDiff(snap, state);
+      const decoded = api.decodeDiff(snap, diff);
+      expect(decoded.action._type).toBe("VariantA");
+      expect((decoded.action as { _type: "VariantA"; value: number }).value).toBe(1);
+      expect(decoded.count).toBe(5);
     });
   });
 });

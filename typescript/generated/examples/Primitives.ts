@@ -80,46 +80,19 @@ export const Primitives = {
   },
   encodeDiff(a: Primitives, b: Primitives): Uint8Array {
     const encoder = _.DiffEncoder.create();
-    encoder.pushObjectDiff(a, b, Primitives.equals, () => Primitives._encodeDiff(a, b, encoder));
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    encoder.pushObjectDiff(a, b, Primitives.equals, Primitives._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Primitives, b: Primitives, encoder: _.DiffEncoder): void {
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "stringField",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "signedIntField",
-      (x, y) => x === y,
-      (x, y) => encoder.pushIntDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "unsignedIntField",
-      (x, y) => x === y,
-      (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "boundedIntField",
-      (x, y) => x === y,
-      (x, y) => encoder.pushBitPackedIntDiff(x, y, -10, 10, 5),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "floatField",
-      (x, y) => _.equalsFloat(x, y),
-      (x, y) => encoder.pushFloatDiff(x, y),
-    );
-    encoder.pushBooleanDiff(a["booleanField"], b["booleanField"]);
+    const versions = _.getFieldVersions(b);
+    const bRaw = _.getUnderlying(b);
+    encoder.pushFieldString(versions, "stringField", a.stringField, bRaw.stringField);
+    encoder.pushFieldInt(versions, "signedIntField", a.signedIntField, bRaw.signedIntField);
+    encoder.pushFieldBoundedInt(versions, "unsignedIntField", a.unsignedIntField, bRaw.unsignedIntField, 0);
+    encoder.pushFieldBitPackedInt(versions, "boundedIntField", a.boundedIntField, bRaw.boundedIntField, -10, 10, 5);
+    encoder.pushFieldFloat(versions, "floatField", a.floatField, bRaw.floatField);
+    encoder.pushBooleanDiff(a.booleanField, bRaw.booleanField);
   },
   decode(input: Uint8Array): Primitives {
     return Primitives._decode(_.Decoder.create(input));

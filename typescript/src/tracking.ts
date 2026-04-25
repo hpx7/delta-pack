@@ -12,9 +12,6 @@ const PARENT = Symbol.for("delta-pack:parent");
 /** Symbol for key in parent (for dirty propagation) */
 const PARENT_KEY = Symbol.for("delta-pack:parentKey");
 
-/** Symbol for snapshot version (set by {@link registerSnapshot}) */
-const SNAPSHOT_VERSION = Symbol.for("delta-pack:snapshotVersion");
-
 /** Symbol for created version map (Map<K, version> for maps - tracks new keys) */
 const CREATED = Symbol.for("delta-pack:created");
 
@@ -38,17 +35,55 @@ export function currentVersion(): number {
 
 // ============ Snapshot Registry ============
 
-/** WeakRef registry for snapshot auto-pruning */
+/**
+ * WeakRef registry for snapshot auto-pruning. The FinalizationRegistry below
+ * removes the entry when its target is GC'd — without it, every encode adds a
+ * new WeakRef and stale refs only get cleaned up the next time
+ * `pruneDeletedEntries` runs (which is gated on `liveTombstones > 0`). Long
+ * idle/mutation runs would silently bloat this Set and pay for the iteration
+ * later when a tombstone-producing workload starts.
+ */
 const snapshotRefs = new Set<WeakRef<object>>();
+const snapshotFinalizer = new FinalizationRegistry<WeakRef<object>>((ref) => {
+  snapshotRefs.delete(ref);
+});
 
 /**
- * Stamp `snapshot` as a baseline against a tracked `source`. Recursively sets
- * `SNAPSHOT_VERSION` on `snapshot` (and every nested container it reaches) to
- * the current global version, then prunes deleted-key tombstones on `source`
- * that are older than the oldest surviving snapshot.
+ * Cached lower bound on the oldest surviving snapshot version. Mirrors C#'s
+ * `_oldestVersionCached`: registrations only lower it; periodic rebuilds raise
+ * it (entries whose snapshot was GC'd disappear from `snapshotRefs`, so the
+ * rebuild picks up the new floor). Between rebuilds, the cache is a safe lower
+ * bound — never prunes tombstones too aggressively, only retains them slightly
+ * longer than strictly necessary.
+ */
+let oldestVersionCached = Infinity;
+let encodesSinceRebuild = 0;
+const REBUILD_INTERVAL = 1024;
+
+/**
+ * Per-snapshot baseline version. Keyed by the snapshot ROOT only — nested nodes
+ * are not stamped. Encoders thread this value down via `DiffEncoder.minVersion`,
+ * matching the C# implementation's `Tracker.GetBaselineFor`. This avoids the
+ * O(tree size) `Object.defineProperty` walk that the previous per-node stamping
+ * scheme paid on every encode.
+ */
+const snapshotVersions = new WeakMap<object, number>();
+
+/**
+ * Live tombstone counter (sum of entries across every tracked map's DELETED
+ * map in the process). `pruneDeletedEntries` short-circuits when this is zero,
+ * which is the common case for idle ticks and pure-value-mutation workloads.
+ */
+let liveTombstones = 0;
+
+/**
+ * Stamp `snapshot` as a baseline against a tracked `source`. Records the
+ * current global version against `snapshot` in a WeakMap (root-keyed), then
+ * prunes deleted-key tombstones on `source` that are older than the oldest
+ * surviving snapshot.
  *
  * This is what gives `encodeDiff(snapshot, source)` its version-based filter:
- * only mutations with a version greater than `snapshot.SNAPSHOT_VERSION` are
+ * only mutations with a version greater than the registered version are
  * included. No-op when `source` is not tracked (plain objects fall through to
  * the value-comparison path automatically).
  *
@@ -59,33 +94,15 @@ export function registerSnapshot(snapshot: object, source: object): void {
   if (!isTracked(source)) return;
 
   const version = currentVersion();
-  setSnapshotVersionRecursive(snapshot, version);
-  snapshotRefs.add(new WeakRef(snapshot));
+  snapshotVersions.set(snapshot, version);
+  const ref = new WeakRef(snapshot);
+  snapshotRefs.add(ref);
+  snapshotFinalizer.register(snapshot, ref);
+  // Registrations only ever lower the cached floor — never raise it. Rebuilds
+  // (below) are what raise it back up after old snapshots are GC'd.
+  if (oldestVersionCached > version) oldestVersionCached = version;
 
-  pruneDeletedEntries(source);
-}
-
-/** Recursively set SNAPSHOT_VERSION on an object and all its nested containers */
-function setSnapshotVersionRecursive(obj: unknown, version: number): void {
-  if (obj == null || typeof obj !== "object") return;
-  // configurable: a SyncSession view's unchanged nested refs are reused across
-  // ticks (decodeDiff returns the same reference when no change), so the same
-  // object can be stamped multiple times as the session's snapshot version advances.
-  Object.defineProperty(obj, SNAPSHOT_VERSION, { value: version, configurable: true });
-
-  if (obj instanceof Map) {
-    for (const value of obj.values()) {
-      setSnapshotVersionRecursive(value, version);
-    }
-  } else if (Array.isArray(obj)) {
-    for (const item of obj) {
-      setSnapshotVersionRecursive(item, version);
-    }
-  } else {
-    for (const value of Object.values(obj)) {
-      setSnapshotVersionRecursive(value, version);
-    }
-  }
+  pruneDeletedEntries();
 }
 
 /**
@@ -95,7 +112,7 @@ function setSnapshotVersionRecursive(obj: unknown, version: number): void {
  */
 export function getSnapshotVersion(obj: unknown): number | undefined {
   if (obj == null || typeof obj !== "object") return undefined;
-  return (obj as any)[SNAPSHOT_VERSION];
+  return snapshotVersions.get(obj as object);
 }
 
 /** Check if an object is tracked (has dirty version map) */
@@ -103,41 +120,65 @@ function isTracked(obj: object): boolean {
   return (obj as any)[DIRTY] != null;
 }
 
+/**
+ * Tracked maps that currently hold ≥1 tombstone, registered the first time they
+ * produce one. Mirrors C#'s `_tombstoneBearers` set: prune iterates this set
+ * directly instead of walking the source tree, and entries are removed when
+ * their map drops back to zero tombstones (or is GC'd).
+ */
+const tombstoneBearers = new Set<WeakRef<Map<unknown, unknown>>>();
+
 /** Prune deleted map entries that are older than the oldest surviving snapshot */
-function pruneDeletedEntries(obj: object): void {
-  // Find oldest surviving snapshot version
-  let oldestVersion = Infinity;
+function pruneDeletedEntries(): void {
+  // Fast path: no tombstones live anywhere. Idle ticks and pure-value
+  // mutations fall through here with one variable read.
+  if (liveTombstones === 0) return;
+
+  // Periodically rebuild the cached floor — registrations only lower it, so
+  // when old snapshots get GC'd we'd retain tombstones unnecessarily until the
+  // next rebuild raises the floor back up.
+  if (++encodesSinceRebuild >= REBUILD_INTERVAL) {
+    encodesSinceRebuild = 0;
+    rebuildOldestVersion();
+  }
+
+  const cutoff = oldestVersionCached;
+
+  // Walk only the tracked maps that hold tombstones. Containers that drop to
+  // zero tombstones (or have been GC'd) are removed from the set as we go.
+  for (const ref of tombstoneBearers) {
+    const map = ref.deref();
+    if (map == null) {
+      tombstoneBearers.delete(ref);
+      continue;
+    }
+    const deleted = (map as any)[DELETED] as Map<unknown, number> | undefined;
+    if (deleted == null || deleted.size === 0) {
+      tombstoneBearers.delete(ref);
+      continue;
+    }
+    for (const [key, version] of deleted) {
+      if (version < cutoff) {
+        deleted.delete(key);
+        liveTombstones--;
+      }
+    }
+    if (deleted.size === 0) tombstoneBearers.delete(ref);
+  }
+}
+
+function rebuildOldestVersion(): void {
+  let newMin = Infinity;
   for (const ref of snapshotRefs) {
     const snap = ref.deref();
     if (snap == null) {
       snapshotRefs.delete(ref);
     } else {
-      const v = getSnapshotVersion(snap);
-      if (v != null) oldestVersion = Math.min(oldestVersion, v);
+      const v = snapshotVersions.get(snap);
+      if (v != null && v < newMin) newMin = v;
     }
   }
-
-  // Recursively prune DELETED entries older than oldestVersion
-  // When oldestVersion is Infinity (no snapshots), all entries are pruned
-  pruneRecursive(obj, oldestVersion);
-}
-
-function pruneRecursive(obj: unknown, minVersion: number): void {
-  if (obj == null || typeof obj !== "object") return;
-
-  if (obj instanceof Map) {
-    const deleted = (obj as any)[DELETED] as Map<unknown, number> | undefined;
-    if (deleted) {
-      for (const [key, version] of deleted) {
-        if (version < minVersion) deleted.delete(key);
-      }
-    }
-    for (const value of obj.values()) pruneRecursive(value, minVersion);
-  } else if (Array.isArray(obj)) {
-    for (const item of obj) pruneRecursive(item, minVersion);
-  } else {
-    for (const value of Object.values(obj)) pruneRecursive(value, minVersion);
-  }
+  oldestVersionCached = newMin;
 }
 
 // ============ Internal Accessors for Encoder ============
@@ -575,7 +616,7 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
             created.set(key, version);
             if (deleted.has(key)) dirty.set(key, version);
           }
-          deleted.delete(key);
+          if (deleted.delete(key)) liveTombstones--;
           propagateToParent(trackedValues, version);
           target.set(key, trackRecursive(value, trackedValues, key as string | number) as V);
           return proxy;
@@ -585,7 +626,10 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
         return (key: K) => {
           if (target.has(key)) {
             const version = nextVersion();
+            const wasEmpty = deleted.size === 0;
             deleted.set(key, version);
+            liveTombstones++;
+            if (wasEmpty) tombstoneBearers.add(new WeakRef(target as Map<unknown, unknown>));
             dirty.delete(key);
             created.delete(key);
             propagateToParent(trackedValues, version);
@@ -595,12 +639,17 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
       }
       if (prop === "clear") {
         return () => {
+          const sizeBefore = target.size;
+          if (sizeBefore === 0) return target.clear();
           const version = nextVersion();
+          const wasEmpty = deleted.size === 0;
           for (const key of target.keys()) {
             deleted.set(key, version);
             dirty.delete(key);
             created.delete(key);
           }
+          liveTombstones += sizeBefore;
+          if (wasEmpty) tombstoneBearers.add(new WeakRef(target as Map<unknown, unknown>));
           propagateToParent(trackedValues, version);
           return target.clear();
         };

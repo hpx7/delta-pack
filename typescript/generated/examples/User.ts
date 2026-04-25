@@ -100,31 +100,16 @@ export const Address = {
   },
   encodeDiff(a: Address, b: Address): Uint8Array {
     const encoder = _.DiffEncoder.create();
-    encoder.pushObjectDiff(a, b, Address.equals, () => Address._encodeDiff(a, b, encoder));
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    encoder.pushObjectDiff(a, b, Address.equals, Address._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Address, b: Address, encoder: _.DiffEncoder): void {
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "street",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "zip",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "state",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
+    const versions = _.getFieldVersions(b);
+    const bRaw = _.getUnderlying(b);
+    encoder.pushFieldString(versions, "street", a.street, bRaw.street);
+    encoder.pushFieldString(versions, "zip", a.zip, bRaw.zip);
+    encoder.pushFieldString(versions, "state", a.state, bRaw.state);
   },
   decode(input: Uint8Array): Address {
     return Address._decode(_.Decoder.create(input));
@@ -201,17 +186,14 @@ export const EmailContact = {
   },
   encodeDiff(a: EmailContact, b: EmailContact): Uint8Array {
     const encoder = _.DiffEncoder.create();
-    encoder.pushObjectDiff(a, b, EmailContact.equals, () => EmailContact._encodeDiff(a, b, encoder));
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    encoder.pushObjectDiff(a, b, EmailContact.equals, EmailContact._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: EmailContact, b: EmailContact, encoder: _.DiffEncoder): void {
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "email",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
+    const versions = _.getFieldVersions(b);
+    const bRaw = _.getUnderlying(b);
+    encoder.pushFieldString(versions, "email", a.email, bRaw.email);
   },
   decode(input: Uint8Array): EmailContact {
     return EmailContact._decode(_.Decoder.create(input));
@@ -286,24 +268,22 @@ export const PhoneContact = {
   },
   encodeDiff(a: PhoneContact, b: PhoneContact): Uint8Array {
     const encoder = _.DiffEncoder.create();
-    encoder.pushObjectDiff(a, b, PhoneContact.equals, () => PhoneContact._encodeDiff(a, b, encoder));
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    encoder.pushObjectDiff(a, b, PhoneContact.equals, PhoneContact._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: PhoneContact, b: PhoneContact, encoder: _.DiffEncoder): void {
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "phone",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "extension",
-      (x, y) => _.equalsOptional(x, y, (x, y) => x === y),
-      (x, y) => encoder.pushOptionalDiff<number>(x, y, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0)),
-    );
+    const versions = _.getFieldVersions(b);
+    const bRaw = _.getUnderlying(b);
+    encoder.pushFieldString(versions, "phone", a.phone, bRaw.phone);
+    if (versions !== undefined && (versions.get("extension") ?? -1) <= encoder.minVersion) {
+      encoder.pushBoolean(false);
+    } else {
+      const aVal = a.extension, bVal = bRaw.extension;
+      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
+      encoder.pushBoolean(changed);
+      if (changed) encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0));
+    }
   },
   decode(input: Uint8Array): PhoneContact {
     return PhoneContact._decode(_.Decoder.create(input));
@@ -393,6 +373,7 @@ export const Contact = {
   },
   encodeDiff(a: Contact, b: Contact): Uint8Array {
     const encoder = _.DiffEncoder.create();
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
     Contact._encodeDiff(a, b, encoder);
     return encoder.toBuffer();
   },
@@ -555,74 +536,51 @@ export const User = {
   },
   encodeDiff(a: User, b: User): Uint8Array {
     const encoder = _.DiffEncoder.create();
-    encoder.pushObjectDiff(a, b, User.equals, () => User._encodeDiff(a, b, encoder));
+    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    encoder.pushObjectDiff(a, b, User.equals, User._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: User, b: User, encoder: _.DiffEncoder): void {
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "id",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "name",
-      (x, y) => x === y,
-      (x, y) => encoder.pushStringDiff(x, y),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "age",
-      (x, y) => x === y,
-      (x, y) => encoder.pushBoundedIntDiff(x, y, 0),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "weight",
-      (x, y) => _.equalsFloat(x, y),
-      (x, y) => encoder.pushFloatDiff(x, y),
-    );
-    encoder.pushBooleanDiff(a["married"], b["married"]);
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "hairColor",
-      (x, y) => x === y,
-      (x, y) => encoder.pushEnumDiff(HairColor[x], HairColor[y], 3),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "address",
-      (x, y) => _.equalsOptional(x, y, (x, y) => Address.equals(x, y)),
-      (x, y) => encoder.pushOptionalDiff<Address>(x, y, (x) => Address._encode(x, encoder), (x, y) => Address._encodeDiff(x, y, encoder)),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "children",
-      (x, y) => _.equalsArray(x, y, (x, y) => User.equals(x, y)),
-      (x, y) => encoder.pushArrayDiff<User>(x, y, (x, y) => User.equals(x, y), (x) => User._encode(x, encoder), (x, y) => User._encodeDiff(x, y, encoder)),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "metadata",
-      (x, y) => _.equalsRecord(x, y, (x, y) => x === y, (x, y) => x === y),
-      (x, y) => encoder.pushRecordDiff<string, string>(x, y, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)),
-    );
-    encoder.pushFieldDiff(
-      a,
-      b,
-      "preferredContact",
-      (x, y) => _.equalsOptional(x, y, (x, y) => Contact.equals(x, y)),
-      (x, y) => encoder.pushOptionalDiff<Contact>(x, y, (x) => Contact._encode(x, encoder), (x, y) => Contact._encodeDiff(x, y, encoder)),
-    );
+    const versions = _.getFieldVersions(b);
+    const bRaw = _.getUnderlying(b);
+    encoder.pushFieldString(versions, "id", a.id, bRaw.id);
+    encoder.pushFieldString(versions, "name", a.name, bRaw.name);
+    encoder.pushFieldBoundedInt(versions, "age", a.age, bRaw.age, 0);
+    encoder.pushFieldFloat(versions, "weight", a.weight, bRaw.weight);
+    encoder.pushBooleanDiff(a.married, bRaw.married);
+    encoder.pushFieldEnum(versions, "hairColor", a.hairColor, bRaw.hairColor, HairColor, 3);
+    if (versions !== undefined && (versions.get("address") ?? -1) <= encoder.minVersion) {
+      encoder.pushBoolean(false);
+    } else {
+      const aVal = a.address, bVal = bRaw.address;
+      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => Address.equals(x, y)));
+      encoder.pushBoolean(changed);
+      if (changed) encoder.pushOptionalDiff<Address>(aVal, bVal, (x) => Address._encode(x, encoder), (x, y) => Address._encodeDiff(x, y, encoder));
+    }
+    if (versions !== undefined && (versions.get("children") ?? -1) <= encoder.minVersion) {
+      encoder.pushBoolean(false);
+    } else {
+      const aVal = a.children, bVal = b.children;
+      const changed = !(_.equalsArray(aVal, bVal, (x, y) => User.equals(x, y)));
+      encoder.pushBoolean(changed);
+      if (changed) encoder.pushArrayDiff<User>(aVal, bVal, (x, y) => User.equals(x, y), (x) => User._encode(x, encoder), (x, y) => User._encodeDiff(x, y, encoder));
+    }
+    if (versions !== undefined && (versions.get("metadata") ?? -1) <= encoder.minVersion) {
+      encoder.pushBoolean(false);
+    } else {
+      const aVal = a.metadata, bVal = b.metadata;
+      const changed = !(_.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => x === y));
+      encoder.pushBoolean(changed);
+      if (changed) encoder.pushRecordDiff<string, string>(aVal, bVal, (x, y) => x === y, (x) => encoder.pushString(x), (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
+    }
+    if (versions !== undefined && (versions.get("preferredContact") ?? -1) <= encoder.minVersion) {
+      encoder.pushBoolean(false);
+    } else {
+      const aVal = a.preferredContact, bVal = bRaw.preferredContact;
+      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => Contact.equals(x, y)));
+      encoder.pushBoolean(changed);
+      if (changed) encoder.pushOptionalDiff<Contact>(aVal, bVal, (x) => Contact._encode(x, encoder), (x, y) => Contact._encodeDiff(x, y, encoder));
+    }
   },
   decode(input: Uint8Array): User {
     return User._decode(_.Decoder.create(input));
