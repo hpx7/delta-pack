@@ -3,4 +3,4 @@ export { Encoder, DiffEncoder } from "./encoder.js";
 export { Decoder, DiffDecoder } from "./decoder.js";
 export * from "./helpers.js";
 export { SyncSession } from "./sync-session.js";
-export { getFieldVersions, getSnapshotVersion, getUnderlying } from "./tracking.js";
+export { getFieldVersions, getUnderlying } from "./tracking.js";

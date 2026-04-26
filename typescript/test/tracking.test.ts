@@ -496,19 +496,20 @@ describe("Dirty Tracking", () => {
     it("should handle symbol properties on objects", () => {
       const sym = Symbol("test");
       const state = track({ x: 0 });
-      // Setting symbol should not throw and should be ignored for dirty tracking
+      // Symbol-keyed writes are forwarded to the target (not silently dropped)
+      // but stay outside the dirty-tracking system since the schema only
+      // describes string-keyed fields.
       (state as any)[sym] = "symbol-value";
-      expect(dirtySize(state)).toBe(0); // Symbols don't mark dirty
-      // Getting symbol should return undefined (not tracked)
-      expect((state as any)[sym]).toBeUndefined();
+      expect(dirtySize(state)).toBe(0);
+      expect((state as any)[sym]).toBe("symbol-value");
     });
 
     it("should handle symbol properties on arrays", () => {
       const sym = Symbol("test");
       const state = track({ items: [1, 2, 3] });
-      // Setting symbol on array should not throw and should be ignored
       (state.items as any)[sym] = "symbol-value";
       expect(dirtySize(state.items)).toBe(0);
+      expect((state.items as any)[sym]).toBe("symbol-value");
     });
 
     it("should handle symbol iteration", () => {
@@ -934,6 +935,109 @@ describe("Dirty Tracking", () => {
     });
   });
 
+  describe("Detachment of removed children", () => {
+    // Mutating a held reference to a removed child should NOT leak dirty
+    // marks back to the old container — the C# tracker (TrackedList /
+    // TrackedOrderedDict) calls Detach on every removal; TS now matches.
+
+    it("Map.delete detaches the removed value", () => {
+      const state = track({ players: new Map([["p1", { x: 0, y: 0 }]]) });
+      const stale = state.players.get("p1")!;
+      state.players.delete("p1");
+      const dirtyBefore = dirtySize(state.players);
+      stale.x = 999;
+      expect(dirtySize(state.players)).toBe(dirtyBefore);
+    });
+
+    it("Map.clear detaches every value", () => {
+      const state = track({
+        players: new Map([
+          ["p1", { x: 0 }],
+          ["p2", { x: 0 }],
+        ]),
+      });
+      const a = state.players.get("p1")!;
+      const b = state.players.get("p2")!;
+      state.players.clear();
+      const dirtyBefore = dirtySize(state.players);
+      a.x = 999;
+      b.x = 999;
+      expect(dirtySize(state.players)).toBe(dirtyBefore);
+    });
+
+    it("Map.set detaches the prior value when overwriting an existing key", () => {
+      const state = track({ players: new Map([["p1", { x: 0 }]]) });
+      const stale = state.players.get("p1")!;
+      state.players.set("p1", { x: 1 });
+      const dirtyBefore = dirtySize(state.players);
+      stale.x = 999;
+      expect(dirtySize(state.players)).toBe(dirtyBefore);
+    });
+
+    it("Array.pop detaches the popped item", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }] });
+      const stale = state.items.pop()!;
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array.shift detaches the shifted item", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }] });
+      const stale = state.items.shift()!;
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array.splice detaches every removed item", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }] });
+      const stales = state.items.splice(1, 2);
+      const dirtyBefore = dirtySize(state.items);
+      stales[0]!.v = 999;
+      stales[1]!.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array length shrink detaches truncated items", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }, { v: 3 }] });
+      const stale = state.items[2]!;
+      state.items.length = 1;
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array index assignment detaches the prior occupant", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }] });
+      const stale = state.items[0]!;
+      state.items[0] = { v: 99 };
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Object property reassignment detaches the prior value", () => {
+      const state = track({ inner: { v: 1 } });
+      const stale = state.inner;
+      state.inner = { v: 2 };
+      const dirtyBefore = dirtySize(state);
+      stale.v = 999;
+      expect(dirtySize(state)).toBe(dirtyBefore);
+    });
+
+    it("Object property delete detaches the removed value", () => {
+      const state = track({ inner: { v: 1 } } as {
+        inner?: { v: number };
+      });
+      const stale = state.inner!;
+      delete state.inner;
+      const dirtyBefore = dirtySize(state);
+      stale.v = 999;
+      expect(dirtySize(state)).toBe(dirtyBefore);
+    });
+  });
+
   describe("Per-field version filter (DiffEncoder helpers)", () => {
     // These cover the "field is not dirty" skip branch on each helper, which
     // only fires when (1) the source is tracked, (2) a snapshot was registered,
@@ -941,6 +1045,28 @@ describe("Dirty Tracking", () => {
     // is the same as the value-compare-finds-equal path, so tests that only
     // check decoded values won't distinguish them — these assert the skip path
     // is exercised at all.
+
+    it("preserves class prototype, methods, and accessors", () => {
+      class Counter {
+        value = 0;
+        nested = { inner: 1 };
+        increment(n: number) {
+          this.value += n;
+        }
+        get doubled() {
+          return this.value * 2;
+        }
+      }
+      const tracked = track(new Counter());
+      expect(tracked).toBeInstanceOf(Counter);
+      expect(typeof tracked.increment).toBe("function");
+      expect(tracked.doubled).toBe(0);
+      // Method calls go through the proxy and dirty-track the mutation.
+      tracked.increment(5);
+      expect(tracked.value).toBe(5);
+      expect(tracked.doubled).toBe(10);
+      expect(isDirty(tracked, "value")).toBe(true);
+    });
 
     it("skips encoding tracked enum field that hasn't changed since snapshot", () => {
       const Color = EnumType("Color", ["RED", "BLUE", "GREEN"]);

@@ -92,17 +92,16 @@ export const InnerInner = {
     encoder.pushInt(obj.sint32);
   },
   encodeDiff(a: InnerInner, b: InnerInner): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, InnerInner.equals, InnerInner._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: InnerInner, b: InnerInner, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldInt(versions, "long", a.long, bRaw.long);
-    encoder.pushFieldEnum(versions, "enum", a.enum, bRaw.enum, Enum, 3);
-    encoder.pushFieldInt(versions, "sint32", a.sint32, bRaw.sint32);
+    encoder.pushFieldDiff(versions, "long", a.long, bRaw.long, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushIntDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "enum", a.enum, bRaw.enum, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushEnumDiff(Enum[aVal], Enum[bVal], 3));
+    encoder.pushFieldDiff(versions, "sint32", a.sint32, bRaw.sint32, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushIntDiff(aVal, bVal));
   },
   decode(input: Uint8Array): InnerInner {
     return InnerInner._decode(_.Decoder.create(input));
@@ -184,23 +183,15 @@ export const Outer = {
     encoder.pushFloat(obj.double);
   },
   encodeDiff(a: Outer, b: Outer): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Outer.equals, Outer._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Outer, b: Outer, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    if (versions !== undefined && (versions.get("bool") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.bool, bVal = b.bool;
-      const changed = !(_.equalsArray(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushArrayDiff<boolean>(aVal, bVal, (x, y) => x === y, (x) => encoder.pushBoolean(x), (_x, _y) => undefined);
-    }
-    encoder.pushFieldFloat(versions, "double", a.double, bRaw.double);
+    encoder.pushFieldDiff(versions, "bool", a.bool, bRaw.bool, (aVal, bVal) => _.equalsArray(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushArrayDiff<boolean>(aVal, bVal, (x, y) => x === y, (x) => encoder.pushBoolean(x), (_x, _y) => undefined));
+    encoder.pushFieldDiff(versions, "double", a.double, bRaw.double, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): Outer {
     return Outer._decode(_.Decoder.create(input));
@@ -283,15 +274,14 @@ export const Inner = {
     Outer._encode(obj.outer, encoder);
   },
   encodeDiff(a: Inner, b: Inner): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Inner.equals, Inner._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Inner, b: Inner, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldInt(versions, "int32", a.int32, bRaw.int32);
+    encoder.pushFieldDiff(versions, "int32", a.int32, bRaw.int32, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushIntDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "innerInner", a.innerInner, bRaw.innerInner, InnerInner.equals, InnerInner._encodeDiff);
     encoder.pushFieldDiff(versions, "outer", a.outer, bRaw.outer, Outer.equals, Outer._encodeDiff);
   },
@@ -393,19 +383,18 @@ export const Test = {
     encoder.pushBitPackedInt(obj.boundedInt, 0, 5, 3);
   },
   encodeDiff(a: Test, b: Test): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Test.equals, Test._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Test, b: Test, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "string", a.string, bRaw.string);
-    encoder.pushFieldInt(versions, "uint32", a.uint32, bRaw.uint32);
+    encoder.pushFieldDiff(versions, "string", a.string, bRaw.string, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "uint32", a.uint32, bRaw.uint32, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushIntDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "inner", a.inner, bRaw.inner, Inner.equals, Inner._encodeDiff);
-    encoder.pushFieldFloat(versions, "float", a.float, bRaw.float);
-    encoder.pushFieldBitPackedInt(versions, "boundedInt", a.boundedInt, bRaw.boundedInt, 0, 5, 3);
+    encoder.pushFieldDiff(versions, "float", a.float, bRaw.float, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "boundedInt", a.boundedInt, bRaw.boundedInt, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBitPackedIntDiff(aVal, bVal, 0, 5, 3));
   },
   decode(input: Uint8Array): Test {
     return Test._decode(_.Decoder.create(input));

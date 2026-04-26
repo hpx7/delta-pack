@@ -2,7 +2,7 @@ import { NamedType, ObjectType, Type } from "./schema.js";
 import { Encoder, DiffEncoder } from "./encoder.js";
 import { Decoder, DiffDecoder } from "./decoder.js";
 import * as helpers from "./helpers.js";
-import { getFieldVersions, getSnapshotVersion } from "./tracking.js";
+import { getFieldVersions } from "./tracking.js";
 
 type EncoderInstance = ReturnType<typeof Encoder.create>;
 type DiffEncoderInstance = ReturnType<typeof DiffEncoder.create>;
@@ -113,13 +113,11 @@ export function compileEncodeDecode(rootType: NamedType): {
       return ctx.decode(decoder);
     },
     encodeDiff: (a, b) => {
-      const encoder = DiffEncoder.create();
-      // Thread the snapshot baseline version through the encoder so the
-      // per-field version filter (in DiffEncoder.pushField* helpers and in
-      // pushObjectDiff) matches against the right baseline. Mirrors the AOT
-      // codegen's `encoder.minVersion = _.getSnapshotVersion(a) ?? -1` at the
-      // top of every generated encodeDiff wrapper.
-      encoder.minVersion = (getSnapshotVersion(a as object) ?? -1) as number;
+      // `DiffEncoder.create(a)` reads the snapshot's registered version and
+      // seeds `encoder.minVersion`, so the per-field version filter (in
+      // pushField* helpers and pushObjectDiff) matches against the right
+      // baseline. Mirrors the AOT codegen's `_.DiffEncoder.create(a)`.
+      const encoder = DiffEncoder.create(a);
       ctx.encodeDiff(a, b, encoder);
       return encoder.toBuffer();
     },
@@ -294,17 +292,13 @@ class JitCompiler {
     }
   }
 
-  // Per-field diff. The dispatch matches the AOT codegen exactly:
+  // Per-field diff. Three shapes (matching AOT codegen):
   //  - boolean → direct pushBooleanDiff (no version filter).
-  //  - object/union/self-ref → recurse via compileEncodeDiff. The nested
-  //    `pushObjectDiff` reads `encoder.minVersion`, so the version filter
-  //    works the same as the AOT codegen's `pushFieldDiff` with static
-  //    `Type.equals` / `Type._encodeDiff` refs (just inlined instead of
-  //    going through a separate function).
-  //  - primitives → shared `pushFieldString` / `pushFieldFloatQuantized` / …
-  //    helpers (no closures).
-  //  - array/record/optional → inline if/else block (closures inside only
-  //    allocate when the field is dirty).
+  //  - object/self-ref → recurse via compileEncodeDiff (pushObjectDiff handles
+  //    its own change bit + version filter via encoder.minVersion).
+  //  - everything else (primitives, enum, union, array, record, optional)
+  //    → pushFieldDiff with arrow-lambda equals/encodeDiff. The lambdas are
+  //    allocated per call but only invoked when the field is dirty.
   private compileEncodeDiffField(type: Type, a: string, b: string, key: string, parent: NamedType): string {
     if (type.type === "reference") {
       return this.compileEncodeDiffField(type.ref, a, b, key, type.ref);
@@ -313,58 +307,14 @@ class JitCompiler {
       return `encoder.pushBooleanDiff(${a}[${key}], ${b}[${key}]);`;
     }
     if (type.type === "object" || type.type === "self-reference") {
-      // pushObjectDiff (nested, via compileEncodeDiff for object) handles its
-      // own change bit + version filter via encoder.minVersion. Self-reference
-      // dispatches to ctx.encodeDiff which is the same top-level wrapper, so
-      // its change bit is similarly nested.
       return this.compileEncodeDiff(type, `${a}[${key}]`, `${b}[${key}]`, parent);
     }
-    if (type.type === "union") {
-      // Unions don't emit their own change bit at the top of `_encodeDiff`,
-      // so the field site must add one via pushFieldDiff (and the decode side's
-      // nextFieldDiff reads it back). Mirrors the AOT codegen's
-      // `encoder.pushFieldDiff(versions, key, aVal, bVal, Type.equals, Type._encodeDiff)`.
-      const x = this.nextVar("x");
-      const y = this.nextVar("y");
-      const eqExpr = this.compileEquals(type, x, y, parent);
-      const diffExpr = this.compileEncodeDiff(type, x, y, parent);
-      const versionsArg = `ctx.getFieldVersions(${b}), ${key}`;
-      return `encoder.pushFieldDiff(${versionsArg}, ${a}[${key}], ${b}[${key}], (${x}, ${y}) => ${eqExpr}, (${x}, ${y}) => { ${diffExpr} });`;
-    }
-    if (type.type === "array" || type.type === "record" || type.type === "optional") {
-      const x = this.nextVar("x");
-      const y = this.nextVar("y");
-      const eqExpr = this.compileEquals(type, x, y, parent);
-      const diffExpr = this.compileEncodeDiff(type, x, y, parent);
-      return `{ const __vers = ctx.getFieldVersions(${b}); if (__vers !== undefined && (__vers.get(${key}) ?? -1) <= encoder.minVersion) { encoder.pushBoolean(false); } else { const ${x} = ${a}[${key}], ${y} = ${b}[${key}]; const __ch = !(${eqExpr}); encoder.pushBoolean(__ch); if (__ch) { ${diffExpr} } } }`;
-    }
-    // Primitives — shared helper call.
+    const x = this.nextVar("x");
+    const y = this.nextVar("y");
+    const eqExpr = this.compileEquals(type, x, y, parent);
+    const diffExpr = this.compileEncodeDiff(type, x, y, parent);
     const versionsArg = `ctx.getFieldVersions(${b}), ${key}`;
-    const aRef = `${a}[${key}]`;
-    const bRef = `${b}[${key}]`;
-    switch (type.type) {
-      case "string":
-        return `encoder.pushFieldString(${versionsArg}, ${aRef}, ${bRef});`;
-      case "int":
-        if (type.numBits != null) {
-          return `encoder.pushFieldBitPackedInt(${versionsArg}, ${aRef}, ${bRef}, ${type.min}, ${type.max}, ${type.numBits});`;
-        }
-        if (type.min != null && type.min >= 0) {
-          return `encoder.pushFieldBoundedInt(${versionsArg}, ${aRef}, ${bRef}, ${type.min});`;
-        }
-        return `encoder.pushFieldInt(${versionsArg}, ${aRef}, ${bRef});`;
-      case "float":
-        if (type.precision) {
-          return `encoder.pushFieldFloatQuantized(${versionsArg}, ${aRef}, ${bRef}, ${type.precision});`;
-        }
-        return `encoder.pushFieldFloat(${versionsArg}, ${aRef}, ${bRef});`;
-      case "enum": {
-        const idx = this.enumIndices.get(type.options);
-        return `encoder.pushFieldEnum(${versionsArg}, ${aRef}, ${bRef}, ctx.enumLookups[${idx}], ${type.numBits});`;
-      }
-      default:
-        throw new Error(`No field helper for type ${(type as Type).type}`);
-    }
+    return `encoder.pushFieldDiff(${versionsArg}, ${a}[${key}], ${b}[${key}], (${x}, ${y}) => ${eqExpr}, (${x}, ${y}, encoder) => { ${diffExpr} });`;
   }
 
   // Value-only diff - skips outer changed bit (used for array/optional/record element updates)

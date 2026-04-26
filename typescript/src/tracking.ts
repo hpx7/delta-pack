@@ -91,7 +91,7 @@ let liveTombstones = 0;
  * only when using the raw `encodeDiff` API with a tracked source.
  */
 export function registerSnapshot(snapshot: object, source: object): void {
-  if (!isTracked(source)) return;
+  if (getFieldVersions(source) == null) return;
 
   const version = currentVersion();
   snapshotVersions.set(snapshot, version);
@@ -113,11 +113,6 @@ export function registerSnapshot(snapshot: object, source: object): void {
 export function getSnapshotVersion(obj: unknown): number | undefined {
   if (obj == null || typeof obj !== "object") return undefined;
   return snapshotVersions.get(obj as object);
-}
-
-/** Check if an object is tracked (has dirty version map) */
-function isTracked(obj: object): boolean {
-  return (obj as any)[DIRTY] != null;
 }
 
 /**
@@ -206,7 +201,7 @@ export function getFieldVersions(obj: unknown): Map<string | number, number> | u
  * @internal Used by encoder for optimization
  */
 export function getCreatedVersions<K>(obj: Map<K, unknown>): Map<K, number> | undefined {
-  return (obj as any)?.[CREATED];
+  return (obj as any)[CREATED];
 }
 
 /**
@@ -214,7 +209,7 @@ export function getCreatedVersions<K>(obj: Map<K, unknown>): Map<K, number> | un
  * @internal Used by encoder for optimization
  */
 export function getDeletedVersions<K>(obj: Map<K, unknown>): Map<K, number> | undefined {
-  return (obj as any)?.[DELETED];
+  return (obj as any)[DELETED];
 }
 
 // ============ Type Definitions ============
@@ -227,13 +222,17 @@ type TrackedMap<K, V> = Omit<Map<K, Tracked<V>>, "set" | "get"> & {
 
 /** Recursively track an object and its nested containers (type is unchanged) */
 export type Tracked<T> =
-  T extends Map<infer K, infer V>
-    ? TrackedMap<K, V>
-    : T extends Array<infer U>
-      ? Array<Tracked<U>>
-      : T extends object
-        ? { [P in keyof T]: Tracked<T[P]> }
-        : T;
+  // Functions/methods pass through unchanged — without this, the mapped type
+  // below would strip a function's call signature.
+  T extends (...args: never[]) => unknown
+    ? T
+    : T extends Map<infer K, infer V>
+      ? TrackedMap<K, V>
+      : T extends Array<infer U>
+        ? Array<Tracked<U>>
+        : T extends object
+          ? { [P in keyof T]: Tracked<T[P]> }
+          : T;
 
 // ============ Public API ============
 
@@ -268,7 +267,7 @@ export type Tracked<T> =
  * ```
  */
 export function track<T extends object>(obj: T): Tracked<T> {
-  return trackRecursive(deepClone(obj)) as Tracked<T>;
+  return attach(deepClone(obj)) as Tracked<T>;
 }
 
 // ============ Internal Implementation ============
@@ -279,33 +278,111 @@ function getFallback<T extends object>(target: T, prop: string | symbol): unknow
   return typeof value === "function" ? value.bind(target) : value;
 }
 
+/**
+ * Compare a stored value to an incoming write, treating tracked-proxy /
+ * underlying pairs as the same value. Without the unwrap, common patterns
+ * (`arr[i] = arr[i]`, `map.set(k, map.get(k))`) and the asymmetric storage
+ * between `trackObject` (raw in target) and `trackArray`/`trackMap` (proxy in
+ * target) produce spurious dirty bumps on no-op writes.
+ */
+function valuesEqual(stored: unknown, incoming: unknown): boolean {
+  if (stored === incoming) return true;
+  if (stored == null || incoming == null) return false;
+  if (typeof stored !== "object" || typeof incoming !== "object") return false;
+  return getUnderlying(stored as object) === getUnderlying(incoming as object);
+}
+
 /** Propagate dirty marking up to parent containers */
 function propagateToParent(child: object, version: number): void {
-  const parent = (child as any)[PARENT];
-  const key = (child as any)[PARENT_KEY];
-  if (parent != null && key != null) {
+  let current: object = child;
+  while (true) {
+    const parent: object | undefined = (current as any)[PARENT];
+    const key = (current as any)[PARENT_KEY];
+    if (parent == null || key == null) return;
     const parentDirty = getFieldVersions(parent);
-    if (parentDirty) {
-      const existingVersion = parentDirty.get(key);
-      if (existingVersion == null || version > existingVersion) {
-        parentDirty.set(key, version);
-        propagateToParent(parent, version);
-      }
-    }
+    if (!parentDirty) return;
+    const existing = parentDirty.get(key);
+    // Existing entry already at or above this version — anything further up
+    // the chain has also seen it, so the walk can stop here.
+    if (existing != null && version <= existing) return;
+    parentDirty.set(key, version);
+    current = parent;
   }
 }
 
-/** Set or update parent metadata on a tracked object (only runs on init/reparenting, not hot-path) */
+/**
+ * Set or update parent metadata on a tracked object. PARENT/PARENT_KEY slots
+ * are pre-defined as `undefined` at track-init by `defineMetaSlots`, so this is
+ * just a direct assignment — no defineProperty mode-switch needed.
+ */
 function setParentMeta(target: object, parent: object | undefined, parentKey: string | number | undefined): void {
   if (parent == null || parentKey == null) return;
-  // Check if already defined (reparenting case)
-  if ((target as any)[PARENT] !== undefined) {
-    (target as any)[PARENT] = parent;
-    (target as any)[PARENT_KEY] = parentKey;
-  } else {
-    // Initial definition
-    Object.defineProperty(target, PARENT, { value: parent, writable: true });
-    Object.defineProperty(target, PARENT_KEY, { value: parentKey, writable: true });
+  (target as any)[PARENT] = parent;
+  (target as any)[PARENT_KEY] = parentKey;
+}
+
+/**
+ * Define non-enumerable PARENT/PARENT_KEY slots on a freshly tracked container.
+ * Called once per `trackObject`/`trackArray`/`trackMap` so subsequent attach
+ * and detach calls can use plain assignment.
+ */
+function defineMetaSlots(target: object): void {
+  Object.defineProperty(target, PARENT, { value: undefined, writable: true });
+  Object.defineProperty(target, PARENT_KEY, { value: undefined, writable: true });
+}
+
+/**
+ * Clear `child`'s PARENT/PARENT_KEY pointers iff its current parent is still
+ * `expectedParent`. The parent-match guard mirrors C#'s `ReferenceEquals(c.Parent, this)`
+ * check (`TrackedList.cs:255`) — without it, detaching a child that has already been
+ * re-parented would silently break dirty propagation through the new parent.
+ */
+function detachChild(child: unknown, expectedParent: object): void {
+  if (child == null || typeof child !== "object") return;
+  const underlying = getUnderlying(child);
+  if ((underlying as any)[PARENT] !== expectedParent) return;
+  (underlying as any)[PARENT] = undefined;
+  (underlying as any)[PARENT_KEY] = undefined;
+}
+
+/**
+ * Mint a fresh version, record `key → version` on the dirty/created/deleted
+ * tracking map of choice, and walk the parent chain. The triplet was repeated
+ * verbatim at every single-key mutation site; pulling it into one helper keeps
+ * the order-of-operations consistent and makes call sites read as one
+ * statement instead of three.
+ */
+function bumpAndPropagate(container: object, map: Map<unknown, number>, key: unknown): number {
+  const version = nextVersion();
+  map.set(key, version);
+  propagateToParent(container, version);
+  return version;
+}
+
+/**
+ * Range version of `bumpAndPropagate` for array mutations that touch multiple
+ * indices (push, shift, splice, sort, reverse, fill, copyWithin). Mints one
+ * version, dirties the half-open range, and propagates once.
+ */
+function bumpRange(container: object, dirty: Map<number, number>, start: number, end: number): void {
+  if (start >= end) return;
+  const version = nextVersion();
+  for (let i = start; i < end; i++) dirty.set(i, version);
+  propagateToParent(container, version);
+}
+
+/**
+ * Refresh PARENT_KEY on tracked array children whose positions shifted (after
+ * shift, unshift, splice non-equal-replace, sort, reverse, copyWithin).
+ */
+function reparentArrayChildren(items: unknown[], start: number, end: number): void {
+  for (let i = start; i < end; i++) {
+    const elem = items[i];
+    if (elem != null && typeof elem === "object") {
+      // Bypass the proxy's set trap (which ignores symbol writes).
+      const underlying = getUnderlying(elem as object);
+      (underlying as any)[PARENT_KEY] = i;
+    }
   }
 }
 
@@ -314,7 +391,13 @@ function normalizeIndex(idx: number, len: number): number {
   return idx < 0 ? Math.max(len + idx, 0) : Math.min(idx, len);
 }
 
-function trackRecursive<T>(obj: T, parent?: object, parentKey?: string | number): T {
+/**
+ * Recursively wrap `obj` (and its children) with tracking, attaching it as
+ * `parent`'s child under `parentKey`. Pairs with `detachChild` for ownership
+ * transfer at the mutation sites. Returns the input untouched for primitives,
+ * or the existing tracked proxy if `obj` is already wrapped.
+ */
+function attach<T>(obj: T, parent?: object, parentKey?: string | number): T {
   if (obj == null || typeof obj !== "object") {
     return obj;
   }
@@ -344,39 +427,43 @@ function trackObject<T extends Record<string, unknown>>(
 ): Tracked<T> {
   const dirty = new Map<string, number>();
   Object.defineProperty(obj, DIRTY, { value: dirty, writable: true });
+  defineMetaSlots(obj);
   setParentMeta(obj, parent, parentKey);
 
-  // Recursively track all nested values
-  const trackedChildren: Record<string, unknown> = {};
+  // Replace each child value with its tracked version in-place. Storing the
+  // proxy directly in `obj` mirrors `trackArray`/`trackMap` and avoids the
+  // parallel side-map; encoders unwrap via `getUnderlying` at each level so
+  // the extra proxy hop is bounded.
+  const record = obj as Record<string, unknown>;
   for (const key of Object.keys(obj)) {
-    trackedChildren[key] = trackRecursive(obj[key], obj, key);
+    record[key] = attach(record[key], obj, key);
   }
 
-  const proxy = new Proxy(obj, {
+  return new Proxy(obj, {
     set(target, prop, value) {
       if (typeof prop === "symbol") {
+        // Symbol-keyed writes bypass dirty tracking (dirty is keyed by string)
+        // but must still hit the target — silently dropping symbol writes
+        // breaks well-known symbols and user metadata.
+        (target as Record<string | symbol, unknown>)[prop] = value;
         return true;
       }
       const key = prop as string;
-      if (target[key] !== value) {
-        const version = nextVersion();
-        dirty.set(key, version);
-        propagateToParent(obj, version);
-        trackedChildren[key] = trackRecursive(value, obj, key);
-      }
-      (target as Record<string, unknown>)[key] = value;
+      // Skip the bump only when the property already exists with the same
+      // logical value — first-time `obj.foo = undefined` should still mark
+      // the field dirty even though `target[key]` reads as `undefined`.
+      if (key in target && valuesEqual(target[key], value)) return true;
+      bumpAndPropagate(obj, dirty, key);
+      // Detach the OLD child before swapping in the new one — otherwise a
+      // later mutation through a held reference to the old child still
+      // marks this object dirty for `key`.
+      detachChild(target[key], obj);
+      (target as Record<string, unknown>)[key] = attach(value, obj, key);
       return true;
     },
     get(target, prop) {
       if (prop === UNDERLYING) return target;
-      if (typeof prop === "symbol") {
-        return (target as any)[prop];
-      }
-      const tracked = trackedChildren[prop];
-      if (tracked != null) {
-        return tracked;
-      }
-      return target[prop];
+      return (target as any)[prop];
     },
     deleteProperty(target, prop) {
       if (typeof prop === "symbol") {
@@ -384,70 +471,60 @@ function trackObject<T extends Record<string, unknown>>(
       }
       const key = prop as string;
       if (key in target) {
-        const version = nextVersion();
-        dirty.set(key, version);
-        propagateToParent(obj, version);
-        delete trackedChildren[key];
+        bumpAndPropagate(obj, dirty, key);
+        detachChild(target[key], obj);
       }
       return delete (target as Record<string, unknown>)[key];
     },
   }) as Tracked<T>;
-
-  return proxy;
 }
 
 function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): Tracked<T[]> {
   const dirty = new Map<number, number>();
   const trackedItems: T[] = [];
   Object.defineProperty(trackedItems, DIRTY, { value: dirty, writable: true });
+  defineMetaSlots(trackedItems);
   setParentMeta(trackedItems, parent, parentKey);
 
   // Track initial items
   for (let i = 0; i < arr.length; i++) {
-    trackedItems.push(trackRecursive(arr[i], trackedItems, i) as T);
+    trackedItems.push(attach(arr[i], trackedItems, i) as T);
   }
-
-  const markRangeDirty = (start: number, end: number) => {
-    if (start >= end) return;
-    const version = nextVersion();
-    for (let i = start; i < end; i++) {
-      dirty.set(i, version);
-    }
-    propagateToParent(trackedItems, version);
-  };
-
-  // Update PARENT_KEY on elements after reordering
-  const updateParentKeys = (start: number, end: number) => {
-    for (let i = start; i < end; i++) {
-      const elem = trackedItems[i];
-      if (elem != null && typeof elem === "object") {
-        // Access underlying object to bypass proxy's symbol-ignoring set trap
-        const underlying = getUnderlying(elem as object);
-        (underlying as any)[PARENT_KEY] = i;
-      }
-    }
-  };
 
   const proxy = new Proxy(trackedItems, {
     set(target, prop, value) {
       if (typeof prop === "symbol") {
+        // Forward symbol-keyed writes to the target without tracking them
+        // (the dirty Map keys numeric indices); silently dropping the write
+        // would break any symbol-using code attached to the array.
+        (target as unknown as Record<string | symbol, unknown>)[prop] = value;
         return true;
       }
       if (prop === "length") {
         const oldLength = target.length;
-        (target as unknown as { length: number }).length = value as number;
-        const newLength = target.length;
-        if (newLength !== oldLength) {
-          markRangeDirty(Math.min(oldLength, newLength), Math.max(oldLength, newLength));
+        const newLength = value as number;
+        // Detach any items that fall off the end of the truncated array.
+        for (let i = newLength; i < oldLength; i++) {
+          detachChild(target[i], trackedItems);
+        }
+        (target as unknown as { length: number }).length = newLength;
+        if (target.length !== oldLength) {
+          bumpRange(trackedItems, dirty, Math.min(oldLength, target.length), Math.max(oldLength, target.length));
         }
         return true;
       }
       const index = Number(prop);
       if (!isNaN(index)) {
-        const version = nextVersion();
-        dirty.set(index, version);
-        propagateToParent(trackedItems, version);
-        target[index] = trackRecursive(value, trackedItems, index) as T;
+        // True no-op: same logical value AND no length change. Sparse
+        // extensions (`arr[5] = undefined` past current length) still bump
+        // because the length grew, even though the value matched the hole.
+        if (index < target.length && valuesEqual(target[index], value)) {
+          return true;
+        }
+        bumpAndPropagate(trackedItems, dirty, index);
+        // Detach the previous occupant before installing the new one.
+        if (index < target.length) detachChild(target[index], trackedItems);
+        target[index] = attach(value, trackedItems, index) as T;
         return true;
       }
       (target as unknown as Record<string, unknown>)[prop] = value;
@@ -461,21 +538,18 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
       if (prop === "push") {
         return (...items: T[]) => {
           const startIndex = target.length;
-          const version = nextVersion();
           for (let i = 0; i < items.length; i++) {
-            dirty.set(startIndex + i, version);
-            target.push(trackRecursive(items[i], trackedItems, startIndex + i) as T);
+            target.push(attach(items[i], trackedItems, startIndex + i) as T);
           }
-          propagateToParent(trackedItems, version);
+          bumpRange(trackedItems, dirty, startIndex, target.length);
           return target.length;
         };
       }
       if (prop === "pop") {
         return () => {
           if (target.length > 0) {
-            const version = nextVersion();
-            dirty.set(target.length - 1, version);
-            propagateToParent(trackedItems, version);
+            bumpAndPropagate(trackedItems, dirty, target.length - 1);
+            detachChild(target[target.length - 1], trackedItems);
           }
           return target.pop();
         };
@@ -483,9 +557,10 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
       if (prop === "shift") {
         return () => {
           if (target.length > 0) {
-            markRangeDirty(0, target.length);
+            bumpRange(trackedItems, dirty, 0, target.length);
+            detachChild(target[0], trackedItems);
             const result = target.shift();
-            updateParentKeys(0, target.length);
+            reparentArrayChildren(trackedItems, 0, target.length);
             return result;
           }
           return target.shift();
@@ -496,9 +571,9 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
           if (items.length === 0) {
             return target.length;
           }
-          markRangeDirty(0, target.length + items.length);
-          const result = target.unshift(...items.map((item, i) => trackRecursive(item, trackedItems, i) as T));
-          updateParentKeys(items.length, target.length);
+          bumpRange(trackedItems, dirty, 0, target.length + items.length);
+          const result = target.unshift(...items.map((item, i) => attach(item, trackedItems, i) as T));
+          reparentArrayChildren(trackedItems, items.length, target.length);
           return result;
         };
       }
@@ -506,17 +581,25 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
         return (start: number, deleteCount?: number, ...items: T[]) => {
           const len = target.length;
           const actualStart = normalizeIndex(start, len);
-          const actualDeleteCount = deleteCount == null ? len - actualStart : Math.min(deleteCount, len - actualStart);
+          // Clamp to [0, len-actualStart] to match native splice's handling of
+          // negative or oversized deleteCount; otherwise a negative count would
+          // dirty-bump the tail without removing anything.
+          const actualDeleteCount =
+            deleteCount == null ? len - actualStart : Math.max(0, Math.min(deleteCount, len - actualStart));
           if (actualDeleteCount > 0 || items.length > 0) {
-            markRangeDirty(actualStart, Math.max(len, actualStart + items.length));
+            bumpRange(trackedItems, dirty, actualStart, Math.max(len, actualStart + items.length));
+          }
+          // Detach the slice we're about to remove before mutating `target`.
+          for (let i = actualStart; i < actualStart + actualDeleteCount; i++) {
+            detachChild(target[i], trackedItems);
           }
           const result = target.splice(
             actualStart,
             actualDeleteCount,
-            ...items.map((item, i) => trackRecursive(item, trackedItems, actualStart + i) as T)
+            ...items.map((item, i) => attach(item, trackedItems, actualStart + i) as T)
           );
           if (actualDeleteCount !== items.length) {
-            updateParentKeys(actualStart + items.length, target.length);
+            reparentArrayChildren(trackedItems, actualStart + items.length, target.length);
           }
           return result;
         };
@@ -524,32 +607,39 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
       if (prop === "sort") {
         return (compareFn?: (a: T, b: T) => number) => {
           target.sort(compareFn);
-          markRangeDirty(0, target.length);
-          updateParentKeys(0, target.length);
+          bumpRange(trackedItems, dirty, 0, target.length);
+          reparentArrayChildren(trackedItems, 0, target.length);
           return proxy;
         };
       }
       if (prop === "reverse") {
         return () => {
           target.reverse();
-          markRangeDirty(0, target.length);
-          updateParentKeys(0, target.length);
+          bumpRange(trackedItems, dirty, 0, target.length);
+          reparentArrayChildren(trackedItems, 0, target.length);
           return proxy;
         };
       }
       if (prop === "fill") {
         return (value: T, start?: number, end?: number) => {
+          // Filling with an object would attach the same reference at every
+          // index; PARENT_KEY can only hold one number, so dirty propagation
+          // would silently work for one slot and break for the rest. Reject
+          // up front rather than ship a partially-broken array.
+          if (value != null && typeof value === "object") {
+            throw new Error(
+              "Tracked array .fill() with an object value is not supported (would create shared references). " +
+                "Use a loop with distinct values per index instead."
+            );
+          }
           const len = target.length;
           const actualStart = start == null ? 0 : normalizeIndex(start, len);
           const actualEnd = end == null ? len : normalizeIndex(end, len);
-          const version = nextVersion();
           for (let i = actualStart; i < actualEnd; i++) {
-            target[i] = trackRecursive(value, trackedItems, i) as T;
-            dirty.set(i, version);
+            detachChild(target[i], trackedItems);
+            target[i] = attach(value, trackedItems, i) as T;
           }
-          if (actualStart < actualEnd) {
-            propagateToParent(trackedItems, version);
-          }
+          bumpRange(trackedItems, dirty, actualStart, actualEnd);
           return proxy;
         };
       }
@@ -561,14 +651,22 @@ function trackArray<T>(arr: T[], parent?: object, parentKey?: string | number): 
           const final = end == null ? len : normalizeIndex(end, len);
           const count = Math.min(final - from, len - to);
           if (count > 0) {
+            // Snapshot source slice before we start overwriting, otherwise
+            // overlapping ranges (e.g. `copyWithin(2, 0, 3)` on len 4) would
+            // read already-clobbered slots.
             const copied = target.slice(from, from + count);
-            const version = nextVersion();
+            // Items at the source range stay in place — only items that are
+            // ONLY at destination (i.e. not also still referenced via source)
+            // need detaching. Build the keep set from source positions.
+            const keep = new Set<unknown>();
+            for (let i = 0; i < count; i++) keep.add(copied[i]);
             for (let i = 0; i < count; i++) {
+              const old = target[to + i];
+              if (!keep.has(old)) detachChild(old, trackedItems);
               target[to + i] = copied[i]!;
-              dirty.set(to + i, version);
             }
-            propagateToParent(trackedItems, version);
-            updateParentKeys(to, to + count);
+            bumpRange(trackedItems, dirty, to, to + count);
+            reparentArrayChildren(trackedItems, to, to + count);
           }
           return proxy;
         };
@@ -589,10 +687,11 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
   Object.defineProperty(trackedValues, DIRTY, { value: dirty, writable: true });
   Object.defineProperty(trackedValues, CREATED, { value: created, writable: true });
   Object.defineProperty(trackedValues, DELETED, { value: deleted, writable: true });
+  defineMetaSlots(trackedValues);
   setParentMeta(trackedValues, parent, parentKey);
 
   for (const [key, value] of map) {
-    trackedValues.set(key, trackRecursive(value, trackedValues, key as string | number) as V);
+    trackedValues.set(key, attach(value, trackedValues, key as string | number) as V);
   }
 
   const proxy = new Proxy(trackedValues, {
@@ -603,28 +702,32 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
       }
       if (prop === "set") {
         return (key: K, value: V) => {
-          const version = nextVersion();
           if (target.has(key)) {
-            // Update existing key
-            dirty.set(key, version);
+            const existing = target.get(key);
+            if (valuesEqual(existing, value)) return proxy;
+            // Update existing key — fits the bumpAndPropagate pattern.
+            detachChild(existing, trackedValues);
+            bumpAndPropagate(trackedValues, dirty, key);
           } else {
-            // New key. Revival of a previously-deleted key: the deletion cleared `target`,
-            // so target.has(key) is false — but the key may have been in the baseline
-            // snapshot. We can't tell from here, so mark dirty too. The encoder's filters
-            // pick exactly one bucket: !a.has(key) gates `created` to non-snapshot keys,
-            // a.has(key) gates `dirty` to snapshot keys.
+            // New key. Revival of a previously-deleted key needs marks in BOTH
+            // `created` and `dirty` because the encoder filters split on a/b
+            // membership, not version source — bumpAndPropagate's single-map
+            // contract doesn't fit, so the bookkeeping stays inline.
+            const version = nextVersion();
             created.set(key, version);
             if (deleted.has(key)) dirty.set(key, version);
+            propagateToParent(trackedValues, version);
           }
           if (deleted.delete(key)) liveTombstones--;
-          propagateToParent(trackedValues, version);
-          target.set(key, trackRecursive(value, trackedValues, key as string | number) as V);
+          target.set(key, attach(value, trackedValues, key as string | number) as V);
           return proxy;
         };
       }
       if (prop === "delete") {
         return (key: K) => {
           if (target.has(key)) {
+            // Cross-bucket move (dirty/created → deleted) plus tombstone counter
+            // upkeep — keep inline for the same reason as the revival branch.
             const version = nextVersion();
             const wasEmpty = deleted.size === 0;
             deleted.set(key, version);
@@ -633,6 +736,7 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
             dirty.delete(key);
             created.delete(key);
             propagateToParent(trackedValues, version);
+            detachChild(target.get(key), trackedValues);
           }
           return target.delete(key);
         };
@@ -643,10 +747,11 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
           if (sizeBefore === 0) return target.clear();
           const version = nextVersion();
           const wasEmpty = deleted.size === 0;
-          for (const key of target.keys()) {
+          for (const [key, val] of target) {
             deleted.set(key, version);
             dirty.delete(key);
             created.delete(key);
+            detachChild(val, trackedValues);
           }
           liveTombstones += sizeBefore;
           if (wasEmpty) tombstoneBearers.add(new WeakRef(target as Map<unknown, unknown>));
@@ -662,7 +767,9 @@ function trackMap<K, V>(map: Map<K, V>, parent?: object, parentKey?: string | nu
 }
 
 /**
- * Deep clone an object, preserving Maps and Arrays.
+ * Deep clone an object, preserving Maps, Arrays, and class prototypes. Matches
+ * `interpreter.ts`'s clone strategy so `track(new MyClass())` keeps methods,
+ * accessors, and `instanceof` working through the tracked proxy.
  */
 function deepClone<T>(obj: T): T {
   if (obj == null || typeof obj !== "object") {
@@ -681,7 +788,7 @@ function deepClone<T>(obj: T): T {
     return obj.map((item) => deepClone(item)) as T;
   }
 
-  const result: Record<string, unknown> = {};
+  const result: Record<string, unknown> = Object.create(Object.getPrototypeOf(obj));
   for (const key of Object.keys(obj)) {
     result[key] = deepClone((obj as Record<string, unknown>)[key]);
   }
