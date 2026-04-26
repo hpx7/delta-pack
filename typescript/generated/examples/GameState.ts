@@ -303,16 +303,15 @@ export const Position = {
     encoder.pushFloatQuantized(obj.y, 0.1);
   },
   encodeDiff(a: Position, b: Position): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Position.equals, Position._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Position, b: Position, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldFloatQuantized(versions, "x", a.x, bRaw.x, 0.1);
-    encoder.pushFieldFloatQuantized(versions, "y", a.y, bRaw.y, 0.1);
+    encoder.pushFieldDiff(versions, "x", a.x, bRaw.x, (aVal, bVal) => _.equalsFloatQuantized(aVal, bVal, 0.1), (aVal, bVal, encoder) => encoder.pushFloatQuantizedDiff(aVal, bVal, 0.1));
+    encoder.pushFieldDiff(versions, "y", a.y, bRaw.y, (aVal, bVal) => _.equalsFloatQuantized(aVal, bVal, 0.1), (aVal, bVal, encoder) => encoder.pushFloatQuantizedDiff(aVal, bVal, 0.1));
   },
   decode(input: Uint8Array): Position {
     return Position._decode(_.Decoder.create(input));
@@ -389,16 +388,15 @@ export const Velocity = {
     encoder.pushFloat(obj.vy);
   },
   encodeDiff(a: Velocity, b: Velocity): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Velocity.equals, Velocity._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Velocity, b: Velocity, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldFloat(versions, "vx", a.vx, bRaw.vx);
-    encoder.pushFieldFloat(versions, "vy", a.vy, bRaw.vy);
+    encoder.pushFieldDiff(versions, "vx", a.vx, bRaw.vx, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "vy", a.vy, bRaw.vy, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): Velocity {
     return Velocity._decode(_.Decoder.create(input));
@@ -503,34 +501,19 @@ export const InventoryItem = {
     encoder.pushOptional(obj.enchantmentLevel, (x) => encoder.pushBoundedInt(x, 0));
   },
   encodeDiff(a: InventoryItem, b: InventoryItem): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, InventoryItem.equals, InventoryItem._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: InventoryItem, b: InventoryItem, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "itemId", a.itemId, bRaw.itemId);
-    encoder.pushFieldString(versions, "name", a.name, bRaw.name);
-    encoder.pushFieldBoundedInt(versions, "quantity", a.quantity, bRaw.quantity, 0);
-    encoder.pushFieldEnum(versions, "rarity", a.rarity, bRaw.rarity, ItemRarity, 3);
-    if (versions !== undefined && (versions.get("durability") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.durability, bVal = bRaw.durability;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0));
-    }
-    if (versions !== undefined && (versions.get("enchantmentLevel") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.enchantmentLevel, bVal = bRaw.enchantmentLevel;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0));
-    }
+    encoder.pushFieldDiff(versions, "itemId", a.itemId, bRaw.itemId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "name", a.name, bRaw.name, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "quantity", a.quantity, bRaw.quantity, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "rarity", a.rarity, bRaw.rarity, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushEnumDiff(ItemRarity[aVal], ItemRarity[bVal], 3));
+    encoder.pushFieldDiff(versions, "durability", a.durability, bRaw.durability, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0)));
+    encoder.pushFieldDiff(versions, "enchantmentLevel", a.enchantmentLevel, bRaw.enchantmentLevel, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0)));
   },
   decode(input: Uint8Array): InventoryItem {
     return InventoryItem._decode(_.Decoder.create(input));
@@ -647,46 +630,17 @@ export const Equipment = {
     encoder.pushOptional(obj.accessory2, (x) => encoder.pushString(x));
   },
   encodeDiff(a: Equipment, b: Equipment): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Equipment.equals, Equipment._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Equipment, b: Equipment, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    if (versions !== undefined && (versions.get("weapon") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.weapon, bVal = bRaw.weapon;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<WeaponType>(aVal, bVal, (x) => encoder.pushEnum(WeaponType[x], 3), (x, y) => encoder.pushEnumDiff(WeaponType[x], WeaponType[y], 3));
-    }
-    if (versions !== undefined && (versions.get("armor") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.armor, bVal = bRaw.armor;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
-    if (versions !== undefined && (versions.get("accessory1") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.accessory1, bVal = bRaw.accessory1;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
-    if (versions !== undefined && (versions.get("accessory2") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.accessory2, bVal = bRaw.accessory2;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
+    encoder.pushFieldDiff(versions, "weapon", a.weapon, bRaw.weapon, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<WeaponType>(aVal, bVal, (x) => encoder.pushEnum(WeaponType[x], 3), (x, y) => encoder.pushEnumDiff(WeaponType[x], WeaponType[y], 3)));
+    encoder.pushFieldDiff(versions, "armor", a.armor, bRaw.armor, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
+    encoder.pushFieldDiff(versions, "accessory1", a.accessory1, bRaw.accessory1, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
+    encoder.pushFieldDiff(versions, "accessory2", a.accessory2, bRaw.accessory2, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
   },
   decode(input: Uint8Array): Equipment {
     return Equipment._decode(_.Decoder.create(input));
@@ -833,26 +787,25 @@ export const PlayerStats = {
     encoder.pushBoundedInt(obj.defense, 0);
   },
   encodeDiff(a: PlayerStats, b: PlayerStats): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, PlayerStats.equals, PlayerStats._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: PlayerStats, b: PlayerStats, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldBoundedInt(versions, "health", a.health, bRaw.health, 0);
-    encoder.pushFieldBoundedInt(versions, "maxHealth", a.maxHealth, bRaw.maxHealth, 0);
-    encoder.pushFieldBoundedInt(versions, "mana", a.mana, bRaw.mana, 0);
-    encoder.pushFieldBoundedInt(versions, "maxMana", a.maxMana, bRaw.maxMana, 0);
-    encoder.pushFieldBoundedInt(versions, "stamina", a.stamina, bRaw.stamina, 0);
-    encoder.pushFieldBoundedInt(versions, "maxStamina", a.maxStamina, bRaw.maxStamina, 0);
-    encoder.pushFieldBoundedInt(versions, "level", a.level, bRaw.level, 0);
-    encoder.pushFieldBoundedInt(versions, "experience", a.experience, bRaw.experience, 0);
-    encoder.pushFieldBoundedInt(versions, "strength", a.strength, bRaw.strength, 0);
-    encoder.pushFieldBoundedInt(versions, "agility", a.agility, bRaw.agility, 0);
-    encoder.pushFieldBoundedInt(versions, "intelligence", a.intelligence, bRaw.intelligence, 0);
-    encoder.pushFieldBoundedInt(versions, "defense", a.defense, bRaw.defense, 0);
+    encoder.pushFieldDiff(versions, "health", a.health, bRaw.health, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "maxHealth", a.maxHealth, bRaw.maxHealth, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "mana", a.mana, bRaw.mana, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "maxMana", a.maxMana, bRaw.maxMana, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "stamina", a.stamina, bRaw.stamina, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "maxStamina", a.maxStamina, bRaw.maxStamina, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "level", a.level, bRaw.level, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "experience", a.experience, bRaw.experience, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "strength", a.strength, bRaw.strength, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "agility", a.agility, bRaw.agility, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "intelligence", a.intelligence, bRaw.intelligence, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "defense", a.defense, bRaw.defense, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
   },
   decode(input: Uint8Array): PlayerStats {
     return PlayerStats._decode(_.Decoder.create(input));
@@ -991,18 +944,17 @@ export const ActiveEffect = {
     encoder.pushBoundedInt(obj.stackCount, 0);
   },
   encodeDiff(a: ActiveEffect, b: ActiveEffect): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, ActiveEffect.equals, ActiveEffect._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: ActiveEffect, b: ActiveEffect, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldEnum(versions, "effectType", a.effectType, bRaw.effectType, EffectType, 3);
-    encoder.pushFieldFloat(versions, "duration", a.duration, bRaw.duration);
-    encoder.pushFieldBoundedInt(versions, "strength", a.strength, bRaw.strength, 0);
-    encoder.pushFieldBoundedInt(versions, "stackCount", a.stackCount, bRaw.stackCount, 0);
+    encoder.pushFieldDiff(versions, "effectType", a.effectType, bRaw.effectType, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushEnumDiff(EffectType[aVal], EffectType[bVal], 3));
+    encoder.pushFieldDiff(versions, "duration", a.duration, bRaw.duration, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "strength", a.strength, bRaw.strength, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "stackCount", a.stackCount, bRaw.stackCount, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
   },
   decode(input: Uint8Array): ActiveEffect {
     return ActiveEffect._decode(_.Decoder.create(input));
@@ -1095,17 +1047,16 @@ export const AbilityCooldown = {
     encoder.pushFloat(obj.remainingCooldown);
   },
   encodeDiff(a: AbilityCooldown, b: AbilityCooldown): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, AbilityCooldown.equals, AbilityCooldown._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: AbilityCooldown, b: AbilityCooldown, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "abilityId", a.abilityId, bRaw.abilityId);
-    encoder.pushFieldEnum(versions, "abilityType", a.abilityType, bRaw.abilityType, AbilityType, 3);
-    encoder.pushFieldFloat(versions, "remainingCooldown", a.remainingCooldown, bRaw.remainingCooldown);
+    encoder.pushFieldDiff(versions, "abilityId", a.abilityId, bRaw.abilityId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "abilityType", a.abilityType, bRaw.abilityType, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushEnumDiff(AbilityType[aVal], AbilityType[bVal], 3));
+    encoder.pushFieldDiff(versions, "remainingCooldown", a.remainingCooldown, bRaw.remainingCooldown, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): AbilityCooldown {
     return AbilityCooldown._decode(_.Decoder.create(input));
@@ -1319,79 +1270,36 @@ export const Player = {
     encoder.pushOptional(obj.respawnTime, (x) => encoder.pushFloat(x));
   },
   encodeDiff(a: Player, b: Player): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Player.equals, Player._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Player, b: Player, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "playerId", a.playerId, bRaw.playerId);
-    encoder.pushFieldString(versions, "username", a.username, bRaw.username);
-    if (versions !== undefined && (versions.get("team") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.team, bVal = bRaw.team;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<Team>(aVal, bVal, (x) => encoder.pushEnum(Team[x], 2), (x, y) => encoder.pushEnumDiff(Team[x], Team[y], 2));
-    }
-    encoder.pushFieldEnum(versions, "status", a.status, bRaw.status, PlayerStatus, 2);
+    encoder.pushFieldDiff(versions, "playerId", a.playerId, bRaw.playerId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "username", a.username, bRaw.username, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "team", a.team, bRaw.team, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<Team>(aVal, bVal, (x) => encoder.pushEnum(Team[x], 2), (x, y) => encoder.pushEnumDiff(Team[x], Team[y], 2)));
+    encoder.pushFieldDiff(versions, "status", a.status, bRaw.status, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushEnumDiff(PlayerStatus[aVal], PlayerStatus[bVal], 2));
     encoder.pushFieldDiff(versions, "position", a.position, bRaw.position, Position.equals, Position._encodeDiff);
     encoder.pushFieldDiff(versions, "velocity", a.velocity, bRaw.velocity, Velocity.equals, Velocity._encodeDiff);
-    encoder.pushFieldFloat(versions, "rotation", a.rotation, bRaw.rotation);
+    encoder.pushFieldDiff(versions, "rotation", a.rotation, bRaw.rotation, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "stats", a.stats, bRaw.stats, PlayerStats.equals, PlayerStats._encodeDiff);
-    if (versions !== undefined && (versions.get("inventory") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.inventory, bVal = b.inventory;
-      const changed = !(_.equalsArray(aVal, bVal, (x, y) => InventoryItem.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushArrayDiff<InventoryItem>(aVal, bVal, (x, y) => InventoryItem.equals(x, y), (x) => InventoryItem._encode(x, encoder), (x, y) => InventoryItem._encodeDiff(x, y, encoder));
-    }
+    encoder.pushFieldDiff(versions, "inventory", a.inventory, bRaw.inventory, (aVal, bVal) => _.equalsArray(aVal, bVal, (x, y) => InventoryItem.equals(x, y)), (aVal, bVal, encoder) => encoder.pushArrayDiff<InventoryItem>(aVal, bVal, (x, y) => InventoryItem.equals(x, y), (x) => InventoryItem._encode(x, encoder), (x, y) => InventoryItem._encodeDiff(x, y, encoder)));
     encoder.pushFieldDiff(versions, "equipment", a.equipment, bRaw.equipment, Equipment.equals, Equipment._encodeDiff);
-    if (versions !== undefined && (versions.get("activeEffects") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.activeEffects, bVal = b.activeEffects;
-      const changed = !(_.equalsArray(aVal, bVal, (x, y) => ActiveEffect.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushArrayDiff<ActiveEffect>(aVal, bVal, (x, y) => ActiveEffect.equals(x, y), (x) => ActiveEffect._encode(x, encoder), (x, y) => ActiveEffect._encodeDiff(x, y, encoder));
-    }
-    if (versions !== undefined && (versions.get("abilityCooldowns") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.abilityCooldowns, bVal = b.abilityCooldowns;
-      const changed = !(_.equalsArray(aVal, bVal, (x, y) => AbilityCooldown.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushArrayDiff<AbilityCooldown>(aVal, bVal, (x, y) => AbilityCooldown.equals(x, y), (x) => AbilityCooldown._encode(x, encoder), (x, y) => AbilityCooldown._encodeDiff(x, y, encoder));
-    }
-    encoder.pushFieldBoundedInt(versions, "kills", a.kills, bRaw.kills, 0);
-    encoder.pushFieldBoundedInt(versions, "deaths", a.deaths, bRaw.deaths, 0);
-    encoder.pushFieldBoundedInt(versions, "assists", a.assists, bRaw.assists, 0);
-    encoder.pushFieldBoundedInt(versions, "gold", a.gold, bRaw.gold, 0);
-    encoder.pushFieldInt(versions, "score", a.score, bRaw.score);
-    encoder.pushFieldBoundedInt(versions, "ping", a.ping, bRaw.ping, 0);
+    encoder.pushFieldDiff(versions, "activeEffects", a.activeEffects, bRaw.activeEffects, (aVal, bVal) => _.equalsArray(aVal, bVal, (x, y) => ActiveEffect.equals(x, y)), (aVal, bVal, encoder) => encoder.pushArrayDiff<ActiveEffect>(aVal, bVal, (x, y) => ActiveEffect.equals(x, y), (x) => ActiveEffect._encode(x, encoder), (x, y) => ActiveEffect._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "abilityCooldowns", a.abilityCooldowns, bRaw.abilityCooldowns, (aVal, bVal) => _.equalsArray(aVal, bVal, (x, y) => AbilityCooldown.equals(x, y)), (aVal, bVal, encoder) => encoder.pushArrayDiff<AbilityCooldown>(aVal, bVal, (x, y) => AbilityCooldown.equals(x, y), (x) => AbilityCooldown._encode(x, encoder), (x, y) => AbilityCooldown._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "kills", a.kills, bRaw.kills, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "deaths", a.deaths, bRaw.deaths, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "assists", a.assists, bRaw.assists, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "gold", a.gold, bRaw.gold, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "score", a.score, bRaw.score, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushIntDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "ping", a.ping, bRaw.ping, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
     encoder.pushBooleanDiff(a.isJumping, bRaw.isJumping);
     encoder.pushBooleanDiff(a.isCrouching, bRaw.isCrouching);
     encoder.pushBooleanDiff(a.isAiming, bRaw.isAiming);
-    if (versions !== undefined && (versions.get("lastDamageTime") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.lastDamageTime, bVal = bRaw.lastDamageTime;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => _.equalsFloat(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushFloat(x), (x, y) => encoder.pushFloatDiff(x, y));
-    }
-    if (versions !== undefined && (versions.get("respawnTime") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.respawnTime, bVal = bRaw.respawnTime;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => _.equalsFloat(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushFloat(x), (x, y) => encoder.pushFloatDiff(x, y));
-    }
+    encoder.pushFieldDiff(versions, "lastDamageTime", a.lastDamageTime, bRaw.lastDamageTime, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => _.equalsFloat(x, y)), (aVal, bVal, encoder) => encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushFloat(x), (x, y) => encoder.pushFloatDiff(x, y)));
+    encoder.pushFieldDiff(versions, "respawnTime", a.respawnTime, bRaw.respawnTime, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => _.equalsFloat(x, y)), (aVal, bVal, encoder) => encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushFloat(x), (x, y) => encoder.pushFloatDiff(x, y)));
   },
   decode(input: Uint8Array): Player {
     return Player._decode(_.Decoder.create(input));
@@ -1622,39 +1530,24 @@ export const Enemy = {
     encoder.pushOptional(obj.lootTableId, (x) => encoder.pushString(x));
   },
   encodeDiff(a: Enemy, b: Enemy): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Enemy.equals, Enemy._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Enemy, b: Enemy, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "enemyId", a.enemyId, bRaw.enemyId);
-    encoder.pushFieldString(versions, "name", a.name, bRaw.name);
+    encoder.pushFieldDiff(versions, "enemyId", a.enemyId, bRaw.enemyId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "name", a.name, bRaw.name, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "position", a.position, bRaw.position, Position.equals, Position._encodeDiff);
     encoder.pushFieldDiff(versions, "velocity", a.velocity, bRaw.velocity, Velocity.equals, Velocity._encodeDiff);
-    encoder.pushFieldBoundedInt(versions, "health", a.health, bRaw.health, 0);
-    encoder.pushFieldBoundedInt(versions, "maxHealth", a.maxHealth, bRaw.maxHealth, 0);
-    encoder.pushFieldBoundedInt(versions, "level", a.level, bRaw.level, 0);
+    encoder.pushFieldDiff(versions, "health", a.health, bRaw.health, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "maxHealth", a.maxHealth, bRaw.maxHealth, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "level", a.level, bRaw.level, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
     encoder.pushBooleanDiff(a.isAggro, bRaw.isAggro);
-    if (versions !== undefined && (versions.get("targetPlayerId") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.targetPlayerId, bVal = bRaw.targetPlayerId;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
-    encoder.pushFieldFloat(versions, "lastAttackTime", a.lastAttackTime, bRaw.lastAttackTime);
-    if (versions !== undefined && (versions.get("lootTableId") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.lootTableId, bVal = bRaw.lootTableId;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
+    encoder.pushFieldDiff(versions, "targetPlayerId", a.targetPlayerId, bRaw.targetPlayerId, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
+    encoder.pushFieldDiff(versions, "lastAttackTime", a.lastAttackTime, bRaw.lastAttackTime, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "lootTableId", a.lootTableId, bRaw.lootTableId, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
   },
   decode(input: Uint8Array): Enemy {
     return Enemy._decode(_.Decoder.create(input));
@@ -1809,29 +1702,21 @@ export const Projectile = {
     encoder.pushArray(obj.hitPlayers, (x) => encoder.pushString(x));
   },
   encodeDiff(a: Projectile, b: Projectile): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Projectile.equals, Projectile._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Projectile, b: Projectile, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "projectileId", a.projectileId, bRaw.projectileId);
-    encoder.pushFieldString(versions, "ownerId", a.ownerId, bRaw.ownerId);
+    encoder.pushFieldDiff(versions, "projectileId", a.projectileId, bRaw.projectileId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "ownerId", a.ownerId, bRaw.ownerId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "position", a.position, bRaw.position, Position.equals, Position._encodeDiff);
     encoder.pushFieldDiff(versions, "velocity", a.velocity, bRaw.velocity, Velocity.equals, Velocity._encodeDiff);
-    encoder.pushFieldBoundedInt(versions, "damage", a.damage, bRaw.damage, 0);
-    encoder.pushFieldBoundedInt(versions, "penetration", a.penetration, bRaw.penetration, 0);
-    encoder.pushFieldFloat(versions, "timeToLive", a.timeToLive, bRaw.timeToLive);
-    if (versions !== undefined && (versions.get("hitPlayers") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.hitPlayers, bVal = b.hitPlayers;
-      const changed = !(_.equalsArray(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushArrayDiff<string>(aVal, bVal, (x, y) => x === y, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
+    encoder.pushFieldDiff(versions, "damage", a.damage, bRaw.damage, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "penetration", a.penetration, bRaw.penetration, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "timeToLive", a.timeToLive, bRaw.timeToLive, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "hitPlayers", a.hitPlayers, bRaw.hitPlayers, (aVal, bVal) => _.equalsArray(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushArrayDiff<string>(aVal, bVal, (x, y) => x === y, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
   },
   decode(input: Uint8Array): Projectile {
     return Projectile._decode(_.Decoder.create(input));
@@ -1950,18 +1835,17 @@ export const DroppedLoot = {
     encoder.pushFloat(obj.despawnTime);
   },
   encodeDiff(a: DroppedLoot, b: DroppedLoot): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, DroppedLoot.equals, DroppedLoot._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: DroppedLoot, b: DroppedLoot, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "lootId", a.lootId, bRaw.lootId);
+    encoder.pushFieldDiff(versions, "lootId", a.lootId, bRaw.lootId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "position", a.position, bRaw.position, Position.equals, Position._encodeDiff);
     encoder.pushFieldDiff(versions, "item", a.item, bRaw.item, InventoryItem.equals, InventoryItem._encodeDiff);
-    encoder.pushFieldFloat(versions, "despawnTime", a.despawnTime, bRaw.despawnTime);
+    encoder.pushFieldDiff(versions, "despawnTime", a.despawnTime, bRaw.despawnTime, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): DroppedLoot {
     return DroppedLoot._decode(_.Decoder.create(input));
@@ -2082,35 +1966,20 @@ export const WorldObject = {
     encoder.pushOptional(obj.interactedBy, (x) => encoder.pushString(x));
   },
   encodeDiff(a: WorldObject, b: WorldObject): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, WorldObject.equals, WorldObject._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: WorldObject, b: WorldObject, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "objectId", a.objectId, bRaw.objectId);
-    encoder.pushFieldString(versions, "objectType", a.objectType, bRaw.objectType);
+    encoder.pushFieldDiff(versions, "objectId", a.objectId, bRaw.objectId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "objectType", a.objectType, bRaw.objectType, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
     encoder.pushFieldDiff(versions, "position", a.position, bRaw.position, Position.equals, Position._encodeDiff);
-    if (versions !== undefined && (versions.get("health") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.health, bVal = bRaw.health;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0));
-    }
+    encoder.pushFieldDiff(versions, "health", a.health, bRaw.health, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<number>(aVal, bVal, (x) => encoder.pushBoundedInt(x, 0), (x, y) => encoder.pushBoundedIntDiff(x, y, 0)));
     encoder.pushBooleanDiff(a.isDestroyed, bRaw.isDestroyed);
     encoder.pushBooleanDiff(a.isInteractable, bRaw.isInteractable);
-    if (versions !== undefined && (versions.get("interactedBy") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.interactedBy, bVal = bRaw.interactedBy;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y));
-    }
+    encoder.pushFieldDiff(versions, "interactedBy", a.interactedBy, bRaw.interactedBy, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<string>(aVal, bVal, (x) => encoder.pushString(x), (x, y) => encoder.pushStringDiff(x, y)));
   },
   decode(input: Uint8Array): WorldObject {
     return WorldObject._decode(_.Decoder.create(input));
@@ -2230,20 +2099,19 @@ export const MatchStats = {
     encoder.pushFloat(obj.matchDuration);
   },
   encodeDiff(a: MatchStats, b: MatchStats): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, MatchStats.equals, MatchStats._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: MatchStats, b: MatchStats, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldBoundedInt(versions, "totalKills", a.totalKills, bRaw.totalKills, 0);
-    encoder.pushFieldBoundedInt(versions, "totalDeaths", a.totalDeaths, bRaw.totalDeaths, 0);
-    encoder.pushFieldBoundedInt(versions, "totalDamageDealt", a.totalDamageDealt, bRaw.totalDamageDealt, 0);
-    encoder.pushFieldBoundedInt(versions, "totalHealingDone", a.totalHealingDone, bRaw.totalHealingDone, 0);
-    encoder.pushFieldBoundedInt(versions, "longestKillStreak", a.longestKillStreak, bRaw.longestKillStreak, 0);
-    encoder.pushFieldFloat(versions, "matchDuration", a.matchDuration, bRaw.matchDuration);
+    encoder.pushFieldDiff(versions, "totalKills", a.totalKills, bRaw.totalKills, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "totalDeaths", a.totalDeaths, bRaw.totalDeaths, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "totalDamageDealt", a.totalDamageDealt, bRaw.totalDamageDealt, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "totalHealingDone", a.totalHealingDone, bRaw.totalHealingDone, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "longestKillStreak", a.longestKillStreak, bRaw.longestKillStreak, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "matchDuration", a.matchDuration, bRaw.matchDuration, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): MatchStats {
     return MatchStats._decode(_.Decoder.create(input));
@@ -2352,18 +2220,17 @@ export const TeamScore = {
     encoder.pushBoundedInt(obj.objectivesCaptured, 0);
   },
   encodeDiff(a: TeamScore, b: TeamScore): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, TeamScore.equals, TeamScore._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: TeamScore, b: TeamScore, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldEnum(versions, "team", a.team, bRaw.team, Team, 2);
-    encoder.pushFieldBoundedInt(versions, "score", a.score, bRaw.score, 0);
-    encoder.pushFieldBoundedInt(versions, "kills", a.kills, bRaw.kills, 0);
-    encoder.pushFieldBoundedInt(versions, "objectivesCaptured", a.objectivesCaptured, bRaw.objectivesCaptured, 0);
+    encoder.pushFieldDiff(versions, "team", a.team, bRaw.team, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushEnumDiff(Team[aVal], Team[bVal], 2));
+    encoder.pushFieldDiff(versions, "score", a.score, bRaw.score, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "kills", a.kills, bRaw.kills, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "objectivesCaptured", a.objectivesCaptured, bRaw.objectivesCaptured, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
   },
   decode(input: Uint8Array): TeamScore {
     return TeamScore._decode(_.Decoder.create(input));
@@ -2474,20 +2341,19 @@ export const GameSettings = {
     encoder.pushFloat(obj.gravityMultiplier);
   },
   encodeDiff(a: GameSettings, b: GameSettings): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, GameSettings.equals, GameSettings._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: GameSettings, b: GameSettings, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldBoundedInt(versions, "maxPlayers", a.maxPlayers, bRaw.maxPlayers, 0);
+    encoder.pushFieldDiff(versions, "maxPlayers", a.maxPlayers, bRaw.maxPlayers, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
     encoder.pushBooleanDiff(a.friendlyFire, bRaw.friendlyFire);
-    encoder.pushFieldFloat(versions, "respawnDelay", a.respawnDelay, bRaw.respawnDelay);
-    encoder.pushFieldBoundedInt(versions, "roundTimeLimit", a.roundTimeLimit, bRaw.roundTimeLimit, 0);
-    encoder.pushFieldBoundedInt(versions, "startingGold", a.startingGold, bRaw.startingGold, 0);
-    encoder.pushFieldFloat(versions, "gravityMultiplier", a.gravityMultiplier, bRaw.gravityMultiplier);
+    encoder.pushFieldDiff(versions, "respawnDelay", a.respawnDelay, bRaw.respawnDelay, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "roundTimeLimit", a.roundTimeLimit, bRaw.roundTimeLimit, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "startingGold", a.startingGold, bRaw.startingGold, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "gravityMultiplier", a.gravityMultiplier, bRaw.gravityMultiplier, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): GameSettings {
     return GameSettings._decode(_.Decoder.create(input));
@@ -2673,80 +2539,30 @@ export const GameState = {
     encoder.pushFloat(obj.weatherIntensity);
   },
   encodeDiff(a: GameState, b: GameState): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, GameState.equals, GameState._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: GameState, b: GameState, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "gameId", a.gameId, bRaw.gameId);
-    encoder.pushFieldFloat(versions, "serverTime", a.serverTime, bRaw.serverTime);
-    encoder.pushFieldBoundedInt(versions, "tickNumber", a.tickNumber, bRaw.tickNumber, 0);
-    encoder.pushFieldBoundedInt(versions, "round", a.round, bRaw.round, 0);
-    encoder.pushFieldString(versions, "phase", a.phase, bRaw.phase);
-    encoder.pushFieldFloat(versions, "timeRemaining", a.timeRemaining, bRaw.timeRemaining);
-    if (versions !== undefined && (versions.get("players") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.players, bVal = b.players;
-      const changed = !(_.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => Player.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushRecordDiff<string, Player>(aVal, bVal, (x, y) => Player.equals(x, y), (x) => encoder.pushString(x), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder));
-    }
-    if (versions !== undefined && (versions.get("enemies") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.enemies, bVal = b.enemies;
-      const changed = !(_.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => Enemy.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushRecordDiff<string, Enemy>(aVal, bVal, (x, y) => Enemy.equals(x, y), (x) => encoder.pushString(x), (x) => Enemy._encode(x, encoder), (x, y) => Enemy._encodeDiff(x, y, encoder));
-    }
-    if (versions !== undefined && (versions.get("projectiles") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.projectiles, bVal = b.projectiles;
-      const changed = !(_.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => Projectile.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushRecordDiff<string, Projectile>(aVal, bVal, (x, y) => Projectile.equals(x, y), (x) => encoder.pushString(x), (x) => Projectile._encode(x, encoder), (x, y) => Projectile._encodeDiff(x, y, encoder));
-    }
-    if (versions !== undefined && (versions.get("droppedLoot") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.droppedLoot, bVal = b.droppedLoot;
-      const changed = !(_.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => DroppedLoot.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushRecordDiff<string, DroppedLoot>(aVal, bVal, (x, y) => DroppedLoot.equals(x, y), (x) => encoder.pushString(x), (x) => DroppedLoot._encode(x, encoder), (x, y) => DroppedLoot._encodeDiff(x, y, encoder));
-    }
-    if (versions !== undefined && (versions.get("worldObjects") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.worldObjects, bVal = b.worldObjects;
-      const changed = !(_.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => WorldObject.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushRecordDiff<string, WorldObject>(aVal, bVal, (x, y) => WorldObject.equals(x, y), (x) => encoder.pushString(x), (x) => WorldObject._encode(x, encoder), (x, y) => WorldObject._encodeDiff(x, y, encoder));
-    }
-    if (versions !== undefined && (versions.get("teamScores") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.teamScores, bVal = b.teamScores;
-      const changed = !(_.equalsArray(aVal, bVal, (x, y) => TeamScore.equals(x, y)));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushArrayDiff<TeamScore>(aVal, bVal, (x, y) => TeamScore.equals(x, y), (x) => TeamScore._encode(x, encoder), (x, y) => TeamScore._encodeDiff(x, y, encoder));
-    }
+    encoder.pushFieldDiff(versions, "gameId", a.gameId, bRaw.gameId, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "serverTime", a.serverTime, bRaw.serverTime, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "tickNumber", a.tickNumber, bRaw.tickNumber, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "round", a.round, bRaw.round, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "phase", a.phase, bRaw.phase, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "timeRemaining", a.timeRemaining, bRaw.timeRemaining, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "players", a.players, bRaw.players, (aVal, bVal) => _.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => Player.equals(x, y)), (aVal, bVal, encoder) => encoder.pushRecordDiff<string, Player>(aVal, bVal, (x, y) => Player.equals(x, y), (x) => encoder.pushString(x), (x) => Player._encode(x, encoder), (x, y) => Player._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "enemies", a.enemies, bRaw.enemies, (aVal, bVal) => _.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => Enemy.equals(x, y)), (aVal, bVal, encoder) => encoder.pushRecordDiff<string, Enemy>(aVal, bVal, (x, y) => Enemy.equals(x, y), (x) => encoder.pushString(x), (x) => Enemy._encode(x, encoder), (x, y) => Enemy._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "projectiles", a.projectiles, bRaw.projectiles, (aVal, bVal) => _.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => Projectile.equals(x, y)), (aVal, bVal, encoder) => encoder.pushRecordDiff<string, Projectile>(aVal, bVal, (x, y) => Projectile.equals(x, y), (x) => encoder.pushString(x), (x) => Projectile._encode(x, encoder), (x, y) => Projectile._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "droppedLoot", a.droppedLoot, bRaw.droppedLoot, (aVal, bVal) => _.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => DroppedLoot.equals(x, y)), (aVal, bVal, encoder) => encoder.pushRecordDiff<string, DroppedLoot>(aVal, bVal, (x, y) => DroppedLoot.equals(x, y), (x) => encoder.pushString(x), (x) => DroppedLoot._encode(x, encoder), (x, y) => DroppedLoot._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "worldObjects", a.worldObjects, bRaw.worldObjects, (aVal, bVal) => _.equalsRecord(aVal, bVal, (x, y) => x === y, (x, y) => WorldObject.equals(x, y)), (aVal, bVal, encoder) => encoder.pushRecordDiff<string, WorldObject>(aVal, bVal, (x, y) => WorldObject.equals(x, y), (x) => encoder.pushString(x), (x) => WorldObject._encode(x, encoder), (x, y) => WorldObject._encodeDiff(x, y, encoder)));
+    encoder.pushFieldDiff(versions, "teamScores", a.teamScores, bRaw.teamScores, (aVal, bVal) => _.equalsArray(aVal, bVal, (x, y) => TeamScore.equals(x, y)), (aVal, bVal, encoder) => encoder.pushArrayDiff<TeamScore>(aVal, bVal, (x, y) => TeamScore.equals(x, y), (x) => TeamScore._encode(x, encoder), (x, y) => TeamScore._encodeDiff(x, y, encoder)));
     encoder.pushFieldDiff(versions, "matchStats", a.matchStats, bRaw.matchStats, MatchStats.equals, MatchStats._encodeDiff);
     encoder.pushFieldDiff(versions, "settings", a.settings, bRaw.settings, GameSettings.equals, GameSettings._encodeDiff);
-    if (versions !== undefined && (versions.get("winningTeam") ?? -1) <= encoder.minVersion) {
-      encoder.pushBoolean(false);
-    } else {
-      const aVal = a.winningTeam, bVal = bRaw.winningTeam;
-      const changed = !(_.equalsOptional(aVal, bVal, (x, y) => x === y));
-      encoder.pushBoolean(changed);
-      if (changed) encoder.pushOptionalDiff<Team>(aVal, bVal, (x) => encoder.pushEnum(Team[x], 2), (x, y) => encoder.pushEnumDiff(Team[x], Team[y], 2));
-    }
-    encoder.pushFieldString(versions, "mapName", a.mapName, bRaw.mapName);
-    encoder.pushFieldFloat(versions, "weatherIntensity", a.weatherIntensity, bRaw.weatherIntensity);
+    encoder.pushFieldDiff(versions, "winningTeam", a.winningTeam, bRaw.winningTeam, (aVal, bVal) => _.equalsOptional(aVal, bVal, (x, y) => x === y), (aVal, bVal, encoder) => encoder.pushOptionalDiff<Team>(aVal, bVal, (x) => encoder.pushEnum(Team[x], 2), (x, y) => encoder.pushEnumDiff(Team[x], Team[y], 2)));
+    encoder.pushFieldDiff(versions, "mapName", a.mapName, bRaw.mapName, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "weatherIntensity", a.weatherIntensity, bRaw.weatherIntensity, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
   },
   decode(input: Uint8Array): GameState {
     return GameState._decode(_.Decoder.create(input));

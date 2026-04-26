@@ -12,8 +12,10 @@ import {
   StringType,
   FloatType,
   ReferenceType,
+  Tracker,
+  SyncSession,
 } from "@hpx7/delta-pack";
-import { getFieldVersions } from "../src/tracking.js";
+import { getFieldVersions, getDeletedVersions } from "../src/tracking.js";
 
 /** Deep-clone + stamp as a snapshot of the source — the raw-API analog of what SyncSession does. */
 function snapshot<T>(api: { clone: (x: T) => T }, source: T): T {
@@ -496,19 +498,20 @@ describe("Dirty Tracking", () => {
     it("should handle symbol properties on objects", () => {
       const sym = Symbol("test");
       const state = track({ x: 0 });
-      // Setting symbol should not throw and should be ignored for dirty tracking
+      // Symbol-keyed writes are forwarded to the target (not silently dropped)
+      // but stay outside the dirty-tracking system since the schema only
+      // describes string-keyed fields.
       (state as any)[sym] = "symbol-value";
-      expect(dirtySize(state)).toBe(0); // Symbols don't mark dirty
-      // Getting symbol should return undefined (not tracked)
-      expect((state as any)[sym]).toBeUndefined();
+      expect(dirtySize(state)).toBe(0);
+      expect((state as any)[sym]).toBe("symbol-value");
     });
 
     it("should handle symbol properties on arrays", () => {
       const sym = Symbol("test");
       const state = track({ items: [1, 2, 3] });
-      // Setting symbol on array should not throw and should be ignored
       (state.items as any)[sym] = "symbol-value";
       expect(dirtySize(state.items)).toBe(0);
+      expect((state.items as any)[sym]).toBe("symbol-value");
     });
 
     it("should handle symbol iteration", () => {
@@ -934,6 +937,109 @@ describe("Dirty Tracking", () => {
     });
   });
 
+  describe("Detachment of removed children", () => {
+    // Mutating a held reference to a removed child should NOT leak dirty
+    // marks back to the old container — the C# tracker (TrackedList /
+    // TrackedOrderedDict) calls Detach on every removal; TS now matches.
+
+    it("Map.delete detaches the removed value", () => {
+      const state = track({ players: new Map([["p1", { x: 0, y: 0 }]]) });
+      const stale = state.players.get("p1")!;
+      state.players.delete("p1");
+      const dirtyBefore = dirtySize(state.players);
+      stale.x = 999;
+      expect(dirtySize(state.players)).toBe(dirtyBefore);
+    });
+
+    it("Map.clear detaches every value", () => {
+      const state = track({
+        players: new Map([
+          ["p1", { x: 0 }],
+          ["p2", { x: 0 }],
+        ]),
+      });
+      const a = state.players.get("p1")!;
+      const b = state.players.get("p2")!;
+      state.players.clear();
+      const dirtyBefore = dirtySize(state.players);
+      a.x = 999;
+      b.x = 999;
+      expect(dirtySize(state.players)).toBe(dirtyBefore);
+    });
+
+    it("Map.set detaches the prior value when overwriting an existing key", () => {
+      const state = track({ players: new Map([["p1", { x: 0 }]]) });
+      const stale = state.players.get("p1")!;
+      state.players.set("p1", { x: 1 });
+      const dirtyBefore = dirtySize(state.players);
+      stale.x = 999;
+      expect(dirtySize(state.players)).toBe(dirtyBefore);
+    });
+
+    it("Array.pop detaches the popped item", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }] });
+      const stale = state.items.pop()!;
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array.shift detaches the shifted item", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }] });
+      const stale = state.items.shift()!;
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array.splice detaches every removed item", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }] });
+      const stales = state.items.splice(1, 2);
+      const dirtyBefore = dirtySize(state.items);
+      stales[0]!.v = 999;
+      stales[1]!.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array length shrink detaches truncated items", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }, { v: 3 }] });
+      const stale = state.items[2]!;
+      state.items.length = 1;
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Array index assignment detaches the prior occupant", () => {
+      const state = track({ items: [{ v: 1 }, { v: 2 }] });
+      const stale = state.items[0]!;
+      state.items[0] = { v: 99 };
+      const dirtyBefore = dirtySize(state.items);
+      stale.v = 999;
+      expect(dirtySize(state.items)).toBe(dirtyBefore);
+    });
+
+    it("Object property reassignment detaches the prior value", () => {
+      const state = track({ inner: { v: 1 } });
+      const stale = state.inner;
+      state.inner = { v: 2 };
+      const dirtyBefore = dirtySize(state);
+      stale.v = 999;
+      expect(dirtySize(state)).toBe(dirtyBefore);
+    });
+
+    it("Object property delete detaches the removed value", () => {
+      const state = track({ inner: { v: 1 } } as {
+        inner?: { v: number };
+      });
+      const stale = state.inner!;
+      delete state.inner;
+      const dirtyBefore = dirtySize(state);
+      stale.v = 999;
+      expect(dirtySize(state)).toBe(dirtyBefore);
+    });
+  });
+
   describe("Per-field version filter (DiffEncoder helpers)", () => {
     // These cover the "field is not dirty" skip branch on each helper, which
     // only fires when (1) the source is tracked, (2) a snapshot was registered,
@@ -941,6 +1047,28 @@ describe("Dirty Tracking", () => {
     // is the same as the value-compare-finds-equal path, so tests that only
     // check decoded values won't distinguish them — these assert the skip path
     // is exercised at all.
+
+    it("preserves class prototype, methods, and accessors", () => {
+      class Counter {
+        value = 0;
+        nested = { inner: 1 };
+        increment(n: number) {
+          this.value += n;
+        }
+        get doubled() {
+          return this.value * 2;
+        }
+      }
+      const tracked = track(new Counter());
+      expect(tracked).toBeInstanceOf(Counter);
+      expect(typeof tracked.increment).toBe("function");
+      expect(tracked.doubled).toBe(0);
+      // Method calls go through the proxy and dirty-track the mutation.
+      tracked.increment(5);
+      expect(tracked.value).toBe(5);
+      expect(tracked.doubled).toBe(10);
+      expect(isDirty(tracked, "value")).toBe(true);
+    });
 
     it("skips encoding tracked enum field that hasn't changed since snapshot", () => {
       const Color = EnumType("Color", ["RED", "BLUE", "GREEN"]);
@@ -1011,6 +1139,233 @@ describe("Dirty Tracking", () => {
       expect(decoded.action._type).toBe("VariantA");
       expect((decoded.action as { _type: "VariantA"; value: number }).value).toBe(1);
       expect(decoded.count).toBe(5);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Multi-tracker isolation. Mirrors C#'s `MultiTrackerTests` — verifies that a
+  // stale snapshot held in one tracker doesn't suppress tombstone pruning or
+  // SyncSession progress in another. Single-domain code keeps using
+  // `Tracker.default` implicitly; multi-domain code passes an explicit tracker.
+
+  describe("Multi-tracker isolation", () => {
+    it("registers snapshots in the source's tracker, not the default", () => {
+      const trackerA = new Tracker();
+      const trackerB = new Tracker();
+
+      const stateA = track({ players: new Map<string, { name: string }>() }, trackerA);
+      const stateB = track({ players: new Map<string, { name: string }>() }, trackerB);
+
+      // Snapshot earlier tests' impact on Tracker.default before mutating, so
+      // we can assert these registrations don't add to it. The fresh trackers
+      // start at 0, so their assertions are absolute.
+      const defaultRefsBefore = Tracker.default.snapshotRefs.size;
+      const snapA = { players: new Map([["p1", { name: "alice" }]]) };
+      const snapB = { players: new Map([["p2", { name: "bob" }]]) };
+      registerSnapshot(snapA, stateA);
+      registerSnapshot(snapB, stateB);
+
+      expect(trackerA.snapshotRefs.size).toBe(1);
+      expect(trackerB.snapshotRefs.size).toBe(1);
+      expect(Tracker.default.snapshotRefs.size).toBe(defaultRefsBefore);
+    });
+
+    it("tombstones in one tracker prune independently of another", () => {
+      const trackerA = new Tracker();
+      const trackerB = new Tracker();
+
+      // A holds a perpetual snapshot — its `oldestVersionCached` will sit at
+      // some early version forever. Without per-tracker isolation, this would
+      // pin every other tracker's tombstones in memory.
+      const stateA = track({ items: new Map<string, number>([["x", 1]]) }, trackerA);
+      const stateBRoot = track({ items: new Map<string, number>() }, trackerB);
+      const stateB = stateBRoot.items;
+
+      // Take A's snapshot now — captures `oldestVersionCached` for tracker A.
+      registerSnapshot({ items: new Map([["x", 1]]) }, stateA);
+
+      // B churns: 10 inserts then 10 deletes → 10 tombstones.
+      for (let i = 0; i < 10; i++) stateB.set(`k${i}`, i);
+      for (let i = 0; i < 10; i++) stateB.delete(`k${i}`);
+
+      const deletedB = getDeletedVersions(stateB as Map<string, number>);
+      expect(deletedB!.size).toBe(10);
+
+      // One more bump so the snapshot's version is strictly greater than every
+      // existing tombstone. (Prune predicate is strict less-than.)
+      stateB.set("sentinel", 0);
+      stateB.delete("sentinel");
+
+      // Register B's snapshot. Pruning runs on tracker B only — A's pin has no
+      // effect here. All 10 + 1 tombstones strictly older than the new baseline
+      // get pruned; the most recent may equal the baseline and survive.
+      registerSnapshot({ items: new Map() }, stateBRoot);
+      expect(deletedB!.size).toBeLessThanOrEqual(1);
+    });
+
+    it("sync sessions in different trackers round-trip independently", () => {
+      const roomA = new Tracker();
+      const roomB = new Tracker();
+
+      const Room = ObjectType("Room", { score: IntType(), name: StringType() });
+      type Room = Infer<typeof Room>;
+      const api = load(Room);
+
+      const senderA = new SyncSession<Room>(api);
+      const receiverA = new SyncSession<Room>(api);
+      const senderB = new SyncSession<Room>(api);
+      const receiverB = new SyncSession<Room>(api);
+
+      const stateA = track<Room>({ score: 1, name: "alice" }, roomA);
+      const stateB = track<Room>({ score: 99, name: "bob" }, roomB);
+
+      // Initial full encodes.
+      receiverA.decode(senderA.encode(stateA));
+      receiverB.decode(senderB.encode(stateB));
+
+      // Diff encodes — each pair is independent.
+      stateA.score = 2;
+      stateB.score = 100;
+      const viewA = receiverA.decode(senderA.encode(stateA));
+      const viewB = receiverB.decode(senderB.encode(stateB));
+
+      expect(viewA.name).toBe("alice");
+      expect(viewA.score).toBe(2);
+      expect(viewB.name).toBe("bob");
+      expect(viewB.score).toBe(100);
+    });
+
+    it("default tracker is used when no tracker is passed", () => {
+      const state = track({ x: 1 });
+      const snap = { x: 1 };
+      const refsBefore = Tracker.default.snapshotRefs.size;
+      registerSnapshot(snap, state);
+      expect(Tracker.default.snapshotRefs.size).toBe(refsBefore + 1);
+    });
+
+    it("nested children inherit the root's tracker", () => {
+      const myTracker = new Tracker();
+      const state = track({ players: new Map<string, { score: number }>([["p1", { score: 0 }]]) }, myTracker);
+
+      // Mutating the nested player's score should produce a tombstone-free
+      // event; deleting the player should bump myTracker's tombstone count,
+      // not the default tracker's. (Other tests in the suite exercise the
+      // default tracker, so we measure the default delta instead of asserting
+      // an absolute zero.)
+      const myBefore = myTracker.liveTombstones;
+      const defaultBefore = Tracker.default.liveTombstones;
+      state.players.delete("p1");
+      expect(myTracker.liveTombstones).toBe(myBefore + 1);
+      expect(Tracker.default.liveTombstones).toBe(defaultBefore);
+    });
+
+    it("grafting a tracked object across trackers adopts the new tracker (object children)", () => {
+      const trackerA = new Tracker();
+      const trackerB = new Tracker();
+
+      const stateA = track({ sub: { players: new Map<string, { v: number }>([["p1", { v: 1 }]]) } }, trackerA);
+      const stateB = track({ holder: null as null | typeof stateA.sub }, trackerB);
+
+      // Move sub from A's tree into B's tree. This hits the already-tracked
+      // fast-path in `attach`, which detects the tracker mismatch and walks
+      // `adoptTracker` to re-bind the whole subtree (including the inner Map).
+      stateB.holder = stateA.sub;
+
+      // Subsequent tombstone bookkeeping must land in trackerB, not trackerA.
+      const aBefore = trackerA.liveTombstones;
+      const bBefore = trackerB.liveTombstones;
+      stateB.holder!.players.delete("p1");
+      expect(trackerB.liveTombstones).toBe(bBefore + 1);
+      expect(trackerA.liveTombstones).toBe(aBefore);
+    });
+
+    it("grafting a tracked array across trackers adopts the new tracker (array children)", () => {
+      const trackerA = new Tracker();
+      const trackerB = new Tracker();
+
+      // Build a subtree under A that contains an array of tracked objects.
+      // Each object inside the array must also adopt the new tracker.
+      const stateA = track({ items: [{ players: new Map<string, number>([["p1", 1]]) }] }, trackerA);
+      const stateB = track({ moved: null as null | typeof stateA.items }, trackerB);
+
+      stateB.moved = stateA.items;
+
+      const aBefore = trackerA.liveTombstones;
+      const bBefore = trackerB.liveTombstones;
+      stateB.moved![0]!.players.delete("p1");
+      expect(trackerB.liveTombstones).toBe(bBefore + 1);
+      expect(trackerA.liveTombstones).toBe(aBefore);
+    });
+
+    it("grafting a tracked map across trackers adopts the new tracker (map values)", () => {
+      const trackerA = new Tracker();
+      const trackerB = new Tracker();
+
+      // The map's VALUES are themselves tracked objects with a nested Map —
+      // adoptTracker must recurse into them.
+      const stateA = track(
+        {
+          pool: new Map<string, { items: Map<string, number> }>([["g1", { items: new Map([["x", 1]]) }]]),
+        },
+        trackerA
+      );
+      const stateB = track({ borrowed: null as null | typeof stateA.pool }, trackerB);
+
+      stateB.borrowed = stateA.pool;
+
+      const aBefore = trackerA.liveTombstones;
+      const bBefore = trackerB.liveTombstones;
+      // Delete from the inner map of a value reachable through the moved Map.
+      stateB.borrowed!.get("g1")!.items.delete("x");
+      expect(trackerB.liveTombstones).toBe(bBefore + 1);
+      expect(trackerA.liveTombstones).toBe(aBefore);
+    });
+
+    it("registerSnapshot is a no-op for an untracked source", () => {
+      // The early-return path in registerSnapshot — source has no field
+      // versions, so nothing happens. Asserts we don't throw and don't
+      // touch any tracker's snapshotRefs.
+      const tracker = new Tracker();
+      const snapshotsBefore = tracker.snapshotRefs.size;
+      registerSnapshot({ x: 1 }, { x: 1 }); // both untracked
+      expect(tracker.snapshotRefs.size).toBe(snapshotsBefore);
+    });
+
+    it("getFieldVersions handles null and primitive inputs", () => {
+      // Defensive branches in `getFieldVersions` — input must be a non-null
+      // object to look up the symbol slot. Caller code (encoder) doesn't
+      // trip this in practice but the guards exist for safety; cover the
+      // negative paths here.
+      expect(getFieldVersions(null)).toBeUndefined();
+      expect(getFieldVersions(undefined)).toBeUndefined();
+      expect(getFieldVersions(42)).toBeUndefined();
+      expect(getFieldVersions("abc")).toBeUndefined();
+    });
+
+    it("rebuilds oldest version after REBUILD_INTERVAL prunes", () => {
+      // Pruning increments `encodesSinceRebuild`; on the 1024th tick it runs
+      // `rebuildOldestVersion`. The simplest way to drive this is a churn
+      // loop that produces a tombstone and registers a fresh snapshot per
+      // iteration — each register triggers `pruneDeleted`, which keeps
+      // `liveTombstones > 0` so the rebuild branch eventually fires.
+      const tracker = new Tracker();
+      const state = track({ items: new Map<string, number>() }, tracker);
+      // Seed one perpetual entry so deletes always have something to remove.
+      state.items.set("seed", 0);
+
+      for (let i = 0; i < 1100; i++) {
+        state.items.set(`k${i}`, i);
+        state.items.delete(`k${i}`);
+        // Register a fresh snapshot — each call invokes pruneDeleted on the
+        // tracker, which is what bumps encodesSinceRebuild.
+        registerSnapshot({ items: new Map() }, state);
+      }
+
+      // After 1100 prunes, the rebuild has fired and the counter wrapped back
+      // below the threshold. The actual cached version isn't asserted (depends
+      // on GC of registered snapshot stubs) — the assertion is that the
+      // rebuild branch was hit at least once.
+      expect(tracker.encodesSinceRebuild).toBeLessThan(1024);
     });
   });
 });

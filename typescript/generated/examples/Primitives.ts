@@ -79,19 +79,18 @@ export const Primitives = {
     encoder.pushBoolean(obj.booleanField);
   },
   encodeDiff(a: Primitives, b: Primitives): Uint8Array {
-    const encoder = _.DiffEncoder.create();
-    encoder.minVersion = _.getSnapshotVersion(a) ?? -1;
+    const encoder = _.DiffEncoder.create(a);
     encoder.pushObjectDiff(a, b, Primitives.equals, Primitives._encodeDiff);
     return encoder.toBuffer();
   },
   _encodeDiff(a: Primitives, b: Primitives, encoder: _.DiffEncoder): void {
     const versions = _.getFieldVersions(b);
     const bRaw = _.getUnderlying(b);
-    encoder.pushFieldString(versions, "stringField", a.stringField, bRaw.stringField);
-    encoder.pushFieldInt(versions, "signedIntField", a.signedIntField, bRaw.signedIntField);
-    encoder.pushFieldBoundedInt(versions, "unsignedIntField", a.unsignedIntField, bRaw.unsignedIntField, 0);
-    encoder.pushFieldBitPackedInt(versions, "boundedIntField", a.boundedIntField, bRaw.boundedIntField, -10, 10, 5);
-    encoder.pushFieldFloat(versions, "floatField", a.floatField, bRaw.floatField);
+    encoder.pushFieldDiff(versions, "stringField", a.stringField, bRaw.stringField, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushStringDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "signedIntField", a.signedIntField, bRaw.signedIntField, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushIntDiff(aVal, bVal));
+    encoder.pushFieldDiff(versions, "unsignedIntField", a.unsignedIntField, bRaw.unsignedIntField, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBoundedIntDiff(aVal, bVal, 0));
+    encoder.pushFieldDiff(versions, "boundedIntField", a.boundedIntField, bRaw.boundedIntField, (aVal, bVal) => aVal === bVal, (aVal, bVal, encoder) => encoder.pushBitPackedIntDiff(aVal, bVal, -10, 10, 5));
+    encoder.pushFieldDiff(versions, "floatField", a.floatField, bRaw.floatField, (aVal, bVal) => _.equalsFloat(aVal, bVal), (aVal, bVal, encoder) => encoder.pushFloatDiff(aVal, bVal));
     encoder.pushBooleanDiff(a.booleanField, bRaw.booleanField);
   },
   decode(input: Uint8Array): Primitives {

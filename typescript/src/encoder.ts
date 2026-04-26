@@ -1,6 +1,5 @@
 import { allocFromSlab, copyBuffer, floatWrite, utf8Size, utf8Write, utf8Encode, RleWriter } from "./serde.js";
-import { getFieldVersions, getCreatedVersions, getDeletedVersions } from "./tracking.js";
-import { equalsFloat, equalsFloatQuantized } from "./helpers.js";
+import { getFieldVersions, getCreatedVersions, getDeletedVersions, getSnapshotVersion } from "./tracking.js";
 
 export class Encoder {
   protected static _instance: Encoder | null = null;
@@ -183,21 +182,27 @@ export class DiffEncoder extends Encoder {
   protected static override _instance: DiffEncoder | null = null;
 
   /**
-   * Snapshot baseline version threaded through the entire encode. Set once
-   * by the top-level `encodeDiff(a, b)` wrapper from
-   * `getSnapshotVersion(a) ?? -1`, then read by every nested diff method
-   * instead of looking up the per-node snapshot stamp the previous design
-   * paid for at every tree level.
+   * Snapshot baseline version threaded through the entire encode. Read by
+   * every nested diff method instead of looking up the per-node snapshot
+   * stamp the previous design paid for at every tree level. Initialized by
+   * `create(a)` from the snapshot's registered version (or `-1` for an
+   * untracked baseline, which makes every per-field check pass).
    */
   minVersion = -1;
 
-  static override create(): DiffEncoder {
+  /**
+   * Allocate a `DiffEncoder` and seed `minVersion` from the snapshot `a`.
+   * Centralizes the `getSnapshotVersion(a) ?? -1` sentinel so callers (the
+   * AOT codegen, the JIT wrapper, future consumers) don't have to know about
+   * the registry or the sentinel value.
+   */
+  static override create(a?: unknown): DiffEncoder {
     const enc = DiffEncoder._instance ?? new DiffEncoder();
     DiffEncoder._instance = null;
     enc.pos = 0;
     enc.dict = [];
     enc.rle.reset();
-    enc.minVersion = -1;
+    enc.minVersion = a != null ? (getSnapshotVersion(a) ?? -1) : -1;
     return enc;
   }
 
@@ -261,7 +266,7 @@ export class DiffEncoder extends Encoder {
     let changed = false;
     if (versions != null) {
       const minVersion = this.minVersion;
-      for (const [, ver] of versions) {
+      for (const ver of versions.values()) {
         if (ver > minVersion) {
           changed = true;
           break;
@@ -275,129 +280,32 @@ export class DiffEncoder extends Encoder {
     if (changed) encodeDiff(a, b, this);
   }
 
-  // ---- Per-field diff helpers --------------------------------------------------------------
+  // ---- Per-field diff helper -----------------------------------------------------------
   //
-  // Generated code (both AOT and JIT) uses these for the per-field diff loop. Each helper
-  // gates on the dirty version filter (skipping the field entirely if no mutation has
-  // happened since the snapshot baseline), then falls back to a value compare and pushes
-  // either a 0 bit (no change) or a 1 bit + the diff payload.
-  //
-  // Type-specialized variants (pushFieldString, pushFieldInt, …) avoid the closure
-  // allocations the previous closure-passing form paid at every call site. Composite
-  // field types (object, union, self-ref) use `pushFieldDiff` with the type's static
-  // `equals` and `_encodeDiff` method references — also no closures. Array/record/optional
-  // fields fall back to inline if/else blocks in the generator (closures inside those only
-  // allocate when the field is dirty), since a helper would force unconditional allocation.
+  // The AOT codegen and JIT both emit a single `pushFieldDiff` call per non-boolean
+  // field. The helper handles the per-field dirty gate (`isFieldDirty`), the value
+  // compare, the change bit, and the diff payload. Object/union/self-ref fields pass
+  // the type's static `equals` / `_encodeDiff` method references; primitives,
+  // enum, and container fields pass arrow lambdas that wrap the type-specific
+  // equals/diff expressions. Boolean fields skip this entirely — their change bit
+  // *is* the diff (see `pushBooleanDiff`), so the version filter would cost more
+  // than the value compare it'd avoid.
 
-  /** True if `key` should be encoded — untracked source, or version > snapshot baseline. */
-  private isFieldDirty(versions: Map<unknown, number> | undefined, key: string): boolean {
+  /**
+   * True when `key` should be encoded — either the source isn't tracked
+   * (treat as full encode) or its dirty version exceeds the snapshot baseline.
+   * Single source of truth for the per-field dirty gate; called by `pushFieldDiff`
+   * below and by the inline check the codegen emits for boolean-only short-circuits
+   * if any.
+   */
+  isFieldDirty(versions: Map<unknown, number> | undefined, key: string): boolean {
     return versions === undefined || (versions.get(key) ?? -1) > this.minVersion;
   }
 
-  pushFieldString(versions: Map<unknown, number> | undefined, key: string, aVal: string, bVal: string): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = aVal !== bVal;
-    this.pushBoolean(changed);
-    if (changed) this.pushStringDiff(aVal, bVal);
-  }
-
-  pushFieldInt(versions: Map<unknown, number> | undefined, key: string, aVal: number, bVal: number): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = aVal !== bVal;
-    this.pushBoolean(changed);
-    if (changed) this.pushIntDiff(aVal, bVal);
-  }
-
-  pushFieldBoundedInt(
-    versions: Map<unknown, number> | undefined,
-    key: string,
-    aVal: number,
-    bVal: number,
-    min: number
-  ): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = aVal !== bVal;
-    this.pushBoolean(changed);
-    if (changed) this.pushBoundedIntDiff(aVal, bVal, min);
-  }
-
-  pushFieldBitPackedInt(
-    versions: Map<unknown, number> | undefined,
-    key: string,
-    aVal: number,
-    bVal: number,
-    min: number,
-    max: number,
-    numBits: number
-  ): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = aVal !== bVal;
-    this.pushBoolean(changed);
-    if (changed) this.pushBitPackedIntDiff(aVal, bVal, min, max, numBits);
-  }
-
-  pushFieldFloat(versions: Map<unknown, number> | undefined, key: string, aVal: number, bVal: number): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = !equalsFloat(aVal, bVal);
-    this.pushBoolean(changed);
-    if (changed) this.pushFloatDiff(aVal, bVal);
-  }
-
-  pushFieldFloatQuantized(
-    versions: Map<unknown, number> | undefined,
-    key: string,
-    aVal: number,
-    bVal: number,
-    precision: number
-  ): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = !equalsFloatQuantized(aVal, bVal, precision);
-    this.pushBoolean(changed);
-    if (changed) this.pushFloatQuantizedDiff(aVal, bVal, precision);
-  }
-
-  pushFieldEnum<T extends string>(
-    versions: Map<unknown, number> | undefined,
-    key: string,
-    aVal: T,
-    bVal: T,
-    // The AOT codegen passes a hybrid enum object (numeric keys → strings,
-    // string keys → numeric indices); the JIT passes a string-keyed lookup.
-    // Both expose `lookup[stringValue] -> number`, which is all we need.
-    enumLookup: Record<string, unknown>,
-    numBits: number
-  ): void {
-    if (!this.isFieldDirty(versions, key)) {
-      this.pushBoolean(false);
-      return;
-    }
-    const changed = aVal !== bVal;
-    this.pushBoolean(changed);
-    if (changed) this.pushEnumDiff(enumLookup[aVal] as number, enumLookup[bVal] as number, numBits);
-  }
-
   /**
-   * Generic per-field diff for composite types (object, union, self-ref). `equals` and
-   * `encodeDiff` are passed as static method references — `Type.equals` /
-   * `Type._encodeDiff` — so the call site allocates nothing.
+   * Per-field diff. Skips encoding entirely when the field is clean (emits a 0
+   * bit). Otherwise compares `aVal`/`bVal` via `equals`, emits the change bit,
+   * and (when changed) calls `encodeDiff(aVal, bVal, this)` to emit the payload.
    */
   pushFieldDiff<T>(
     versions: Map<unknown, number> | undefined,

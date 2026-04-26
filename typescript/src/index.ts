@@ -32,7 +32,7 @@ export { loadClass, buildSchema } from "./decorator.js";
 export { parseSchemaYml } from "./parser.js";
 
 // Dirty tracking
-export { track, registerSnapshot, type Tracked } from "./tracking.js";
+export { track, registerSnapshot, Tracker, type Tracked } from "./tracking.js";
 
 // Sync session for correct-by-construction state sync
 export { SyncSession } from "./sync-session.js";
