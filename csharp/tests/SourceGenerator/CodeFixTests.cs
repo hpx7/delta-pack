@@ -43,50 +43,50 @@ namespace N {
     }
 
     [Fact]
-    public async Task DP011_AddsPartialModifierToProperty()
-    {
-        const string source = @"
-using DeltaPack;
-namespace N {
-    [DeltaPack, DeltaPackTracked]
-    public partial class Foo {
-        public float X { get; set; }
-    }
-}";
-        var fixedSource = await ApplyCodeFixAsync(source, "DP011", ForProperty);
-        Assert.Contains("public partial float X", fixedSource);
-    }
-
-    [Fact]
-    public async Task DP012_SwapsListToTrackedList()
+    public async Task DP012_SwapsListToDPList()
     {
         const string source = @"
 using DeltaPack;
 using System.Collections.Generic;
 namespace N {
-    [DeltaPack, DeltaPackTracked]
+    [DeltaPack]
     public partial class Foo {
-        public partial List<int> Items { get; set; }
+        public List<int> Items { get; set; } = new();
     }
 }";
         var fixedSource = await ApplyCodeFixAsync(source, "DP012", ForPropertyType);
-        Assert.Contains("DeltaPack.TrackedList<int> Items", fixedSource);
-        Assert.DoesNotContain("List<int> Items", fixedSource.Replace("DeltaPack.TrackedList<int>", ""));
+        Assert.Contains("DeltaPack.DPList<int> Items", fixedSource);
     }
 
     [Fact]
-    public async Task DP013_SwapsOrderedDictToTrackedOrderedDict()
+    public async Task DP003_SwapsDictionaryToDPDict()
+    {
+        const string source = @"
+using DeltaPack;
+using System.Collections.Generic;
+namespace N {
+    [DeltaPack]
+    public partial class Foo {
+        public Dictionary<string, int> Stats { get; set; } = new();
+    }
+}";
+        var fixedSource = await ApplyCodeFixAsync(source, "DP003", ForPropertyType);
+        Assert.Contains("DeltaPack.DPDict<string, int> Stats", fixedSource);
+    }
+
+    [Fact]
+    public async Task DP013_AddsSetterToGetOnlyPartial()
     {
         const string source = @"
 using DeltaPack;
 namespace N {
-    [DeltaPack, DeltaPackTracked]
+    [DeltaPack]
     public partial class Foo {
-        public partial OrderedDict<string, int> Stats { get; set; }
+        public partial int Score { get; }
     }
 }";
-        var fixedSource = await ApplyCodeFixAsync(source, "DP013", ForPropertyType);
-        Assert.Contains("DeltaPack.TrackedOrderedDict<string, int> Stats", fixedSource);
+        var fixedSource = await ApplyCodeFixAsync(source, "DP013", ForProperty);
+        Assert.Contains("public partial int Score { get; set; }", fixedSource);
     }
 
     // ===== Helpers =====

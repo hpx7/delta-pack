@@ -4,34 +4,34 @@ using System.Collections.Generic;
 namespace DeltaPack;
 
 /// <summary>
-/// A <see cref="List{T}"/>-compatible list that records per-index version numbers
-/// on every mutation. Intended as a drop-in replacement for <see cref="List{T}"/>
-/// on serialized properties of <see cref="DeltaPackTrackedAttribute"/> classes so
-/// <c>EncodeDiff</c> can skip unchanged-index comparisons.
+/// An <see cref="IList{T}"/>-compatible list that records per-index version numbers
+/// on every mutation. The standard delta-pack list type — used for all array-typed
+/// fields on <see cref="DeltaPackAttribute"/> classes so the encoder can skip
+/// equality comparisons on unchanged indices at diff time.
 /// </summary>
-public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContainer
+public sealed class DPList<T> : IList<T>, IReadOnlyList<T>, ITrackedContainer
 {
     private readonly List<T> _inner;
     private readonly Dictionary<int, long> _dirty = new();
     private Tracker _tracker;
 
-    public TrackedList() : this(Tracker.Default) { }
-    public TrackedList(int capacity) : this(Tracker.Default, capacity) { }
-    public TrackedList(IEnumerable<T> source) : this(Tracker.Default, source) { }
+    public DPList() : this(Tracker.Default) { }
+    public DPList(int capacity) : this(Tracker.Default, capacity) { }
+    public DPList(IEnumerable<T> source) : this(Tracker.Default, source) { }
 
-    public TrackedList(Tracker tracker)
+    public DPList(Tracker tracker)
     {
         _tracker = tracker;
         _inner = new List<T>();
     }
 
-    public TrackedList(Tracker tracker, int capacity)
+    public DPList(Tracker tracker, int capacity)
     {
         _tracker = tracker;
         _inner = new List<T>(capacity);
     }
 
-    public TrackedList(Tracker tracker, IEnumerable<T> source)
+    public DPList(Tracker tracker, IEnumerable<T> source)
     {
         _tracker = tracker;
         _inner = new List<T>(source);
@@ -46,9 +46,9 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     /// by <see cref="Add"/>. Not intended for user code.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static TrackedList<T> CreateSnapshot(TrackedList<T> source, System.Func<T, T> cloneValue)
+    public static DPList<T> CreateSnapshot(DPList<T> source, System.Func<T, T> cloneValue)
     {
-        var result = new TrackedList<T>(source._tracker, source._inner.Count);
+        var result = new DPList<T>(source._tracker, source._inner.Count);
         for (int i = 0; i < source._inner.Count; i++)
         {
             var cloned = cloneValue(source._inner[i]);
@@ -64,9 +64,9 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     /// running the tracking write path.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static TrackedList<T> CreateSnapshot(TrackedList<T> source)
+    public static DPList<T> CreateSnapshot(DPList<T> source)
     {
-        var result = new TrackedList<T>(source._tracker, source._inner.Count);
+        var result = new DPList<T>(source._tracker, source._inner.Count);
         for (int i = 0; i < source._inner.Count; i++)
         {
             result._inner.Add(source._inner[i]);
@@ -80,9 +80,9 @@ public sealed class TrackedList<T> : IList<T>, IReadOnlyList<T>, ITrackedContain
     /// by copying the first <paramref name="copyLen"/> elements of <paramref name="source"/>.
     /// Bypasses the mutation-path aliasing guard.
     /// </summary>
-    internal static TrackedList<T> CopyPrefixForDecode(TrackedList<T> source, int copyLen, int capacity, Tracker tracker)
+    internal static DPList<T> CopyPrefixForDecode(DPList<T> source, int copyLen, int capacity, Tracker tracker)
     {
-        var result = new TrackedList<T>(tracker, capacity);
+        var result = new DPList<T>(tracker, capacity);
         for (int i = 0; i < copyLen; i++)
         {
             result._inner.Add(source._inner[i]);

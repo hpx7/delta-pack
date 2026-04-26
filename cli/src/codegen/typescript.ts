@@ -1,8 +1,12 @@
 import { Type, NamedType } from "@hpx7/delta-pack";
+import type { CodegenOptions } from "./index.js";
 import { dispatch } from "./visitor.js";
 import { intStrategy, floatStrategy, DiffContext } from "./strategy.js";
 
-export function codegenTypescript(schema: Record<string, Type>): string {
+export function codegenTypescript(
+  schema: Record<string, Type>,
+  _options?: CodegenOptions,
+): string {
   const ctx = createContext(schema);
   return renderSchema(ctx);
 }

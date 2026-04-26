@@ -39,11 +39,11 @@ public class JsonRoundTripTests
             Married = true,
             HairColor = HairColor.BROWN,
             Address = new Address { Street = "1 Main", Zip = "02139", State = "MA" },
-            Children = new List<User>
+            Children = new DPList<User>
             {
                 new() { Id = "c1", Name = "Bob", Age = 5, HairColor = HairColor.BLOND },
             },
-            Metadata = new OrderedDict<string, string>
+            Metadata = new DPDict<string, string>
             {
                 ["hobby"] = "chess",
                 ["city"] = "cambridge",
@@ -116,7 +116,7 @@ public class JsonRoundTripTests
                 },
                 Outer = new Outer
                 {
-                    Bool = new List<bool> { true, false, true },
+                    Bool = new DPList<bool> { true, false, true },
                     Double = 2.5f,
                 },
             },

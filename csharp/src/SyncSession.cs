@@ -57,6 +57,23 @@ public sealed class SyncSession<T>
     public Tracker Tracker => _tracker;
 
     /// <summary>
+    /// Runtime toggle for the tracking fast paths. When <c>true</c> (default), every encoded
+    /// view is registered with the session's tracker so subsequent <c>EncodeDiff</c> calls
+    /// can use per-property dirty bits and per-key/per-index change maps to skip work. When
+    /// <c>false</c>, the registration is skipped, baselines remain at -1, and the encoder
+    /// falls back to comparison-based diff for the same wire output. Useful when the schema
+    /// has tracking enabled at compile time but specific sessions don't want to pay the
+    /// fast-path bookkeeping (e.g. short-lived sessions, or sessions where the baseline
+    /// doesn't reflect actual mutation history).
+    /// <para>
+    /// Setter-side overhead from <c>partial</c> tracked properties (NextVersion calls,
+    /// PropagateToParent) is paid regardless — that's compile-time baked into the schema.
+    /// This toggle only controls whether the encoder consults the recorded versions.
+    /// </para>
+    /// </summary>
+    public bool UseTracking { get; set; } = true;
+
+    /// <summary>
     /// Produce bytes to send to the peer. First call emits a full encode; subsequent calls
     /// emit a diff against the current view. Either way, the internal view is updated to
     /// match what the peer will hold after applying the returned bytes.
@@ -69,8 +86,9 @@ public sealed class SyncSession<T>
         _view = _view is null ? _clone(state) : _decodeDiff(_view, bytes);
         // Register the new view so the next EncodeDiff sees the right baseline (looked up
         // implicitly by snapshot identity) and so tombstone pruning's cutoff tracks this
-        // session. Auto-routes to state's tracker.
-        Tracker.RegisterSnapshot(_view, state);
+        // session. Skipping the registration leaves MinVersion at -1, forcing the encoder
+        // into comparison-based diff — same wire format, no fast-path bookkeeping.
+        if (UseTracking) Tracker.RegisterSnapshot(_view, state);
         return bytes;
     }
 

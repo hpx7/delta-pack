@@ -20,6 +20,11 @@ export function getString(flags: Flags, ...keys: string[]): string | undefined {
   return typeof val === "string" ? val : undefined;
 }
 
+/** Look up a boolean flag by alias. Returns true if the flag was set (with or without a value). */
+export function getBoolean(flags: Flags, ...keys: string[]): boolean {
+  return getFlag(flags, ...keys) !== undefined;
+}
+
 /** Same as {@link getString}, but throws an {@link ArgError} with the given message if the flag is missing. */
 export function requireString(
   flags: Flags,

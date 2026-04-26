@@ -1,11 +1,15 @@
+using System.Linq;
 using DeltaPack.SourceGenerator.Model;
 
 namespace DeltaPack.SourceGenerator.Emit;
 
 /// <summary>
 /// Emits the <c>IDirtyTracked</c> interface implementation and partial-property
-/// bodies for <c>[DeltaPackTracked]</c> classes. Appended into the same partial
-/// class as the regular emitter output.
+/// bodies for <c>[DeltaPack]</c> classes that have at least one <c>partial</c>
+/// property. Appended into the same partial class as the regular emitter output.
+/// Slot indices match field indices (so <c>ParentSlot</c>-keyed propagation works
+/// across the per-class slot map); only partial fields actually allocate dirty
+/// storage and contribute to the <c>MarkDirty</c> / <c>IsAnyDirtyAfter</c> dispatch.
 /// </summary>
 internal static class TrackingEmitter
 {
@@ -14,6 +18,7 @@ internal static class TrackingEmitter
         EmitInterfaceImpl(w, def);
         for (int i = 0; i < def.Fields.Length; i++)
         {
+            if (!def.Fields[i].IsDeclaredPartial) continue;
             w.Line();
             EmitPartialProperty(w, def, def.Fields[i], i, reg);
         }
@@ -21,11 +26,15 @@ internal static class TrackingEmitter
 
     private static void EmitInterfaceImpl(CodeWriter w, TypeDef def)
     {
-        // Slot-based dirty storage: one long per declared field, compile-time slot offsets.
+        // Slot-based dirty storage: one long per partial field, compile-time slot offsets.
         // Avoids the per-mutation hash + dict insert and the per-encode hash + dict lookup
-        // that a keyed scheme would incur. -1 means never dirtied.
+        // that a keyed scheme would incur. -1 means never dirtied. Non-partial fields have
+        // no dirty storage — the encoder falls back to comparison-based diff for those.
         for (int i = 0; i < def.Fields.Length; i++)
+        {
+            if (!def.Fields[i].IsDeclaredPartial) continue;
             w.Line($"private long __dp_dirty{i} = -1;");
+        }
         w.Line();
 
         // IDirtyTracked backing fields + explicit impl. Explicit so the interface members
@@ -49,9 +58,13 @@ internal static class TrackingEmitter
         // (TrackingOps.PropagateToParent) with the child's ParentSlot — no boxing,
         // no string switch. GetDirtyVersion / IsAnyDirtyAfter are user-facing for inspection and
         // encoder-side fast-checks respectively.
+        var partialSlots = Enumerable.Range(0, def.Fields.Length)
+            .Where(i => def.Fields[i].IsDeclaredPartial)
+            .ToArray();
+
         using (w.Block("bool DeltaPack.ITrackedObject.MarkDirty(int slot, long version)"))
         {
-            if (def.Fields.Length == 0)
+            if (partialSlots.Length == 0)
             {
                 w.Line("return false;");
             }
@@ -59,7 +72,7 @@ internal static class TrackingEmitter
             {
                 using (w.Block("switch (slot)"))
                 {
-                    for (int i = 0; i < def.Fields.Length; i++)
+                    foreach (var i in partialSlots)
                     {
                         w.Line($"case {i}:");
                         w.Indent();
@@ -76,7 +89,7 @@ internal static class TrackingEmitter
 
         using (w.Block("long DeltaPack.ITrackedObject.GetDirtyVersion(int slot)"))
         {
-            if (def.Fields.Length == 0)
+            if (partialSlots.Length == 0)
             {
                 w.Line("return -1;");
             }
@@ -84,7 +97,7 @@ internal static class TrackingEmitter
             {
                 using (w.Block("return slot switch"))
                 {
-                    for (int i = 0; i < def.Fields.Length; i++)
+                    foreach (var i in partialSlots)
                         w.Line($"{i} => __dp_dirty{i},");
                     w.Line("_ => -1,");
                 }
@@ -95,15 +108,13 @@ internal static class TrackingEmitter
 
         using (w.Block("bool DeltaPack.ITrackedObject.IsAnyDirtyAfter(long version)"))
         {
-            if (def.Fields.Length == 0)
+            if (partialSlots.Length == 0)
             {
                 w.Line("return false;");
             }
             else
             {
-                var parts = new string[def.Fields.Length];
-                for (int i = 0; i < def.Fields.Length; i++)
-                    parts[i] = $"__dp_dirty{i} > version";
+                var parts = partialSlots.Select(i => $"__dp_dirty{i} > version").ToArray();
                 w.Line($"return {string.Join(" || ", parts)};");
             }
         }

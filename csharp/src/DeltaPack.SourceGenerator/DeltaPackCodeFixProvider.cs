@@ -14,24 +14,24 @@ namespace DeltaPack.SourceGenerator;
 /// <summary>
 /// Offers one-click fixes for the structural [DeltaPack] diagnostics:
 ///   DP001 — add 'partial' to the class
-///   DP011 — add 'partial' to a property in a [DeltaPackTracked] class
-///   DP012 — replace List&lt;T&gt; with DeltaPack.TrackedList&lt;T&gt;
-///   DP013 — replace OrderedDict&lt;K, V&gt; with DeltaPack.TrackedOrderedDict&lt;K, V&gt;
+///   DP012 — replace List&lt;T&gt; with DeltaPack.DPList&lt;T&gt;
+///   DP003 — replace Dictionary&lt;K, V&gt; / OrderedDictionary&lt;K, V&gt; with DeltaPack.DPDict&lt;K, V&gt;
+///   DP013 — add 'set;' accessor to a partial property
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(DeltaPackCodeFixProvider)), Shared]
 public sealed class DeltaPackCodeFixProvider : CodeFixProvider
 {
     private const string AddPartialToClassTitle = "Add 'partial' modifier";
-    private const string AddPartialToPropertyTitle = "Add 'partial' modifier";
-    private const string SwapToTrackedListTitle = "Change to 'DeltaPack.TrackedList<T>'";
-    private const string SwapToTrackedOrderedDictTitle = "Change to 'DeltaPack.TrackedOrderedDict<K, V>'";
+    private const string SwapToDPListTitle = "Change to 'DeltaPack.DPList<T>'";
+    private const string SwapToDPDictTitle = "Change to 'DeltaPack.DPDict<K, V>'";
+    private const string AddSetterTitle = "Add 'set;' accessor";
 
     public override ImmutableArray<string> FixableDiagnosticIds =>
         ImmutableArray.Create(
             Diagnostics.MissingPartial.Id,
-            Diagnostics.TrackedPropertyMustBePartial.Id,
-            Diagnostics.TrackedListRequired.Id,
-            Diagnostics.TrackedOrderedDictRequired.Id);
+            Diagnostics.UseDPList.Id,
+            Diagnostics.UseDPDict.Id,
+            Diagnostics.PartialPropertyMissingSetter.Id);
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -55,42 +55,58 @@ public sealed class DeltaPackCodeFixProvider : CodeFixProvider
                         equivalenceKey: "AddPartialToClass"),
                     diagnostic);
             }
-            else if (diagnostic.Id == Diagnostics.TrackedPropertyMustBePartial.Id)
+            else if (diagnostic.Id == Diagnostics.UseDPList.Id)
             {
                 var propDecl = node.AncestorsAndSelf().OfType<PropertyDeclarationSyntax>().FirstOrDefault();
                 if (propDecl is null) continue;
                 context.RegisterCodeFix(
                     CodeAction.Create(
-                        title: AddPartialToPropertyTitle,
-                        createChangedDocument: ct => AddPartialToPropertyAsync(context.Document, propDecl, ct),
-                        equivalenceKey: "AddPartialToProperty"),
+                        title: SwapToDPListTitle,
+                        createChangedDocument: ct => SwapCollectionTypeAsync(
+                            context.Document, propDecl, "DeltaPack.DPList", ct),
+                        equivalenceKey: "SwapToDPList"),
                     diagnostic);
             }
-            else if (diagnostic.Id == Diagnostics.TrackedListRequired.Id)
+            else if (diagnostic.Id == Diagnostics.UseDPDict.Id)
             {
                 var propDecl = node.AncestorsAndSelf().OfType<PropertyDeclarationSyntax>().FirstOrDefault();
                 if (propDecl is null) continue;
                 context.RegisterCodeFix(
                     CodeAction.Create(
-                        title: SwapToTrackedListTitle,
+                        title: SwapToDPDictTitle,
                         createChangedDocument: ct => SwapCollectionTypeAsync(
-                            context.Document, propDecl, "DeltaPack.TrackedList", ct),
-                        equivalenceKey: "SwapToTrackedList"),
+                            context.Document, propDecl, "DeltaPack.DPDict", ct),
+                        equivalenceKey: "SwapToDPDict"),
                     diagnostic);
             }
-            else if (diagnostic.Id == Diagnostics.TrackedOrderedDictRequired.Id)
+            else if (diagnostic.Id == Diagnostics.PartialPropertyMissingSetter.Id)
             {
                 var propDecl = node.AncestorsAndSelf().OfType<PropertyDeclarationSyntax>().FirstOrDefault();
                 if (propDecl is null) continue;
                 context.RegisterCodeFix(
                     CodeAction.Create(
-                        title: SwapToTrackedOrderedDictTitle,
-                        createChangedDocument: ct => SwapCollectionTypeAsync(
-                            context.Document, propDecl, "DeltaPack.TrackedOrderedDict", ct),
-                        equivalenceKey: "SwapToTrackedOrderedDict"),
+                        title: AddSetterTitle,
+                        createChangedDocument: ct => AddSetterToPropertyAsync(context.Document, propDecl, ct),
+                        equivalenceKey: "AddSetter"),
                     diagnostic);
             }
         }
+    }
+
+    private static async Task<Document> AddSetterToPropertyAsync(
+        Document document, PropertyDeclarationSyntax propDecl, CancellationToken ct)
+    {
+        if (propDecl.AccessorList is null) return document;
+
+        var setter = SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration)
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+
+        var newAccessorList = propDecl.AccessorList.AddAccessors(setter);
+        var newPropDecl = propDecl.WithAccessorList(newAccessorList);
+
+        var root = await document.GetSyntaxRootAsync(ct).ConfigureAwait(false);
+        if (root is null) return document;
+        return document.WithSyntaxRoot(root.ReplaceNode(propDecl, newPropDecl));
     }
 
     private static async Task<Document> AddPartialToClassAsync(
@@ -105,25 +121,10 @@ public sealed class DeltaPackCodeFixProvider : CodeFixProvider
         return document.WithSyntaxRoot(root.ReplaceNode(classDecl, newClassDecl));
     }
 
-    private static async Task<Document> AddPartialToPropertyAsync(
-        Document document, PropertyDeclarationSyntax propDecl, CancellationToken ct)
-    {
-        // Insert `partial` directly before the return type so it lands after any
-        // access / static / virtual / override / etc. modifiers and preserves the
-        // leading trivia on the first non-modifier token.
-        var partialToken = SyntaxFactory.Token(SyntaxKind.PartialKeyword)
-            .WithTrailingTrivia(SyntaxFactory.Space);
-        var newPropDecl = propDecl.WithModifiers(propDecl.Modifiers.Add(partialToken));
-
-        var root = await document.GetSyntaxRootAsync(ct).ConfigureAwait(false);
-        if (root is null) return document;
-        return document.WithSyntaxRoot(root.ReplaceNode(propDecl, newPropDecl));
-    }
-
     /// <summary>
     /// Rewrites the property's declared type by substituting the leftmost identifier
-    /// (e.g. <c>List</c> in <c>List&lt;int&gt;</c> or <c>OrderedDict</c> in <c>OrderedDict&lt;string, int&gt;</c>)
-    /// with the fully-qualified tracked replacement. Preserves the generic argument list.
+    /// (e.g. <c>List</c> in <c>List&lt;int&gt;</c> or <c>Dictionary</c> in <c>Dictionary&lt;string, int&gt;</c>)
+    /// with the fully-qualified DP replacement. Preserves the generic argument list.
     /// </summary>
     private static async Task<Document> SwapCollectionTypeAsync(
         Document document, PropertyDeclarationSyntax propDecl, string fullyQualifiedReplacement, CancellationToken ct)

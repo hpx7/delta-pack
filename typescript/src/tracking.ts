@@ -266,9 +266,11 @@ export type Tracked<T> =
  * tracked at each level with version numbers, enabling efficient diffs
  * from arbitrary baseline snapshots.
  *
- * Note: The tracking system assumes a tree structure. If the same object
- * is stored in multiple locations (shared references), dirty propagation
- * will only work for the most recent parent assignment.
+ * Note: The tracking system requires a tree structure — every tracked node
+ * carries a single parent pointer. Attempting to attach the same node to a
+ * second slot throws (mirrors the C# `TrackingEmitter` aliasing guard).
+ * Detach first by reassigning the prior slot to a different value, or by
+ * removing the node from its container, then reattach.
  *
  * @example
  * ```typescript
@@ -359,8 +361,8 @@ function defineMetaSlots(target: object, tracker: Tracker): void {
 
 /**
  * Clear `child`'s PARENT/PARENT_KEY pointers iff its current parent is still
- * `expectedParent`. The parent-match guard mirrors C#'s `ReferenceEquals(c.Parent, this)`
- * check (`TrackedList.cs:255`) — without it, detaching a child that has already been
+ * `expectedParent`. The parent-match guard mirrors the C# `ReferenceEquals(c.Parent, this)`
+ * check in `DPList.cs` — without it, detaching a child that has already been
  * re-parented would silently break dirty propagation through the new parent.
  */
 function detachChild(child: unknown, expectedParent: object): void {
@@ -434,6 +436,24 @@ function attach<T>(obj: T, parent: object | undefined, parentKey: string | numbe
   // one tracker even when moved across domains.
   const underlying = getUnderlying(obj as object);
   if (getFieldVersions(underlying) != null) {
+    // Aliasing guard: a tracked node carries exactly one parent pointer, so
+    // attaching it to a second slot would silently let the new slot steal
+    // ownership — mutations through the held alias would propagate to the
+    // wrong key and diverge on the receiver. Mirrors C#'s
+    // `TrackingEmitter`-emitted check (csharp/src/.../TrackingEmitter.cs:162).
+    // Detach (assigning the prior slot to a different value, or removing it
+    // from its container) before reattaching.
+    if (parent != null) {
+      const currentParent = (underlying as any)[PARENT];
+      if (currentParent != null && (currentParent !== parent || (underlying as any)[PARENT_KEY] !== parentKey)) {
+        throw new Error(
+          "Cannot attach a tracked node that is already attached to another parent or slot — " +
+            "aliasing is not supported. Detach it from its current owner first " +
+            "(reassign the prior slot to a different value, or remove it from its container). " +
+            `(current key: ${String((underlying as any)[PARENT_KEY])}, new key: ${String(parentKey)})`
+        );
+      }
+    }
     setParentMeta(underlying, parent, parentKey);
     if ((underlying as any)[TRACKER] !== tracker) {
       adoptTracker(underlying, tracker);

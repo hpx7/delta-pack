@@ -724,8 +724,10 @@ describe("Dirty Tracking", () => {
         backup: null as { value: number } | null,
       });
 
-      // Move item from array to backup
-      const item = state.items[0]!;
+      // Detach from the array first so the subtree carries no parent
+      // pointer, then reattach under the new key. Skipping the detach
+      // would alias the same node into two slots — caught by `attach`.
+      const item = state.items.shift()!;
       state.backup = item;
 
       // Modify via new parent
@@ -734,6 +736,18 @@ describe("Dirty Tracking", () => {
       // Should propagate through new parent
       expect(isDirty(state.backup!, "value")).toBe(true);
       expect(isDirty(state, "backup")).toBe(true);
+    });
+
+    it("should reject attaching the same tracked node to two slots", () => {
+      const state = track({
+        items: [{ value: 1 }],
+        backup: null as { value: number } | null,
+      });
+      // `state.items[0]` is still in the array; assigning it to `backup`
+      // without detaching first would silently steal the parent pointer.
+      expect(() => {
+        state.backup = state.items[0]!;
+      }).toThrow(/aliasing is not supported/);
     });
   });
 
@@ -939,8 +953,8 @@ describe("Dirty Tracking", () => {
 
   describe("Detachment of removed children", () => {
     // Mutating a held reference to a removed child should NOT leak dirty
-    // marks back to the old container — the C# tracker (TrackedList /
-    // TrackedOrderedDict) calls Detach on every removal; TS now matches.
+    // marks back to the old container — the C# tracker (DPList / DPDict)
+    // calls Detach on every removal; TS now matches.
 
     it("Map.delete detaches the removed value", () => {
       const state = track({ players: new Map([["p1", { x: 0, y: 0 }]]) });
@@ -1263,13 +1277,21 @@ describe("Dirty Tracking", () => {
       const trackerA = new Tracker();
       const trackerB = new Tracker();
 
-      const stateA = track({ sub: { players: new Map<string, { v: number }>([["p1", { v: 1 }]]) } }, trackerA);
-      const stateB = track({ holder: null as null | typeof stateA.sub }, trackerB);
+      type Sub = { players: Map<string, { v: number }> };
+      const stateA = track(
+        { sub: { players: new Map<string, { v: number }>([["p1", { v: 1 }]]) } as Sub | null },
+        trackerA
+      );
+      const stateB = track({ holder: null as Sub | null }, trackerB);
 
-      // Move sub from A's tree into B's tree. This hits the already-tracked
-      // fast-path in `attach`, which detects the tracker mismatch and walks
+      // Move sub from A's tree into B's tree. Detach from A first (the
+      // aliasing guard rejects attaching a still-owned node to a second
+      // slot), then attach to B — which hits the already-tracked fast
+      // path in `attach`, detects the tracker mismatch, and walks
       // `adoptTracker` to re-bind the whole subtree (including the inner Map).
-      stateB.holder = stateA.sub;
+      const sub = stateA.sub!;
+      stateA.sub = null;
+      stateB.holder = sub;
 
       // Subsequent tombstone bookkeeping must land in trackerB, not trackerA.
       const aBefore = trackerA.liveTombstones;
@@ -1285,10 +1307,13 @@ describe("Dirty Tracking", () => {
 
       // Build a subtree under A that contains an array of tracked objects.
       // Each object inside the array must also adopt the new tracker.
-      const stateA = track({ items: [{ players: new Map<string, number>([["p1", 1]]) }] }, trackerA);
-      const stateB = track({ moved: null as null | typeof stateA.items }, trackerB);
+      type Items = { players: Map<string, number> }[];
+      const stateA = track({ items: [{ players: new Map<string, number>([["p1", 1]]) }] as Items | null }, trackerA);
+      const stateB = track({ moved: null as Items | null }, trackerB);
 
-      stateB.moved = stateA.items;
+      const items = stateA.items!;
+      stateA.items = null;
+      stateB.moved = items;
 
       const aBefore = trackerA.liveTombstones;
       const bBefore = trackerB.liveTombstones;
@@ -1303,15 +1328,20 @@ describe("Dirty Tracking", () => {
 
       // The map's VALUES are themselves tracked objects with a nested Map —
       // adoptTracker must recurse into them.
+      type Pool = Map<string, { items: Map<string, number> }>;
       const stateA = track(
         {
-          pool: new Map<string, { items: Map<string, number> }>([["g1", { items: new Map([["x", 1]]) }]]),
+          pool: new Map<string, { items: Map<string, number> }>([
+            ["g1", { items: new Map([["x", 1]]) }],
+          ]) as Pool | null,
         },
         trackerA
       );
-      const stateB = track({ borrowed: null as null | typeof stateA.pool }, trackerB);
+      const stateB = track({ borrowed: null as Pool | null }, trackerB);
 
-      stateB.borrowed = stateA.pool;
+      const pool = stateA.pool!;
+      stateA.pool = null;
+      stateB.borrowed = pool;
 
       const aBefore = trackerA.liveTombstones;
       const bBefore = trackerB.liveTombstones;

@@ -136,10 +136,10 @@ namespace Generated.Examples
         public Velocity Velocity { get; set; } = Velocity.Default();
         public float Rotation { get; set; }
         public PlayerStats Stats { get; set; } = PlayerStats.Default();
-        public System.Collections.Generic.List<InventoryItem> Inventory { get; set; } = new System.Collections.Generic.List<InventoryItem>();
+        public DeltaPack.DPList<InventoryItem> Inventory { get; set; } = new DeltaPack.DPList<InventoryItem>();
         public Equipment Equipment { get; set; } = Equipment.Default();
-        public System.Collections.Generic.List<ActiveEffect> ActiveEffects { get; set; } = new System.Collections.Generic.List<ActiveEffect>();
-        public System.Collections.Generic.List<AbilityCooldown> AbilityCooldowns { get; set; } = new System.Collections.Generic.List<AbilityCooldown>();
+        public DeltaPack.DPList<ActiveEffect> ActiveEffects { get; set; } = new DeltaPack.DPList<ActiveEffect>();
+        public DeltaPack.DPList<AbilityCooldown> AbilityCooldowns { get; set; } = new DeltaPack.DPList<AbilityCooldown>();
         [DeltaPackRange(0)] public long Kills { get; set; }
         [DeltaPackRange(0)] public long Deaths { get; set; }
         [DeltaPackRange(0)] public long Assists { get; set; }
@@ -179,7 +179,7 @@ namespace Generated.Examples
         [DeltaPackRange(0)] public long Damage { get; set; }
         [DeltaPackRange(0)] public long Penetration { get; set; }
         public float TimeToLive { get; set; }
-        public System.Collections.Generic.List<string> HitPlayers { get; set; } = new System.Collections.Generic.List<string>();
+        public DeltaPack.DPList<string> HitPlayers { get; set; } = new DeltaPack.DPList<string>();
     }
 
     [DeltaPack]
@@ -243,12 +243,12 @@ namespace Generated.Examples
         [DeltaPackRange(0)] public long Round { get; set; }
         public string Phase { get; set; } = "";
         public float TimeRemaining { get; set; }
-        public DeltaPack.OrderedDict<string, Player> Players { get; set; } = new DeltaPack.OrderedDict<string, Player>();
-        public DeltaPack.OrderedDict<string, Enemy> Enemies { get; set; } = new DeltaPack.OrderedDict<string, Enemy>();
-        public DeltaPack.OrderedDict<string, Projectile> Projectiles { get; set; } = new DeltaPack.OrderedDict<string, Projectile>();
-        public DeltaPack.OrderedDict<string, DroppedLoot> DroppedLoot { get; set; } = new DeltaPack.OrderedDict<string, DroppedLoot>();
-        public DeltaPack.OrderedDict<string, WorldObject> WorldObjects { get; set; } = new DeltaPack.OrderedDict<string, WorldObject>();
-        public System.Collections.Generic.List<TeamScore> TeamScores { get; set; } = new System.Collections.Generic.List<TeamScore>();
+        public DeltaPack.DPDict<string, Player> Players { get; set; } = new DeltaPack.DPDict<string, Player>();
+        public DeltaPack.DPDict<string, Enemy> Enemies { get; set; } = new DeltaPack.DPDict<string, Enemy>();
+        public DeltaPack.DPDict<string, Projectile> Projectiles { get; set; } = new DeltaPack.DPDict<string, Projectile>();
+        public DeltaPack.DPDict<string, DroppedLoot> DroppedLoot { get; set; } = new DeltaPack.DPDict<string, DroppedLoot>();
+        public DeltaPack.DPDict<string, WorldObject> WorldObjects { get; set; } = new DeltaPack.DPDict<string, WorldObject>();
+        public DeltaPack.DPList<TeamScore> TeamScores { get; set; } = new DeltaPack.DPList<TeamScore>();
         public MatchStats MatchStats { get; set; } = MatchStats.Default();
         public GameSettings Settings { get; set; } = GameSettings.Default();
         public Team? WinningTeam { get; set; }

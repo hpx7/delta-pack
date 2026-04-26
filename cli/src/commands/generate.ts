@@ -4,6 +4,7 @@ import { languages } from "../codegen/index.js";
 import { writeOutput } from "../utils/io.js";
 import { ArgError } from "../utils/errors.js";
 import {
+  getBoolean,
   getString,
   requireSchemaPath,
   requireString,
@@ -28,7 +29,10 @@ export async function generate(
 
   const content = await readFile(path, "utf-8");
   const schema = parseSchemaYml(content);
-  const code = codegen(schema, getString(flags, "n", "namespace"));
+  const code = codegen(schema, {
+    namespace: getString(flags, "n", "namespace"),
+    partial: getBoolean(flags, "partial"),
+  });
 
   await writeOutput(getString(flags, "o", "output"), code);
 }

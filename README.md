@@ -154,9 +154,9 @@ How each schema type is represented in TypeScript, C#, and Rust:
 | `uint`                | `number`                      | `long`                              | `u64`                       |
 | `float`, `float(p)`   | `number`                      | `float`                             | `f32`                       |
 | `boolean`             | `boolean`                     | `bool`                              | `bool`                      |
-| `T[]`                 | `T[]`                         | `List<T>`                           | `Vec<T>`                    |
+| `T[]`                 | `T[]`                         | `DPList<T>`                         | `Vec<T>`                    |
 | `T?`                  | `T \| undefined`              | `T?`                                | `Option<T>`                 |
-| `<K, V>`              | `Map<K, V>`                   | `OrderedDict<K, V>`                 | `IndexMap<K, V>`            |
+| `<K, V>`              | `Map<K, V>`                   | `DPDict<K, V>`                      | `IndexMap<K, V>`            |
 | Object                | `type` (structural)           | `class`                             | `struct`                    |
 | Enum                  | string literal union          | `enum`                              | `enum`                      |
 | Union                 | discriminated union (`_type`) | abstract class + variant subclasses | `enum` (tagged)             |

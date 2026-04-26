@@ -66,7 +66,7 @@ public class AliasReproTests
     [Fact]
     public void List_adding_same_tracked_child_twice_throws()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var shared = TrackedPosition.Default();
         list.Add(shared);
         Assert.Throws<InvalidOperationException>(() => list.Add(shared));
@@ -75,7 +75,7 @@ public class AliasReproTests
     [Fact]
     public void List_indexer_assigning_aliased_child_to_different_index_throws()
     {
-        var list = new TrackedList<TrackedPosition>
+        var list = new DPList<TrackedPosition>
         {
             TrackedPosition.Default(),
             TrackedPosition.Default(),
@@ -87,8 +87,8 @@ public class AliasReproTests
     [Fact]
     public void List_moving_tracked_child_between_lists_throws()
     {
-        var l1 = new TrackedList<TrackedPosition>();
-        var l2 = new TrackedList<TrackedPosition>();
+        var l1 = new DPList<TrackedPosition>();
+        var l2 = new DPList<TrackedPosition>();
         var shared = TrackedPosition.Default();
         l1.Add(shared);
         Assert.Throws<InvalidOperationException>(() => l2.Add(shared));
@@ -97,7 +97,7 @@ public class AliasReproTests
     [Fact]
     public void List_insert_of_already_owned_child_throws()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var shared = TrackedPosition.Default();
         list.Add(shared);
         Assert.Throws<InvalidOperationException>(() => list.Insert(0, shared));
@@ -106,7 +106,7 @@ public class AliasReproTests
     [Fact]
     public void List_addRange_with_duplicate_references_throws()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var shared = TrackedPosition.Default();
         var ex = Assert.Throws<InvalidOperationException>(
             () => list.AddRange(new[] { shared, shared }));
@@ -117,11 +117,11 @@ public class AliasReproTests
     [Fact]
     public void List_insertRange_with_already_parented_child_throws()
     {
-        var donor = new TrackedList<TrackedPosition>();
+        var donor = new DPList<TrackedPosition>();
         var shared = TrackedPosition.Default();
         donor.Add(shared);
 
-        var target = new TrackedList<TrackedPosition> { TrackedPosition.Default() };
+        var target = new DPList<TrackedPosition> { TrackedPosition.Default() };
         Assert.Throws<InvalidOperationException>(
             () => target.InsertRange(0, new[] { shared, TrackedPosition.Default() }));
     }
@@ -133,13 +133,13 @@ public class AliasReproTests
         var shared = TrackedPosition.Default();
         parent.A = shared;
         Assert.Throws<InvalidOperationException>(
-            () => new TrackedList<TrackedPosition>(new[] { shared }));
+            () => new DPList<TrackedPosition>(new[] { shared }));
     }
 
     [Fact]
     public void List_remove_then_readd_is_allowed()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var shared = TrackedPosition.Default();
         list.Add(shared);
         list.RemoveAt(0);
@@ -152,7 +152,7 @@ public class AliasReproTests
     [Fact]
     public void Dict_setting_same_value_under_two_keys_throws()
     {
-        var dict = new TrackedOrderedDict<string, TrackedPosition>();
+        var dict = new DPDict<string, TrackedPosition>();
         var shared = TrackedPosition.Default();
         dict["a"] = shared;
         Assert.Throws<InvalidOperationException>(() => dict["b"] = shared);
@@ -161,8 +161,8 @@ public class AliasReproTests
     [Fact]
     public void Dict_moving_tracked_value_between_dicts_throws()
     {
-        var d1 = new TrackedOrderedDict<string, TrackedPosition>();
-        var d2 = new TrackedOrderedDict<string, TrackedPosition>();
+        var d1 = new DPDict<string, TrackedPosition>();
+        var d2 = new DPDict<string, TrackedPosition>();
         var shared = TrackedPosition.Default();
         d1["k"] = shared;
         Assert.Throws<InvalidOperationException>(() => d2["k"] = shared);
@@ -171,7 +171,7 @@ public class AliasReproTests
     [Fact]
     public void Dict_setting_same_value_to_same_key_is_allowed()
     {
-        var dict = new TrackedOrderedDict<string, TrackedPosition>();
+        var dict = new DPDict<string, TrackedPosition>();
         var shared = TrackedPosition.Default();
         dict["k"] = shared;
         dict["k"] = shared; // same ref, same key — permitted
@@ -184,13 +184,13 @@ public class AliasReproTests
         var shared = TrackedPosition.Default();
         var src = new Dictionary<string, TrackedPosition> { ["a"] = shared, ["b"] = shared };
         Assert.Throws<InvalidOperationException>(
-            () => new TrackedOrderedDict<string, TrackedPosition>(src));
+            () => new DPDict<string, TrackedPosition>(src));
     }
 
     [Fact]
     public void Dict_remove_then_readd_is_allowed()
     {
-        var dict = new TrackedOrderedDict<string, TrackedPosition>();
+        var dict = new DPDict<string, TrackedPosition>();
         var shared = TrackedPosition.Default();
         dict["a"] = shared;
         dict.Remove("a");

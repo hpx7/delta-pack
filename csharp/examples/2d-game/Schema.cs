@@ -3,7 +3,7 @@ using DeltaPack;
 namespace Game2D;
 
 // Player class - property order must match TypeScript exactly
-[DeltaPack, DeltaPackTracked]
+[DeltaPack]
 public partial class Player
 {
     public partial string Id { get; set; }
@@ -27,10 +27,10 @@ public partial class Player
 }
 
 // GameState class
-[DeltaPack, DeltaPackTracked]
+[DeltaPack]
 public partial class GameState
 {
-    public partial TrackedOrderedDict<string, Player> Players { get; set; }
+    public partial DPDict<string, Player> Players { get; set; }
     public partial int Tick { get; set; }
     public partial float GameTime { get; set; }
 }

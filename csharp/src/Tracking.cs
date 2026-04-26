@@ -9,9 +9,10 @@ namespace DeltaPack;
 /// Base contract for types that participate in delta-pack's dirty-tracking graph. Exposes
 /// parent-chain wiring (for propagation) and the <see cref="Tracker"/> reference (for
 /// per-domain baselines / pruning). Implementers fall into two narrower categories —
-/// <see cref="ITrackedObject"/> for <c>[DeltaPackTracked]</c> classes (slot-keyed dirty
-/// storage) and <see cref="ITrackedContainer"/> for <see cref="TrackedList{T}"/> /
-/// <see cref="TrackedOrderedDict{TKey, TValue}"/> (key-keyed dirty storage).
+/// <see cref="ITrackedObject"/> for <c>[DeltaPack]</c> classes that have at least one
+/// <c>partial</c> property (slot-keyed dirty storage), and <see cref="ITrackedContainer"/>
+/// for <see cref="DPList{T}"/> / <see cref="DPDict{TKey, TValue}"/> (key-keyed dirty
+/// storage).
 /// <para>
 /// This is source-generator plumbing — user code never needs to touch it. The tracked
 /// types implement the interface's members <em>explicitly</em> so they do not clutter the
@@ -35,9 +36,10 @@ public interface IDirtyTracked
 }
 
 /// <summary>
-/// Implemented by <c>[DeltaPackTracked]</c> classes. Dirty storage is slot-based — one
-/// <c>long</c> per declared field, indexed by the compile-time slot assigned by the source
-/// generator.
+/// Implemented by <c>[DeltaPack]</c> classes that have at least one <c>partial</c>
+/// property. Dirty storage is slot-based — one <c>long</c> per <c>partial</c> field,
+/// indexed by the compile-time slot assigned by the source generator. Non-partial
+/// auto-properties have no slot and contribute no dirty bits.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public interface ITrackedObject : IDirtyTracked

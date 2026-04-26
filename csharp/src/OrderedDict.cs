@@ -4,10 +4,11 @@ using System.Diagnostics.CodeAnalysis;
 namespace DeltaPack;
 
 /// <summary>
-/// A dictionary that preserves insertion order.
-/// Backed by a List for ordered storage and a Dictionary for O(1) key lookup.
+/// Insertion-order-preserving dictionary used internally as the storage layer for
+/// <see cref="DPDict{TKey, TValue}"/>. Not part of the public API — use
+/// <see cref="DPDict{TKey, TValue}"/> for delta-pack record/map fields.
 /// </summary>
-public class OrderedDict<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
+internal class OrderedDict<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
     private readonly List<KeyValuePair<TKey, TValue>> _list;
@@ -175,7 +176,7 @@ public class OrderedDict<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary,
     }
 }
 
-public static class OrderedDictExtensions
+internal static class OrderedDictExtensions
 {
     public static OrderedDict<TKey, TValue> ToOrderedDict<TSource, TKey, TValue>(
         this IEnumerable<TSource> source,

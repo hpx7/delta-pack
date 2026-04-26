@@ -2,15 +2,15 @@ using DeltaPack;
 
 namespace Shooter.Shared;
 
-[DeltaPack, DeltaPackTracked]
+[DeltaPack]
 public partial class GameState
 {
-    public partial TrackedOrderedDict<string, Player> Players { get; set; }
-    public partial TrackedOrderedDict<string, Bullet> Bullets { get; set; }
+    public partial DPDict<string, Player> Players { get; set; }
+    public partial DPDict<string, Bullet> Bullets { get; set; }
     public partial uint Tick { get; set; }
 }
 
-[DeltaPack, DeltaPackTracked]
+[DeltaPack]
 public partial class Player
 {
     public partial string Id { get; set; }
@@ -44,7 +44,7 @@ public enum PlayerColor
     Orange
 }
 
-[DeltaPack, DeltaPackTracked]
+[DeltaPack]
 public partial class Bullet
 {
     public partial string Id { get; set; }

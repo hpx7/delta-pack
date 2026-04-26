@@ -191,7 +191,7 @@ public class EncoderDecoderTests
     [Fact]
     public void Record_RoundTrips()
     {
-        var values = new OrderedDict<string, long>
+        var values = new DPDict<string, long>
         {
             ["one"] = 1,
             ["two"] = 2,
@@ -320,13 +320,13 @@ public class EncoderDecoderTests
     [Fact]
     public void RecordDiff_WithChanges_RoundTrips()
     {
-        var a = new OrderedDict<string, long>
+        var a = new DPDict<string, long>
         {
             ["one"] = 1,
             ["two"] = 2,
             ["three"] = 3
         };
-        var b = new OrderedDict<string, long>
+        var b = new DPDict<string, long>
         {
             ["one"] = 1,
             ["two"] = 20,  // updated

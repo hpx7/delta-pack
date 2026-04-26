@@ -22,10 +22,10 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor DictionaryNotSupported = new(
+    public static readonly DiagnosticDescriptor UseDPDict = new(
         id: "DP003",
-        title: "Use DeltaPack.OrderedDict for map fields",
-        messageFormat: "Field '{0}' uses '{1}'; delta-pack requires DeltaPack.OrderedDict<TKey, TValue> for map fields (insertion-order required for deterministic diffs)",
+        title: "Use DeltaPack.DPDict for map fields",
+        messageFormat: "Field '{0}' uses '{1}'; delta-pack requires DeltaPack.DPDict<TKey, TValue> for map fields (insertion-order required for deterministic diffs)",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -78,34 +78,43 @@ internal static class Diagnostics
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor TrackedRequiresDeltaPack = new(
-        id: "DP010",
-        title: "[DeltaPackTracked] requires [DeltaPack]",
-        messageFormat: "Type '{0}' is marked [DeltaPackTracked] but is missing [DeltaPack]; tracking only applies to delta-pack generated types",
-        category: Category,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    public static readonly DiagnosticDescriptor TrackedPropertyMustBePartial = new(
-        id: "DP011",
-        title: "[DeltaPackTracked] serialized properties must be declared 'partial'",
-        messageFormat: "Property '{0}.{1}' must be declared 'partial' in a [DeltaPackTracked] class so the source generator can emit a dirty-tracking setter (requires C# 13)",
-        category: Category,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    public static readonly DiagnosticDescriptor TrackedListRequired = new(
+    public static readonly DiagnosticDescriptor UseDPList = new(
         id: "DP012",
-        title: "[DeltaPackTracked] list properties must use TrackedList<T>",
-        messageFormat: "Property '{0}.{1}' is declared as List<T>; change to DeltaPack.TrackedList<T> so collection mutations are tracked",
+        title: "Use DeltaPack.DPList for array fields",
+        messageFormat: "Field '{0}' uses '{1}'; delta-pack requires DeltaPack.DPList<T> for array fields",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor TrackedOrderedDictRequired = new(
+    public static readonly DiagnosticDescriptor PartialPropertyMissingSetter = new(
         id: "DP013",
-        title: "[DeltaPackTracked] map properties must use TrackedOrderedDict<K, V>",
-        messageFormat: "Property '{0}.{1}' is declared as OrderedDict<K, V>; change to DeltaPack.TrackedOrderedDict<K, V> so collection mutations are tracked",
+        title: "Partial property on [DeltaPack] type must declare a setter",
+        messageFormat:
+            "Property '{0}.{1}' is declared 'partial' without a setter; delta-pack tracks " +
+            "mutations via setter interception. Add 'set;' to enable tracking, or remove " +
+            "'partial' to drop the property from serialization",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor PartialPropertyInitOnly = new(
+        id: "DP014",
+        title: "Partial properties on [DeltaPack] types cannot use 'init' setters",
+        messageFormat:
+            "Property '{0}.{1}' uses 'init'; delta-pack tracking requires a regular settable " +
+            "property. Replace 'init;' with 'set;', or remove 'partial' to use comparison-based " +
+            "diff for this immutable field",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor IgnoreOnPartialProperty = new(
+        id: "DP015",
+        title: "[DeltaPackIgnore] cannot be combined with a partial property",
+        messageFormat:
+            "Property '{0}.{1}' has both [DeltaPackIgnore] and 'partial'; these are " +
+            "contradictory — 'partial' opts in to generated tracking that [DeltaPackIgnore] " +
+            "removes. Drop one of them",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

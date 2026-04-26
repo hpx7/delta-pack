@@ -48,8 +48,8 @@ namespace Generated.Examples
         public bool Married { get; set; }
         public HairColor HairColor { get; set; }
         public Address? Address { get; set; }
-        public System.Collections.Generic.List<User> Children { get; set; } = new System.Collections.Generic.List<User>();
-        public DeltaPack.OrderedDict<string, string> Metadata { get; set; } = new DeltaPack.OrderedDict<string, string>();
+        public DeltaPack.DPList<User> Children { get; set; } = new DeltaPack.DPList<User>();
+        public DeltaPack.DPDict<string, string> Metadata { get; set; } = new DeltaPack.DPDict<string, string>();
         public Contact? PreferredContact { get; set; }
     }
 }

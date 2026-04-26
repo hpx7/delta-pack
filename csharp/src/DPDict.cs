@@ -6,10 +6,11 @@ namespace DeltaPack;
 
 /// <summary>
 /// An insertion-order-preserving dictionary that records per-key version numbers
-/// on mutations. Intended as a drop-in replacement for <see cref="OrderedDict{TKey, TValue}"/>
-/// on serialized properties of <see cref="DeltaPackTrackedAttribute"/> classes.
+/// on mutations. The standard delta-pack record/map type — used for all map-typed
+/// fields on <see cref="DeltaPackAttribute"/> classes so the encoder can use
+/// per-key change maps instead of scanning both sides at diff time.
 /// </summary>
-public sealed class TrackedOrderedDict<TKey, TValue>
+public sealed class DPDict<TKey, TValue>
     : IDictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, ITrackedContainer, IPruneable
     where TKey : notnull
 {
@@ -22,23 +23,23 @@ public sealed class TrackedOrderedDict<TKey, TValue>
 
     private bool _registeredAsTombstoneBearer;
 
-    public TrackedOrderedDict() : this(Tracker.Default) { }
-    public TrackedOrderedDict(int capacity) : this(Tracker.Default, capacity) { }
-    public TrackedOrderedDict(IDictionary<TKey, TValue> source) : this(Tracker.Default, source) { }
+    public DPDict() : this(Tracker.Default) { }
+    public DPDict(int capacity) : this(Tracker.Default, capacity) { }
+    public DPDict(IDictionary<TKey, TValue> source) : this(Tracker.Default, source) { }
 
-    public TrackedOrderedDict(Tracker tracker)
+    public DPDict(Tracker tracker)
     {
         _tracker = tracker;
         _inner = new OrderedDict<TKey, TValue>();
     }
 
-    public TrackedOrderedDict(Tracker tracker, int capacity)
+    public DPDict(Tracker tracker, int capacity)
     {
         _tracker = tracker;
         _inner = new OrderedDict<TKey, TValue>(capacity);
     }
 
-    public TrackedOrderedDict(Tracker tracker, IDictionary<TKey, TValue> source)
+    public DPDict(Tracker tracker, IDictionary<TKey, TValue> source)
     {
         _tracker = tracker;
         _inner = new OrderedDict<TKey, TValue>(source);
@@ -53,11 +54,11 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     /// Source-generator entry point for snapshot construction with a per-value clone callback.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static TrackedOrderedDict<TKey, TValue> CreateSnapshot(
-        TrackedOrderedDict<TKey, TValue> source,
+    public static DPDict<TKey, TValue> CreateSnapshot(
+        DPDict<TKey, TValue> source,
         System.Func<TValue, TValue> cloneValue)
     {
-        var result = new TrackedOrderedDict<TKey, TValue>(source._tracker, source._inner.Count);
+        var result = new DPDict<TKey, TValue>(source._tracker, source._inner.Count);
         foreach (var kvp in source._inner)
         {
             var cloned = cloneValue(kvp.Value);
@@ -72,9 +73,9 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     /// reference-immutable. Also used by the decoder to reconstruct diff results.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static TrackedOrderedDict<TKey, TValue> CreateSnapshot(TrackedOrderedDict<TKey, TValue> source)
+    public static DPDict<TKey, TValue> CreateSnapshot(DPDict<TKey, TValue> source)
     {
-        var result = new TrackedOrderedDict<TKey, TValue>(source._tracker, source._inner.Count);
+        var result = new DPDict<TKey, TValue>(source._tracker, source._inner.Count);
         foreach (var kvp in source._inner)
         {
             result._inner.Add(kvp.Key, kvp.Value);
@@ -260,7 +261,7 @@ public sealed class TrackedOrderedDict<TKey, TValue>
             if (child.Parent is not null)
             {
                 throw new System.InvalidOperationException(
-                    "Cannot initialize TrackedOrderedDict with a tracked value already attached " +
+                    "Cannot initialize DPDict with a tracked value already attached " +
                     "to another parent — aliasing is not supported.");
             }
             if (seen is null) seen = new List<IDirtyTracked>();
@@ -269,7 +270,7 @@ public sealed class TrackedOrderedDict<TKey, TValue>
                 if (ReferenceEquals(prev, child))
                 {
                     throw new System.InvalidOperationException(
-                        "Cannot initialize TrackedOrderedDict with the same tracked value under " +
+                        "Cannot initialize DPDict with the same tracked value under " +
                         "two keys — aliasing is not supported.");
                 }
             }
@@ -297,4 +298,22 @@ public sealed class TrackedOrderedDict<TKey, TValue>
     public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => _inner.CopyTo(array, arrayIndex);
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _inner.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => _inner.GetEnumerator();
+}
+
+public static class DPDictExtensions
+{
+    /// <summary>
+    /// Source-generator helper for FromJson — builds a DPDict by streaming a JSON property
+    /// enumerator without materializing an intermediate collection.
+    /// </summary>
+    public static DPDict<TKey, TValue> ToDPDict<TSource, TKey, TValue>(
+        this IEnumerable<TSource> source,
+        System.Func<TSource, TKey> keySelector,
+        System.Func<TSource, TValue> valueSelector) where TKey : notnull
+    {
+        var dict = new DPDict<TKey, TValue>();
+        foreach (var item in source)
+            dict[keySelector(item)] = valueSelector(item);
+        return dict;
+    }
 }

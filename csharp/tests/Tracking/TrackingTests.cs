@@ -58,7 +58,7 @@ public class TrackingTests
     [Fact]
     public void TrackedList_Add_marks_index_dirty()
     {
-        var list = new TrackedList<int>();
+        var list = new DPList<int>();
         list.Add(42);
         Assert.True(list.DirtyIndices.ContainsKey(0));
     }
@@ -66,7 +66,7 @@ public class TrackingTests
     [Fact]
     public void TrackedList_Set_to_same_value_does_not_mark_dirty()
     {
-        var list = new TrackedList<int> { 1, 2, 3 };
+        var list = new DPList<int> { 1, 2, 3 };
         var versionBefore = list.DirtyIndices.GetValueOrDefault(1, -1);
 
         list[1] = 2; // no-op
@@ -76,7 +76,7 @@ public class TrackingTests
     [Fact]
     public void TrackedList_RemoveAt_shifts_parent_keys()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var p0 = new TrackedPosition();
         var p1 = new TrackedPosition();
         var p2 = new TrackedPosition();
@@ -104,7 +104,7 @@ public class TrackingTests
     [Fact]
     public void TrackedList_RemoveRange_shifts_parent_keys()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var p0 = new TrackedPosition();
         var p1 = new TrackedPosition();
         var p2 = new TrackedPosition();
@@ -124,7 +124,7 @@ public class TrackingTests
     [Fact]
     public void TrackedList_InsertRange_shifts_parent_keys()
     {
-        var list = new TrackedList<TrackedPosition>();
+        var list = new DPList<TrackedPosition>();
         var p0 = new TrackedPosition();
         var p1 = new TrackedPosition();
         list.Add(p0);
@@ -146,7 +146,7 @@ public class TrackingTests
     [Fact]
     public void TrackedDict_Set_new_key_records_in_Created()
     {
-        var dict = new TrackedOrderedDict<string, int>();
+        var dict = new DPDict<string, int>();
         dict["a"] = 1;
         Assert.Contains("a", dict.CreatedKeys.Keys);
         Assert.DoesNotContain("a", dict.DirtyKeys.Keys);
@@ -155,10 +155,10 @@ public class TrackingTests
     [Fact]
     public void TrackedDict_Set_existing_key_records_in_Dirty_not_Created()
     {
-        var dict = new TrackedOrderedDict<string, int> { ["a"] = 1 };
+        var dict = new DPDict<string, int> { ["a"] = 1 };
         // Snapshot resets — but for a fresh dict, the Add went through Created. We need to
         // simulate a baseline by creating from an IDictionary source.
-        var seeded = new TrackedOrderedDict<string, int>(new Dictionary<string, int> { ["a"] = 1 });
+        var seeded = new DPDict<string, int>(new Dictionary<string, int> { ["a"] = 1 });
         seeded["a"] = 2;
         Assert.Contains("a", seeded.DirtyKeys.Keys);
         Assert.DoesNotContain("a", seeded.CreatedKeys.Keys);
@@ -167,7 +167,7 @@ public class TrackingTests
     [Fact]
     public void TrackedDict_Remove_records_in_Deleted()
     {
-        var dict = new TrackedOrderedDict<string, int>(new Dictionary<string, int> { ["a"] = 1 });
+        var dict = new DPDict<string, int>(new Dictionary<string, int> { ["a"] = 1 });
         dict.Remove("a");
         Assert.Contains("a", dict.DeletedKeys.Keys);
     }
@@ -175,7 +175,7 @@ public class TrackingTests
     [Fact]
     public void TrackedDict_Revival_clears_Deleted()
     {
-        var dict = new TrackedOrderedDict<string, int>(new Dictionary<string, int> { ["a"] = 1 });
+        var dict = new DPDict<string, int>(new Dictionary<string, int> { ["a"] = 1 });
         dict.Remove("a");
         dict["a"] = 2;
         Assert.DoesNotContain("a", dict.DeletedKeys.Keys);

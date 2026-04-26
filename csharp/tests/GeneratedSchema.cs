@@ -69,10 +69,10 @@ namespace Generated
     [DeltaPack]
     public partial class GameState
     {
-        public System.Collections.Generic.List<Player> Players { get; set; } = new System.Collections.Generic.List<Player>();
+        public DeltaPack.DPList<Player> Players { get; set; } = new DeltaPack.DPList<Player>();
         public string? CurrentPlayer { get; set; }
         [DeltaPackRange(0)] public long Round { get; set; }
-        public DeltaPack.OrderedDict<string, string> Metadata { get; set; } = new DeltaPack.OrderedDict<string, string>();
+        public DeltaPack.DPDict<string, string> Metadata { get; set; } = new DeltaPack.DPDict<string, string>();
         public Color? WinningColor { get; set; }
         public GameAction? LastAction { get; set; }
     }
@@ -80,12 +80,12 @@ namespace Generated
     [DeltaPack]
     public partial class Inventory
     {
-        public System.Collections.Generic.List<DeltaPack.OrderedDict<string, long>>? Items { get; set; }
+        public DeltaPack.DPList<DeltaPack.DPDict<string, long>>? Items { get; set; }
     }
 
     [DeltaPack]
     public partial class PlayerRegistry
     {
-        public DeltaPack.OrderedDict<string, Player> Players { get; set; } = new DeltaPack.OrderedDict<string, Player>();
+        public DeltaPack.DPDict<string, Player> Players { get; set; } = new DeltaPack.DPDict<string, Player>();
     }
 }

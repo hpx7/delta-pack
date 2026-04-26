@@ -25,9 +25,7 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
                     var decl = (TypeDeclarationSyntax)ctx.Node;
                     var sym = ctx.SemanticModel.GetDeclaredSymbol(decl) as INamedTypeSymbol;
                     if (sym is null) return null;
-                    // Pick up types annotated with either attribute so we can diagnose
-                    // [DeltaPackTracked] used without [DeltaPack].
-                    return (TypeMapper.HasDeltaPackAttribute(sym) || TypeMapper.HasTrackedAttribute(sym)) ? sym : null;
+                    return TypeMapper.HasDeltaPackAttribute(sym) ? sym : null;
                 })
             .Where(static sym => sym is not null)
             .Select(static (sym, _) => sym!)
@@ -45,14 +43,6 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
         var accepted = new List<INamedTypeSymbol>();
         foreach (var sym in annotated.Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default))
         {
-            if (TypeMapper.HasTrackedAttribute(sym) && !TypeMapper.HasDeltaPackAttribute(sym))
-            {
-                ctx.ReportDiagnostic(Diagnostic.Create(
-                    Diagnostics.TrackedRequiresDeltaPack, sym.Locations.FirstOrDefault(), sym.ToDisplayString()));
-                continue;
-            }
-            if (!TypeMapper.HasDeltaPackAttribute(sym)) continue;
-
             if (sym.IsGenericType)
             {
                 ctx.ReportDiagnostic(Diagnostic.Create(
@@ -70,29 +60,6 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
                 ctx.ReportDiagnostic(Diagnostic.Create(
                     Diagnostics.AbstractMissingUnion, sym.Locations.FirstOrDefault(), sym.ToDisplayString()));
                 continue;
-            }
-            // For tracked classes, verify each serialized property is declared `partial` so the
-            // generator can emit a dirty-tracking setter. Without this, the generator's emitted
-            // partial property body conflicts with the user's auto-property and the user gets
-            // a cryptic CS0102 "duplicate definition" instead of a targeted message.
-            if (TypeMapper.HasTrackedAttribute(sym))
-            {
-                var anyError = false;
-                foreach (var member in sym.GetMembers())
-                {
-                    if (member is not IPropertySymbol prop) continue;
-                    if (prop.IsStatic || prop.IsIndexer) continue;
-                    if (prop.DeclaredAccessibility != Accessibility.Public) continue;
-                    if (prop.SetMethod is null) continue;
-                    if (TypeMapper.HasIgnoreAttribute(prop)) continue;
-                    if (IsDeclaredPartialProperty(prop)) continue;
-                    ctx.ReportDiagnostic(Diagnostic.Create(
-                        Diagnostics.TrackedPropertyMustBePartial,
-                        prop.Locations.FirstOrDefault() ?? sym.Locations.FirstOrDefault(),
-                        sym.ToDisplayString(), prop.Name));
-                    anyError = true;
-                }
-                if (anyError) continue;
             }
             accepted.Add(sym);
         }
@@ -176,22 +143,55 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
 
     private static TypeDef? BuildObjectDef(SourceProductionContext ctx, INamedTypeSymbol sym, Dictionary<string, INamedTypeSymbol> enumSink)
     {
-        var isTracked = TypeMapper.HasTrackedAttribute(sym);
         var fieldsBuilder = ImmutableArray.CreateBuilder<FieldModel>();
         foreach (var m in sym.GetMembers())
         {
             if (m is IPropertySymbol prop && !prop.IsStatic && prop.DeclaredAccessibility == Accessibility.Public)
             {
-                if (prop.SetMethod is null) continue;
                 if (prop.IsIndexer) continue;
-                if (TypeMapper.HasIgnoreAttribute(prop)) continue;
                 var propLocation = prop.Locations.FirstOrDefault() ?? sym.Locations.FirstOrDefault() ?? Location.None;
+                var isPartial = IsDeclaredPartialProperty(prop);
+
+                // A partial property without a setter would fall through silently today
+                // (no field, no tracking). The user wrote `partial` expecting tracking;
+                // surface the mismatch instead of generating nothing.
+                if (prop.SetMethod is null)
+                {
+                    if (isPartial)
+                        ctx.ReportDiagnostic(Diagnostic.Create(
+                            Diagnostics.PartialPropertyMissingSetter, propLocation,
+                            sym.ToDisplayString(), prop.Name));
+                    continue;
+                }
+
+                // [DeltaPackIgnore] removes the property from serialization, but `partial`
+                // opts into generated tracking. The two attributes contradict each other —
+                // catch the conflict at generation time rather than silently honoring ignore.
+                if (TypeMapper.HasIgnoreAttribute(prop))
+                {
+                    if (isPartial)
+                        ctx.ReportDiagnostic(Diagnostic.Create(
+                            Diagnostics.IgnoreOnPartialProperty, propLocation,
+                            sym.ToDisplayString(), prop.Name));
+                    continue;
+                }
+
+                // The tracking emitter unconditionally produces a `set` accessor; emitting
+                // `set` against a defining declaration that uses `init` is a CS-level mismatch.
+                // Catch it with a delta-pack-specific diagnostic that points at the fix.
+                if (isPartial && prop.SetMethod.IsInitOnly)
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(
+                        Diagnostics.PartialPropertyInitOnly, propLocation,
+                        sym.ToDisplayString(), prop.Name));
+                    continue;
+                }
+
                 var r = TypeMapper.MapField(prop, prop.Type, propLocation);
                 if (r.Diagnostic is not null) { ctx.ReportDiagnostic(r.Diagnostic); return null; }
                 if (r.Field is not null)
                 {
-                    var field = r.Field with { IsDeclaredPartial = IsDeclaredPartialProperty(prop) };
-                    if (isTracked) ReportTrackedCollectionMismatch(ctx, sym, prop, field);
+                    var field = r.Field with { IsDeclaredPartial = isPartial };
                     fieldsBuilder.Add(field);
                     CollectEnumsFromType(prop.Type, enumSink);
                 }
@@ -209,47 +209,24 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
             }
         }
 
+        // Class participates in tracking when at least one property is declared `partial`.
+        // That property gets a generator-emitted dirty-tracking setter; non-partial fields
+        // fall back to comparison-based diff.
+        var fields = fieldsBuilder.ToImmutable();
+        var hasAnyPartial = fields.Any(f => f.IsDeclaredPartial);
+
         return new TypeDef(
             Kind: TypeDefKind.Object,
             FullyQualifiedName: TypeMapper.GlobalFqn(sym),
             Namespace: GetNamespace(sym),
             ContainingTypes: GetContainingTypes(sym),
             SimpleName: sym.Name,
-            Fields: new EquatableArray<FieldModel>(fieldsBuilder.ToImmutable()),
+            Fields: new EquatableArray<FieldModel>(fields),
             UnionVariants: EquatableArray<string>.Empty,
             EnumMembers: EquatableArray<string>.Empty,
             IsAbstract: sym.IsAbstract,
             IsStruct: sym.IsValueType,
-            IsTracked: isTracked);
-    }
-
-    /// <summary>
-    /// In a [DeltaPackTracked] class, collection-typed properties must be declared using
-    /// TrackedList&lt;T&gt; / TrackedOrderedDict&lt;K, V&gt; so per-element mutations are recorded.
-    /// Using List&lt;T&gt; or OrderedDict&lt;K, V&gt; compiles but silently fails to track inner mutations
-    /// — so we emit a targeted diagnostic (DP012 / DP013) pointing at the type syntax.
-    /// </summary>
-    private static void ReportTrackedCollectionMismatch(
-        SourceProductionContext ctx, INamedTypeSymbol owner, IPropertySymbol prop, FieldModel field)
-    {
-        if (field.Type.IsTracked) return;
-        if (field.Type.Kind != Model.TypeKind.Array && field.Type.Kind != Model.TypeKind.Record) return;
-
-        // Prefer to squiggle the type syntax; fall back to the property location.
-        Location location = prop.Locations.FirstOrDefault() ?? owner.Locations.FirstOrDefault() ?? Location.None;
-        foreach (var decl in prop.DeclaringSyntaxReferences)
-        {
-            if (decl.GetSyntax() is PropertyDeclarationSyntax pds)
-            {
-                location = pds.Type.GetLocation();
-                break;
-            }
-        }
-
-        var descriptor = field.Type.Kind == Model.TypeKind.Array
-            ? Diagnostics.TrackedListRequired
-            : Diagnostics.TrackedOrderedDictRequired;
-        ctx.ReportDiagnostic(Diagnostic.Create(descriptor, location, owner.ToDisplayString(), prop.Name));
+            IsTracked: hasAnyPartial);
     }
 
     private static TypeDef? BuildUnionDef(INamedTypeSymbol sym, ImmutableArray<INamedTypeSymbol> variants)

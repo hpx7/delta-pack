@@ -30,7 +30,9 @@ internal static class ObjectEmitter
         // Preserve `abstract` modifier on the partial; the user already declared the type.
         var abstractKw = def.IsAbstract ? "abstract " : "";
         var kindKw = def.IsStruct ? "struct" : "class";
-        // Tracked classes need to declare the interface on at least one partial part.
+        // Classes with any partial property need to declare the tracking interface on at
+        // least one partial part. Classes with no partial properties stay free of any
+        // tracking-interface plumbing (Unity-friendly).
         var bases = def.IsTracked ? " : DeltaPack.ITrackedObject" : "";
         return $"{abstractKw}partial {kindKw} {def.SimpleName}{bases}";
     }
@@ -72,27 +74,6 @@ internal static class ObjectEmitter
             w.Line();
             TrackingEmitter.EmitTrackingMembers(w, def, reg);
         }
-        else
-        {
-            // Users may opt into `partial` property syntax without enabling tracking so they
-            // can flip `[DeltaPackTracked]` on later without touching every property. Emit
-            // trivial implementing declarations for each such property.
-            foreach (var f in def.Fields)
-            {
-                if (!f.IsDeclaredPartial) continue;
-                w.Line();
-                EmitTrivialPartialProperty(w, f, reg);
-            }
-        }
-    }
-
-    private static void EmitTrivialPartialProperty(CodeWriter w, FieldModel f, ModelRegistry reg)
-    {
-        var declared = ExpressionRenderer.CSharpType(f.Type, reg);
-        var backing = "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
-        var defaultInit = ExpressionRenderer.DefaultInitializer(f.Type, reg);
-        w.Line($"private {declared} {backing} = {defaultInit};");
-        w.Line($"public partial {declared} {f.Name} {{ get => {backing}; set => {backing} = value; }}");
     }
 
     private static void EmitFromJson(CodeWriter w, TypeDef def, ModelRegistry reg, string newKw)
@@ -148,22 +129,29 @@ internal static class ObjectEmitter
                 // Write to backing fields directly rather than going through the partial-property
                 // setters — setters would run NextVersion / dirty-map writes / PropagateToParent on
                 // every field, which is wasted work on a freshly-built clone. The clone inherits
-                // obj's tracker so it lands in the same domain.
+                // obj's tracker so it lands in the same domain. Non-partial fields go through the
+                // user's auto-property setter (no tracking work to skip).
                 w.Line($"var result = new {def.SimpleName}();");
                 w.Line($"((DeltaPack.IDirtyTracked)result).Tracker = ((DeltaPack.IDirtyTracked)obj).Tracker;");
                 for (int slot = 0; slot < def.Fields.Length; slot++)
                 {
                     var f = def.Fields[slot];
-                    var backing = ExpressionRenderer.TrackingBackingField(f);
                     var cloneExpr = ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg);
-                    w.Line($"result.{backing} = {cloneExpr};");
-
-                    if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                    if (f.IsDeclaredPartial)
                     {
-                        // Optional<T> may legitimately be null; other trackable fields won't be.
-                        // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
-                        w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                        w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        var backing = ExpressionRenderer.TrackingBackingField(f);
+                        w.Line($"result.{backing} = {cloneExpr};");
+                        if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                        {
+                            // Optional<T> may legitimately be null; other trackable fields won't be.
+                            // Use `is IDirtyTracked` to cover both cases uniformly and null-safely.
+                            w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                            w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        }
+                    }
+                    else
+                    {
+                        w.Line($"result.{f.Name} = {cloneExpr};");
                     }
                 }
                 w.Line("return result;");
@@ -224,9 +212,9 @@ internal static class ObjectEmitter
             else
             {
                 // Class case: the `is` check resolves to true only when `a` actually implements
-                // IDirtyTracked (i.e. the type is `[DeltaPackTracked]`). For untracked classes
-                // the cast fails at runtime and we fall back to -1, disabling the tracking
-                // filter. One emitted line covers both tracked and untracked classes.
+                // IDirtyTracked (i.e. the type has at least one partial property). For classes
+                // with no partial properties the cast fails at runtime and we fall back to -1,
+                // disabling the tracking filter. One emitted line covers both shapes.
                 w.Line("encoder.MinVersion = a is DeltaPack.IDirtyTracked __dp_a ? __dp_a.Tracker.GetBaselineFor(a) : -1;");
             }
             w.Line("encoder.PushObjectDiff(a, b, Equals, EncodeDiff_);");
@@ -237,13 +225,13 @@ internal static class ObjectEmitter
         {
             if (def.IsTracked)
             {
-                // Hoist the baseline once — each inlined field diff block compares against this.
-                // Reading Encoder.MinVersion repeatedly inside the hot loop would force a
-                // property-get at every field check on a tracked object.
+                // Hoist the baseline once — each inlined per-partial-field diff block compares
+                // against this. Reading Encoder.MinVersion repeatedly inside the hot loop would
+                // force a property-get at every field check.
                 w.Line("var __dp_minVersion = encoder.MinVersion;");
             }
             for (int i = 0; i < def.Fields.Length; i++)
-                ExpressionRenderer.EncodeDiffField(w, def.Fields[i], i, reg, "a", "b", def.IsTracked);
+                ExpressionRenderer.EncodeDiffField(w, def.Fields[i], i, reg, "a", "b", def.Fields[i].IsDeclaredPartial);
         }
     }
 
@@ -264,20 +252,29 @@ internal static class ObjectEmitter
         {
             if (def.IsTracked)
             {
-                // Bypass setters (avoids the aliasing guard + wasted dirty bookkeeping) and
-                // stamp the result with the decoder's tracker so children land in the right
-                // domain when reparented below.
+                // Bypass partial-property setters (avoids the aliasing guard + wasted dirty
+                // bookkeeping) and stamp the result with the decoder's tracker so children
+                // land in the right domain when reparented below. Non-partial fields go
+                // through the user's auto-property setter.
                 w.Line($"var result = new {def.SimpleName}();");
                 w.Line("((DeltaPack.IDirtyTracked)result).Tracker = decoder.Tracker;");
                 for (int slot = 0; slot < def.Fields.Length; slot++)
                 {
                     var f = def.Fields[slot];
-                    var backing = ExpressionRenderer.TrackingBackingField(f);
-                    w.Line($"result.{backing} = {ExpressionRenderer.DecodeInline(f.Type, reg)};");
-                    if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                    var decodeExpr = ExpressionRenderer.DecodeInline(f.Type, reg);
+                    if (f.IsDeclaredPartial)
                     {
-                        w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                        w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        var backing = ExpressionRenderer.TrackingBackingField(f);
+                        w.Line($"result.{backing} = {decodeExpr};");
+                        if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                        {
+                            w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                            w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        }
+                    }
+                    else
+                    {
+                        w.Line($"result.{f.Name} = {decodeExpr};");
                     }
                 }
                 w.Line("return result;");
@@ -326,18 +323,27 @@ internal static class ObjectEmitter
                 // setters — the setter-side aliasing guard would trip on unchanged fields
                 // (NextFieldDiff returns the old snapshot's child, whose Parent points at
                 // the snapshot, not the new result). Parent pointers are re-established
-                // explicitly below, mirroring Clone.
+                // explicitly below, mirroring Clone. Non-partial fields go through the
+                // user's auto-property setter.
                 w.Line($"var result = new {def.SimpleName}();");
                 w.Line("((DeltaPack.IDirtyTracked)result).Tracker = decoder.Tracker;");
                 for (int slot = 0; slot < def.Fields.Length; slot++)
                 {
                     var f = def.Fields[slot];
-                    var backing = ExpressionRenderer.TrackingBackingField(f);
-                    w.Line($"result.{backing} = {ExpressionRenderer.DecodeDiffField(f, reg, "obj")};");
-                    if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                    var decodeDiffExpr = ExpressionRenderer.DecodeDiffField(f, reg, "obj");
+                    if (f.IsDeclaredPartial)
                     {
-                        w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
-                        w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        var backing = ExpressionRenderer.TrackingBackingField(f);
+                        w.Line($"result.{backing} = {decodeDiffExpr};");
+                        if (ExpressionRenderer.ChildIsTrackable(f.Type, reg))
+                        {
+                            w.Line($"if (result.{backing} is DeltaPack.IDirtyTracked __t_{f.Name})");
+                            w.Line($"    DeltaPack.TrackingOps.ReparentToObject(__t_{f.Name}, result, {slot});");
+                        }
+                    }
+                    else
+                    {
+                        w.Line($"result.{f.Name} = {decodeDiffExpr};");
                     }
                 }
                 w.Line("return result;");

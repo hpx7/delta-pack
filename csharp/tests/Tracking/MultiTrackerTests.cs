@@ -45,14 +45,14 @@ public class MultiTrackerTests
         var trackerA = new Tracker();
         var trackerB = new Tracker();
 
-        var dictA = new TrackedOrderedDict<string, int>(trackerA);
-        var dictB = new TrackedOrderedDict<string, int>(trackerB);
+        var dictA = new DPDict<string, int>(trackerA);
+        var dictB = new DPDict<string, int>(trackerB);
 
         // A holds a snapshot perpetually (simulates a stale ack-baseline).
         dictA["x"] = 1;
-        var snapA = new TrackedOrderedDict<string, int>(trackerA, new Dictionary<string, int>(dictA));
+        var snapA = new DPDict<string, int>(trackerA, new Dictionary<string, int>(dictA));
         // We can't construct a frozen baseline directly; use a clone-and-register pattern.
-        var aSnapHolder = new TrackedOrderedDict<string, int>(trackerA);
+        var aSnapHolder = new DPDict<string, int>(trackerA);
         aSnapHolder["x"] = 1;
         Tracker.RegisterSnapshot(aSnapHolder, dictA);
 
@@ -69,7 +69,7 @@ public class MultiTrackerTests
         // cannot hold up B's cutoff.
         dictB["sentinel"] = 0;
         dictB.Remove("sentinel");  // bumps global version one more time after the last "real" deletion
-        var bSnapHolder = new TrackedOrderedDict<string, int>(trackerB);
+        var bSnapHolder = new DPDict<string, int>(trackerB);
         Tracker.RegisterSnapshot(bSnapHolder, dictB);
 
         // Of the 11 tombstones, 10 had versions strictly less than the snapshot baseline

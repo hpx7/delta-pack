@@ -23,7 +23,7 @@ namespace Generated.Examples
     [DeltaPack]
     public partial class Outer
     {
-        public System.Collections.Generic.List<bool> Bool { get; set; } = new System.Collections.Generic.List<bool>();
+        public DeltaPack.DPList<bool> Bool { get; set; } = new DeltaPack.DPList<bool>();
         public float Double { get; set; }
     }
 

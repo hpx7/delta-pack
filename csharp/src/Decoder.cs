@@ -88,13 +88,13 @@ public class Decoder
         return arr;
     }
 
-    public OrderedDict<TKey, TValue> NextRecord<TKey, TValue>(
+    public DPDict<TKey, TValue> NextRecord<TKey, TValue>(
         Func<TKey> innerKeyRead,
         Func<TValue> innerValRead)
         where TKey : notnull
     {
         var len = (int)NextUInt();
-        var dict = new OrderedDict<TKey, TValue>(len);
+        var dict = new DPDict<TKey, TValue>(Tracker, len);
         for (var i = 0; i < len; i++)
             dict[innerKeyRead()] = innerValRead();
         return dict;
@@ -203,51 +203,8 @@ public class Decoder
         return newArr;
     }
 
-    public OrderedDict<TKey, TValue> NextRecordDiff<TKey, TValue>(
-        OrderedDict<TKey, TValue> obj,
-        Func<TKey> decodeKey,
-        Func<TValue> decodeVal,
-        Func<TValue, TValue> decodeDiff)
-        where TKey : notnull
-    {
-        // Caller handles change bit via NextFieldDiff
-        var result = new OrderedDict<TKey, TValue>(obj);
-
-        if (obj.Count > 0)
-        {
-            var numDeletions = (int)NextUInt();
-            for (var i = 0; i < numDeletions; i++)
-            {
-                var key = obj.GetKeyAtIndex((int)NextUInt());
-                result.Remove(key);
-            }
-
-            var numUpdates = (int)NextUInt();
-            for (var i = 0; i < numUpdates; i++)
-            {
-                var key = obj.GetKeyAtIndex((int)NextUInt());
-                result[key] = decodeDiff(result[key]);
-            }
-        }
-
-        var numAdditions = (int)NextUInt();
-        for (var i = 0; i < numAdditions; i++)
-        {
-            var key = decodeKey();
-            var val = decodeVal();
-            result[key] = val;
-        }
-
-        return result;
-    }
-
-    /// <summary>
-    /// Tracked-container overload. Identical bit layout to the <see cref="OrderedDict{TKey, TValue}"/>
-    /// variant — picked by overload resolution when the generated code's property type is
-    /// <see cref="TrackedOrderedDict{TKey, TValue}"/>.
-    /// </summary>
-    public TrackedOrderedDict<TKey, TValue> NextRecordDiff<TKey, TValue>(
-        TrackedOrderedDict<TKey, TValue> obj,
+    public DPDict<TKey, TValue> NextRecordDiff<TKey, TValue>(
+        DPDict<TKey, TValue> obj,
         Func<TKey> decodeKey,
         Func<TValue> decodeVal,
         Func<TValue, TValue> decodeDiff)
@@ -256,7 +213,7 @@ public class Decoder
         // Build the result by copying the baseline directly (bypassing the user-facing
         // aliasing guard on the ctor). The decoder owns both obj and the returned result,
         // so moving tracked children from one to the other is legitimate.
-        var result = TrackedOrderedDict<TKey, TValue>.CreateSnapshot(obj);
+        var result = DPDict<TKey, TValue>.CreateSnapshot(obj);
 
         if (obj.Count > 0)
         {
@@ -286,18 +243,13 @@ public class Decoder
         return result;
     }
 
-    /// <summary>
-    /// Tracked-list overload. Identical bit layout to the <see cref="List{T}"/> variant —
-    /// picked by overload resolution when the generated code's property type is
-    /// <see cref="TrackedList{T}"/>.
-    /// </summary>
-    public TrackedList<T> NextArrayDiff<T>(TrackedList<T> arr, Func<T> decode, Func<T, T> decodeDiff)
+    public DPList<T> NextArrayDiff<T>(DPList<T> arr, Func<T> decode, Func<T, T> decodeDiff)
     {
         var newLen = (int)NextUInt();
         var copyLen = Math.Min(arr.Count, newLen);
         // Prefill via the internal copy (same reasoning as NextRecordDiff) so the aliasing
         // guard on Add() doesn't fire on children still parented to `arr`.
-        var result = TrackedList<T>.CopyPrefixForDecode(arr, copyLen, newLen, Tracker);
+        var result = DPList<T>.CopyPrefixForDecode(arr, copyLen, newLen, Tracker);
 
         var numUpdates = (int)NextUInt();
         for (var i = 0; i < numUpdates; i++)

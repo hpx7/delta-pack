@@ -149,28 +149,7 @@ public class Encoder
     }
 
     public void PushRecord<TKey, TValue>(
-        OrderedDict<TKey, TValue> val,
-        Action<TKey, Encoder> innerKeyWrite,
-        Action<TValue, Encoder> innerValWrite)
-        where TKey : notnull
-    {
-        var count = val.Count;
-        PushUInt((uint)count);
-        for (var i = 0; i < count; i++)
-        {
-            var key = val.GetKeyAtIndex(i);
-            innerKeyWrite(key, this);
-            innerValWrite(val[key], this);
-        }
-    }
-
-    /// <summary>
-    /// Tracked-container overload — picked by overload resolution when the generated code
-    /// passes a <see cref="TrackedOrderedDict{TKey, TValue}"/>. Same wire format as the
-    /// <see cref="OrderedDict{TKey, TValue}"/> path.
-    /// </summary>
-    public void PushRecord<TKey, TValue>(
-        TrackedOrderedDict<TKey, TValue> val,
+        DPDict<TKey, TValue> val,
         Action<TKey, Encoder> innerKeyWrite,
         Action<TValue, Encoder> innerValWrite)
         where TKey : notnull
@@ -220,18 +199,12 @@ public class Encoder
 
     public void PushObjectDiff<T>(T a, T b, Func<T, T, bool> equals, Action<T, T, Encoder> encodeDiff)
     {
-        bool changed;
-        if (b is ITrackedObject tb)
-        {
-            // Tracked fast path: unrolled short-circuit OR over compile-time slot versions,
-            // no dictionary walk. Baseline version is carried on the Encoder (set by
-            // EncodeDiff's top-level entry point) — see Encoder.MinVersion.
-            changed = tb.IsAnyDirtyAfter(MinVersion);
-        }
-        else
-        {
-            changed = !equals(a, b);
-        }
+        // Dirty-bit fast path: if any partial property is dirty since the baseline, the
+        // object has definitely changed and we skip the equality comparison. Otherwise
+        // fall back to comparison — necessary because non-partial auto-properties don't
+        // contribute dirty bits, so IsAnyDirtyAfter returning false isn't sufficient
+        // evidence of "no change" on classes that mix partial and auto-properties.
+        bool changed = (b is ITrackedObject tb && tb.IsAnyDirtyAfter(MinVersion)) || !equals(a, b);
         PushBoolean(changed);
         if (changed)
             encodeDiff(a, b, this);
@@ -297,7 +270,9 @@ public class Encoder
         var updates = new List<int>();
         var minLen = Math.Min(a.Count, b.Count);
 
-        if (b is TrackedList<T> tb)
+        // Tracked fast path requires `b` to have history relative to `a` — see the parallel
+        // condition in PushRecordDiff for why MinVersion < 0 forces comparison.
+        if (b is DPList<T> tb && MinVersion >= 0)
         {
             var minVersion = MinVersion;
             foreach (var kvp in tb.DirtyIndices)
@@ -343,22 +318,25 @@ public class Encoder
         var deletions = new List<int>();
         var additions = new List<(int idx, TKey key, TValue val)>();
 
-        if (b is TrackedOrderedDict<TKey, TValue> tb)
+        // Tracked fast path applies only when `b` has a recorded history relative to `a` —
+        // i.e. `a` was registered as a snapshot via `SyncSession` / `Tracker.RegisterSnapshot`,
+        // and `b` is a derivative reached by mutating that snapshot. The baseline check is
+        // MinVersion >= 0: SyncSession sets MinVersion to `a`'s registered baseline, while
+        // raw EncodeDiff calls on hand-built dicts leave it at -1. Without the baseline,
+        // `b`'s _created/_deleted maps reflect b's own initial-population history, not the
+        // delta against `a` — so the tracked path would emit wrong diffs (e.g. miss
+        // deletions of keys that were in `a` but never lived in `b`'s history).
+        if (b is DPDict<TKey, TValue> tb && MinVersion >= 0)
         {
             // Tracked fast path: use per-key change maps instead of scanning both sides.
             var minVersion = MinVersion;
 
-            // Resolve `a`'s key→index lookup once. Common case: a is itself an
-            // OrderedDict or TrackedOrderedDict (because the generator always emits the same
-            // concrete type on both sides of a record diff), in which case we can reuse the
-            // dict's own `_index` map for zero-alloc O(1) lookups. Only fall back to building
-            // a fresh keyToIndex when `a` is some other IDictionary.
-            Dictionary<TKey, int>? aIndexMap = a switch
-            {
-                TrackedOrderedDict<TKey, TValue> atkd => atkd.IndexMap,
-                OrderedDict<TKey, TValue> aod => aod.IndexMap,
-                _ => null,
-            };
+            // Resolve `a`'s key→index lookup once. Common case: a is itself a DPDict
+            // (because the generator always emits the same concrete type on both sides
+            // of a record diff), in which case we can reuse the dict's own `_index` map
+            // for zero-alloc O(1) lookups. Only fall back to building a fresh keyToIndex
+            // when `a` is some other IDictionary.
+            Dictionary<TKey, int>? aIndexMap = a is DPDict<TKey, TValue> atkd ? atkd.IndexMap : null;
             if (aIndexMap is null && a.Count > 0 && (tb.DeletedKeys.Count > 0 || tb.DirtyKeys.Count > 0))
             {
                 aIndexMap = new Dictionary<TKey, int>(a.Count);

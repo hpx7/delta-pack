@@ -1,9 +1,10 @@
 import { Type, NamedType, IntType, FloatType } from "@hpx7/delta-pack";
+import type { CodegenOptions } from "./index.js";
 import { dispatch } from "./visitor.js";
 
 export function codegenRust(
   schema: Record<string, Type>,
-  _namespace?: string,
+  _options?: CodegenOptions,
 ): string {
   const parts: string[] = [];
   for (const [name, type] of Object.entries(schema)) {

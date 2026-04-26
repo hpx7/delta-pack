@@ -76,7 +76,7 @@ byte[] diff = GameState.EncodeDiff(stateA, stateB);
 GameState result = GameState.DecodeDiff(stateA, diff);
 ```
 
-When using these directly, **the `a` argument must exactly match the peer's wire view (same key insertion order in `OrderedDict`s, not just the same key-value content)**. Mismatch causes silent corruption. `SyncSession` maintains this invariant for you — reach for the raw API only if you've committed to managing wire-view state yourself.
+When using these directly, **the `a` argument must exactly match the peer's wire view (same key insertion order in `DPDict`s, not just the same key-value content)**. Mismatch causes silent corruption. `SyncSession` maintains this invariant for you — reach for the raw API only if you've committed to managing wire-view state yourself.
 
 ## Shared Schemas (TypeScript/Rust/C#)
 
@@ -105,7 +105,7 @@ fills in the methods, so call sites and binary format match.
 
 - **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `byte`, `short`, etc.
 - **Enums**: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)
-- **Collections**: `List<T>`, `OrderedDict<TKey, TValue>` (TKey: `string`, `int`, `uint`, `long`, `ulong`)
+- **Collections**: `DPList<T>` (always-tracking list) and `DPDict<TKey, TValue>` (always-tracking, insertion-order map). TKey: `string`, `int`, `uint`, `long`, `ulong`. Plain `List<T>`/`Dictionary<TKey, TValue>` on a `[DeltaPack]` field is rejected by diagnostics `DP012`/`DP003` with code fixes that swap them in.
 - **Nullable value types**: `int?`, `float?`, etc.
 - **Nullable reference types**: `Player?`, `string?`, etc.
 - **Nested objects**: Any `[DeltaPack] partial class`
@@ -193,31 +193,45 @@ public partial class Bow : Weapon
 }
 ```
 
-### `[DeltaPackTracked]`
+## Change Tracking
 
-Opt-in change tracking. The generator emits dirty-marking setters on partial properties so
-`EncodeDiff` skips equality comparisons on fields that haven't been mutated since the
-snapshot was taken — same wire format as the untracked encoder, lower CPU cost.
+Tracking layers in two places, and each layer is independent — turn on as much or as little as you want without changing the wire format.
+
+- **Collection level — always on.** `[DeltaPack]` classes use `DeltaPack.DPList<T>` for arrays
+  and `DeltaPack.DPDict<TKey, TValue>` for maps. These are always-tracking: every mutation
+  bumps a per-instance version counter, and `EncodeDiff` consults per-key/per-index change
+  maps in lieu of scanning both sides. Plain `List<T>` / `Dictionary<TKey, TValue>` on a
+  `[DeltaPack]` field is rejected by diagnostics `DP012` / `DP003` (alt-enter code fixes
+  swap them in). Always-tracking adds one int-increment per mutation and is Unity-friendly.
+
+- **Property level — opt-in via `partial`.** Mark a property
+  `public partial T Foo { get; set; }` and the source generator emits a dirty-bit setter so
+  `EncodeDiff` can skip equality comparisons on unchanged fields. Plain
+  `public T Foo { get; set; }` falls back to comparison-based diff. A class with at least
+  one `partial` property implements `DeltaPack.ITrackedObject` and gets a slot-keyed dirty
+  bitmap; classes with no `partial` properties have zero tracking-interface plumbing.
+
+A Unity client (no `partial` properties) talks to a tracked .NET server fine — wire format is identical regardless of which tracking layers are active.
 
 ```csharp
-[DeltaPack, DeltaPackTracked]
+[DeltaPack]
 public partial class Player
 {
     public partial string Name { get; set; }
     public partial uint Score { get; set; }
     public partial Position Pos { get; set; }
-    public partial TrackedList<int> Inventory { get; set; }
-    public partial TrackedOrderedDict<string, int> Stats { get; set; }
+    public partial DPList<int> Inventory { get; set; }
+    public partial DPDict<string, int> Stats { get; set; }
 }
 
 var live = Player.Default();
 live.Name = "Alice";
 live.Score = 10;
 
-// Take a snapshot. `Clone` is a pure deep copy; `Tracker.RegisterSnapshot`
-// stamps it against the source's tracker so `EncodeDiff` filters to mutations
-// after this point. `SyncSession<T>` does both steps automatically — prefer it
-// over the raw pattern shown here unless you need manual control.
+// Take a snapshot. `Clone` is a deep copy; `Tracker.RegisterSnapshot` stamps it
+// against the source's tracker so `EncodeDiff` filters to mutations after this
+// point. `SyncSession<T>` does both steps automatically — prefer it over the raw
+// pattern shown here unless you need manual control.
 var snapshot = Player.Clone(live);
 Tracker.RegisterSnapshot(snapshot, live);
 live.Score = 25;                    // recorded as dirty since snapshot
@@ -227,25 +241,30 @@ byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/enco
 
 **Constraints:**
 
-- Serialized properties must be declared `partial` (requires `<LangVersion>13</LangVersion>`
-  in the consuming project — C# 13 partial properties). Missing `partial` produces
-  diagnostic `DP011` with an alt-enter code fix.
-- Collection-typed properties must use `TrackedList<T>` and `TrackedOrderedDict<TKey, TValue>`
-  so mutations through the collection (`.Add`, `.RemoveAt`, indexer set, etc.) are recorded.
-  Using `List<T>` or `OrderedDict<TKey, TValue>` on a tracked class produces diagnostics
-  `DP012` / `DP013` with code fixes that swap in the tracked variant.
-- `Clone` on a tracked class is a plain deep copy. When using raw `EncodeDiff` with the
-  clone as the baseline, call `Tracker.RegisterSnapshot(snap, source)` so tracking's
-  version filter knows at which version the snapshot was taken — the baseline is looked up
-  implicitly by snapshot identity in subsequent `EncodeDiff(snap, source)` calls.
-  `SyncSession<T>` handles this for you.
-- **Unity is currently unsupported** for `[DeltaPackTracked]` classes — Unity's bundled Roslyn
-  doesn't support C# 13 partial properties. Untracked `[DeltaPack]` classes work as before.
+- A `partial` property must declare a regular `set` accessor. The source generator emits
+  the dirty-bump body, so the user-side declaration must give it a setter to inject into:
+  - Get-only `partial T Foo { get; }` → diagnostic `DP013` (code fix adds `set;`).
+  - `init`-only `partial T Foo { get; init; }` → diagnostic `DP014` (the generator's
+    setter body can't satisfy an `init` accessor).
+  - `[DeltaPackIgnore]` on a `partial` property → diagnostic `DP015` (the two attributes
+    contradict — drop one).
+- `partial` properties require `<LangVersion>13</LangVersion>` (C# 13 partial properties).
+- Aliasing — assigning the same tracked child to two slots — throws at runtime with a
+  pointer to the offending field. Detach the prior owner first (assign that slot to a
+  different value or remove the child from its container).
+- When using raw `EncodeDiff` directly with `Clone(...)` as the baseline, call
+  `Tracker.RegisterSnapshot(snap, source)` so tracking's version filter knows at which
+  version the snapshot was taken — `SyncSession<T>` handles this for you.
+- **Unity caveat:** Unity's bundled Roslyn doesn't support C# 13 partial properties.
+  Drop `partial` on every property and the class becomes an untracked `[DeltaPack]` class
+  that loses only the property-level dirty-bit fast path — collection-level tracking via
+  `DPList` / `DPDict` still works, and the encoder transparently falls back to
+  comparison-based diff for property reads.
 
-**Migrating gradually.** The generator accepts `partial` properties on untracked `[DeltaPack]`
-classes too (it emits a trivial implementing declaration with the same IL as an auto-property).
-You can convert an existing class's properties to `partial` ahead of time, then flip
-`[DeltaPackTracked]` on later without touching every property.
+**Migrating gradually.** Property-level tracking is per-property, so you can flip a hot
+field (`Health`, `Position`) to `partial` without touching the rest of the class. Cold
+fields stay as plain auto-properties and use the comparison path; hot fields skip the
+comparison via the slot-keyed dirty bitmap. Both produce the same bytes on the wire.
 
 ## API Reference
 
@@ -253,14 +272,14 @@ You can convert an existing class's properties to `partial` ahead of time, then 
 
 Stateful handle for one side of a sync stream. Handles full-vs-diff internally and keeps sender and receiver views aligned.
 
-| Method                              | Description                                                                                |
-| ----------------------------------- | ------------------------------------------------------------------------------------------ |
-| `T.CreateSyncSession()`             | Factory bound to `Tracker.Default` — fine for single-domain apps                           |
-| `T.CreateSyncSession(Tracker)`      | Factory bound to a per-domain `Tracker` (game room, tenant, parallel test)                 |
-| `.Tracker → Tracker`                | The tracker this session's baselines are recorded against                                  |
-| `.Encode(T state) → byte[]`         | First call emits a full encode; subsequent calls emit diffs. View updates internally.      |
-| `.Decode(byte[] bytes) → T`         | First call expects a full encode; subsequent calls expect diffs. Returns the updated view. |
-| `.Current → T?`                     | The current view, or `null` if neither `Encode` nor `Decode` has been called.              |
+| Method                         | Description                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `T.CreateSyncSession()`        | Factory bound to `Tracker.Default` — fine for single-domain apps                           |
+| `T.CreateSyncSession(Tracker)` | Factory bound to a per-domain `Tracker` (game room, tenant, parallel test)                 |
+| `.Tracker → Tracker`           | The tracker this session's baselines are recorded against                                  |
+| `.Encode(T state) → byte[]`    | First call emits a full encode; subsequent calls emit diffs. View updates internally.      |
+| `.Decode(byte[] bytes) → T`    | First call expects a full encode; subsequent calls expect diffs. Returns the updated view. |
+| `.Current → T?`                | The current view, or `null` if neither `Encode` nor `Decode` has been called.              |
 
 For third-party types (no source generator), construct directly with the delegate overload: `new SyncSession<T>(encode, decode, encodeDiff, decodeDiff, clone)`. Pass an explicit `Tracker` as the first argument if you need per-domain isolation.
 
@@ -268,20 +287,20 @@ For third-party types (no source generator), construct directly with the delegat
 
 For every `[DeltaPack] partial class T`, the generator emits these static methods. Use them directly for custom protocols; use `SyncSession<T>` for ordinary sync streams.
 
-| Method                              | Description                                              |
-| ----------------------------------- | -------------------------------------------------------- |
-| `T.CreateSyncSession()`             | Construct a `SyncSession<T>` bound to `Tracker.Default`  |
-| `T.CreateSyncSession(Tracker)`      | Construct a `SyncSession<T>` bound to a specific tracker |
-| `T.Default()`                       | Construct a default instance                             |
-| `T.Encode(T obj)`                   | Serialize object to bytes                                |
-| `T.Decode(byte[] buf)`              | Deserialize bytes (binds the result to `Tracker.Default`)|
-| `T.Decode(byte[] buf, Tracker)`     | Deserialize bytes (binds the result to a specific tracker) |
-| `T.EncodeDiff(T a, T b)`            | Encode only the differences between a and b              |
-| `T.DecodeDiff(T a, byte[] diff)`    | Apply diff to a, producing b                             |
-| `T.Equals(T a, T b)`                | Deep equality comparison                                 |
-| `T.Clone(T obj)`                    | Deep clone (the clone inherits `obj`'s tracker)          |
-| `T.FromJson(JsonElement json)`      | Deserialize from JSON                                    |
-| `T.ToJson(T obj)`                   | Serialize to JSON                                        |
+| Method                           | Description                                                |
+| -------------------------------- | ---------------------------------------------------------- |
+| `T.CreateSyncSession()`          | Construct a `SyncSession<T>` bound to `Tracker.Default`    |
+| `T.CreateSyncSession(Tracker)`   | Construct a `SyncSession<T>` bound to a specific tracker   |
+| `T.Default()`                    | Construct a default instance                               |
+| `T.Encode(T obj)`                | Serialize object to bytes                                  |
+| `T.Decode(byte[] buf)`           | Deserialize bytes (binds the result to `Tracker.Default`)  |
+| `T.Decode(byte[] buf, Tracker)`  | Deserialize bytes (binds the result to a specific tracker) |
+| `T.EncodeDiff(T a, T b)`         | Encode only the differences between a and b                |
+| `T.DecodeDiff(T a, byte[] diff)` | Apply diff to a, producing b                               |
+| `T.Equals(T a, T b)`             | Deep equality comparison                                   |
+| `T.Clone(T obj)`                 | Deep clone (the clone inherits `obj`'s tracker)            |
+| `T.FromJson(JsonElement json)`   | Deserialize from JSON                                      |
+| `T.ToJson(T obj)`                | Serialize to JSON                                          |
 
 ## Unity Compatibility
 
@@ -307,10 +326,12 @@ analyzer assets and pulls in the transitive `System.Text.Json` dependency needed
 - Mark the type with `[DeltaPack]` and declare it `partial`
 - **Public properties** with both getter and setter are serialized
 - **Public fields** are also serialized
-- **`init` setters** work
+- **`init` setters** work for non-`partial` properties (a `partial init` is `DP014`)
 - **Private members** are skipped
-- **Read-only properties** (getter only) are skipped
+- **Read-only properties** (getter only) are skipped on plain auto-properties; on a
+  `partial` property they're rejected as `DP013` because tracking needs a setter to inject into
 - **Dictionary keys** must be `string`, `int`, `uint`, `long`, or `ulong`
+- **Collection fields** must use `DPList<T>` / `DPDict<TKey, TValue>` (`DP012` / `DP003`)
 
 ```csharp
 [DeltaPack]

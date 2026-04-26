@@ -1,4 +1,5 @@
 import { Type } from "@hpx7/delta-pack";
+import type { CodegenOptions } from "./index.js";
 import { dispatch } from "./visitor.js";
 
 /**
@@ -11,9 +12,13 @@ import { dispatch } from "./visitor.js";
  */
 export function codegenCsharp(
   schema: Record<string, Type>,
-  namespace: string = "Generated",
+  options?: CodegenOptions,
 ): string {
-  const ctx = createContext(schema, namespace);
+  const ctx = createContext(
+    schema,
+    options?.namespace ?? "Generated",
+    options?.partial ?? false,
+  );
   return renderSchema(ctx);
 }
 
@@ -24,11 +29,14 @@ interface GeneratorContext {
   namespace: string;
   currentTypeName: string;
   variantToUnion: Map<string, string>;
+  /** Emit `partial` on every serialized property (per-property dirty tracking). */
+  partial: boolean;
 }
 
 function createContext(
   schema: Record<string, Type>,
   namespace: string,
+  partial: boolean,
 ): GeneratorContext {
   const variantToUnion = new Map<string, string>();
   for (const [name, type] of Object.entries(schema)) {
@@ -43,6 +51,7 @@ function createContext(
     namespace,
     currentTypeName: "",
     variantToUnion,
+    partial,
   };
 }
 
@@ -139,6 +148,11 @@ function renderProperty(
   const csType = renderType(ctx, type);
   const attrs = renderAttributes(type);
   const attrPrefix = attrs ? `${attrs} ` : "";
+  if (ctx.partial) {
+    // Partial properties cannot have field initializers — the source generator
+    // emits the backing-field initializer on its side.
+    return `        ${attrPrefix}public partial ${csType} ${pc} { get; set; }`;
+  }
   const init = renderInitializer(ctx, type);
   const trailer = init ? ` = ${init};` : "";
   return `        ${attrPrefix}public ${csType} ${pc} { get; set; }${trailer}`;
@@ -181,11 +195,10 @@ function renderType(ctx: GeneratorContext, type: Type): string {
     float: () => "float",
     boolean: () => "bool",
     enum: (t) => t.name,
-    array: (t) =>
-      `System.Collections.Generic.List<${renderType(ctx, t.value)}>`,
+    array: (t) => `DeltaPack.DPList<${renderType(ctx, t.value)}>`,
     optional: (t) => `${renderType(ctx, t.value)}?`,
     record: (t) =>
-      `DeltaPack.OrderedDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>`,
+      `DeltaPack.DPDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>`,
     selfReference: () => ctx.currentTypeName,
     object: (t) => t.name,
     union: (t) => t.name,
@@ -203,11 +216,10 @@ function renderInitializer(ctx: GeneratorContext, type: Type): string {
     float: () => "",
     boolean: () => "",
     enum: () => "",
-    array: (t) =>
-      `new System.Collections.Generic.List<${renderType(ctx, t.value)}>()`,
+    array: (t) => `new DeltaPack.DPList<${renderType(ctx, t.value)}>()`,
     optional: () => "",
     record: (t) =>
-      `new DeltaPack.OrderedDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>()`,
+      `new DeltaPack.DPDict<${renderType(ctx, t.key)}, ${renderType(ctx, t.value)}>()`,
     selfReference: () => `${ctx.currentTypeName}.Default()`,
     object: (t) => `${t.name}.Default()`,
     union: (t) => `${t.name}.Default()`,

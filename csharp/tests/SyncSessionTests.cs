@@ -17,7 +17,7 @@ public class SyncSessionTests
 
         var state = new Generated.PlayerRegistry
         {
-            Players = new OrderedDict<string, Generated.Player>
+            Players = new DPDict<string, Generated.Player>
             {
                 { "a", new Generated.Player { Id = "a", Name = "Alice", Score = 10 } },
                 { "b", new Generated.Player { Id = "b", Name = "Bob", Score = 20 } },
@@ -45,7 +45,7 @@ public class SyncSessionTests
 
         var state = new Generated.PlayerRegistry
         {
-            Players = new OrderedDict<string, Generated.Player>
+            Players = new DPDict<string, Generated.Player>
             {
                 { "a", new Generated.Player { Id = "a", Name = "Alice", Score = 10 } },
                 { "b", new Generated.Player { Id = "b", Name = "Bob", Score = 20 } },
@@ -81,7 +81,7 @@ public class SyncSessionTests
 
         var state = new TrackedRegistry
         {
-            Players = new TrackedOrderedDict<string, TrackedPlayer>(),
+            Players = new DPDict<string, TrackedPlayer>(),
         };
         state.Players["a"] = new TrackedPlayer { Name = "Alice", Score = 10 };
         receiver.Decode(sender.Encode(state));
@@ -108,7 +108,7 @@ public class SyncSessionTests
         var sender = NewSession();
         var state = new Generated.PlayerRegistry
         {
-            Players = new OrderedDict<string, Generated.Player>
+            Players = new DPDict<string, Generated.Player>
             {
                 { "a", new Generated.Player { Id = "a", Name = "Alice", Score = 10 } },
             },
