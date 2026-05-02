@@ -118,4 +118,17 @@ internal static class Diagnostics
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor InterfaceCollectionRequiresPartial = new(
+        id: "DP016",
+        title: "Interface collection types require 'partial'",
+        messageFormat:
+            "Property '{0}.{1}' is typed as 'IList<T>' / 'IDictionary<K, V>' without 'partial'; " +
+            "delta-pack only allows these interface types on partial properties (the source " +
+            "generator wraps non-tracked assignments into DPList/DPDict so insertion-order " +
+            "preservation isn't lost). Add 'partial' to enable tracking, or change the property " +
+            "type to DPList<T> / DPDict<K, V>",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

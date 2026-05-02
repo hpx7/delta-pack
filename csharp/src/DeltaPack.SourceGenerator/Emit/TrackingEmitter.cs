@@ -122,15 +122,21 @@ internal static class TrackingEmitter
 
     private static void EmitPartialProperty(CodeWriter w, TypeDef def, FieldModel f, int slot, ModelRegistry reg)
     {
-        var declared = ExpressionRenderer.CSharpType(f.Type, reg);
+        // Backing storage stays concrete (DPList<T> / DPDict<K, V>) regardless of how the user
+        // declared the property — the encoder's tracked fast paths runtime-test on those exact
+        // types, so swapping the backing for an interface would silently lose tracking. The
+        // declared property surface, on the other hand, can be an interface form when the user
+        // opted into IList<T> / IDictionary<K, V> sugar.
+        var backingType = ExpressionRenderer.CSharpType(f.Type, reg);
+        var declaredType = f.UseInterfaceType ? ExpressionRenderer.CSharpInterfaceType(f.Type, reg) : backingType;
         var backing = "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
         var name = f.Name;
         var defaultInit = ExpressionRenderer.DefaultInitializer(f.Type, reg);
         var trackable = ExpressionRenderer.ChildIsTrackable(f.Type, reg);
 
-        w.Line($"private {declared} {backing} = {defaultInit};");
+        w.Line($"private {backingType} {backing} = {defaultInit};");
 
-        using (w.Block($"public partial {declared} {name}"))
+        using (w.Block($"public partial {declaredType} {name}"))
         {
             if (trackable)
             {
@@ -150,6 +156,32 @@ internal static class TrackingEmitter
             using (w.Block("set"))
             {
                 EmitSetterEqualityShortCircuit(w, f.Type, backing, "value");
+
+                // Coerce interface-typed assignments into the concrete tracked container so the
+                // backing store is always a DPList/DPDict. A `value` that's already tracked
+                // passes through unchanged (the `as` cast succeeds); a foreign IList/IDictionary
+                // is wrapped into a fresh DPList/DPDict via the IEnumerable / IDictionary
+                // constructor — one copy, but the wire-format invariant of insertion-order
+                // preservation stays intact.
+                var assignSource = "value";
+                if (f.UseInterfaceType)
+                {
+                    var concrete = ExpressionRenderer.ConcreteContainerType(f.Type, reg);
+                    if (f.Type.Kind == TypeKind.Optional)
+                    {
+                        // Nullable surface: preserve null through to the backing field.
+                        w.Line($"var __coerced = value is null ? null : (value as {concrete}) ?? new {concrete}(value);");
+                    }
+                    else
+                    {
+                        // Non-nullable surface: a runtime null lands in `new {concrete}(null)`,
+                        // which throws ArgumentNullException — one frame deeper than today's
+                        // null-stored-then-NRE-on-encode behavior, with a clearer message.
+                        w.Line($"var __coerced = (value as {concrete}) ?? new {concrete}(value);");
+                    }
+                    assignSource = "__coerced";
+                }
+
                 if (trackable)
                 {
                     // Aliasing guard: a tracked child carries exactly one Parent/ParentSlot
@@ -159,12 +191,12 @@ internal static class TrackingEmitter
                     // on the receiver. Reject it explicitly; callers must first replace the
                     // prior slot with a different value (or `null` for optionals) to release
                     // ownership.
-                    w.Line($"if (value is DeltaPack.IDirtyTracked __incoming && __incoming.Parent is not null && (!object.ReferenceEquals(__incoming.Parent, this) || __incoming.ParentSlot != {slot}))");
+                    w.Line($"if ({assignSource} is DeltaPack.IDirtyTracked __incoming && __incoming.Parent is not null && (!object.ReferenceEquals(__incoming.Parent, this) || __incoming.ParentSlot != {slot}))");
                     w.Line($"    throw new System.InvalidOperationException(\"Cannot assign a tracked child that is already attached to another parent or slot — aliasing is not supported. Detach it from its current owner first (assign that slot to a different value). Field: {def.SimpleName}.{f.Name}\");");
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __old && object.ReferenceEquals(__old.Parent, this))");
                     w.Line($"    DeltaPack.TrackingOps.Detach(__old);");
                 }
-                w.Line($"{backing} = value;");
+                w.Line($"{backing} = {assignSource};");
                 if (trackable)
                 {
                     w.Line($"if ({backing} is DeltaPack.IDirtyTracked __new)");

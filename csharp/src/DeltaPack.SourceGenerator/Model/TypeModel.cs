@@ -104,7 +104,12 @@ internal sealed record FieldModel(
     // True when the property was declared with the `partial` modifier in user code.
     // Outside [DeltaPackTracked], the generator still emits a trivial implementing
     // declaration so users can adopt partial-property syntax ahead of enabling tracking.
-    bool IsDeclaredPartial = false);
+    bool IsDeclaredPartial = false,
+    // True when the user declared the property as System.Collections.Generic.IList<T> or
+    // IDictionary<TKey, TValue> instead of the concrete DeltaPack.DPList<T> / DPDict<K, V>.
+    // The backing field stays concrete (so tracking remains active); the partial-property
+    // setter wraps non-tracked assignments before storing. Only honored on partial properties.
+    bool UseInterfaceType = false);
 
 internal enum TypeDefKind { Object, Union, Enum }
 

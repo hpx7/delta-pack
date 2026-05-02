@@ -105,7 +105,7 @@ fills in the methods, so call sites and binary format match.
 
 - **Primitives**: `string`, `bool`, `int`, `uint`, `long`, `ulong`, `float`, `byte`, `short`, etc.
 - **Enums**: Bit-packed using minimum bits needed (e.g., 4 variants = 2 bits)
-- **Collections**: `DPList<T>` (always-tracking list) and `DPDict<TKey, TValue>` (always-tracking, insertion-order map). TKey: `string`, `int`, `uint`, `long`, `ulong`. Plain `List<T>`/`Dictionary<TKey, TValue>` on a `[DeltaPack]` field is rejected by diagnostics `DP012`/`DP003` with code fixes that swap them in.
+- **Collections**: `DPList<T>` (always-tracking list) and `DPDict<TKey, TValue>` (always-tracking, insertion-order map). TKey: `string`, `int`, `uint`, `long`, `ulong`. Plain `List<T>`/`Dictionary<TKey, TValue>` on a `[DeltaPack]` field is rejected by diagnostics `DP012`/`DP003` with code fixes that swap them in. On a `partial` property you may also declare the type as `IList<T>` / `IDictionary<TKey, TValue>` — the generator wraps non-tracked assignments so the backing store stays a `DPList`/`DPDict` (see [Change Tracking](#change-tracking)).
 - **Nullable value types**: `int?`, `float?`, etc.
 - **Nullable reference types**: `Player?`, `string?`, etc.
 - **Nested objects**: Any `[DeltaPack] partial class`
@@ -261,6 +261,36 @@ byte[] diff = Player.EncodeDiff(snapshot, live);  // only Score is compared/enco
   `DPList` / `DPDict` still works, and the encoder transparently falls back to
   comparison-based diff for property reads.
 
+**Optional: `IList<T>` / `IDictionary<K,V>` on partial collection properties.** If you'd
+rather not leak `DPList<T>` / `DPDict<K,V>` into your public API, declare the partial
+property using the BCL interfaces instead:
+
+```csharp
+[DeltaPack]
+public partial class Player
+{
+    public partial IList<int> Inventory { get; set; }
+    public partial IDictionary<string, int> Stats { get; set; }
+}
+```
+
+The backing field stays `DPList<T>` / `DPDict<K,V>` so tracking remains active. The
+generated setter coerces non-tracked assignments — already-tracked containers pass through
+untouched, foreign `List<T>` / `Dictionary<K,V>` values get wrapped via
+`new DPList<T>(value)` / `new DPDict<K,V>(value)`. The getter returns the backing instance
+typed as the interface, so all in-place mutations (`Inventory.Add(...)`, `Stats[k] = v`,
+LINQ over the collection, etc.) route through the tracking machinery without callers
+ever seeing `DPList` / `DPDict`. Wire format is byte-identical.
+
+Caveats: the wrap-on-assign breaks reference equality with the source —
+`state.Items = list; ReferenceEquals(state.Items, list)` is `false` whenever `list` wasn't
+already a `DPList<T>`. `DPDict<K,V>`-only members like `GetKeyAtIndex` / `TryGetIndex`
+aren't exposed on `IDictionary<K,V>` — cast to `DPDict<K,V>` if you need them. The
+interface form is allowed only on `partial` properties (`DP016` flags non-partial usage):
+without a generator-emitted setter to wrap in, a plain `Dictionary<K,V>` would land in the
+field unwrapped and silently break the insertion-order invariant the diff format depends
+on.
+
 **Migrating gradually.** Property-level tracking is per-property, so you can flip a hot
 field (`Health`, `Position`) to `partial` without touching the rest of the class. Cold
 fields stay as plain auto-properties and use the comparison path; hot fields skip the
@@ -331,7 +361,10 @@ analyzer assets and pulls in the transitive `System.Text.Json` dependency needed
 - **Read-only properties** (getter only) are skipped on plain auto-properties; on a
   `partial` property they're rejected as `DP013` because tracking needs a setter to inject into
 - **Dictionary keys** must be `string`, `int`, `uint`, `long`, or `ulong`
-- **Collection fields** must use `DPList<T>` / `DPDict<TKey, TValue>` (`DP012` / `DP003`)
+- **Collection fields** must use `DPList<T>` / `DPDict<TKey, TValue>` (`DP012` / `DP003`).
+  On a `partial` property you may declare the type as `IList<T>` / `IDictionary<TKey, TValue>`
+  instead — the generator's setter wraps non-tracked assignments into `DPList` / `DPDict`
+  so tracking stays active. Non-partial usage of the interface forms is rejected as `DP016`.
 
 ```csharp
 [DeltaPack]

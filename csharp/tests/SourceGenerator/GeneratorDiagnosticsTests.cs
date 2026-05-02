@@ -126,6 +126,74 @@ namespace N {
         Assert.DoesNotContain(diags, d => d.Id == "DP015");
     }
 
+    [Fact]
+    public void DP016_FiresOnNonPartialIList()
+    {
+        // Without `partial`, the generator never sees a setter to wrap the assignment in,
+        // so a plain List<T> would land in the field unwrapped — break the insertion-order
+        // invariant the diff format depends on. Reject up front.
+        const string source = @"
+using DeltaPack;
+using System.Collections.Generic;
+namespace N {
+    [DeltaPack]
+    public partial class Foo {
+        public IList<int> Items { get; set; } = new List<int>();
+    }
+}";
+        var diags = RunGenerator(source);
+        Assert.Contains(diags, d => d.Id == "DP016" && d.GetMessage().Contains("Items"));
+    }
+
+    [Fact]
+    public void DP016_FiresOnNonPartialIDictionary()
+    {
+        const string source = @"
+using DeltaPack;
+using System.Collections.Generic;
+namespace N {
+    [DeltaPack]
+    public partial class Foo {
+        public IDictionary<string, int> Stats { get; set; } = new Dictionary<string, int>();
+    }
+}";
+        var diags = RunGenerator(source);
+        Assert.Contains(diags, d => d.Id == "DP016" && d.GetMessage().Contains("Stats"));
+    }
+
+    [Fact]
+    public void DP016_DoesNotFireOnPartialIList()
+    {
+        // Sugar: the generated setter wraps non-tracked assignments into DPList<T>.
+        const string source = @"
+using DeltaPack;
+using System.Collections.Generic;
+namespace N {
+    [DeltaPack]
+    public partial class Foo {
+        public partial IList<int> Items { get; set; }
+    }
+}";
+        var diags = RunGenerator(source);
+        Assert.DoesNotContain(diags, d => d.Id == "DP016");
+    }
+
+    [Fact]
+    public void DP016_DoesNotFireOnPartialIDictionary()
+    {
+        const string source = @"
+using DeltaPack;
+using System.Collections.Generic;
+namespace N {
+    [DeltaPack]
+    public partial class Foo {
+        public partial IDictionary<string, int> Stats { get; set; }
+    }
+}";
+        var diags = RunGenerator(source);
+        Assert.DoesNotContain(diags, d => d.Id == "DP016");
+    }
+
     /// <summary>
     /// In-process minimal stand-ins for the runtime attributes the generator
     /// recognizes by their fully-qualified display name. Inlining them sidesteps

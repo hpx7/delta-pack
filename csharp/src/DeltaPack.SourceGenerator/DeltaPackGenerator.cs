@@ -191,7 +191,21 @@ public sealed class DeltaPackGenerator : IIncrementalGenerator
                 if (r.Diagnostic is not null) { ctx.ReportDiagnostic(r.Diagnostic); return null; }
                 if (r.Field is not null)
                 {
-                    var field = r.Field with { IsDeclaredPartial = isPartial };
+                    // Interface collection types are sugar that depends on the partial-property
+                    // setter being able to wrap non-tracked assignments. On a non-partial
+                    // property the generator never sees the setter, so the user's plain
+                    // List<T>/Dictionary<K,V> would land in the field unwrapped — silently
+                    // breaking the insertion-order invariant the diff format relies on. Reject
+                    // the combination explicitly.
+                    var useInterfaceType = TypeMapper.IsInterfaceCollectionType(prop.Type);
+                    if (useInterfaceType && !isPartial)
+                    {
+                        ctx.ReportDiagnostic(Diagnostic.Create(
+                            Diagnostics.InterfaceCollectionRequiresPartial, propLocation,
+                            sym.ToDisplayString(), prop.Name));
+                        continue;
+                    }
+                    var field = r.Field with { IsDeclaredPartial = isPartial, UseInterfaceType = useInterfaceType };
                     fieldsBuilder.Add(field);
                     CollectEnumsFromType(prop.Type, enumSink);
                 }

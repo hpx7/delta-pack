@@ -130,7 +130,7 @@ internal static class ExpressionRenderer
     /// <summary>Writes the full encode statements for a top-level field, handling optionals.</summary>
     public static void EncodeField(CodeWriter w, FieldModel f, ModelRegistry reg, string objExpr)
     {
-        var access = $"{objExpr}.{f.Name}";
+        var access = FieldAccessExpr(f, objExpr);
         if (f.Type.Kind != TypeKind.Optional)
         {
             w.Line($"{EncodeInline(f.Type, access, reg)};");
@@ -329,6 +329,50 @@ internal static class ExpressionRenderer
         => "__dp_" + char.ToLowerInvariant(f.Name[0]) + f.Name.Substring(1);
 
     /// <summary>
+    /// Read expression for a field's value from generated code that lives on the same partial
+    /// class. For partial properties declared with an interface collection type, we go through
+    /// the backing field directly so the static type matches the concrete container —
+    /// otherwise call sites like <c>encoder.PushRecord(obj.Stats, …)</c> would see
+    /// <c>IDictionary&lt;K, V&gt;</c> and fail to bind to the <c>DPDict&lt;K, V&gt;</c>
+    /// signature. Plain partial / non-partial properties use the property getter (whose
+    /// declared type already matches the encoder's expectations).
+    /// </summary>
+    public static string FieldAccessExpr(FieldModel f, string objExpr)
+        => (f.IsDeclaredPartial && f.UseInterfaceType)
+            ? $"{objExpr}.{TrackingBackingField(f)}"
+            : $"{objExpr}.{f.Name}";
+
+    /// <summary>
+    /// The interface form a partial property is declared as when <c>UseInterfaceType</c> is set —
+    /// <c>IList&lt;T&gt;</c> for arrays and <c>IDictionary&lt;K, V&gt;</c> for records, with
+    /// <c>?</c> appended for Optional. The backing field stays concrete
+    /// (<see cref="CSharpType"/>); only the property surface uses the interface.
+    /// </summary>
+    public static string CSharpInterfaceType(TypeRef t, ModelRegistry reg) => t.Kind switch
+    {
+        TypeKind.Array => $"System.Collections.Generic.IList<{CSharpType(t.ElementType!, reg)}>",
+        TypeKind.Record => $"System.Collections.Generic.IDictionary<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>",
+        TypeKind.Optional => CSharpInterfaceType(t.ElementType!, reg) + "?",
+        _ => throw new InvalidOperationException("Interface form only valid for Array / Record / Optional<Array|Record>"),
+    };
+
+    /// <summary>
+    /// The concrete <c>DPList&lt;T&gt;</c> / <c>DPDict&lt;K, V&gt;</c> type used to wrap an
+    /// interface-typed assignment in the partial-property setter. Strips a single Optional layer
+    /// (the wrap is only invoked on non-null values; the null branch passes through unchanged).
+    /// </summary>
+    public static string ConcreteContainerType(TypeRef t, ModelRegistry reg)
+    {
+        if (t.Kind == TypeKind.Optional) t = t.ElementType!;
+        return t.Kind switch
+        {
+            TypeKind.Array => $"DeltaPack.DPList<{CSharpType(t.ElementType!, reg)}>",
+            TypeKind.Record => $"DeltaPack.DPDict<{CSharpType(t.KeyType!, reg)}, {CSharpType(t.ValueType!, reg)}>",
+            _ => throw new InvalidOperationException("Concrete container only valid for Array / Record / Optional<Array|Record>"),
+        };
+    }
+
+    /// <summary>
     /// True if a value of this type can implement <see cref="DeltaPack.IDirtyTracked"/> and
     /// therefore participates in parent-wiring — both during snapshot construction (emitted
     /// by <see cref="ObjectEmitter"/>) and setter Detach/Reparent (emitted by
@@ -508,7 +552,7 @@ internal static class ExpressionRenderer
     public static string DecodeDiffField(FieldModel f, ModelRegistry reg, string objExpr)
     {
         var t = f.Type;
-        var old = $"{objExpr}.{f.Name}";
+        var old = FieldAccessExpr(f, objExpr);
         if (t.Kind == TypeKind.Boolean)
             return $"decoder.NextBooleanDiff({old})";
         return $"decoder.NextFieldDiff({old}, x => {DecodeDiffInline(t, "x", reg)})";

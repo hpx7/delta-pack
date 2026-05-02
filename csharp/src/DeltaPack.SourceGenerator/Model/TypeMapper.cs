@@ -141,8 +141,31 @@ internal static class TypeMapper
                 return new TypeMapResult(TypeRef.Array(elem.Type), null);
             }
 
+            // System.Collections.Generic.IList<T> — sugar for DPList<T>. Honored only on partial
+            // properties (BuildObjectDef enforces this with DP016); the source generator emits
+            // a setter that wraps non-tracked assignments into a fresh DPList<T> so the backing
+            // store remains the always-tracking container.
+            if (constructedMetadata == "global::System.Collections.Generic.IList<T>")
+            {
+                var elem = MapType(n.TypeArguments[0], null, null, null, location);
+                if (elem.Type is null) return elem;
+                return new TypeMapResult(TypeRef.Array(elem.Type), null);
+            }
+
             // DeltaPack.DPDict<K,V>
             if (constructedMetadata == "global::DeltaPack.DPDict<TKey, TValue>")
+            {
+                var k = MapType(n.TypeArguments[0], null, null, null, location);
+                var v = MapType(n.TypeArguments[1], null, null, null, location);
+                if (k.Type is null) return k;
+                if (v.Type is null) return v;
+                return new TypeMapResult(TypeRef.Record(k.Type, v.Type), null);
+            }
+
+            // System.Collections.Generic.IDictionary<K, V> — sugar for DPDict<K, V>. Same partial-
+            // property requirement as IList<T>; setter wraps incoming dictionaries into DPDict
+            // to preserve the insertion-order guarantee that record diffs depend on.
+            if (constructedMetadata == "global::System.Collections.Generic.IDictionary<TKey, TValue>")
             {
                 var k = MapType(n.TypeArguments[0], null, null, null, location);
                 var v = MapType(n.TypeArguments[1], null, null, null, location);
@@ -191,6 +214,25 @@ internal static class TypeMapper
         if (char.IsUpper(name[0]))
             return char.ToLowerInvariant(name[0]) + name.Substring(1);
         return name;
+    }
+
+    /// <summary>
+    /// True when <paramref name="type"/> is <c>System.Collections.Generic.IList&lt;T&gt;</c> or
+    /// <c>IDictionary&lt;K, V&gt;</c> (with or without a nullable annotation). Used by the
+    /// generator to decide whether a property declaration is interface-typed sugar — in which
+    /// case the partial-property setter wraps non-tracked assignments into a concrete
+    /// DPList/DPDict.
+    /// </summary>
+    public static bool IsInterfaceCollectionType(ITypeSymbol type)
+    {
+        var bare = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+        if (bare is INamedTypeSymbol n && n.IsGenericType)
+        {
+            var meta = n.ConstructedFrom?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            return meta == "global::System.Collections.Generic.IList<T>"
+                || meta == "global::System.Collections.Generic.IDictionary<TKey, TValue>";
+        }
+        return false;
     }
 
     public static bool HasDeltaPackAttribute(INamedTypeSymbol type)

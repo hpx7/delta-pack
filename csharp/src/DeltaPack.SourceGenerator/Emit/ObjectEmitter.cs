@@ -136,7 +136,10 @@ internal static class ObjectEmitter
                 for (int slot = 0; slot < def.Fields.Length; slot++)
                 {
                     var f = def.Fields[slot];
-                    var cloneExpr = ExpressionRenderer.CloneInline(f.Type, $"obj.{f.Name}", reg);
+                    // Read source values via FieldAccessExpr so interface-typed partial fields
+                    // hand the concrete DPList/DPDict to CreateSnapshot, which only accepts the
+                    // tracked container types.
+                    var cloneExpr = ExpressionRenderer.CloneInline(f.Type, ExpressionRenderer.FieldAccessExpr(f, "obj"), reg);
                     if (f.IsDeclaredPartial)
                     {
                         var backing = ExpressionRenderer.TrackingBackingField(f);
