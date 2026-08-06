@@ -410,4 +410,39 @@ public class RleTests
         var reader = new RleReader();
         Assert.Throws<InvalidOperationException>(() => reader.Reset(new byte[] { 0x08, 0x80, 0x80, 0x80, 0x80 }));
     }
+
+    // Cross-language wire-format fixture: a bit pattern that walks through short runs,
+    // a single-varint-group escape run (300 = 269+31), a short run, and a
+    // three-varint-group escape run (16653 = 269+16384), then a trailing short run.
+    // Encoded independently in C#, TypeScript, and Rust and confirmed byte-identical --
+    // this is the regression guard for that cross-language agreement, since none of the
+    // shared example golden-vector fixtures contain a run long enough to hit the escape
+    // sentinel at all.
+    private const string CrossLangHex = "f6fff1fbff0101800041";
+
+    private static List<bool> CrossLangBits()
+    {
+        var bits = new List<bool>();
+        bits.AddRange(Enumerable.Repeat(false, 5));
+        bits.AddRange(Enumerable.Repeat(true, 300));
+        bits.AddRange(Enumerable.Repeat(false, 3));
+        bits.AddRange(Enumerable.Repeat(true, 16653));
+        bits.AddRange(Enumerable.Repeat(false, 1));
+        return bits;
+    }
+
+    [Fact]
+    public void CrossLangEscapeTier_EncodeMatchesFixture()
+    {
+        var output = Encode(CrossLangBits());
+        Assert.Equal(CrossLangHex, Convert.ToHexStringLower(output));
+    }
+
+    [Fact]
+    public void CrossLangEscapeTier_DecodeFromFixture()
+    {
+        var bits = CrossLangBits();
+        var buf = Convert.FromHexString(CrossLangHex);
+        Assert.Equal(bits, Decode(buf, bits.Count));
+    }
 }

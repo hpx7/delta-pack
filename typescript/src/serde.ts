@@ -134,6 +134,18 @@ export function utf8Read(bytes: Uint8Array, start: number, len: number): string 
 }
 
 // bits encoding
+
+// Tier 5 payload is 8 bits (values 0-255), mapping to counts 14-269. Value 255 is
+// reserved as an escape sentinel so counts >= 269 stay representable: the true count
+// is `269 + varint`, keeping the byte cost for the common 14-268 range unchanged.
+const RUN_LENGTH_ESCAPE = 269;
+const RUN_LENGTH_ESCAPE_SENTINEL = 255;
+// LEB128 varints here never need more than 5 continuation bytes for any value this
+// format needs to represent; capping both varint readers below bounds a corrupted or
+// adversarial stream's cost and keeps the accumulated value far under
+// Number.MAX_SAFE_INTEGER.
+const MAX_VARINT_BYTES = 5;
+
 export class RleWriter {
   private bytes: number[] = [];
   private byte = 0;
@@ -218,11 +230,20 @@ export class RleWriter {
       this.writeBits(0b1100 | (count - 4), 4);
     } else if (count <= 13) {
       this.writeBits((0b1110 << 3) | (count - 6), 7);
-    } else if (count <= 269) {
+    } else if (count < RUN_LENGTH_ESCAPE) {
       this.writeBits((0b1111 << 8) | (count - 14), 12);
     } else {
-      throw new Error("RLE count too large: " + count);
+      this.writeBits((0b1111 << 8) | RUN_LENGTH_ESCAPE_SENTINEL, 12);
+      this.writeUVarintBits(count - RUN_LENGTH_ESCAPE);
     }
+  }
+
+  private writeUVarintBits(val: number) {
+    while (val >= 0x80) {
+      this.writeBits((val & 0x7f) | 0x80, 8);
+      val = val >>> 7;
+    }
+    this.writeBits(val, 8);
   }
 }
 
@@ -233,19 +254,44 @@ export class RleReader {
   private bitPos = 8;
   private value = false;
   private remaining = 0;
+  private initialized = false;
+
+  // Ground truth for how many encoded bits this buffer's RLE region contains, taken
+  // from the trailing reverse-varint written by the encoder. Every readBit() call is
+  // checked against it so a corrupted run-length code fails fast instead of silently
+  // reading past the end of its own region.
+  private numBits = 0;
+  private bitsRead = 0;
 
   reset(buf: Uint8Array) {
     this.buf = buf;
     this.byte = 0;
     this.bitPos = 8;
+    this.bitsRead = 0;
+
     const { numBits, varintLen } = this.readReverseUVarint(buf);
+    if (numBits === 0) {
+      this.initialized = false;
+      return;
+    }
+
     const numRleBytes = Math.ceil(numBits / 8);
+    if (varintLen + numRleBytes > buf.length) {
+      throw new Error("RLE header declares a bit length larger than the buffer");
+    }
+
+    this.numBits = numBits;
     this.bytePos = buf.length - varintLen - numRleBytes;
     this.value = this.readBit();
     this.remaining = this.decodeRunLength();
+    this.initialized = true;
   }
 
   nextBit(): boolean {
+    if (!this.initialized) {
+      throw new Error("No bits to read");
+    }
+
     if (this.remaining === 0) {
       this.value = !this.value;
       this.remaining = this.decodeRunLength();
@@ -264,19 +310,31 @@ export class RleReader {
     return val;
   }
 
+  // Arithmetic accumulation (not bitwise <</|=) is deliberate: JS's bitwise operators
+  // coerce to a 32-bit signed result, so a corrupted/adversarial stream with enough
+  // continuation bytes could otherwise set bit 31 and go negative, exactly like the
+  // equivalent uint->int cast bug in the C#/Rust ports. Plain +/* never goes negative
+  // and (bounded by MAX_VARINT_BYTES below) never approaches Number.MAX_SAFE_INTEGER,
+  // so no separate overflow check is needed here.
   private readReverseUVarint(buf: Uint8Array) {
     let numBits = 0;
-    for (let i = 0; i < buf.length; i++) {
+    let factor = 1;
+    for (let i = 0; i < buf.length && i < MAX_VARINT_BYTES; i++) {
       const byte = buf[buf.length - 1 - i]!;
-      numBits |= (byte & 0x7f) << (i * 7);
+      numBits += (byte & 0x7f) * factor;
       if (byte < 0x80) {
         return { numBits, varintLen: i + 1 };
       }
+      factor *= 128;
     }
     throw new Error("Invalid varint");
   }
 
   private readBit(): boolean {
+    if (this.bitsRead++ >= this.numBits) {
+      throw new Error("RLE stream overran its declared bit length");
+    }
+
     if (this.bitPos === 8) {
       this.byte = this.buf[this.bytePos++]!;
       this.bitPos = 0;
@@ -289,7 +347,26 @@ export class RleReader {
     if (!this.readBit()) return this.readBits(1) + 2;
     if (!this.readBit()) return this.readBits(1) + 4;
     if (!this.readBit()) return this.readBits(3) + 6;
-    return this.readBits(8) + 14;
+
+    const payload = this.readBits(8);
+    if (payload < RUN_LENGTH_ESCAPE_SENTINEL) {
+      return payload + 14;
+    }
+    return RUN_LENGTH_ESCAPE + this.readUVarintBits();
+  }
+
+  private readUVarintBits(): number {
+    let result = 0;
+    let factor = 1;
+    for (let group = 0; group < MAX_VARINT_BYTES; group++) {
+      const b = this.readBits(8);
+      result += (b & 0x7f) * factor;
+      if (b < 0x80) {
+        return result;
+      }
+      factor *= 128;
+    }
+    throw new Error("RLE escape varint too long");
   }
 
   private readBits(numBits: number): number {
