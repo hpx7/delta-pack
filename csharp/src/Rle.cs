@@ -102,6 +102,12 @@ public class RleWriter
             WriteBit((val >> i) & 1);
     }
 
+    // Tier 5 payload is 8 bits (values 0-255), mapping to counts 14-269. Value 255 is
+    // reserved as an escape sentinel so counts >= 269 stay representable: the true count
+    // is `269 + varint`, keeping the byte cost for the common 14-268 range unchanged.
+    private const int RunLengthEscape = 269;
+    private const int RunLengthEscapeSentinel = 255;
+
     private void EmitRunLength(int count)
     {
         if (count == 1)
@@ -120,14 +126,25 @@ public class RleWriter
         {
             WriteBits((0b1110 << 3) | (count - 6), 7);
         }
-        else if (count <= 269)
+        else if (count < RunLengthEscape)
         {
             WriteBits((0b1111 << 8) | (count - 14), 12);
         }
         else
         {
-            throw new InvalidOperationException($"RLE count too large: {count}");
+            WriteBits((0b1111 << 8) | RunLengthEscapeSentinel, 12);
+            WriteUVarintBits((uint)(count - RunLengthEscape));
         }
+    }
+
+    private void WriteUVarintBits(uint val)
+    {
+        while (val >= 0x80)
+        {
+            WriteBits((int)((val & 0x7F) | 0x80), 8);
+            val >>= 7;
+        }
+        WriteBits((int)val, 8);
     }
 
     private static int WriteReverseUVarint(byte[] output, int pos, int val)
@@ -150,6 +167,15 @@ public class RleWriter
 /// </summary>
 public class RleReader
 {
+    private const int RunLengthEscape = 269;
+    private const int RunLengthEscapeSentinel = 255;
+
+    // LEB128 varints for a 32-bit value never need more than 5 continuation bytes. Capping
+    // both varint readers here keeps every shift strictly below 32, so a uint/int shift can
+    // never wrap via C#'s "shift count masked to the low 5 bits" rule and silently fold a
+    // high byte's bits back onto ones already decoded.
+    private const int MaxVarintBytes = 5;
+
     private byte[] _buf = null!;
     private int _bytePos;
     private int _currentByte;
@@ -158,11 +184,19 @@ public class RleReader
     private int _remaining;
     private bool _initialized;
 
+    // Ground truth for how many encoded bits this buffer's RLE region contains, taken from
+    // the trailing reverse-varint written by the encoder. Every ReadBit() call is checked
+    // against it so a corrupted run-length code fails fast instead of silently reading past
+    // the end of its own region.
+    private int _numBits;
+    private int _bitsRead;
+
     public void Reset(byte[] buf)
     {
         _buf = buf;
         _currentByte = 0;
         _bitPos = 8;
+        _bitsRead = 0;
 
         var (numBits, varintLen) = ReadReverseUVarint(buf);
         if (numBits == 0)
@@ -171,8 +205,15 @@ public class RleReader
             return;
         }
 
+        if (numBits < 0)
+            throw new InvalidOperationException("RLE header declares a negative bit length");
+
+        _numBits = numBits;
         var numRleBytes = (numBits + 7) / 8;
         _bytePos = buf.Length - varintLen - numRleBytes;
+        if (_bytePos < 0)
+            throw new InvalidOperationException("RLE header declares a bit length larger than the buffer");
+
         _value = ReadBit() == 1;
         _remaining = DecodeRunLength();
         _initialized = true;
@@ -206,6 +247,9 @@ public class RleReader
 
     private int ReadBit()
     {
+        if (_bitsRead++ >= _numBits)
+            throw new InvalidOperationException("RLE stream overran its declared bit length");
+
         if (_bitPos == 8)
         {
             _currentByte = _buf[_bytePos++];
@@ -231,13 +275,38 @@ public class RleReader
         if (ReadBit() == 0) return ReadBits(1) + 2;
         if (ReadBit() == 0) return ReadBits(1) + 4;
         if (ReadBit() == 0) return ReadBits(3) + 6;
-        return ReadBits(8) + 14;
+
+        var payload = ReadBits(8);
+        if (payload < RunLengthEscapeSentinel)
+            return payload + 14;
+
+        var extra = ReadUVarintBits();
+        if (extra > int.MaxValue - RunLengthEscape)
+            throw new InvalidOperationException("RLE run length too large");
+        return RunLengthEscape + (int)extra;
+    }
+
+    private uint ReadUVarintBits()
+    {
+        uint result = 0;
+        var shift = 0;
+        for (var group = 0; ; group++)
+        {
+            if (group >= MaxVarintBytes)
+                throw new InvalidOperationException("RLE escape varint too long");
+
+            var b = (uint)ReadBits(8);
+            result |= (b & 0x7F) << shift;
+            if (b < 0x80)
+                return result;
+            shift += 7;
+        }
     }
 
     private static (int value, int bytesRead) ReadReverseUVarint(byte[] buf)
     {
         var value = 0;
-        for (var i = 0; i < buf.Length; i++)
+        for (var i = 0; i < buf.Length && i < MaxVarintBytes; i++)
         {
             var b = buf[buf.Length - 1 - i];
             value |= (b & 0x7F) << (i * 7);

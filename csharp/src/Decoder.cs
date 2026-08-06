@@ -32,6 +32,20 @@ public class Decoder
         _dict.Clear();
     }
 
+    // A length/count read directly off the wire can never legitimately exceed how many
+    // bytes remain in the buffer (every element costs at least 1 byte), and can never be
+    // negative. Validating here -- before the value is used to size a
+    // List/DPDict/DPList/string allocation -- catches both a corrupted length and a
+    // ulong-to-long/int cast that wrapped negative, instead of either attempting a huge
+    // upfront allocation or throwing a generic BCL exception deep inside the call.
+    private int ValidateLength(long raw)
+    {
+        if (raw < 0 || raw > _buffer.Length - _pos)
+            throw new InvalidOperationException(
+                $"Declared length {raw} is invalid for a buffer with {_buffer.Length - _pos} bytes remaining");
+        return (int)raw;
+    }
+
     // Primitive methods
 
     public string NextString()
@@ -41,8 +55,9 @@ public class Decoder
             return "";
         if (lenOrIdx > 0)
         {
-            var str = Encoding.UTF8.GetString(_buffer, _pos, (int)lenOrIdx);
-            _pos += (int)lenOrIdx;
+            var len = ValidateLength(lenOrIdx);
+            var str = Encoding.UTF8.GetString(_buffer, _pos, len);
+            _pos += len;
             _dict.Add(str);
             return str;
         }
@@ -81,7 +96,7 @@ public class Decoder
 
     public List<T> NextArray<T>(Func<T> innerRead)
     {
-        var len = (int)NextUInt();
+        var len = ValidateLength((long)NextUInt());
         var arr = new List<T>(len);
         for (var i = 0; i < len; i++)
             arr.Add(innerRead());
@@ -93,7 +108,7 @@ public class Decoder
         Func<TValue> innerValRead)
         where TKey : notnull
     {
-        var len = (int)NextUInt();
+        var len = ValidateLength((long)NextUInt());
         var dict = new DPDict<TKey, TValue>(Tracker, len);
         for (var i = 0; i < len; i++)
             dict[innerKeyRead()] = innerValRead();
@@ -245,7 +260,7 @@ public class Decoder
 
     public DPList<T> NextArrayDiff<T>(DPList<T> arr, Func<T> decode, Func<T, T> decodeDiff)
     {
-        var newLen = (int)NextUInt();
+        var newLen = ValidateLength((long)NextUInt());
         var copyLen = Math.Min(arr.Count, newLen);
         // Prefill via the internal copy (same reasoning as NextRecordDiff) so the aliasing
         // guard on Add() doesn't fire on children still parented to `arr`.
